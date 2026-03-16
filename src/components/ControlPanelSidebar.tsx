@@ -1,9 +1,7 @@
 import React from "react";
 import {
   Home,
-  NotebookPen,
   BookOpen,
-  Upload,
   Gift,
   Settings,
   HelpCircle,
@@ -13,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "./lib/utils";
 import SupportDropdown from "./ui/SupportDropdown";
 
-export type ControlPanelView = "home" | "personal-notes" | "dictionary" | "upload";
+export type ControlPanelView = "home" | "dictionary";
 
 interface ControlPanelSidebarProps {
   activeView: ControlPanelView;
@@ -46,8 +44,6 @@ export default function ControlPanelSidebar({
     icon: React.ComponentType<{ size?: number; className?: string }>;
   }[] = [
     { id: "home", label: t("sidebar.home"), icon: Home },
-    { id: "personal-notes", label: t("sidebar.notes"), icon: NotebookPen },
-    { id: "upload", label: t("sidebar.upload"), icon: Upload },
     { id: "dictionary", label: t("sidebar.dictionary"), icon: BookOpen },
   ];
 

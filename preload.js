@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer, webUtils } = require("electron");
+const { contextBridge, ipcRenderer } = require("electron");
 
 let runtimeConfig = {
   apiUrl: "",
@@ -69,78 +69,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => ipcRenderer.removeListener("corrections-learned", listener);
   },
   undoLearnedCorrections: (words) => ipcRenderer.invoke("undo-learned-corrections", words),
-
-  // Note functions
-  saveNote: (title, content, noteType, sourceFile, audioDuration, folderId) =>
-    ipcRenderer.invoke(
-      "db-save-note",
-      title,
-      content,
-      noteType,
-      sourceFile,
-      audioDuration,
-      folderId
-    ),
-  getNote: (id) => ipcRenderer.invoke("db-get-note", id),
-  getNotes: (noteType, limit, folderId) =>
-    ipcRenderer.invoke("db-get-notes", noteType, limit, folderId),
-  updateNote: (id, updates) => ipcRenderer.invoke("db-update-note", id, updates),
-  deleteNote: (id) => ipcRenderer.invoke("db-delete-note", id),
-  exportNote: (noteId, format) => ipcRenderer.invoke("export-note", noteId, format),
-
-  // Folder functions
-  getFolders: () => ipcRenderer.invoke("db-get-folders"),
-  createFolder: (name) => ipcRenderer.invoke("db-create-folder", name),
-  deleteFolder: (id) => ipcRenderer.invoke("db-delete-folder", id),
-  renameFolder: (id, name) => ipcRenderer.invoke("db-rename-folder", id, name),
-  getFolderNoteCounts: () => ipcRenderer.invoke("db-get-folder-note-counts"),
-
-  // Action functions
-  getActions: () => ipcRenderer.invoke("db-get-actions"),
-  getAction: (id) => ipcRenderer.invoke("db-get-action", id),
-  createAction: (name, description, prompt, icon) =>
-    ipcRenderer.invoke("db-create-action", name, description, prompt, icon),
-  updateAction: (id, updates) => ipcRenderer.invoke("db-update-action", id, updates),
-  deleteAction: (id) => ipcRenderer.invoke("db-delete-action", id),
-
-  // Audio file operations
-  selectAudioFile: () => ipcRenderer.invoke("select-audio-file"),
-  getFileSize: (filePath) => ipcRenderer.invoke("get-file-size", filePath),
-  transcribeAudioFile: (filePath, options) =>
-    ipcRenderer.invoke("transcribe-audio-file", filePath, options),
-  getPathForFile: (file) => webUtils.getPathForFile(file),
-
-  onNoteAdded: (callback) => {
-    const listener = (_event, note) => callback?.(note);
-    ipcRenderer.on("note-added", listener);
-    return () => ipcRenderer.removeListener("note-added", listener);
-  },
-  onNoteUpdated: (callback) => {
-    const listener = (_event, note) => callback?.(note);
-    ipcRenderer.on("note-updated", listener);
-    return () => ipcRenderer.removeListener("note-updated", listener);
-  },
-  onNoteDeleted: (callback) => {
-    const listener = (_event, data) => callback?.(data);
-    ipcRenderer.on("note-deleted", listener);
-    return () => ipcRenderer.removeListener("note-deleted", listener);
-  },
-
-  onActionCreated: (callback) => {
-    const listener = (_event, action) => callback?.(action);
-    ipcRenderer.on("action-created", listener);
-    return () => ipcRenderer.removeListener("action-created", listener);
-  },
-  onActionUpdated: (callback) => {
-    const listener = (_event, action) => callback?.(action);
-    ipcRenderer.on("action-updated", listener);
-    return () => ipcRenderer.removeListener("action-updated", listener);
-  },
-  onActionDeleted: (callback) => {
-    const listener = (_event, data) => callback?.(data);
-    ipcRenderer.on("action-deleted", listener);
-    return () => ipcRenderer.removeListener("action-deleted", listener);
-  },
 
   onTranscriptionAdded: (callback) => {
     const listener = (_event, transcription) => callback?.(transcription);
@@ -347,15 +275,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   cloudStreamingUsage: (text, audioDurationSeconds, opts) =>
     ipcRenderer.invoke("cloud-streaming-usage", text, audioDurationSeconds, opts),
   getSttConfig: () => ipcRenderer.invoke("get-stt-config"),
-
-  // Cloud audio file transcription
-  transcribeAudioFileCloud: (filePath) =>
-    ipcRenderer.invoke("transcribe-audio-file-cloud", filePath),
-  transcribeAudioFileByok: (options) => ipcRenderer.invoke("transcribe-audio-file-byok", options),
-  onUploadTranscriptionProgress: registerListener(
-    "upload-transcription-progress",
-    (callback) => (_event, data) => callback(data)
-  ),
 
   // Referral stats
   getReferralStats: () => ipcRenderer.invoke("get-referral-stats"),

@@ -16,16 +16,13 @@ import {
 import ControlPanelSidebar, { type ControlPanelView } from "./ControlPanelSidebar";
 import WindowControls from "./WindowControls";
 import { getCachedPlatform } from "../utils/platform";
-import { setActiveNoteId, setActiveFolderId } from "../stores/noteStore";
 import HistoryView from "./HistoryView";
 
 const platform = getCachedPlatform();
 
 const SettingsModal = React.lazy(() => import("./SettingsModal"));
 const ReferralModal = React.lazy(() => import("./ReferralModal"));
-const PersonalNotesView = React.lazy(() => import("./notes/PersonalNotesView"));
 const DictionaryView = React.lazy(() => import("./DictionaryView"));
-const UploadAudioView = React.lazy(() => import("./notes/UploadAudioView"));
 
 export default function ControlPanel() {
   const { t } = useTranslation();
@@ -300,29 +297,9 @@ export default function ControlPanel() {
                 }}
               />
             )}
-            {activeView === "personal-notes" && (
-              <Suspense fallback={null}>
-                <PersonalNotesView />
-              </Suspense>
-            )}
             {activeView === "dictionary" && (
               <Suspense fallback={null}>
                 <DictionaryView />
-              </Suspense>
-            )}
-            {activeView === "upload" && (
-              <Suspense fallback={null}>
-                <UploadAudioView
-                  onNoteCreated={(noteId, folderId) => {
-                    setActiveNoteId(noteId);
-                    if (folderId) setActiveFolderId(folderId);
-                    setActiveView("personal-notes");
-                  }}
-                  onOpenSettings={(section) => {
-                    setSettingsSection(section);
-                    setShowSettings(true);
-                  }}
-                />
               </Suspense>
             )}
           </div>
