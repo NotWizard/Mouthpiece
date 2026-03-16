@@ -1,0 +1,1423 @@
+{
+  "settings": {
+    "language": {
+      "sectionTitle": "Язык",
+      "sectionDescription": "Настройте язык интерфейса и транскрипции независимо друг от друга",
+      "uiLabel": "Язык интерфейса",
+      "uiDescription": "Выберите язык интерфейса Mouthpiece",
+      "transcriptionLabel": "Язык транскрипции",
+      "transcriptionDescription": "Выберите язык, на котором вы говорите, для более точной транскрипции"
+    }
+  },
+  "tray": {
+    "toggleDictation": {
+      "show": "Показать панель диктовки",
+      "hide": "Скрыть панель диктовки"
+    },
+    "openControlPanel": "Открыть панель управления",
+    "quit": "Закрыть Mouthpiece",
+    "tooltip": "Mouthpiece — голосовая диктовка"
+  },
+  "menu": {
+    "appLabel": "Mouthpiece",
+    "quit": "Закрыть Mouthpiece",
+    "speech": "Речь",
+    "help": "Справка",
+    "learnMore": "Узнать больше",
+    "file": "Файл",
+    "closeWindow": "Закрыть окно"
+  },
+  "window": {
+    "voiceRecorderTitle": "Диктофон",
+    "controlPanelTitle": "Панель управления"
+  },
+  "dialog": {
+    "openLink": {
+      "title": "Не удалось открыть ссылку",
+      "message": "Не удалось открыть ссылку в браузере:\n{{url}}\n\nОшибка: {{error}}"
+    },
+    "loadFailure": {
+      "title": "Mouthpiece не удалось загрузить",
+      "message": "Mouthpiece не смог загрузить интерфейс.",
+      "detail": {
+        "window": "Окно: {{windowName}}",
+        "error": "Ошибка {{errorCode}}: {{errorDescription}}",
+        "url": "URL: {{url}}",
+        "hint": "Попробуйте переустановить приложение или запустить с флагом --log-level=debug."
+      }
+    }
+  },
+  "startup": {
+    "error": {
+      "title": "Ошибка запуска Mouthpiece",
+      "message": "Не удалось запустить приложение:\n\n{{error}}\n\nПожалуйста, сообщите об этой проблеме."
+    },
+    "globeHotkey": {
+      "title": "Клавиша Globe недоступна",
+      "message": "Mouthpiece не смог активировать горячую клавишу Globe.",
+      "details": {
+        "unknown": "Неизвестная ошибка при запуске слушателя клавиши Globe.",
+        "fallback": "Сочетание с клавишей Globe будет отключено; остальные горячие клавиши продолжат работать.",
+        "devHint": "Выполните `npm run compile:globe` и пересоберите приложение для генерации бинарного файла слушателя.",
+        "reinstallHint": "Попробуйте переустановить Mouthpiece или обратитесь в поддержку, если проблема сохраняется."
+      }
+    }
+  },
+  "hotkey": {
+    "errors": {
+      "callbackRequired": "Для настройки горячей клавиши необходима функция обратного вызова",
+      "globeOnlyMac": "Клавиша Globe доступна только на macOS.",
+      "alreadyRegistered": "«{{hotkey}}» уже зарегистрирована другим приложением.",
+      "osReserved": "«{{hotkey}}» может быть зарезервирована вашей операционной системой.",
+      "registrationFailed": "Не удалось зарегистрировать «{{hotkey}}». Возможно, она используется другим приложением.",
+      "trySuggestions": "Попробуйте: {{suggestions}}"
+    }
+  },
+  "systemSettings": {
+    "microphone": "Откройте системные настройки для настройки разрешений микрофона.",
+    "sound": "Откройте системные настройки звука (например, pavucontrol).",
+    "accessibility": "Настройки универсального доступа недоступны на этой платформе."
+  },
+  "titleBar": {
+    "quitTitle": "Закрыть Mouthpiece",
+    "quitConfirmTitle": "Закрыть Mouthpiece?",
+    "quitConfirmDescription": "Это закроет Mouthpiece и остановит фоновые процессы.",
+    "quit": "Закрыть",
+    "cancel": "Отмена"
+  },
+  "windowControls": {
+    "minimize": "Свернуть",
+    "maximize": "Развернуть",
+    "restore": "Восстановить",
+    "close": "Закрыть"
+  },
+  "windows": {
+    "pttUnavailable": "Нативный слушатель Push-to-Talk недоступен"
+  },
+  "common": {
+    "back": "Назад",
+    "next": "Далее",
+    "complete": "Готово",
+    "reset": "Сбросить",
+    "refresh": "Обновить",
+    "download": "Скачать",
+    "cancel": "Отмена",
+    "recommended": "Рекомендуется",
+    "active": "Активно",
+    "cloud": "Облако",
+    "local": "Локально",
+    "apiKey": "API-ключ",
+    "model": "Модель",
+    "loading": "Загрузка...",
+    "unknown": "Неизвестно",
+    "availableModels": "Доступные модели",
+    "fast": "Быстрый",
+    "hold": "Удержание",
+    "private": "Приватный",
+    "tap": "Нажатие",
+    "close": "Закрыть",
+    "dismiss": "Скрыть"
+  },
+  "onboarding": {
+    "steps": {
+      "welcome": "Приветствие",
+      "setup": "Настройка",
+      "permissions": "Разрешения",
+      "activation": "Активация"
+    },
+    "hotkey": {
+      "couldNotRegisterTitle": "Не удалось зарегистрировать горячую клавишу",
+      "couldNotRegisterDescription": "Эта комбинация клавиш, возможно, уже используется. Попробуйте другую."
+    },
+    "setup": {
+      "title": "Настройка",
+      "description": "Выберите язык и предоставьте разрешения",
+      "language": "Язык"
+    },
+    "permissions": {
+      "title": "Разрешения",
+      "microphoneTitle": "Микрофон",
+      "microphoneDescription": "Для записи голоса",
+      "grant": "Предоставить",
+      "accessibilityTitle": "Универсальный доступ",
+      "accessibilityDescription": "Для вставки текста в приложения",
+      "testAndGrant": "Проверить и предоставить",
+      "requiredForApp": "Необходимо для работы Mouthpiece",
+      "microphoneRequired": "Требуется доступ к микрофону"
+    },
+    "transcription": {
+      "title": "Настройка транскрипции",
+      "description": "Выберите режим и провайдера",
+      "preferredLanguage": "Предпочитаемый язык"
+    },
+    "activation": {
+      "title": "Настройка активации",
+      "description": "Настройте способ запуска диктовки",
+      "hotkey": "Горячая клавиша",
+      "mode": "Режим",
+      "tapDescription": "Нажмите для старта/остановки",
+      "holdDescription": "Удерживайте во время речи",
+      "test": "Тест",
+      "hotkeyToStartStop": "{{hotkey}} для старта/остановки",
+      "holdHotkey": "Удерживайте {{hotkey}}",
+      "textareaPlaceholder": "Нажмите сюда и используйте горячую клавишу для диктовки..."
+    }
+  },
+  "controlPanel": {
+    "update": {
+      "readyTitle": "Обновление готово к установке",
+      "readyDescription": "Нажмите «Установить обновление», чтобы перезапустить приложение с новой версией.",
+      "problemTitle": "Проблема с обновлением",
+      "problemDescription": "Не удалось завершить обновление. Попробуйте позже.",
+      "installTitle": "Установить обновление",
+      "installDescription": "Mouthpiece перезапустится для применения обновления. Текущая работа будет сохранена.",
+      "couldNotInstallTitle": "Не удалось установить обновление",
+      "couldNotInstallDescription": "Что-то пошло не так. Попробуйте ещё раз.",
+      "couldNotDownloadTitle": "Не удалось скачать обновление",
+      "couldNotDownloadDescription": "Проверьте подключение к интернету и попробуйте снова.",
+      "installing": "Установка...",
+      "installButton": "Установить обновление",
+      "availableButton": "Доступно обновление"
+    },
+    "history": {
+      "couldNotLoadTitle": "Не удалось загрузить историю",
+      "couldNotLoadDescription": "Произошла ошибка при загрузке транскрипций. Попробуйте закрыть и снова открыть приложение.",
+      "copiedTitle": "Скопировано!",
+      "copiedDescription": "Текст скопирован в буфер обмена",
+      "couldNotCopyTitle": "Не удалось скопировать",
+      "couldNotCopyDescription": "Произошла ошибка при копировании в буфер обмена. Попробуйте снова.",
+      "deleteTitle": "Удалить транскрипцию",
+      "deleteDescription": "Эта транскрипция будет удалена безвозвратно.",
+      "couldNotDeleteTitle": "Не удалось удалить",
+      "couldNotDeleteDescription": "Эта транскрипция, возможно, уже была удалена.",
+      "couldNotDeleteDescriptionGeneric": "Что-то пошло не так. Попробуйте снова.",
+      "empty": "Транскрипций пока нет",
+      "press": "Нажмите",
+      "toStart": "чтобы начать",
+      "dateGroups": {
+        "today": "Сегодня",
+        "yesterday": "Вчера"
+      }
+    },
+    "cloudMigration": {
+      "title": "Добро пожаловать в Mouthpiece Pro",
+      "description": "Ваш 7-дневный бесплатный пробный период активирован! Мы переключили транскрипцию на Mouthpiece Cloud для более быстрых и точных результатов. Ваши предыдущие настройки сохранены — вы можете вернуться к ним в любой момент в настройках.",
+      "viewSettings": "Открыть настройки"
+    },
+    "aiCta": {
+      "title": "Улучшите транскрипции с помощью ИИ",
+      "description": "Автоматически исправляйте грамматику, пунктуацию и форматирование прямо во время диктовки.",
+      "enable": "Включить ИИ-улучшение"
+    },
+    "loading": "Загрузка...",
+    "gpu": {
+      "bannerTitle": "Доступно ускорение GPU",
+      "bannerDescription": "Включите ускорение GPU для повышения производительности.",
+      "enableButton": "Включить GPU",
+      "dismissButton": "Не сейчас"
+    }
+  },
+  "reasoning": {
+    "mode": {
+      "cloud": "Облако",
+      "local": "Локально",
+      "localDescription": "Работает на вашем устройстве. Полная приватность, работает офлайн.",
+      "cloudDescription": "Продвинутые модели через API. Быстро и мощно, требуется интернет."
+    },
+    "custom": {
+      "endpointWithProtocol": "Введите полный базовый URL, включая протокол (например, https://server/v1).",
+      "httpsRequired": "Требуется HTTPS (HTTP допускается только для локальной сети).",
+      "endpointUnauthorized": "Конечная точка отклонила запрос (401/403). Добавьте API-ключ или измените настройки авторизации сервера.",
+      "endpointTitle": "URL конечной точки",
+      "endpointExamples": "Примеры:",
+      "ollama": "(Ollama)",
+      "localAi": "(LocalAI)",
+      "apiKeyOptional": "API-ключ (необязательно)",
+      "apiKeyHelp": "Необязательно. Отправляется как Bearer-токен для аутентификации. Это не ваш API-ключ OpenAI.",
+      "applyAndRefresh": "Применить и обновить",
+      "queryPrefix": "Мы запросим",
+      "querySuffix": "для получения списка доступных моделей.",
+      "modelsReloadHint": "Модели перезагрузятся, когда вы покинете поле URL или нажмёте «Применить и обновить».",
+      "enterEndpoint": "Введите URL конечной точки выше для загрузки моделей.",
+      "fetchingModels": "Получение списка моделей с конечной точки...",
+      "noModels": "Модели не найдены. Проверьте URL конечной точки.",
+      "providerName": "Пользовательский",
+      "ownerLabel": "Автор: {{owner}}",
+      "unableToLoadModels": "Не удалось загрузить модели с конечной точки."
+    },
+    "getApiKey": "Получить API-ключ ->",
+    "selectModel": "Выберите модель",
+    "availableModels": "Доступные модели"
+  },
+  "transcription": {
+    "deleteModel": {
+      "title": "Удалить модель",
+      "description": "Вы уверены, что хотите удалить эту модель? Для повторного использования её нужно будет скачать заново."
+    },
+    "parakeet": {
+      "multilingual": "25 языков",
+      "english": "Английский"
+    },
+    "apiKeyOptional": "API-ключ (необязательно)",
+    "getKey": "Получить ключ ->",
+    "endpointUrl": "URL конечной точки",
+    "customProvider": "Пользовательский",
+    "fallback": {
+      "whisperModelDescription": "Модель",
+      "parakeetModelDescription": "Модель NVIDIA Parakeet"
+    },
+    "whisperModels": "Модели Whisper"
+  },
+  "hooks": {
+    "audioRecording": {
+      "errorTitles": {
+        "sessionExpired": "Сессия истекла",
+        "offline": "Нет подключения к интернету",
+        "dailyLimitReached": "Дневной лимит достигнут"
+      },
+      "fallback": {
+        "title": "Резервный режим",
+        "description": "Локальный Whisper не сработал. Использован OpenAI API."
+      },
+      "noAudio": {
+        "title": "Звук не обнаружен",
+        "description": "В записи не обнаружен звук. Попробуйте ещё раз."
+      },
+      "pasteCopied": {
+        "title": "Скопировано в буфер обмена",
+        "description": "Автоматическая вставка не завершилась. Текст находится в буфере обмена. Вставьте его вручную с помощью Cmd+V или Ctrl+V."
+      }
+    },
+    "clipboard": {
+      "pasteFailed": {
+        "title": "Ошибка вставки из буфера обмена",
+        "description": "Не удалось вставить из буфера обмена. Попробуйте ввести текст вручную или использовать Cmd+V/Ctrl+V."
+      }
+    },
+    "hotkeyRegistration": {
+      "titles": {
+        "invalidHotkey": "Недопустимая горячая клавиша",
+        "notRegistered": "Горячая клавиша не зарегистрирована",
+        "saved": "Горячая клавиша сохранена",
+        "error": "Ошибка горячей клавиши"
+      },
+      "errors": {
+        "enterValidHotkey": "Введите допустимую горячую клавишу",
+        "unsupportedShortcut": "Это сочетание клавиш не поддерживается.",
+        "couldNotRegister": "Не удалось зарегистрировать эту клавишу. Выберите другую.",
+        "failedToRegister": "Не удалось зарегистрировать горячую клавишу. Попробуйте ещё раз."
+      },
+      "messages": {
+        "nowUsing": "Теперь для диктовки используется {{hotkey}}"
+      }
+    },
+    "modelDownload": {
+      "errors": {
+        "timeout": "Превышено время ожидания загрузки. Проверьте подключение к интернету и попробуйте снова.",
+        "notFound": "Не удалось подключиться к серверу загрузки. Проверьте подключение к интернету.",
+        "corrupted": "Загрузка не завершена или файл повреждён. Попробуйте ещё раз.",
+        "rateLimited": "Сервер загрузки ограничивает количество запросов. Подождите несколько минут и попробуйте снова.",
+        "server": "Ошибка сервера ({{error}}). Попробуйте позже.",
+        "generic": "Ошибка загрузки: {{error}}",
+        "extractionFailed": "Модель скачана, но установка не удалась. Нажмите «Скачать» для повторной установки без повторной загрузки.",
+        "unknown": "Неизвестная ошибка"
+      },
+      "downloadFailed": {
+        "title": "Ошибка загрузки"
+      },
+      "installationFailed": {
+        "title": "Ошибка установки"
+      },
+      "downloadInProgress": {
+        "title": "Загрузка в процессе",
+        "description": "Дождитесь завершения текущей загрузки или отмените её."
+      },
+      "modelDeleted": {
+        "title": "Модель удалена",
+        "descriptionWithSpace": "Модель успешно удалена! Освобождено {{sizeMb}} МБ дискового пространства.",
+        "description": "Модель успешно удалена!"
+      },
+      "deleteFailed": {
+        "title": "Ошибка удаления",
+        "description": "Не удалось удалить модель: {{error}}"
+      },
+      "downloadCancelled": {
+        "title": "Загрузка отменена",
+        "description": "Загрузка была отменена."
+      }
+    },
+    "permissions": {
+      "paths": {
+        "windowsMicrophone": "Параметры -> Конфиденциальность -> Микрофон",
+        "linuxSound": "системные настройки звука",
+        "defaultSound": "Системные настройки -> Звук -> Вход",
+        "linuxPrivacy": "системные настройки конфиденциальности",
+        "defaultPrivacy": "Системные настройки -> Конфиденциальность и безопасность -> Микрофон"
+      },
+      "micErrors": {
+        "accessFailed": "Не удалось получить доступ к микрофону. Попробуйте ещё раз.",
+        "noMicrophones": "Микрофоны не обнаружены. Подключите микрофон или выберите его в {{settingsPath}}.",
+        "permissionDenied": "Разрешение отклонено. Откройте {{privacyPath}} и разрешите доступ для Mouthpiece.",
+        "couldNotStart": "Не удалось запустить выбранный микрофон. Выберите устройство ввода в {{settingsPath}} и повторите тест.",
+        "noActiveInput": "Активное устройство ввода звука не найдено. Выберите микрофон в {{settingsPath}}.",
+        "unknown": "Ошибка доступа к микрофону: {{error}}. Выберите другое устройство ввода и попробуйте снова.",
+        "unknownFallback": "Неизвестная ошибка"
+      },
+      "settingsTitles": {
+        "microphone": "Настройки микрофона",
+        "sound": "Настройки звука",
+        "accessibility": "Настройки универсального доступа"
+      },
+      "settingsErrors": {
+        "unableToOpenMicrophone": "Не удалось открыть настройки микрофона. Откройте системные настройки вручную.",
+        "unableToOpenSound": "Не удалось открыть настройки звука. Откройте системные настройки вручную.",
+        "unableToOpenAccessibility": "Не удалось открыть настройки универсального доступа. Откройте системные настройки вручную."
+      },
+      "micUnavailable": "API микрофона недоступны в этой среде. Перезапустите приложение.",
+      "titles": {
+        "microphoneUnavailable": "Микрофон недоступен",
+        "microphonePermissionRequired": "Требуется разрешение на использование микрофона",
+        "accessibilityNeeded": "Требуются разрешения универсального доступа",
+        "readyToGo": "Всё готово!",
+        "waylandClipboardMode": "Режим буфера обмена в Wayland",
+        "optionalPasteTool": "Дополнительно: установите утилиту вставки"
+      },
+      "descriptions": {
+        "accessibilityNeeded": "Предоставьте разрешения универсального доступа в системных настройках для автоматической вставки текста.",
+        "windowsReady": "Windows не требует специальных разрешений для автоматической вставки. Всё готово!",
+        "linuxReadyWithMethod": "Автоматическая вставка доступна через {{method}}. Всё готово!",
+        "waylandClipboardMode": "Автоматическая вставка недоступна в этой сессии Wayland. Mouthpiece скопирует текст в буфер обмена, и вы сможете вставить его с помощью Ctrl+V.",
+        "optionalPasteTool": "Для автоматической вставки установите {{tool}}:\n\n{{installCmd}}{{waylandNote}}\n\nБез этого инструмента Mouthpiece будет копировать текст в буфер обмена, и вы сможете вставить его с помощью Ctrl+V."
+      },
+      "alerts": {
+        "accessibilityNeeded": "Требуются разрешения универсального доступа! Предоставьте их в системных настройках."
+      },
+      "notes": {
+        "waylandWtype": "\n\nПримечание: для приложений XWayland также работает xdotool.",
+        "waylandXwaylandOnly": "\n\nПримечание: автоматическая вставка работает только для приложений XWayland."
+      },
+      "labels": {
+        "defaultPasteTool": "xdotool",
+        "xdotoolXwayland": "xdotool (приложения XWayland)"
+      },
+      "accessibilityTestText": "Тест универсального доступа Mouthpiece",
+      "warning": {
+        "messages": {
+          "macos": "Проверьте настройки звука, чтобы выбрать устройство ввода",
+          "windows": "Проверьте настройки Windows, чтобы выбрать устройство ввода",
+          "linux": "Проверьте системные настройки звука, чтобы выбрать устройство ввода"
+        },
+        "soundLabel": "Звук",
+        "privacyLabel": "Конфиденциальность"
+      }
+    }
+  },
+  "auth": {
+    "cloudNotConfigured": "Облако не настроено",
+    "common": {
+      "back": "Назад",
+      "continue": "Продолжить",
+      "or": "или"
+    },
+    "emailStep": {
+      "continueWithEmail": "Продолжить с электронной почтой",
+      "continueWithoutAccount": "Продолжить без аккаунта",
+      "emailPlaceholder": "you@example.com"
+    },
+    "errors": {
+      "accountExistsSignIn": "Аккаунт с этой электронной почтой уже существует. Войдите в систему.",
+      "accountNotFoundCreate": "Аккаунт с этой электронной почтой не найден. Создайте аккаунт.",
+      "authNotConfigured": "Аутентификация не настроена",
+      "createAccountFailed": "Не удалось создать аккаунт",
+      "failedProviderSignIn": "Не удалось войти через {{provider}}",
+      "failedUserCheck": "Не удалось проверить аккаунт пользователя",
+      "generic": "Что-то пошло не так. Попробуйте ещё раз.",
+      "invalidCredentials": "Неверный адрес электронной почты или пароль",
+      "plusAliasUnsupported": "Алиасы электронной почты с символом «+» не поддерживаются"
+    },
+    "getStarted": "Начать",
+    "legal": {
+      "and": "и",
+      "prefix": "Продолжая, вы соглашаетесь с нашими",
+      "privacy": "Политикой конфиденциальности",
+      "suffix": "",
+      "terms": "Условиями использования"
+    },
+    "passwordForm": {
+      "createAccount": "Создать аккаунт",
+      "createAccountButton": "Создать аккаунт",
+      "createAccountLink": "Создать аккаунт",
+      "createPasswordPlaceholder": "Придумайте пароль",
+      "creatingAccount": "Создание аккаунта...",
+      "enterPasswordPlaceholder": "Введите пароль",
+      "forgotPassword": "Забыли пароль?",
+      "fullNamePlaceholder": "Полное имя",
+      "haveAccount": "Уже есть аккаунт?",
+      "newHere": "Впервые здесь?",
+      "passwordMinLength": "Пароль должен содержать не менее 8 символов",
+      "signIn": "Войти",
+      "signInLink": "Войти",
+      "signingIn": "Вход...",
+      "welcomeBack": "С возвращением"
+    },
+    "signedIn": {
+      "ready": "Готово",
+      "welcomeBack": "С возвращением",
+      "welcomeBackName": "С возвращением, {{name}}"
+    },
+    "social": {
+      "completeInBrowser": "Завершите вход в браузере",
+      "continueWithGoogle": "Продолжить с Google"
+    },
+    "welcomeSubtitle": "Диктуйте где угодно голосом",
+    "welcomeTitle": "Добро пожаловать в Mouthpiece",
+    "sessionExpired": "Сессия истекла. Пожалуйста, войдите снова."
+  },
+  "cleanupPrompt": "Очистка",
+  "developerSection": {
+    "currentLogFile": "Текущий файл логов",
+    "debugMode": {
+      "disabledDescription": "Включите для сбора подробной диагностической информации",
+      "enabledDescription": "Ведётся запись обработки аудио, API-запросов и системных операций",
+      "label": "Режим отладки"
+    },
+    "description": "Собирайте подробные логи для диагностики проблем",
+    "openLogsFolder": "Открыть папку логов",
+    "performanceNote": {
+      "description": "Отладочное логирование непрерывно записывает данные на диск и может незначительно влиять на производительность. Отключайте, когда не занимаетесь устранением неполадок.",
+      "label": "Примечание"
+    },
+    "sharing": {
+      "footer": "Логи не содержат API-ключей и конфиденциальных данных",
+      "steps": {
+        "0": "Воспроизведите проблему при включённом режиме отладки",
+        "1": "Нажмите «Открыть папку логов» выше",
+        "2": "Прикрепите последний файл логов к отчёту об ошибке"
+      },
+      "title": "Отправка логов в поддержку"
+    },
+    "title": "Отладочное логирование",
+    "toasts": {
+      "copied": {
+        "description": "Путь к файлу логов скопирован в буфер обмена",
+        "title": "Скопировано"
+      },
+      "copyFailed": {
+        "description": "Произошла ошибка при копировании в буфер обмена.",
+        "title": "Не удалось скопировать"
+      },
+      "debugDisabled": {
+        "description": "Отладочное логирование отключено",
+        "title": "Отладочное логирование отключено"
+      },
+      "debugEnabled": {
+        "description": "Подробные логи записываются на диск",
+        "title": "Отладочное логирование включено"
+      },
+      "loadFailed": {
+        "description": "Что-то пошло не так. Попробуйте повторно открыть настройки.",
+        "title": "Не удалось загрузить настройки отладки"
+      },
+      "openLogsFailed": {
+        "description": "Произошла ошибка при открытии папки логов.",
+        "title": "Не удалось открыть папку логов"
+      },
+      "updateFailed": {
+        "description": "Что-то пошло не так. Попробуйте ещё раз.",
+        "title": "Не удалось обновить отладочное логирование"
+      }
+    },
+    "whatGetsLogged": {
+      "items": {
+        "apiRequests": "API-запросы",
+        "audioProcessing": "Обработка аудио",
+        "errorDetails": "Детали ошибок",
+        "ffmpegOperations": "Операции FFmpeg",
+        "systemDiagnostics": "Системная диагностика",
+        "transcriptionPipeline": "Конвейер транскрипции"
+      },
+      "title": "Что записывается в логи"
+    }
+  },
+  "dictionarySuffix": "Суффикс словаря",
+  "emailVerification": {
+    "checkEmailDescription": "Мы отправили ссылку для подтверждения на",
+    "checkEmailTitle": "Проверьте почту",
+    "errors": {
+      "resendFailed": "Не удалось повторно отправить письмо. Попробуйте ещё раз.",
+      "serverUnreachable": "Не удалось подключиться к серверу. Проверьте соединение и попробуйте снова."
+    },
+    "resendButton": "Отправить письмо повторно",
+    "resendIn": "Повторная отправка через {{seconds}} с",
+    "verifiedDescription": "Ваш аккаунт настроен.",
+    "verifiedTitle": "Электронная почта подтверждена",
+    "waiting": "Ожидание подтверждения..."
+  },
+  "errorBoundary": {
+    "description": "Произошла непредвиденная ошибка. Перезагрузите, чтобы попробовать снова.",
+    "reload": "Перезагрузить",
+    "title": "Что-то пошло не так"
+  },
+  "forgotPassword": {
+    "back": "Назад",
+    "backToSignIn": "Вернуться к входу",
+    "emailPlaceholder": "Введите вашу электронную почту",
+    "goBack": "Вернуться",
+    "notConfigured": "Аутентификация ещё не настроена.",
+    "sendResetLink": "Отправить ссылку для сброса",
+    "sending": "Отправка...",
+    "subtitle": "Введите вашу электронную почту, и мы отправим вам ссылку для сброса пароля",
+    "success": {
+      "description": "Мы отправили ссылку для сброса пароля на",
+      "help": "Не получили письмо? Проверьте папку «Спам» или попробуйте снова.",
+      "title": "Проверьте почту",
+      "tryAnother": "Попробовать другой адрес"
+    },
+    "title": "Сброс пароля"
+  },
+  "fullPrompt": "Полный промпт",
+  "hotkeyGuidance": {
+    "blockedDescription": "Эти сочетания заблокированы, так как часто используются системой.",
+    "blockedTitle": "Заблокированные сочетания",
+    "description": "Используйте эти правила для выбора сочетания клавиш, которое не будет конфликтовать с системой.",
+    "examplesTitle": "Допустимые примеры",
+    "platforms": {
+      "linux": "Linux",
+      "macos": "macOS",
+      "windows": "Windows"
+    },
+    "recommended": {
+      "linux": {
+        "0": "Ctrl+Alt+Space",
+        "1": "Super+S",
+        "2": "Ctrl+Alt+D",
+        "3": "Ctrl+Shift+J",
+        "4": "Alt+Space"
+      },
+      "macos": {
+        "0": "⌥Space",
+        "1": "⌃⌥S",
+        "2": "⌃⌥D",
+        "3": "Fn",
+        "4": "⌘⇧J"
+      },
+      "windows": {
+        "0": "Ctrl+Alt+Space",
+        "1": "Ctrl+Shift+S",
+        "2": "Ctrl+Alt+D",
+        "3": "Win+Alt+K"
+      }
+    },
+    "recommendedTitle": "Рекомендуемые сочетания",
+    "rulesTitle": "Правила сочетаний",
+    "showAll": "Показать все",
+    "showFewer": "Показать меньше",
+    "title": "Справка по сочетаниям клавиш",
+    "validationRules": {
+      "0": "Необходимо использовать хотя бы один модификатор (Ctrl, Alt, Shift и т.д.)",
+      "1": "Нельзя использовать зарезервированные системные сочетания",
+      "2": "Одиночные клавиши без модификаторов не допускаются",
+      "3": "Некоторые сочетания могут конфликтовать с другими приложениями"
+    }
+  },
+  "hotkeyInput": {
+    "ariaLabel": "Нажмите комбинацию клавиш для назначения горячей клавиши",
+    "clickToChange": "Нажмите для изменения",
+    "clickToChangeLower": "нажмите для изменения",
+    "clickToSet": "Нажмите для назначения горячей клавиши",
+    "fnCaptureHint": "Нажмите клавишу для комбинации или отпустите для Globe",
+    "fnHeldHint": "+ клавиша или отпустите для Globe",
+    "globe": "Globe",
+    "hotkeyLabel": "Горячая клавиша",
+    "keyHint": "+ клавиша",
+    "listening": "Ожидание...",
+    "pressAnyKey": "Нажмите любую клавишу или Ctrl+Shift+K",
+    "pressAnyKeyMac": "Нажмите любую клавишу или ⌘⇧K",
+    "recording": "Запись",
+    "tryShortcut": "Попробуйте Ctrl+Shift+K",
+    "tryShortcutMac": "Попробуйте ⌘⇧K"
+  },
+  "languageSelector": {
+    "noLanguagesFound": "Языки не найдены",
+    "searchPlaceholder": "Поиск..."
+  },
+  "microphoneSettings": {
+    "builtIn": "(Встроенный)",
+    "errors": {
+      "unableToAccess": "Не удалось получить доступ к микрофону. Проверьте разрешения."
+    },
+    "helpText": "Выберите конкретный микрофон или используйте системные настройки по умолчанию.",
+    "inputDevice": "Устройство ввода",
+    "noBuiltInDetected": "Встроенный микрофон не обнаружен. Используется системный по умолчанию.",
+    "preferBuiltIn": {
+      "description": "Внешние микрофоны могут вызывать задержку или снижение качества транскрипции",
+      "label": "Предпочитать встроенный микрофон"
+    },
+    "selectPlaceholder": "Выберите микрофон",
+    "systemDefault": "Системный по умолчанию",
+    "unknownDevice": "Неизвестное устройство",
+    "using": "Используется:"
+  },
+  "pasteToolsInfo": {
+    "checking": "Проверка системных возможностей...",
+    "installCommands": {
+      "archLinux": "# Arch Linux",
+      "debianUbuntu": "# Debian / Ubuntu",
+      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
+      "fedoraRhel": "# Fedora / RHEL"
+    },
+    "installPrefix": "Для автоматической вставки текста установите",
+    "methodReady": "для автоматической вставки текста",
+    "noteXwaylandAlso": "Примечание: для приложений XWayland также работает xdotool.",
+    "noteXwaylandOnly": "Примечание: автоматическая вставка работает только для приложений XWayland.",
+    "optionalEnableTitle": "Дополнительно: включите автоматическую вставку",
+    "readyTitle": "Автоматическая вставка готова",
+    "recheck": "Проверить снова",
+    "recheckChecking": "Проверка...",
+    "title": "Автоматическая вставка",
+    "usingMethodPrefix": "Используется",
+    "waylandClipboardDescription": "Автоматическая вставка недоступна в этой сессии Wayland. Mouthpiece скопирует текст в буфер обмена, и вы сможете вставить его вручную с помощью Ctrl+V.",
+    "waylandClipboardTitle": "Режим буфера обмена в Wayland",
+    "windowsReady": "Windows поддерживает автоматическую вставку из коробки. Настройка не требуется!",
+    "withoutToolPrefix": "Без этого инструмента Mouthpiece скопирует текст в буфер обмена. Вы сможете вставить его вручную с помощью Ctrl+V.",
+    "xwaylandAppsOnly": "автоматическая вставка работает только для приложений XWayland"
+  },
+  "promptStudio": {
+    "common": {
+      "copied": "Скопировано",
+      "copy": "Копировать",
+      "reset": "Сбросить",
+      "save": "Сохранить"
+    },
+    "defaultTestInput": "Привет, Whispr, какая сегодня погода?",
+    "dialogs": {
+      "reset": {
+        "description": "Промпт сброшен до значения по умолчанию.",
+        "title": "Сброс завершён"
+      },
+      "saved": {
+        "description": "Ваш пользовательский промпт будет использоваться для всей последующей обработки ИИ.",
+        "title": "Промпт сохранён"
+      }
+    },
+    "edit": {
+      "agentNameLabel": "Имя агента:",
+      "cautionLabel": "Внимание",
+      "cautionTextPrefix": "Изменение этого промпта может повлиять на качество транскрипции.",
+      "cautionTextSuffix": "Сохраняйте заполнитель {{agentName}}, чтобы обнаружение агента работало корректно.",
+      "placeholder": "Введите пользовательский системный промпт..."
+    },
+    "tabs": {
+      "customize": "Настроить",
+      "test": "Тест",
+      "view": "Просмотр"
+    },
+    "test": {
+      "addressHint": "Попробуйте обратиться к «{{agentName}}» для проверки режима инструкций",
+      "aiModels": "ИИ-модели",
+      "baseUrlMissing": "Базовый URL для {{provider}} не указан. Добавьте его в настройках ИИ-моделей.",
+      "cleanup": "Очистка",
+      "disabledInSettingsPrefix": "ИИ-улучшение текста отключено.",
+      "disabledInSettingsSuffix": "Включите его в ИИ-моделях для тестирования промптов.",
+      "disabledReasoning": "ИИ-улучшение текста отключено. Включите его в ИИ-моделях для тестирования промптов.",
+      "failed": "Тест не пройден: {{error}}",
+      "inputLabel": "Ввод",
+      "inputPlaceholder": "Введите текст для тестирования...",
+      "instruction": "Инструкция",
+      "modelLabel": "Модель",
+      "noModelSelected": "Модель не выбрана",
+      "none": "Нет",
+      "outputLabel": "Результат",
+      "processing": "Обработка...",
+      "openwhisprCloud": "Mouthpiece Cloud",
+      "providerLabel": "Провайдер",
+      "run": "Запустить тест",
+      "customEndpoint": "Пользовательская конечная точка"
+    },
+    "view": {
+      "customPrompt": "Пользовательский промпт",
+      "defaultPrompt": "Промпт по умолчанию",
+      "modes": {
+        "agent": {
+          "description": "Активируется фразой «{{agentName}}» — выполняет команды, отвечает на вопросы, создаёт контент",
+          "label": "Агент"
+        },
+        "cleanup": {
+          "description": "Быстрый режим — убирает слова-паразиты, исправляет грамматику и пунктуацию",
+          "label": "Очистка"
+        }
+      },
+      "modified": "Изменён"
+    }
+  },
+  "resetPassword": {
+    "backToSignIn": "Вернуться к входу",
+    "confirmPasswordPlaceholder": "Подтвердите новый пароль",
+    "continue": "Продолжить",
+    "errors": {
+      "passwordMinLength": "Пароль должен содержать не менее 8 символов",
+      "passwordsDoNotMatch": "Пароли не совпадают"
+    },
+    "goBack": "Вернуться",
+    "newPasswordPlaceholder": "Новый пароль",
+    "notConfigured": "Аутентификация не настроена.",
+    "passwordMinLength": "Пароль должен содержать не менее 8 символов",
+    "resetButton": "Сбросить пароль",
+    "resetting": "Сброс...",
+    "subtitle": "Введите новый пароль ниже",
+    "success": {
+      "description": "Ваш пароль обновлён. Вы вошли в систему.",
+      "title": "Пароль успешно сброшен"
+    },
+    "title": "Создание нового пароля"
+  },
+  "settingsModal": {
+    "groups": {
+      "app": "Приложение",
+      "speechAi": "Речь и ИИ",
+      "system": "Система"
+    },
+    "sections": {
+      "general": {
+        "description": "Внешний вид, звуки и автозапуск",
+        "label": "Настройки"
+      },
+      "hotkeys": {
+        "description": "Горячая клавиша диктовки и активация",
+        "label": "Горячие клавиши"
+      },
+      "transcription": {
+        "description": "Движок распознавания речи",
+        "label": "Транскрипция"
+      },
+      "intelligence": {
+        "description": "ИИ-модели, агент и промпты",
+        "label": "Интеллект"
+      },
+      "privacyData": {
+        "description": "Конфиденциальность, разрешения и аналитика",
+        "label": "Конфиденциальность и данные"
+      },
+      "system": {
+        "description": "Обновления, хранилище и инструменты разработчика",
+        "label": "Система"
+      }
+    },
+    "title": "Настройки"
+  },
+  "settingsPage": {
+    "agentConfig": {
+      "agentName": "Имя агента",
+      "cleanupExample": "Очистка",
+      "cleanupMode": "Режим очистки",
+      "description": "Назовите вашего ИИ-помощника, чтобы обращаться к нему во время диктовки",
+      "dialogs": {
+        "updatedDescription": "Ваш агент теперь называется «{{name}}». Обращайтесь к нему, говоря «Привет, {{name}}», а затем давайте инструкции.",
+        "updatedTitle": "Имя агента обновлено"
+      },
+      "examplesTitle": "Примеры",
+      "helper": "Выберите что-то короткое и естественное для произношения",
+      "howItWorksDescription": "Когда вы говорите «Привет, {{agentName}}» и затем даёте инструкцию, ИИ переключается из режима очистки в режим инструкций. Без триггерной фразы он просто очищает вашу диктовку.",
+      "howItWorksTitle": "Как это работает",
+      "instructionMode": "Инструкция",
+      "placeholder": "например, Джарвис, Нова, Атлас...",
+      "save": "Сохранить",
+      "title": "Голосовой агент",
+      "examples": {
+        "formalEmail": "Hey {{agentName}}, напиши официальное письмо о бюджете",
+        "professional": "Hey {{agentName}}, сделай это более профессиональным",
+        "bulletPoints": "Hey {{agentName}}, преобразуй это в маркированный список"
+      }
+    },
+    "aiModels": {
+      "customSetup": "Пользовательская настройка",
+      "customSetupDescription": "Используйте собственного провайдера и API-ключ.",
+      "description": "Очищайте транскрипции, обрабатывайте команды и исправляйте ошибки, сохраняя вашу манеру речи.",
+      "enableTextCleanup": "Включить очистку текста",
+      "enableTextCleanupDescription": "ИИ улучшает качество транскрипции",
+      "openwhisprCloud": "Mouthpiece Cloud",
+      "openwhisprCloudDescription": "Просто работает. Настройка не требуется.",
+      "title": "ИИ-улучшение текста",
+      "toasts": {
+        "switchedCloud": {
+          "description": "Улучшение текста будет использовать облачный сервис Mouthpiece.",
+          "title": "Переключено на Mouthpiece Cloud"
+        },
+        "switchedCustom": {
+          "description": "Настройте собственного провайдера и API-ключ.",
+          "title": "Переключено на пользовательскую настройку"
+        }
+      }
+    },
+    "developer": {
+      "clearCache": "Очистить кеш",
+      "dataManagementDescription": "Управляйте кешированными моделями и данными приложения",
+      "dataManagementTitle": "Управление данными",
+      "modelCache": "Кеш моделей",
+      "open": "Открыть",
+      "removeModels": {
+        "confirmText": "Удалить модели",
+        "description": "Будут удалены все локально кешированные модели Whisper ({{path}}), что освободит дисковое пространство. Вы сможете скачать их снова в выборе моделей.",
+        "failedDescription": "Произошла ошибка при удалении моделей. Попробуйте ещё раз.",
+        "failedDescriptionShort": "Не удалось удалить кешированные модели.",
+        "failedTitle": "Не удалось удалить модели",
+        "successDescription": "Все кешированные модели удалены.",
+        "successTitle": "Модели удалены",
+        "title": "Удалить скачанные модели?"
+      },
+      "removing": "Удаление...",
+      "resetAll": {
+        "confirmText": "Удалить всё",
+        "description": "Все настройки, транскрипции и кешированные данные будут безвозвратно удалены. Приложение перезагрузится после сброса.",
+        "failedDescription": "Что-то пошло не так. Попробуйте ещё раз или переустановите приложение.",
+        "failedTitle": "Не удалось сбросить",
+        "successDescription": "Всё сброшено. Приложение сейчас перезагрузится.",
+        "successTitle": "Готово",
+        "title": "Сбросить все данные приложения"
+      },
+      "resetAppData": "Сбросить данные приложения",
+      "resetAppDataDescription": "Безвозвратно удалить все настройки, транскрипции и кешированные данные"
+    },
+    "dictionary": {
+      "title": "Пользовательский словарь",
+      "description": "Научите ИИ вашему словарю — именам, жаргону и терминам, которые он может не распознать",
+      "addWordOrPhrase": "Добавить слово или фразу",
+      "placeholder": "Добавить слово или фразу...",
+      "add": "Добавить",
+      "pressEnterToAdd": "Нажмите Enter для добавления",
+      "autoLearnTitle": "Автоматическое обучение на исправлениях",
+      "autoLearnDescription": "Когда вы исправляете транскрипцию в целевом приложении, исправленное слово автоматически добавляется в ваш словарь.",
+      "yourWords": "Ваши слова",
+      "clearDictionaryTitle": "Очистить словарь?",
+      "clearDictionaryDescription": "Все слова из вашего пользовательского словаря будут удалены. Это действие нельзя отменить.",
+      "clearAll": "Очистить всё",
+      "agentNameAutoManaged": "Управляется автоматически — синхронизировано с именем агента",
+      "removeWord": "Удалить слово",
+      "noWords": "Слов пока нет",
+      "wordsAppearHere": "Добавленные слова появятся здесь",
+      "howItWorksTitle": "Как это работает",
+      "howItWorksDescription": "Слова передаются как контекстные подсказки модели распознавания речи, помогая ей распознавать редкие термины. Для сложных слов попробуйте добавить контекст, например \"The word is Synty\", наряду с самим словом.",
+      "tipLabel": "Совет",
+      "tipDescription": "Разделяйте несколько слов запятыми. Добавляйте контекстные фразы, например \"The word is Synty\", для лучшего распознавания."
+    },
+    "general": {
+      "appearance": {
+        "auto": "Авто",
+        "dark": "Тёмная",
+        "description": "Управляйте внешним видом Mouthpiece",
+        "light": "Светлая",
+        "theme": "Тема",
+        "themeDescription": "Выберите светлую, тёмную тему или следуйте системным настройкам",
+        "title": "Внешний вид"
+      },
+      "floatingIcon": {
+        "autoHide": "Скрывать при бездействии",
+        "autoHideDescription": "Значок будет скрыт, пока вы не начнёте диктовку",
+        "description": "Управляйте видимостью значка диктовки на экране",
+        "title": "Плавающий значок"
+      },
+      "hotkey": {
+        "activationMode": "Режим активации",
+        "description": "Комбинация клавиш для запуска и остановки голосовой диктовки",
+        "resetToDefault": "Сбросить на {{hotkey}}",
+        "title": "Горячая клавиша диктовки"
+      },
+      "microphone": {
+        "description": "Выберите устройство ввода для диктовки",
+        "title": "Микрофон"
+      },
+      "soundEffects": {
+        "dictationSounds": "Звуки диктовки",
+        "dictationSoundsDescription": "Воспроизводить звуковой сигнал при начале и окончании записи",
+        "title": "Звуковые эффекты"
+      },
+      "startup": {
+        "launchAtLogin": "Запускать при входе",
+        "launchAtLoginDescription": "Автоматически запускать Mouthpiece при входе в систему",
+        "title": "Автозапуск"
+      },
+      "updates": {
+        "badges": {
+          "dev": "Dev",
+          "latest": "Последняя",
+          "update": "Обновление"
+        },
+        "checkForUpdates": "Проверить обновления",
+        "checking": "Проверка...",
+        "currentVersion": "Текущая версия",
+        "devMode": "Запущено в режиме разработки",
+        "dialogs": {
+          "almostThere": {
+            "description": "Обновление почти готово. Подождите немного.",
+            "title": "Почти готово"
+          },
+          "checkFailed": {
+            "description": "Не удалось проверить наличие обновлений. Попробуйте позже.",
+            "title": "Не удалось проверить обновления"
+          },
+          "downloadFailed": {
+            "description": "Не удалось скачать обновление. Попробуйте ещё раз.",
+            "title": "Не удалось скачать обновление"
+          },
+          "installFailed": {
+            "description": "Не удалось установить обновление. Попробуйте ещё раз.",
+            "title": "Не удалось установить обновление"
+          },
+          "installUpdate": {
+            "confirmText": "Установить и перезапустить",
+            "description": "Mouthpiece перезапустится для применения обновления.",
+            "title": "Установить обновление"
+          },
+          "noUpdates": {
+            "description": "У вас установлена последняя версия.",
+            "title": "Обновлений нет"
+          },
+          "updateAvailable": {
+            "description": "Доступно обновление: v{{version}}",
+            "title": "Доступно обновление"
+          },
+          "updateError": {
+            "description": "Произошла ошибка при обновлении. Попробуйте ещё раз.",
+            "title": "Ошибка обновления"
+          }
+        },
+        "downloadUpdate": "Скачать обновление {{version}}",
+        "downloading": "Загрузка... {{progress}}%",
+        "installAndRestart": "Установить и перезапустить",
+        "latestVersion": "У вас установлена последняя версия",
+        "newVersion": "Доступна новая версия",
+        "newVersionAvailable": "Доступна новая версия",
+        "restarting": "Перезапуск...",
+        "title": "Обновления",
+        "versionPlaceholder": "—",
+        "whatsNew": "Что нового в v{{version}}"
+      }
+    },
+    "permissions": {
+      "accessibilityDescription": "Необходимо для автоматической вставки после транскрипции",
+      "accessibilityTitle": "Универсальный доступ",
+      "description": "Проверяйте и управляйте системными разрешениями, необходимыми для работы Mouthpiece",
+      "microphoneDescription": "Необходимо для записи голоса и диктовки",
+      "microphoneTitle": "Микрофон",
+      "resetAccessibility": {
+        "description": "Mouthpiece будет удалён из разрешений универсального доступа. Вам потребуется повторно предоставить доступ в Системные настройки > Конфиденциальность и безопасность > Универсальный доступ.",
+        "label": "Сбросить разрешения универсального доступа",
+        "rowDescription": "Исправьте проблемы после переустановки или пересборки приложения, удалив и повторно добавив Mouthpiece в системных настройках",
+        "title": "Сбросить разрешения универсального доступа"
+      },
+      "test": "Тест",
+      "testAndGrant": "Проверить и предоставить",
+      "title": "Разрешения",
+      "troubleshoot": "Диагностика",
+      "troubleshootingTitle": "Устранение неполадок"
+    },
+    "privacy": {
+      "cloudBackup": "Облачное резервное копирование",
+      "cloudBackupDescription": "Сохраняйте транскрипции в облаке, чтобы никогда их не потерять.",
+      "description": "Контролируйте, какие данные покидают ваше устройство. По умолчанию всё отключено.",
+      "title": "Конфиденциальность",
+      "usageAnalytics": "Аналитика использования",
+      "usageAnalyticsDescription": "Помогите нам улучшить Mouthpiece, делясь анонимными метриками производительности. Мы никогда не отправляем содержимое транскрипций — только данные о времени и ошибках."
+    },
+    "prompts": {
+      "description": "Просматривайте, настраивайте и тестируйте единый системный промпт, который управляет очисткой текста и обнаружением инструкций",
+      "title": "Студия промптов"
+    },
+    "transcription": {
+      "customSetup": "Пользовательская настройка",
+      "customSetupDescription": "Используйте собственного провайдера и API-ключ.",
+      "description": "Выберите, как Mouthpiece будет транскрибировать вашу речь",
+      "openwhisprCloud": "Mouthpiece Cloud",
+      "openwhisprCloudDescription": "Просто работает. Настройка не требуется.",
+      "title": "Распознавание речи",
+      "toasts": {
+        "switchedCloud": {
+          "description": "Транскрипция будет использовать облачный сервис Mouthpiece.",
+          "title": "Переключено на Mouthpiece Cloud"
+        },
+        "switchedCustom": {
+          "description": "Настройте собственного провайдера и API-ключ.",
+          "title": "Переключено на пользовательскую настройку"
+        }
+      },
+      "cloudDisabled": "Отключено",
+      "cloudOffline": "Нет сети"
+    }
+  },
+  "models": {
+    "descriptions": {
+      "parakeet": {
+        "parakeet_tdt_0_6b_v3": "Быстрое многоязычное распознавание с автоопределением языка (25 языков)"
+      },
+      "whisper": {
+        "tiny": "Самый быстрый, низкое качество",
+        "base": "Хороший баланс",
+        "small": "Лучше качество, медленнее",
+        "medium": "Высокое качество",
+        "large": "Лучшее качество, самый медленный",
+        "turbo": "Быстрый с хорошим качеством"
+      },
+      "transcription": {
+        "openai_gpt_4o_mini_transcribe": "Быстрая и точная транскрипция",
+        "openai_gpt_4o_transcribe": "Максимально точная транскрипция",
+        "openai_whisper_1": "Оригинальная модель Whisper",
+        "groq_whisper_large_v3_turbo": "Скорость в 216 раз быстрее реального времени",
+        "groq_whisper_large_v3": "Модель Large v3, быстрая и точная",
+        "mistral_voxtral_mini_latest": "Быстрая многоязычная транскрипция"
+      },
+      "cloud": {
+        "openai_gpt_5_2": "Новейшая флагманская модель с рассуждением",
+        "openai_gpt_5_mini": "Быстрая и экономичная",
+        "openai_gpt_5_nano": "Сверхбыстрая, низкая задержка",
+        "openai_gpt_4_1": "Надёжная базовая модель, контекст 1M",
+        "openai_gpt_4_1_mini": "Компактная версия GPT-4.1",
+        "openai_gpt_4_1_nano": "Минимальная задержка GPT-4.1",
+        "anthropic_claude_sonnet_4_5": "Сбалансированная производительность",
+        "anthropic_claude_haiku_4_5": "Быстрая с почти передовым интеллектом",
+        "anthropic_claude_opus_4_5": "Самая мощная модель Claude",
+        "gemini_gemini_3_pro_preview": "Флагманская модель нового поколения для сложных рассуждений",
+        "gemini_gemini_3_flash_preview": "Сверхбыстрая высокопроизводительная модель нового поколения",
+        "gemini_gemini_2_5_flash_lite": "Минимальная задержка и стоимость",
+        "groq_qwen_qwen3_32b": "Мощная модель с рассуждением, контекст 131K",
+        "groq_openai_gpt_oss_120b": "Открытая флагманская модель OpenAI, 500 т/с",
+        "groq_openai_gpt_oss_20b": "Быстрая открытая модель, 1000 т/с",
+        "groq_llama_3_3_70b_versatile": "Универсальная модель Meta, 280 т/с",
+        "groq_llama_3_1_8b_instant": "Сверхбыстрая 560 т/с, контекст 131K",
+        "groq_llama_4_scout": "Эффективная мультимодальная Meta, 750 т/с",
+        "groq_compound": "Система Compound от Groq, 450 т/с",
+        "groq_compound_mini": "Быстрая система Compound, 3x ниже задержка",
+        "groq_kimi_k2_0905": "Moonshot AI 1T MoE, контекст 256K"
+      },
+      "local": {
+        "qwen_qwen3_8b_q4_k_m": "Новейшая Qwen3 с поддержкой режима размышления",
+        "qwen_qwen3_8b_q5_k_m": "Более качественная Qwen3 с режимом размышления",
+        "qwen_qwen3_4b_q4_k_m": "Компактная Qwen3 со способностью к рассуждению",
+        "qwen_qwen3_1_7b_q8_0": "Маленькая, но способная модель Qwen3",
+        "qwen_qwen3_0_6b_q8_0": "Миниатюрная Qwen3 для маломощных устройств",
+        "qwen_qwen3_32b_q4_k_m": "Самая мощная локальная Qwen3 с глубоким рассуждением",
+        "qwen_qwen2_5_0_5b_instruct_q5_k_m": "Самая маленькая модель, быстрая, но с ограничениями",
+        "qwen_qwen2_5_1_5b_instruct_q5_k_m": "Маленькая модель для базовых задач",
+        "qwen_qwen2_5_3b_instruct_q5_k_m": "Сбалансированная модель общего назначения",
+        "qwen_qwen2_5_7b_instruct_q4_k_m": "Большая модель высокого качества (Q4_K_M)",
+        "qwen_qwen2_5_7b_instruct_q5_k_m": "Большая модель, качественное рассуждение (Q5_K_M)",
+        "mistral_mistral_7b_instruct_v0_3_q4_k_m": "Быстрая и эффективная модель для инструкций",
+        "mistral_mistral_7b_instruct_v0_3_q5_k_m": "Более качественная модель для инструкций",
+        "llama_llama_3_2_1b_instruct_q4_k_m": "Миниатюрная модель для маломощных устройств",
+        "llama_llama_3_2_3b_instruct_q4_k_m": "Маленькая, но способная многоязычная модель",
+        "llama_llama_3_1_8b_instruct_q4_k_m": "Мощная модель с отличной производительностью",
+        "openai_oss_gpt_oss_20b_mxfp4": "Открытая модель OpenAI для потребительского оборудования",
+        "gemma_gemma_3_4b_it_q4_k_m": "Открытая модель Google, отличный баланс скорости и качества",
+        "gemma_gemma_3_1b_it_q4_k_m": "Сверхбыстрая модель Google, лучшая для очистки коротких диктовок"
+      }
+    }
+  },
+  "referral": {
+    "modalTitle": "Реферальная программа",
+    "title": "Приглашайте и получайте награды",
+    "subtitle": "Подарите месяц. Получите месяц.",
+    "tabs": {
+      "refer": "Пригласить",
+      "pastInvites": "Отправленные приглашения"
+    },
+    "howItWorks": {
+      "shareLink": "Поделитесь ссылкой-приглашением",
+      "theySignUp": "Они регистрируются и получают ",
+      "freeMonthOfPro": "бесплатный месяц Pro",
+      "youGet": "Вы получаете ",
+      "freeMonth": "бесплатный месяц",
+      "whenTheyDictate": ", когда они надиктуют 2 000 слов"
+    },
+    "inviteLink": {
+      "title": "Ваша ссылка-приглашение",
+      "copy": "Копировать",
+      "copied": "Скопировано"
+    },
+    "sendInvites": {
+      "title": "Отправить приглашения",
+      "placeholder": "friend@example.com",
+      "send": "Отправить",
+      "sending": "Отправка"
+    },
+    "stats": {
+      "referred": "Приглашено",
+      "converted": "Активировано",
+      "monthsEarned": "Месяцев заработано"
+    },
+    "status": {
+      "converted": "Активировано",
+      "opened": "Открыто",
+      "failed": "Не удалось",
+      "sent": "Отправлено"
+    },
+    "empty": {
+      "title": "Приглашения ещё не отправлены",
+      "description": "Поделитесь ссылкой или отправьте приглашение, чтобы начать"
+    },
+    "toasts": {
+      "copiedTitle": "Скопировано!",
+      "copiedDescription": "Реферальная ссылка скопирована в буфер обмена",
+      "copyFailedTitle": "Ошибка копирования",
+      "copyFailedDescription": "Не удалось скопировать ссылку в буфер обмена",
+      "invalidEmailTitle": "Неверный адрес электронной почты",
+      "invalidEmailDescription": "Пожалуйста, введите корректный адрес электронной почты",
+      "inviteSentTitle": "Приглашение отправлено!",
+      "inviteSentDescription": "Приглашение отправлено на {{email}}",
+      "sendFailedTitle": "Ошибка отправки",
+      "sendFailedDescription": "Не удалось отправить приглашение. Пожалуйста, попробуйте ещё раз."
+    },
+    "errors": {
+      "unableToLoad": "Не удалось загрузить данные реферальной программы",
+      "unableToLoadStats": "Не удалось загрузить статистику рефералов. Пожалуйста, попробуйте позже."
+    },
+    "tryAgain": "Попробовать снова",
+    "card": {
+      "brand": "Mouthpiece",
+      "signalId": "Signal ID",
+      "audioSignature": "Ваша аудиоподпись",
+      "stop": "Стоп",
+      "playSignal": "Воспроизвести сигнал"
+    },
+    "friends": {
+      "title": "Друзья",
+      "completed": "Завершено",
+      "sentInvites": "Отправленные приглашения"
+    }
+  },
+  "notes": {
+    "folders": {
+      "title": "Папки",
+      "soon": "Скоро",
+      "folderName": "Название папки",
+      "couldNotCreate": "Не удалось создать папку",
+      "couldNotRename": "Не удалось переименовать папку",
+      "couldNotDelete": "Не удалось удалить папку"
+    },
+    "list": {
+      "title": "Заметки",
+      "newNote": "Новая заметка",
+      "untitled": "Без названия",
+      "untitledNote": "Заметка без названия",
+      "timeNow": "Только что",
+      "minutesAgo": "{{count}} мин. назад",
+      "hoursAgo": "{{count}} ч. назад",
+      "daysAgo": "{{count}} дн. назад"
+    },
+    "editor": {
+      "untitled": "Без названия",
+      "noteTitle": "Название заметки",
+      "stop": "Стоп",
+      "transcribe": "Транскрибировать",
+      "processing": "Обработка...",
+      "export": "Экспорт",
+      "asMarkdown": "Как Markdown",
+      "asPlainText": "Как обычный текст",
+      "raw": "Исходный",
+      "enhanced": "Улучшенный",
+      "saving": "Сохранение",
+      "wordsCount": "{{count}} слов",
+      "startWriting": "Начните писать...",
+      "staleIndicator": "Содержимое изменилось после улучшения",
+      "live": "Живой"
+    },
+    "upload": {
+      "title": "Загрузить аудио",
+      "using": "Используется {{model}}",
+      "dropOrBrowse": "Перетащите аудиофайл или нажмите для выбора",
+      "supportedFormats": "MP3, WAV, M4A, WebM, OGG, FLAC, AAC",
+      "dropToUpload": "Отпустите для загрузки",
+      "transcribe": "Транскрибировать",
+      "cancel": "Отмена",
+      "transcribingCloud": "Транскрибирование через облако...",
+      "transcribingLocal": "Локальное транскрибирование...",
+      "transcribingProvider": "Транскрибирование через {{provider}}...",
+      "transcriptionComplete": "Транскрибирование завершено",
+      "openNote": "Открыть заметку",
+      "uploadAnother": "Загрузить ещё",
+      "retry": "Повторить",
+      "startOver": "Начать сначала",
+      "transcriptionSettings": "Настройки транскрибирования",
+      "newFolder": "Новая папка",
+      "folderName": "Название папки",
+      "create": "Создать",
+      "setupTitle": "Настройте транскрибирование",
+      "setupDescription": "Выберите способ транскрибирования аудио. Это также применяется к живой диктовке.",
+      "continue": "Продолжить",
+      "openwhisprCloud": "Mouthpiece Cloud",
+      "custom": "Другой",
+      "selectFolder": "Выбрать папку",
+      "transcriptionFailed": "Ошибка транскрибирования",
+      "errorOccurred": "Произошла ошибка",
+      "noProviderTitle": "Провайдер транскрипции не настроен",
+      "noProviderDescription": "Добавьте API-ключ или скачайте локальную модель, чтобы начать транскрипцию.",
+      "noProviderAction": "Открыть настройки транскрипции",
+      "fileTooLarge": "Этот файл превышает ограничение в 500 MB.",
+      "largeFileNote": "Большие файлы разделяются и транскрибируются параллельно.",
+      "chunkProgress": "Транскрибирование части {{completed}} из {{total}}...",
+      "byokTooLarge": "Сторонние API-ключи поддерживают файлы только до 25 МБ.",
+      "byokTooLargeDetail": "Для файлов более 25 МБ Mouthpiece Cloud выполняет разделение, параллельную обработку и сборку — для надёжных результатов без ограничений сторонних провайдеров.",
+      "switchToCloudForLargeFiles": "Переключитесь на Mouthpiece Cloud, чтобы транскрибировать этот файл.",
+      "createAccount": "Создать аккаунт",
+      "switchToCloud": "Mouthpiece Cloud"
+    },
+    "meeting": {
+      "title": "Заметки со встреч",
+      "description": "Определение говорящих и структурированные резюме",
+      "comingSoon": "Скоро"
+    },
+    "context": {
+      "moveToFolder": "Переместить в папку",
+      "delete": "Удалить",
+      "rename": "Переименовать",
+      "searchFolders": "Поиск папок...",
+      "noResults": "Папки не найдены",
+      "newFolder": "Новая папка"
+    },
+    "actions": {
+      "manage": "Управление действиями...",
+      "manageTitle": "Пользовательские действия",
+      "addAction": "Новое действие",
+      "editAction": "Редактировать действие",
+      "namePlaceholder": "Название действия",
+      "descriptionPlaceholder": "Краткое описание (необязательно)",
+      "promptPlaceholder": "Что ИИ должен сделать с содержимым заметки?",
+      "builtIn": "Встроенное",
+      "save": "Сохранить",
+      "update": "Обновить",
+      "cancel": "Отмена",
+      "noActions": "Пользовательских действий пока нет",
+      "runAction": "Запустить {{name}}",
+      "selectAction": "Выбрать действие",
+      "done": "Готово",
+      "builtin": {
+        "cleanupNotes": {
+          "name": "Очистить заметки",
+          "description": "Исправить грамматику, структуру и форматирование"
+        }
+      },
+      "errors": {
+        "noModel": "Модель ИИ не выбрана. Настройте её в разделе Настройки.",
+        "actionFailed": "Действие не выполнено"
+      }
+    },
+    "empty": {
+      "title": "Нет заметок",
+      "description": "Создайте первую заметку",
+      "selectTitle": "Выберите заметку",
+      "selectDescription": "Выберите заметку на боковой панели",
+      "createNote": "Создать заметку",
+      "emptyFolder": "Папка пуста"
+    },
+    "addToFolder": {
+      "title": "Добавить заметки",
+      "searchPlaceholder": "Поиск заметок...",
+      "addExisting": "Добавить существующие",
+      "addCount": "Добавить: {{count}}",
+      "noResults": "Не найдено",
+      "noNotesAvailable": "Нет доступных заметок"
+    },
+    "onboarding": {
+      "llm": {
+        "title": "Настройте модель ИИ",
+        "description": "Действия используют ИИ для обработки ваших заметок. Настройте языковую модель, чтобы начать.",
+        "configured": "Модель ИИ настроена"
+      },
+      "actions": {
+        "title": "Действия на основе ИИ",
+        "description": "Действия преобразуют ваши заметки — очищают транскрипции, создают резюме встреч и многое другое. Используйте встроенные действия или создавайте свои.",
+        "builtInLabel": "Встроенное",
+        "createTitle": "Создайте своё действие",
+        "createDescription": "Определите пользовательское действие с собственным промптом для ИИ. Вы всегда сможете изменить или добавить новые в настройках.",
+        "created": "Создано!"
+      },
+      "getStarted": "Начать"
+    },
+    "enhance": {
+      "title": "Ошибка улучшения"
+    }
+  },
+  "dictionary": {
+    "addWord": "Добавить слово",
+    "removeWord": "Удалить {{word}}",
+    "clearAll": "Очистить все",
+    "howItWorks": "Как это работает",
+    "howItWorksDetail": "Добавленные слова включаются в промпт ИИ, чтобы модель распознавала и сохраняла эти термины при очистке транскрипции.",
+    "autoManaged": "Имя агента (управляется автоматически)",
+    "inputHint": "Нажмите Enter для добавления",
+    "addPlaceholder": "Добавить слово или фразу...",
+    "title": "Словарь",
+    "description": "Добавьте слова для улучшения транскрипции",
+    "clearTitle": "Очистить словарь?",
+    "clearDescription": "Все слова будут удалены без возможности восстановления."
+  },
+  "sidebar": {
+    "home": "Главная",
+    "notes": "Заметки",
+    "upload": "Загрузить",
+    "dictionary": "Словарь",
+    "referral": "Получить бесплатный месяц",
+    "settings": "Настройки",
+    "support": "Поддержка",
+    "defaultUser": "Пользователь",
+    "notSignedIn": "Не авторизован"
+  },
+  "support": {
+    "joinDiscord": "Присоединиться к Discord",
+    "contactSupport": "Связаться с поддержкой",
+    "submitBug": "Сообщить об ошибке"
+  },
+  "apiKeyInput": {
+    "placeholder": "Введите ваш API-ключ",
+    "label": "API-ключ",
+    "save": "Сохранить",
+    "cancelEdit": "Отменить редактирование",
+    "edit": "Изменить",
+    "add": "Добавить",
+    "editButton": "Изменить ключ",
+    "addButton": "Добавить ключ"
+  },
+  "gpu": {
+    "transcriptionBanner": "Ускорьте транскрипцию с помощью GPU",
+    "reasoningBanner": "Ускорьте обработку ИИ с помощью GPU",
+    "enableButton": "Включить GPU",
+    "active": "Ускорение GPU активно",
+    "ready": "Ускорение GPU готово",
+    "activating": "Активация GPU...",
+    "activationFailed": "Не удалось активировать GPU",
+    "retry": "Повторить",
+    "remove": "Удалить",
+    "dismiss": "Не сейчас",
+    "cancel": "Отмена"
+  },
+  "app": {
+    "toasts": {
+      "hotkeyChanged": {
+        "title": "Горячая клавиша изменена"
+      },
+      "hotkeyUnavailable": {
+        "title": "Горячая клавиша недоступна",
+        "description": "Не удалось зарегистрировать выбранную комбинацию. Выберите другую в настройках."
+      },
+      "addedToDict": "{{words}} добавлено в ваш словарь",
+      "undo": "Отменить"
+    },
+    "mic": {
+      "hotkeyToSpeak": "Нажмите {{hotkey}} для записи",
+      "recording": "Запись...",
+      "processing": "Обработка...",
+      "clickToSpeak": "Нажмите для записи"
+    },
+    "buttons": {
+      "cancelRecording": "Отменить запись",
+      "cancelProcessing": "Отменить обработку"
+    },
+    "commandMenu": {
+      "stopListening": "Остановить запись",
+      "startListening": "Начать запись",
+      "hideForNow": "Скрыть"
+    },
+    "oauth": {
+      "redirectTitle": "Перенаправление в приложение...",
+      "closeTab": "Можете закрыть эту вкладку."
+    }
+  }
+}

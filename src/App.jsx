@@ -1,0 +1,332 @@
+import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { X } from "lucide-react";
+import DictationCapsule from "./components/DictationCapsule.tsx";
+import { useToast } from "./components/ui/Toast";
+import { useAudioRecording } from "./hooks/useAudioRecording";
+import { useHotkey } from "./hooks/useHotkey";
+import { useWindowDrag } from "./hooks/useWindowDrag";
+import { useSettingsStore } from "./stores/settingsStore";
+import { getAgentName } from "./utils/agentName";
+import { formatHotkeyLabel } from "./utils/hotkeys";
+import "./index.css";
+
+export default function App() {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
+  const [dragStartPos, setDragStartPos] = useState(null);
+  const [hasDragged, setHasDragged] = useState(false);
+
+  const commandMenuRef = useRef(null);
+  const buttonRef = useRef(null);
+  const prevAutoHideRef = useRef(useSettingsStore.getState().floatingIconAutoHide);
+
+  const { toast, dismiss, toastCount } = useToast();
+  const { t } = useTranslation();
+  const { hotkey } = useHotkey();
+  const { isDragging, handleMouseDown, handleMouseUp } = useWindowDrag();
+
+  const floatingIconAutoHide = useSettingsStore((s) => s.floatingIconAutoHide);
+
+  const setWindowInteractivity = React.useCallback((shouldCapture) => {
+    window.electronAPI?.setMainWindowInteractivity?.(shouldCapture);
+  }, []);
+
+  useEffect(() => {
+    setWindowInteractivity(false);
+    return () => setWindowInteractivity(false);
+  }, [setWindowInteractivity]);
+
+  useEffect(() => {
+    const unsubscribeFallback = window.electronAPI?.onHotkeyFallbackUsed?.((data) => {
+      toast({
+        title: t("app.toasts.hotkeyChanged.title"),
+        description: data.message,
+        duration: 8000,
+      });
+    });
+
+    const unsubscribeFailed = window.electronAPI?.onHotkeyRegistrationFailed?.(() => {
+      toast({
+        title: t("app.toasts.hotkeyUnavailable.title"),
+        description: t("app.toasts.hotkeyUnavailable.description"),
+        duration: 10000,
+      });
+    });
+
+    const unsubscribeCorrections = window.electronAPI?.onCorrectionsLearned?.((words) => {
+      if (!words || words.length === 0) {
+        return;
+      }
+
+      const wordList = words.map((word) => `\u201c${word}\u201d`).join(", ");
+      let toastId;
+      toastId = toast({
+        title: t("app.toasts.addedToDict", { words: wordList }),
+        variant: "success",
+        duration: 6000,
+        action: (
+          <button
+            onClick={async () => {
+              try {
+                const result = await window.electronAPI?.undoLearnedCorrections?.(words);
+                if (result?.success) {
+                  dismiss(toastId);
+                }
+              } catch {
+                // Silently fail and keep the learned corrections.
+              }
+            }}
+            className="rounded-sm border border-emerald-400/20 bg-emerald-500/15 px-2.5 py-1 text-[10px] font-medium whitespace-nowrap text-emerald-100/90 transition-all duration-150 hover:border-emerald-400/35 hover:bg-emerald-500/25 hover:text-white"
+          >
+            {t("app.toasts.undo")}
+          </button>
+        ),
+      });
+    });
+
+    return () => {
+      unsubscribeFallback?.();
+      unsubscribeFailed?.();
+      unsubscribeCorrections?.();
+    };
+  }, [dismiss, t, toast]);
+
+  useEffect(() => {
+    if (isCommandMenuOpen || toastCount > 0) {
+      setWindowInteractivity(true);
+    } else if (!isHovered) {
+      setWindowInteractivity(false);
+    }
+  }, [isCommandMenuOpen, isHovered, setWindowInteractivity, toastCount]);
+
+  useEffect(() => {
+    if (isCommandMenuOpen && toastCount > 0) {
+      window.electronAPI?.resizeMainWindow?.("EXPANDED");
+      return;
+    }
+
+    if (isCommandMenuOpen) {
+      window.electronAPI?.resizeMainWindow?.("WITH_MENU");
+      return;
+    }
+
+    if (toastCount > 0) {
+      window.electronAPI?.resizeMainWindow?.("WITH_TOAST");
+      return;
+    }
+
+    window.electronAPI?.resizeMainWindow?.("BASE");
+  }, [isCommandMenuOpen, toastCount]);
+
+  const handleDictationToggle = React.useCallback(() => {
+    setIsCommandMenuOpen(false);
+    setWindowInteractivity(false);
+  }, [setWindowInteractivity]);
+
+  const {
+    isRecording,
+    isProcessing,
+    audioLevel,
+    toggleListening,
+    cancelRecording,
+    cancelProcessing,
+  } = useAudioRecording(toast, {
+    onToggle: handleDictationToggle,
+    dismiss,
+  });
+
+  useEffect(() => {
+    const unsubscribe = window.electronAPI?.onFloatingIconAutoHideChanged?.((enabled) => {
+      localStorage.setItem("floatingIconAutoHide", String(enabled));
+      useSettingsStore.setState({ floatingIconAutoHide: enabled });
+    });
+
+    return () => unsubscribe?.();
+  }, []);
+
+  useEffect(() => {
+    let hideTimeout;
+
+    if (floatingIconAutoHide && !isRecording && !isProcessing && toastCount === 0) {
+      hideTimeout = setTimeout(() => {
+        window.electronAPI?.hideWindow?.();
+      }, 500);
+    } else if (!floatingIconAutoHide && prevAutoHideRef.current) {
+      window.electronAPI?.showDictationPanel?.();
+    }
+
+    prevAutoHideRef.current = floatingIconAutoHide;
+    return () => clearTimeout(hideTimeout);
+  }, [floatingIconAutoHide, isProcessing, isRecording, toastCount]);
+
+  const handleClose = () => {
+    window.electronAPI.hideWindow();
+  };
+
+  useEffect(() => {
+    if (!isCommandMenuOpen) {
+      return;
+    }
+
+    const handleClickOutside = (event) => {
+      if (
+        commandMenuRef.current &&
+        !commandMenuRef.current.contains(event.target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target)
+      ) {
+        setIsCommandMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isCommandMenuOpen]);
+
+  useEffect(() => {
+    const handleKeyPress = (event) => {
+      if (event.key === "Escape") {
+        if (isCommandMenuOpen) {
+          setIsCommandMenuOpen(false);
+        } else {
+          handleClose();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyPress);
+    return () => document.removeEventListener("keydown", handleKeyPress);
+  }, [isCommandMenuOpen]);
+
+  const hotkeyLabel = formatHotkeyLabel(hotkey);
+  const agentName = getAgentName();
+  const secondaryLabel = isRecording ? t("app.mic.recording") : t("app.mic.processing");
+
+  return (
+    <div className="dictation-window">
+      <div className="fixed bottom-6 right-6 z-50">
+        <div
+          className="relative"
+          onMouseEnter={() => {
+            setIsHovered(true);
+            setWindowInteractivity(true);
+          }}
+          onMouseLeave={() => {
+            setIsHovered(false);
+            if (!isCommandMenuOpen) {
+              setWindowInteractivity(false);
+            }
+          }}
+        >
+          {(isRecording || isProcessing) && isHovered && (
+            <button
+              aria-label={
+                isRecording ? t("app.buttons.cancelRecording") : t("app.buttons.cancelProcessing")
+              }
+              onClick={(event) => {
+                event.stopPropagation();
+                isRecording ? cancelRecording() : cancelProcessing();
+              }}
+              className="group/cancel absolute -right-2 -top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-[rgba(255,255,255,0.74)] bg-[rgba(24,24,27,0.72)] shadow-[0_14px_26px_rgba(15,23,42,0.22)] backdrop-blur-md transition-colors duration-150 hover:border-[rgba(255,196,196,0.95)] hover:bg-destructive"
+            >
+              <X
+                size={12}
+                strokeWidth={2.5}
+                className="text-white transition-colors duration-150 group-hover/cancel:text-destructive-foreground"
+              />
+            </button>
+          )}
+
+          <DictationCapsule
+            buttonRef={buttonRef}
+            agentName={agentName}
+            brandLabel="Mouthpiece"
+            secondaryLabel={secondaryLabel}
+            hotkeyLabel={hotkeyLabel}
+            audioLevel={audioLevel}
+            isHovered={isHovered}
+            isRecording={isRecording}
+            isProcessing={isProcessing}
+            isDragging={isDragging}
+            onMouseDown={(event) => {
+              setIsCommandMenuOpen(false);
+              setDragStartPos({ x: event.clientX, y: event.clientY });
+              setHasDragged(false);
+              handleMouseDown(event);
+            }}
+            onMouseMove={(event) => {
+              if (dragStartPos && !hasDragged) {
+                const distance = Math.sqrt(
+                  Math.pow(event.clientX - dragStartPos.x, 2) +
+                    Math.pow(event.clientY - dragStartPos.y, 2)
+                );
+
+                if (distance > 5) {
+                  setHasDragged(true);
+                }
+              }
+            }}
+            onMouseUp={(event) => {
+              handleMouseUp(event);
+              setDragStartPos(null);
+            }}
+            onClick={(event) => {
+              if (!hasDragged) {
+                setIsCommandMenuOpen(false);
+                toggleListening();
+              }
+              event.preventDefault();
+            }}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              if (!hasDragged) {
+                setWindowInteractivity(true);
+                setIsCommandMenuOpen((previous) => !previous);
+              }
+            }}
+            onFocus={() => setIsHovered(true)}
+            onBlur={() => setIsHovered(false)}
+          />
+
+          {isCommandMenuOpen && (
+            <div
+              ref={commandMenuRef}
+              className="absolute bottom-full right-2 mb-4 w-56 rounded-2xl border border-[rgba(220,220,220,0.94)] bg-[rgba(255,255,255,0.94)] text-popover-foreground shadow-[0_22px_44px_rgba(15,23,42,0.16)] backdrop-blur-xl"
+              onMouseEnter={() => {
+                setWindowInteractivity(true);
+              }}
+              onMouseLeave={() => {
+                if (!isHovered) {
+                  setWindowInteractivity(false);
+                }
+              }}
+            >
+              <button
+                className="w-full rounded-t-2xl px-4 py-3 text-left text-sm font-medium text-[rgba(28,28,28,0.88)] transition-colors duration-150 hover:bg-[rgba(24,24,24,0.05)] focus:bg-[rgba(24,24,24,0.05)] focus:outline-none"
+                onClick={() => {
+                  toggleListening();
+                }}
+              >
+                {isRecording
+                  ? t("app.commandMenu.stopListening")
+                  : t("app.commandMenu.startListening")}
+              </button>
+              <div className="h-px bg-border" />
+              <button
+                className="w-full rounded-b-2xl px-4 py-3 text-left text-sm text-[rgba(28,28,28,0.78)] transition-colors duration-150 hover:bg-[rgba(24,24,24,0.05)] focus:bg-[rgba(24,24,24,0.05)] focus:outline-none"
+                onClick={() => {
+                  setIsCommandMenuOpen(false);
+                  setWindowInteractivity(false);
+                  handleClose();
+                }}
+              >
+                {t("app.commandMenu.hideForNow")}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

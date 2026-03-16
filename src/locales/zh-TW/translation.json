@@ -1,0 +1,1423 @@
+{
+  "settings": {
+    "language": {
+      "sectionTitle": "語言",
+      "sectionDescription": "分別設定介面語言和轉錄語言",
+      "uiLabel": "介面語言",
+      "uiDescription": "選擇 Mouthpiece 介面使用的語言",
+      "transcriptionLabel": "轉錄語言",
+      "transcriptionDescription": "選擇你說話的語言，以提高轉錄準確度"
+    }
+  },
+  "tray": {
+    "toggleDictation": {
+      "show": "顯示語音輸入面板",
+      "hide": "隱藏語音輸入面板"
+    },
+    "openControlPanel": "開啟控制面板",
+    "quit": "結束 Mouthpiece",
+    "tooltip": "Mouthpiece - 語音輸入"
+  },
+  "menu": {
+    "appLabel": "Mouthpiece",
+    "quit": "結束 Mouthpiece",
+    "speech": "語音",
+    "help": "說明",
+    "learnMore": "瞭解更多",
+    "file": "檔案",
+    "closeWindow": "關閉視窗"
+  },
+  "window": {
+    "voiceRecorderTitle": "錄音器",
+    "controlPanelTitle": "控制面板"
+  },
+  "dialog": {
+    "openLink": {
+      "title": "無法開啟連結",
+      "message": "無法在瀏覽器中開啟連結：\n{{url}}\n\n錯誤：{{error}}"
+    },
+    "loadFailure": {
+      "title": "Mouthpiece 載入失敗",
+      "message": "Mouthpiece 無法載入介面。",
+      "detail": {
+        "window": "視窗：{{windowName}}",
+        "error": "錯誤 {{errorCode}}：{{errorDescription}}",
+        "url": "URL：{{url}}",
+        "hint": "請嘗試重新安裝應用程式，或使用 --log-level=debug 啟動。"
+      }
+    }
+  },
+  "startup": {
+    "error": {
+      "title": "Mouthpiece 啟動錯誤",
+      "message": "應用程式啟動失敗：\n\n{{error}}\n\n請回報此問題。"
+    },
+    "globeHotkey": {
+      "title": "Globe 快捷鍵無法使用",
+      "message": "Mouthpiece 無法啟用 Globe 鍵快捷鍵。",
+      "details": {
+        "unknown": "啟動 Globe 監聽程式時發生未知錯誤。",
+        "fallback": "Globe 鍵快捷鍵將維持停用狀態；現有的鍵盤快捷鍵仍可正常使用。",
+        "devHint": "執行 `npm run compile:globe` 並重新建置應用程式以重新產生監聽程式。",
+        "reinstallHint": "請嘗試重新安裝 Mouthpiece，或聯絡客服。"
+      }
+    }
+  },
+  "hotkey": {
+    "errors": {
+      "callbackRequired": "設定快捷鍵需要回呼函式",
+      "globeOnlyMac": "Globe 鍵僅在 macOS 上可用。",
+      "alreadyRegistered": "\"{{hotkey}}\" 已被其他應用程式註冊。",
+      "osReserved": "\"{{hotkey}}\" 可能被你的作業系統保留。",
+      "registrationFailed": "無法註冊「{{hotkey}}」。可能已被其他應用程式使用。",
+      "trySuggestions": "試試看：{{suggestions}}"
+    }
+  },
+  "systemSettings": {
+    "microphone": "請開啟系統設定來配置麥克風權限。",
+    "sound": "請開啟系統音效設定（例如 pavucontrol）。",
+    "accessibility": "此平台不支援輔助使用設定。"
+  },
+  "titleBar": {
+    "quitTitle": "結束 Mouthpiece",
+    "quitConfirmTitle": "確定要結束 Mouthpiece？",
+    "quitConfirmDescription": "這將關閉 Mouthpiece 並停止背景程序。",
+    "quit": "結束",
+    "cancel": "取消"
+  },
+  "windowControls": {
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "restore": "還原",
+    "close": "關閉"
+  },
+  "windows": {
+    "pttUnavailable": "按住說話原生監聽程式無法使用"
+  },
+  "common": {
+    "back": "返回",
+    "next": "下一步",
+    "complete": "完成",
+    "reset": "重設",
+    "refresh": "重新整理",
+    "download": "下載",
+    "cancel": "取消",
+    "recommended": "推薦",
+    "active": "使用中",
+    "cloud": "雲端",
+    "local": "本機",
+    "apiKey": "API Key",
+    "model": "模型",
+    "loading": "載入中...",
+    "unknown": "未知",
+    "availableModels": "可用模型",
+    "fast": "快速",
+    "hold": "按住",
+    "private": "私密",
+    "tap": "點按",
+    "close": "關閉",
+    "dismiss": "忽略"
+  },
+  "onboarding": {
+    "steps": {
+      "welcome": "歡迎",
+      "setup": "設定",
+      "permissions": "權限",
+      "activation": "啟用"
+    },
+    "hotkey": {
+      "couldNotRegisterTitle": "無法註冊該快捷鍵",
+      "couldNotRegisterDescription": "該組合鍵可能已被使用。請嘗試其他組合。"
+    },
+    "setup": {
+      "title": "設定",
+      "description": "選擇語言並授予權限",
+      "language": "語言"
+    },
+    "permissions": {
+      "title": "權限",
+      "microphoneTitle": "麥克風",
+      "microphoneDescription": "用於擷取你的語音",
+      "grant": "授權",
+      "accessibilityTitle": "輔助使用",
+      "accessibilityDescription": "用於將文字貼入應用程式",
+      "testAndGrant": "測試並授權",
+      "requiredForApp": "Mouthpiece 運作所需",
+      "microphoneRequired": "需要麥克風存取權限"
+    },
+    "transcription": {
+      "title": "轉錄設定",
+      "description": "選擇模式和服務供應商",
+      "preferredLanguage": "偏好語言"
+    },
+    "activation": {
+      "title": "啟用設定",
+      "description": "設定觸發語音輸入的方式",
+      "hotkey": "快捷鍵",
+      "mode": "模式",
+      "tapDescription": "按一下開始/停止",
+      "holdDescription": "按住時說話",
+      "test": "測試",
+      "hotkeyToStartStop": "{{hotkey}} 開始/停止",
+      "holdHotkey": "按住 {{hotkey}}",
+      "textareaPlaceholder": "點擊這裡，然後使用快捷鍵開始語音輸入..."
+    }
+  },
+  "controlPanel": {
+    "update": {
+      "readyTitle": "更新已準備就緒",
+      "readyDescription": "點擊「安裝更新」以重新啟動並套用最新版本。",
+      "problemTitle": "更新遇到問題",
+      "problemDescription": "無法完成更新。請稍後再試。",
+      "installTitle": "安裝更新",
+      "installDescription": "Mouthpiece 將重新啟動以套用更新。進行中的工作會自動儲存。",
+      "couldNotInstallTitle": "無法安裝更新",
+      "couldNotInstallDescription": "發生錯誤，請再試一次。",
+      "couldNotDownloadTitle": "無法下載更新",
+      "couldNotDownloadDescription": "請檢查你的網路連線後再試一次。",
+      "installing": "安裝中...",
+      "installButton": "安裝更新",
+      "availableButton": "有可用更新"
+    },
+    "history": {
+      "couldNotLoadTitle": "無法載入歷史記錄",
+      "couldNotLoadDescription": "載入轉錄記錄時發生錯誤。請嘗試關閉並重新開啟應用程式。",
+      "copiedTitle": "已複製！",
+      "copiedDescription": "文字已複製到剪貼簿",
+      "couldNotCopyTitle": "無法複製",
+      "couldNotCopyDescription": "複製到剪貼簿時發生錯誤。請再試一次。",
+      "deleteTitle": "刪除轉錄記錄",
+      "deleteDescription": "這筆轉錄記錄將被永久移除。",
+      "couldNotDeleteTitle": "無法刪除",
+      "couldNotDeleteDescription": "這筆轉錄記錄可能已被移除。",
+      "couldNotDeleteDescriptionGeneric": "發生錯誤，請再試一次。",
+      "empty": "目前沒有轉錄記錄",
+      "press": "按下",
+      "toStart": "開始",
+      "dateGroups": {
+        "today": "今天",
+        "yesterday": "昨天"
+      }
+    },
+    "cloudMigration": {
+      "title": "歡迎使用 Mouthpiece Pro",
+      "description": "你的 7 天免費試用已啟用！我們已將轉錄切換至 Mouthpiece Cloud，提供更快、更準確的結果。你之前的設定已儲存，隨時可在設定中切換回來。",
+      "viewSettings": "查看設定"
+    },
+    "aiCta": {
+      "title": "用 AI 增強你的轉錄品質",
+      "description": "說話時自動修正文法、標點和格式。",
+      "enable": "啟用 AI 增強"
+    },
+    "loading": "載入中...",
+    "gpu": {
+      "bannerTitle": "GPU 加速可用",
+      "bannerDescription": "啟用 GPU 加速以獲得更快的效能。",
+      "enableButton": "啟用 GPU",
+      "dismissButton": "暫時不要"
+    }
+  },
+  "reasoning": {
+    "mode": {
+      "cloud": "雲端",
+      "local": "本機",
+      "localDescription": "在你的裝置上執行。完全私密，可離線使用。",
+      "cloudDescription": "透過 API 使用進階模型。快速且強大，需要網路。"
+    },
+    "custom": {
+      "endpointWithProtocol": "請輸入包含通訊協定的完整 URL（例如 https://server/v1）。",
+      "httpsRequired": "需使用 HTTPS（僅限本機網路可使用 HTTP）。",
+      "endpointUnauthorized": "端點拒絕了請求（401/403）。請新增 API Key 或調整伺服器驗證設定。",
+      "endpointTitle": "端點 URL",
+      "endpointExamples": "範例：",
+      "ollama": "（Ollama）",
+      "localAi": "（LocalAI）",
+      "apiKeyOptional": "API Key（選填）",
+      "apiKeyHelp": "選填。作為 Bearer token 傳送以進行驗證。這與你的 OpenAI API Key 無關。",
+      "applyAndRefresh": "套用並重新整理",
+      "queryPrefix": "我們將查詢",
+      "querySuffix": "以取得可用模型。",
+      "modelsReloadHint": "離開 URL 欄位或點擊「套用並重新整理」後，模型清單將重新載入。",
+      "enterEndpoint": "請在上方輸入端點 URL 以載入模型。",
+      "fetchingModels": "正在從端點取得模型清單...",
+      "noModels": "沒有取得任何模型。請檢查端點 URL。",
+      "providerName": "自訂",
+      "ownerLabel": "擁有者：{{owner}}",
+      "unableToLoadModels": "無法從端點載入模型。"
+    },
+    "getApiKey": "取得 API Key ->",
+    "selectModel": "選擇模型",
+    "availableModels": "可用模型"
+  },
+  "transcription": {
+    "deleteModel": {
+      "title": "刪除模型",
+      "description": "確定要刪除此模型嗎？如果之後要使用，需要重新下載。"
+    },
+    "parakeet": {
+      "multilingual": "25 種語言",
+      "english": "英文"
+    },
+    "apiKeyOptional": "API Key（選填）",
+    "getKey": "取得金鑰 ->",
+    "endpointUrl": "端點 URL",
+    "customProvider": "自訂",
+    "fallback": {
+      "whisperModelDescription": "模型",
+      "parakeetModelDescription": "NVIDIA Parakeet 模型"
+    },
+    "whisperModels": "Whisper 模型"
+  },
+  "hooks": {
+    "audioRecording": {
+      "errorTitles": {
+        "sessionExpired": "工作階段已過期",
+        "offline": "你目前離線",
+        "dailyLimitReached": "已達每日上限"
+      },
+      "fallback": {
+        "title": "備援模式",
+        "description": "本機 Whisper 失敗，已改用 OpenAI API。"
+      },
+      "noAudio": {
+        "title": "未偵測到音訊",
+        "description": "錄音中未偵測到聲音。請再試一次。"
+      },
+      "pasteCopied": {
+        "title": "已複製到剪貼簿",
+        "description": "自動貼上未完成。文字已在剪貼簿中。請使用 Cmd+V 或 Ctrl+V 手動貼上。"
+      }
+    },
+    "clipboard": {
+      "pasteFailed": {
+        "title": "剪貼簿貼上失敗",
+        "description": "無法從剪貼簿貼上。請嘗試手動輸入或使用 Cmd+V/Ctrl+V。"
+      }
+    },
+    "hotkeyRegistration": {
+      "titles": {
+        "invalidHotkey": "無效的快捷鍵",
+        "notRegistered": "快捷鍵未註冊",
+        "saved": "快捷鍵已儲存",
+        "error": "快捷鍵錯誤"
+      },
+      "errors": {
+        "enterValidHotkey": "請輸入有效的快捷鍵",
+        "unsupportedShortcut": "不支援此快捷鍵。",
+        "couldNotRegister": "無法註冊此按鍵。請選擇其他按鍵。",
+        "failedToRegister": "快捷鍵註冊失敗。請再試一次。"
+      },
+      "messages": {
+        "nowUsing": "現在使用 {{hotkey}} 進行語音輸入"
+      }
+    },
+    "modelDownload": {
+      "errors": {
+        "timeout": "下載逾時。請檢查網路連線後再試。",
+        "notFound": "無法連線到下載伺服器。請檢查你的網路連線。",
+        "corrupted": "下載不完整或檔案損毀。請再試一次。",
+        "rateLimited": "下載伺服器正在限制流量。請稍候幾分鐘後再試。",
+        "server": "伺服器錯誤（{{error}}）。請稍後再試。",
+        "generic": "下載失敗：{{error}}",
+        "extractionFailed": "模型已下載，但安裝失敗。點擊下載可重試安裝，無需重新下載。",
+        "unknown": "未知錯誤"
+      },
+      "downloadFailed": {
+        "title": "下載失敗"
+      },
+      "installationFailed": {
+        "title": "安裝失敗"
+      },
+      "downloadInProgress": {
+        "title": "下載進行中",
+        "description": "請等待目前的下載完成，或先取消它。"
+      },
+      "modelDeleted": {
+        "title": "模型已刪除",
+        "descriptionWithSpace": "模型已成功刪除！釋放了 {{sizeMb}}MB 的磁碟空間。",
+        "description": "模型已成功刪除！"
+      },
+      "deleteFailed": {
+        "title": "刪除失敗",
+        "description": "無法刪除模型：{{error}}"
+      },
+      "downloadCancelled": {
+        "title": "下載已取消",
+        "description": "下載已被取消。"
+      }
+    },
+    "permissions": {
+      "paths": {
+        "windowsMicrophone": "設定 -> 隱私權 -> 麥克風",
+        "linuxSound": "你的系統音效設定",
+        "defaultSound": "系統設定 -> 聲音 -> 輸入",
+        "linuxPrivacy": "你的系統隱私權設定",
+        "defaultPrivacy": "系統設定 -> 隱私權與安全性 -> 麥克風"
+      },
+      "micErrors": {
+        "accessFailed": "麥克風存取失敗。請再試一次。",
+        "noMicrophones": "未偵測到麥克風。請在 {{settingsPath}} 中連接或選擇麥克風。",
+        "permissionDenied": "權限被拒絕。請開啟 {{privacyPath}} 並允許 Mouthpiece。",
+        "couldNotStart": "無法啟動所選的麥克風。請在 {{settingsPath}} 中選擇輸入裝置後重新測試。",
+        "noActiveInput": "找不到有效的音訊輸入。請在 {{settingsPath}} 中選擇麥克風。",
+        "unknown": "麥克風存取失敗：{{error}}。請選擇其他輸入裝置後再試。",
+        "unknownFallback": "未知錯誤"
+      },
+      "settingsTitles": {
+        "microphone": "麥克風設定",
+        "sound": "音效設定",
+        "accessibility": "輔助使用設定"
+      },
+      "settingsErrors": {
+        "unableToOpenMicrophone": "無法開啟麥克風設定。請手動開啟系統設定。",
+        "unableToOpenSound": "無法開啟音效設定。請手動開啟系統設定。",
+        "unableToOpenAccessibility": "無法開啟輔助使用設定。請手動開啟系統設定。"
+      },
+      "micUnavailable": "此環境中無法使用麥克風 API。請重新啟動應用程式。",
+      "titles": {
+        "microphoneUnavailable": "麥克風無法使用",
+        "microphonePermissionRequired": "需要麥克風權限",
+        "accessibilityNeeded": "需要輔助使用權限",
+        "readyToGo": "準備就緒！",
+        "waylandClipboardMode": "Wayland 剪貼簿模式",
+        "optionalPasteTool": "選用：安裝貼上工具"
+      },
+      "descriptions": {
+        "accessibilityNeeded": "請在系統設定中授予輔助使用權限，以啟用自動貼上功能。",
+        "windowsReady": "Windows 不需要特殊權限即可自動貼上。一切就緒！",
+        "linuxReadyWithMethod": "已使用 {{method}} 啟用自動貼上。一切就緒！",
+        "waylandClipboardMode": "此 Wayland 工作階段不支援自動貼上。Mouthpiece 會將文字複製到剪貼簿，你可以使用 Ctrl+V 貼上。",
+        "optionalPasteTool": "如需自動貼上，請安裝 {{tool}}：\n\n{{installCmd}}{{waylandNote}}\n\n沒有安裝也可以使用 Mouthpiece，文字會複製到剪貼簿，你可以使用 Ctrl+V 貼上。"
+      },
+      "alerts": {
+        "accessibilityNeeded": "需要輔助使用權限！請在系統設定中授權。"
+      },
+      "notes": {
+        "waylandWtype": "\n\n注意：XWayland 應用程式也可使用 xdotool。",
+        "waylandXwaylandOnly": "\n\n注意：自動貼上僅適用於 XWayland 應用程式。"
+      },
+      "labels": {
+        "defaultPasteTool": "xdotool",
+        "xdotoolXwayland": "xdotool（XWayland 應用程式）"
+      },
+      "accessibilityTestText": "Mouthpiece 輔助使用測試",
+      "warning": {
+        "messages": {
+          "macos": "請檢查聲音設定以選擇輸入裝置",
+          "windows": "請檢查 Windows 設定以選擇輸入裝置",
+          "linux": "請檢查系統音效設定以選擇輸入裝置"
+        },
+        "soundLabel": "聲音",
+        "privacyLabel": "隱私權"
+      }
+    }
+  },
+  "auth": {
+    "cloudNotConfigured": "雲端未設定",
+    "common": {
+      "back": "返回",
+      "continue": "繼續",
+      "or": "或"
+    },
+    "emailStep": {
+      "continueWithEmail": "使用電子郵件繼續",
+      "continueWithoutAccount": "不建立帳號繼續",
+      "emailPlaceholder": "you@example.com"
+    },
+    "errors": {
+      "accountExistsSignIn": "此電子郵件已有帳號。請直接登入。",
+      "accountNotFoundCreate": "找不到此電子郵件的帳號。請建立帳號。",
+      "authNotConfigured": "尚未設定驗證功能",
+      "createAccountFailed": "建立帳號失敗",
+      "failedProviderSignIn": "無法透過 {{provider}} 登入",
+      "failedUserCheck": "無法檢查使用者帳號",
+      "generic": "發生錯誤，請再試一次。",
+      "invalidCredentials": "電子郵件或密碼不正確",
+      "plusAliasUnsupported": "不支援含「+」的電子郵件別名"
+    },
+    "getStarted": "開始使用",
+    "legal": {
+      "and": "和",
+      "prefix": "繼續即表示你同意我們的",
+      "privacy": "隱私權政策",
+      "suffix": "",
+      "terms": "服務條款"
+    },
+    "passwordForm": {
+      "createAccount": "建立帳號",
+      "createAccountButton": "建立帳號",
+      "createAccountLink": "建立帳號",
+      "createPasswordPlaceholder": "建立密碼",
+      "creatingAccount": "正在建立帳號...",
+      "enterPasswordPlaceholder": "輸入你的密碼",
+      "forgotPassword": "忘記密碼？",
+      "fullNamePlaceholder": "姓名",
+      "haveAccount": "已經有帳號了？",
+      "newHere": "第一次來？",
+      "passwordMinLength": "密碼至少需要 8 個字元",
+      "signIn": "登入",
+      "signInLink": "登入",
+      "signingIn": "登入中...",
+      "welcomeBack": "歡迎回來"
+    },
+    "signedIn": {
+      "ready": "準備就緒",
+      "welcomeBack": "歡迎回來",
+      "welcomeBackName": "歡迎回來，{{name}}"
+    },
+    "social": {
+      "completeInBrowser": "請在瀏覽器中完成登入",
+      "continueWithGoogle": "使用 Google 繼續"
+    },
+    "welcomeSubtitle": "隨時隨地用語音輸入文字",
+    "welcomeTitle": "歡迎使用 Mouthpiece",
+    "sessionExpired": "工作階段已過期，請重新登入。"
+  },
+  "cleanupPrompt": "文字整理",
+  "developerSection": {
+    "currentLogFile": "目前的記錄檔",
+    "debugMode": {
+      "disabledDescription": "啟用以擷取詳細的診斷資訊",
+      "enabledDescription": "正在記錄音訊處理、API 請求和系統操作",
+      "label": "Debug 模式"
+    },
+    "description": "擷取詳細記錄以協助診斷問題",
+    "openLogsFolder": "開啟記錄檔資料夾",
+    "performanceNote": {
+      "description": "Debug 記錄會持續寫入磁碟，可能略微影響效能。不需要除錯時請停用。",
+      "label": "注意"
+    },
+    "sharing": {
+      "footer": "記錄檔不包含 API Key 或敏感資料",
+      "steps": {
+        "0": "在 Debug 模式啟用的狀態下重現問題",
+        "1": "點擊上方的「開啟記錄檔資料夾」",
+        "2": "將最近的記錄檔附加到錯誤回報中"
+      },
+      "title": "分享記錄檔以取得支援"
+    },
+    "title": "Debug 記錄",
+    "toasts": {
+      "copied": {
+        "description": "記錄檔路徑已複製到剪貼簿",
+        "title": "已複製"
+      },
+      "copyFailed": {
+        "description": "複製到剪貼簿時發生錯誤。",
+        "title": "無法複製"
+      },
+      "debugDisabled": {
+        "description": "Debug 記錄已關閉",
+        "title": "Debug 記錄已停用"
+      },
+      "debugEnabled": {
+        "description": "正在將詳細記錄寫入磁碟",
+        "title": "Debug 記錄已啟用"
+      },
+      "loadFailed": {
+        "description": "發生錯誤。請嘗試重新開啟設定。",
+        "title": "無法載入 Debug 設定"
+      },
+      "openLogsFailed": {
+        "description": "開啟記錄檔目錄時發生錯誤。",
+        "title": "無法開啟記錄檔資料夾"
+      },
+      "updateFailed": {
+        "description": "發生錯誤，請再試一次。",
+        "title": "無法更新 Debug 記錄設定"
+      }
+    },
+    "whatGetsLogged": {
+      "items": {
+        "apiRequests": "API 請求",
+        "audioProcessing": "音訊處理",
+        "errorDetails": "錯誤詳情",
+        "ffmpegOperations": "FFmpeg 操作",
+        "systemDiagnostics": "系統診斷",
+        "transcriptionPipeline": "轉錄流程"
+      },
+      "title": "記錄的項目"
+    }
+  },
+  "dictionarySuffix": "字典後綴",
+  "emailVerification": {
+    "checkEmailDescription": "我們已寄送驗證連結至",
+    "checkEmailTitle": "請查看你的電子郵件",
+    "errors": {
+      "resendFailed": "無法重新寄送驗證信。請再試一次。",
+      "serverUnreachable": "無法連線到伺服器。請檢查你的網路連線後再試。"
+    },
+    "resendButton": "重新寄送驗證信",
+    "resendIn": "{{seconds}} 秒後可重新寄送",
+    "verifiedDescription": "你的帳號已設定完成。",
+    "verifiedTitle": "電子郵件已驗證",
+    "waiting": "等待驗證中..."
+  },
+  "errorBoundary": {
+    "description": "發生意外錯誤。請重新載入後再試。",
+    "reload": "重新載入",
+    "title": "發生錯誤"
+  },
+  "forgotPassword": {
+    "back": "返回",
+    "backToSignIn": "返回登入",
+    "emailPlaceholder": "輸入你的電子郵件",
+    "goBack": "返回",
+    "notConfigured": "尚未設定驗證功能。",
+    "sendResetLink": "寄送重設連結",
+    "sending": "寄送中...",
+    "subtitle": "輸入你的電子郵件，我們會寄送重設連結給你",
+    "success": {
+      "description": "我們已寄送密碼重設連結至",
+      "help": "沒收到信？請檢查垃圾郵件資料夾，或再試一次。",
+      "title": "請查看你的電子郵件",
+      "tryAnother": "嘗試其他電子郵件"
+    },
+    "title": "重設你的密碼"
+  },
+  "fullPrompt": "完整提示詞",
+  "hotkeyGuidance": {
+    "blockedDescription": "這些快捷鍵已被封鎖，因為它們通常是系統保留的。",
+    "blockedTitle": "已封鎖的快捷鍵",
+    "description": "參考這些平台規則來選擇不會與系統衝突的快捷鍵。",
+    "examplesTitle": "有效範例",
+    "platforms": {
+      "linux": "Linux",
+      "macos": "macOS",
+      "windows": "Windows"
+    },
+    "recommended": {
+      "linux": {
+        "0": "Ctrl+Alt+Space",
+        "1": "Super+S",
+        "2": "Ctrl+Alt+D",
+        "3": "Ctrl+Shift+J",
+        "4": "Alt+Space"
+      },
+      "macos": {
+        "0": "⌥Space",
+        "1": "⌃⌥S",
+        "2": "⌃⌥D",
+        "3": "Fn",
+        "4": "⌘⇧J"
+      },
+      "windows": {
+        "0": "Ctrl+Alt+Space",
+        "1": "Ctrl+Shift+S",
+        "2": "Ctrl+Alt+D",
+        "3": "Win+Alt+K"
+      }
+    },
+    "recommendedTitle": "推薦的快捷鍵",
+    "rulesTitle": "快捷鍵規則",
+    "showAll": "顯示全部",
+    "showFewer": "顯示較少",
+    "title": "快捷鍵指南",
+    "validationRules": {
+      "0": "必須使用至少一個修飾鍵（Ctrl、Alt、Shift 等）",
+      "1": "不可使用系統保留的快捷鍵",
+      "2": "不允許單獨使用單一按鍵",
+      "3": "部分組合可能與其他應用程式衝突"
+    }
+  },
+  "hotkeyInput": {
+    "ariaLabel": "按下按鍵組合以設定快捷鍵",
+    "clickToChange": "點擊以變更",
+    "clickToChangeLower": "點擊以變更",
+    "clickToSet": "點擊以設定快捷鍵",
+    "fnCaptureHint": "按下按鍵組合，或放開以設為 Globe",
+    "fnHeldHint": "+ 按鍵，或放開以設為 Globe",
+    "globe": "Globe",
+    "hotkeyLabel": "快捷鍵",
+    "keyHint": "+ 按鍵",
+    "listening": "聆聽中...",
+    "pressAnyKey": "按下任意按鍵或 Ctrl+Shift+K",
+    "pressAnyKeyMac": "按下任意按鍵或 ⌘⇧K",
+    "recording": "記錄中",
+    "tryShortcut": "試試 Ctrl+Shift+K",
+    "tryShortcutMac": "試試 ⌘⇧K"
+  },
+  "languageSelector": {
+    "noLanguagesFound": "找不到語言",
+    "searchPlaceholder": "搜尋..."
+  },
+  "microphoneSettings": {
+    "builtIn": "（內建）",
+    "errors": {
+      "unableToAccess": "無法存取麥克風。請檢查權限設定。"
+    },
+    "helpText": "選擇特定的麥克風，或使用系統預設裝置。",
+    "inputDevice": "輸入裝置",
+    "noBuiltInDetected": "未偵測到內建麥克風。使用系統預設裝置。",
+    "preferBuiltIn": {
+      "description": "外接麥克風可能造成延遲或降低轉錄品質",
+      "label": "優先使用內建麥克風"
+    },
+    "selectPlaceholder": "選擇麥克風",
+    "systemDefault": "系統預設",
+    "unknownDevice": "未知裝置",
+    "using": "使用中："
+  },
+  "pasteToolsInfo": {
+    "checking": "正在檢查系統功能...",
+    "installCommands": {
+      "archLinux": "# Arch Linux",
+      "debianUbuntu": "# Debian / Ubuntu",
+      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
+      "fedoraRhel": "# Fedora / RHEL"
+    },
+    "installPrefix": "如需自動貼上文字，請安裝",
+    "methodReady": "用於自動貼上文字",
+    "noteXwaylandAlso": "注意：XWayland 應用程式也可使用 xdotool。",
+    "noteXwaylandOnly": "注意：自動貼上僅適用於 XWayland 應用程式。",
+    "optionalEnableTitle": "選用：啟用自動貼上",
+    "readyTitle": "自動貼上已就緒",
+    "recheck": "重新檢查",
+    "recheckChecking": "檢查中...",
+    "title": "自動貼上",
+    "usingMethodPrefix": "使用",
+    "waylandClipboardDescription": "此 Wayland 工作階段不支援自動貼上。Mouthpiece 會將文字複製到剪貼簿，你可以使用 Ctrl+V 手動貼上。",
+    "waylandClipboardTitle": "Wayland 剪貼簿模式",
+    "windowsReady": "Windows 內建支援自動貼上。不需要額外設定！",
+    "withoutToolPrefix": "若未安裝此工具，Mouthpiece 會將文字複製到剪貼簿。你可以使用 Ctrl+V 手動貼上。",
+    "xwaylandAppsOnly": "自動貼上僅適用於 XWayland 應用程式"
+  },
+  "promptStudio": {
+    "common": {
+      "copied": "已複製",
+      "copy": "複製",
+      "reset": "重設",
+      "save": "儲存"
+    },
+    "defaultTestInput": "嘿 Whispr，今天天氣怎麼樣？",
+    "dialogs": {
+      "reset": {
+        "description": "提示詞已重設為預設值。",
+        "title": "重設完成"
+      },
+      "saved": {
+        "description": "你的自訂提示詞將用於所有後續的 AI 處理。",
+        "title": "提示詞已儲存"
+      }
+    },
+    "edit": {
+      "agentNameLabel": "助理名稱：",
+      "cautionLabel": "注意",
+      "cautionTextPrefix": "修改此提示詞可能影響轉錄品質。",
+      "cautionTextSuffix": "請保留 {{agentName}} 佔位符以維持助理偵測功能。",
+      "placeholder": "輸入你的自訂系統提示詞..."
+    },
+    "tabs": {
+      "customize": "自訂",
+      "test": "測試",
+      "view": "檢視"
+    },
+    "test": {
+      "addressHint": "試試對「{{agentName}}」說話以測試指令模式",
+      "aiModels": "AI 模型",
+      "baseUrlMissing": "缺少 {{provider}} 的 URL。請在 AI 模型設定中新增。",
+      "cleanup": "文字整理",
+      "disabledInSettingsPrefix": "AI 文字增強已停用。",
+      "disabledInSettingsSuffix": "請在 AI 模型中啟用以測試提示詞。",
+      "disabledReasoning": "AI 文字增強已停用。請在 AI 模型中啟用以測試提示詞。",
+      "failed": "測試失敗：{{error}}",
+      "inputLabel": "輸入",
+      "inputPlaceholder": "輸入文字進行測試...",
+      "instruction": "指令",
+      "modelLabel": "模型",
+      "noModelSelected": "未選擇模型",
+      "none": "無",
+      "outputLabel": "輸出",
+      "processing": "處理中...",
+      "openwhisprCloud": "Mouthpiece Cloud",
+      "providerLabel": "供應商",
+      "run": "執行測試",
+      "customEndpoint": "自訂端點"
+    },
+    "view": {
+      "customPrompt": "自訂提示詞",
+      "defaultPrompt": "預設提示詞",
+      "modes": {
+        "agent": {
+          "description": "由「{{agentName}}」觸發——執行指令、回答問題、撰寫內容",
+          "label": "助理"
+        },
+        "cleanup": {
+          "description": "快速處理——移除語助詞，修正文法和標點",
+          "label": "文字整理"
+        }
+      },
+      "modified": "已修改"
+    }
+  },
+  "resetPassword": {
+    "backToSignIn": "返回登入",
+    "confirmPasswordPlaceholder": "確認新密碼",
+    "continue": "繼續",
+    "errors": {
+      "passwordMinLength": "密碼至少需要 8 個字元",
+      "passwordsDoNotMatch": "密碼不一致"
+    },
+    "goBack": "返回",
+    "newPasswordPlaceholder": "新密碼",
+    "notConfigured": "尚未設定驗證功能。",
+    "passwordMinLength": "密碼至少需要 8 個字元",
+    "resetButton": "重設密碼",
+    "resetting": "重設中...",
+    "subtitle": "請在下方輸入你的新密碼",
+    "success": {
+      "description": "你的密碼已更新。你現在已登入。",
+      "title": "密碼重設成功"
+    },
+    "title": "建立新密碼"
+  },
+  "settingsModal": {
+    "groups": {
+      "app": "應用程式",
+      "speechAi": "語音與 AI",
+      "system": "系統"
+    },
+    "sections": {
+      "general": {
+        "description": "外觀、音效與啟動",
+        "label": "偏好設定"
+      },
+      "hotkeys": {
+        "description": "聽寫快捷鍵與啟用模式",
+        "label": "快捷鍵"
+      },
+      "transcription": {
+        "description": "語音轉文字引擎",
+        "label": "轉錄"
+      },
+      "intelligence": {
+        "description": "AI 模型、助理與提示詞",
+        "label": "智慧功能"
+      },
+      "privacyData": {
+        "description": "隱私、權限與資料分析",
+        "label": "隱私與資料"
+      },
+      "system": {
+        "description": "更新、儲存與開發者工具",
+        "label": "系統"
+      }
+    },
+    "title": "設定"
+  },
+  "settingsPage": {
+    "agentConfig": {
+      "agentName": "助理名稱",
+      "cleanupExample": "文字整理",
+      "cleanupMode": "文字整理模式",
+      "description": "為你的 AI 助理取個名字，這樣你可以在語音輸入時直接呼叫它",
+      "dialogs": {
+        "updatedDescription": "你的助理現在叫做「{{name}}」。說「Hey {{name}}」加上你的指令即可使用。",
+        "updatedTitle": "助理名稱已更新"
+      },
+      "examplesTitle": "範例",
+      "helper": "選個簡短、自然、好說的名字",
+      "howItWorksDescription": "當你說「Hey {{agentName}}」加上一個指令時，AI 會從文字整理模式切換到指令模式。沒有觸發語的時候，它只會整理你的語音輸入。",
+      "howItWorksTitle": "運作方式",
+      "instructionMode": "指令",
+      "placeholder": "例如 Jarvis、Nova、Atlas...",
+      "save": "儲存",
+      "title": "語音助理",
+      "examples": {
+        "formalEmail": "Hey {{agentName}}，撰寫一封關於預算的正式郵件",
+        "professional": "Hey {{agentName}}，讓這個更專業",
+        "bulletPoints": "Hey {{agentName}}，將這個轉換成要點列表"
+      }
+    },
+    "aiModels": {
+      "customSetup": "自訂設定",
+      "customSetupDescription": "使用你自己的供應商和 API Key。",
+      "description": "整理轉錄文字、處理指令、修正錯誤，同時保留你的語調。",
+      "enableTextCleanup": "啟用文字整理",
+      "enableTextCleanupDescription": "AI 自動提升轉錄品質",
+      "openwhisprCloud": "Mouthpiece Cloud",
+      "openwhisprCloudDescription": "即開即用，無需設定。",
+      "title": "AI 文字增強",
+      "toasts": {
+        "switchedCloud": {
+          "description": "文字增強將使用 Mouthpiece 雲端服務。",
+          "title": "已切換至 Mouthpiece Cloud"
+        },
+        "switchedCustom": {
+          "description": "設定你自己的供應商和 API Key。",
+          "title": "已切換至自訂設定"
+        }
+      }
+    },
+    "developer": {
+      "clearCache": "清除快取",
+      "dataManagementDescription": "管理快取的模型和應用程式資料",
+      "dataManagementTitle": "資料管理",
+      "modelCache": "模型快取",
+      "open": "開啟",
+      "removeModels": {
+        "confirmText": "刪除模型",
+        "description": "這將刪除所有本機快取的 Whisper 模型（{{path}}），並釋放磁碟空間。你可以從模型選擇器重新下載。",
+        "failedDescription": "移除模型時發生錯誤。請再試一次。",
+        "failedDescriptionShort": "無法移除快取的模型。",
+        "failedTitle": "無法移除模型",
+        "successDescription": "所有快取的模型已移除。",
+        "successTitle": "模型已移除",
+        "title": "要移除已下載的模型嗎？"
+      },
+      "removing": "移除中...",
+      "resetAll": {
+        "confirmText": "刪除所有資料",
+        "description": "這將永久刪除所有設定、轉錄記錄和快取資料。重設後應用程式將重新載入。",
+        "failedDescription": "發生錯誤。請再試一次或重新安裝應用程式。",
+        "failedTitle": "無法重設",
+        "successDescription": "所有資料已重設。應用程式即將重新載入。",
+        "successTitle": "完成",
+        "title": "重設所有應用程式資料"
+      },
+      "resetAppData": "重設應用程式資料",
+      "resetAppDataDescription": "永久刪除所有設定、轉錄記錄和快取資料"
+    },
+    "dictionary": {
+      "title": "自訂詞典",
+      "description": "教 AI 你的詞彙 — 名字、術語和它可能遺漏的詞語",
+      "addWordOrPhrase": "新增單字或片語",
+      "placeholder": "新增一個單字或片語...",
+      "add": "新增",
+      "pressEnterToAdd": "按 Enter 新增",
+      "autoLearnTitle": "從校正中自動學習",
+      "autoLearnDescription": "當你在目標應用程式中校正轉錄時，校正後的字詞會自動新增到你的詞典中。",
+      "yourWords": "你的字詞",
+      "clearDictionaryTitle": "清除詞典？",
+      "clearDictionaryDescription": "這將移除自訂詞典中的所有字詞。此操作無法復原。",
+      "clearAll": "全部清除",
+      "agentNameAutoManaged": "自動管理 — 與助理名稱同步",
+      "removeWord": "移除字詞",
+      "noWords": "尚無字詞",
+      "wordsAppearHere": "你新增的字詞將顯示在這裡",
+      "howItWorksTitle": "運作方式",
+      "howItWorksDescription": "字詞會作為上下文提示提供給語音模型，幫助它辨識不常見的術語。對於難以辨識的字詞，可以嘗試在字詞旁新增上下文，例如 \"The word is Synty\"。",
+      "tipLabel": "提示",
+      "tipDescription": "用逗號分隔多個字詞。新增上下文片語如 \"The word is Synty\" 以獲得更好的辨識效果。"
+    },
+    "general": {
+      "appearance": {
+        "auto": "自動",
+        "dark": "深色",
+        "description": "控制 Mouthpiece 的外觀",
+        "light": "淺色",
+        "theme": "主題",
+        "themeDescription": "選擇淺色、深色或跟隨系統",
+        "title": "外觀"
+      },
+      "floatingIcon": {
+        "autoHide": "閒置時自動隱藏",
+        "autoHideDescription": "在開始語音輸入前保持圖示隱藏",
+        "description": "控制語音輸入圖示在畫面上的顯示時機",
+        "title": "浮動圖示"
+      },
+      "hotkey": {
+        "activationMode": "啟用模式",
+        "description": "用來開始和停止語音輸入的組合鍵",
+        "resetToDefault": "重置為 {{hotkey}}",
+        "title": "語音輸入快捷鍵"
+      },
+      "microphone": {
+        "description": "選擇用於語音輸入的輸入裝置",
+        "title": "麥克風"
+      },
+      "soundEffects": {
+        "dictationSounds": "語音輸入音效",
+        "dictationSoundsDescription": "錄音開始和結束時播放提示音",
+        "title": "音效"
+      },
+      "startup": {
+        "launchAtLogin": "登入時啟動",
+        "launchAtLoginDescription": "登入時自動啟動 Mouthpiece",
+        "title": "啟動"
+      },
+      "updates": {
+        "badges": {
+          "dev": "Dev",
+          "latest": "最新",
+          "update": "更新"
+        },
+        "checkForUpdates": "檢查更新",
+        "checking": "檢查中...",
+        "currentVersion": "目前版本",
+        "devMode": "正在開發模式中執行",
+        "dialogs": {
+          "almostThere": {
+            "description": "更新即將完成。請稍候。",
+            "title": "即將完成"
+          },
+          "checkFailed": {
+            "description": "檢查更新時發生問題。請稍後再試。",
+            "title": "無法檢查更新"
+          },
+          "downloadFailed": {
+            "description": "下載更新時發生問題。請再試一次。",
+            "title": "無法下載更新"
+          },
+          "installFailed": {
+            "description": "安裝更新時發生問題。請再試一次。",
+            "title": "無法安裝更新"
+          },
+          "installUpdate": {
+            "confirmText": "安裝並重新啟動",
+            "description": "Mouthpiece 將重新啟動以套用更新。",
+            "title": "安裝更新"
+          },
+          "noUpdates": {
+            "description": "你使用的是最新版本。",
+            "title": "沒有更新"
+          },
+          "updateAvailable": {
+            "description": "有可用更新：v{{version}}",
+            "title": "有可用更新"
+          },
+          "updateError": {
+            "description": "更新時發生錯誤。請再試一次。",
+            "title": "更新錯誤"
+          }
+        },
+        "downloadUpdate": "下載更新 {{version}}",
+        "downloading": "下載中... {{progress}}%",
+        "installAndRestart": "安裝並重新啟動",
+        "latestVersion": "你使用的是最新版本",
+        "newVersion": "有更新的版本可用",
+        "newVersionAvailable": "有新版本可用",
+        "restarting": "重新啟動中...",
+        "title": "更新",
+        "versionPlaceholder": "—",
+        "whatsNew": "v{{version}} 的新功能"
+      }
+    },
+    "permissions": {
+      "accessibilityDescription": "轉錄後自動貼上文字所需的權限",
+      "accessibilityTitle": "輔助使用",
+      "description": "測試和管理 Mouthpiece 正常運作所需的系統權限",
+      "microphoneDescription": "錄音和語音輸入所需的權限",
+      "microphoneTitle": "麥克風",
+      "resetAccessibility": {
+        "description": "這將從輔助使用權限中移除 Mouthpiece。你需要在「系統設定 > 隱私權與安全性 > 輔助使用」中重新授權。",
+        "label": "重設輔助使用權限",
+        "rowDescription": "重新安裝或重新建置應用程式後，透過在系統設定中移除並重新加入 Mouthpiece 來修復問題",
+        "title": "重設輔助使用權限"
+      },
+      "test": "測試",
+      "testAndGrant": "測試並授權",
+      "title": "權限",
+      "troubleshoot": "疑難排解",
+      "troubleshootingTitle": "疑難排解"
+    },
+    "privacy": {
+      "cloudBackup": "雲端備份",
+      "cloudBackupDescription": "將轉錄記錄儲存至雲端，確保不會遺失。",
+      "description": "控制哪些資料會離開你的裝置。預設全部關閉。",
+      "title": "隱私權",
+      "usageAnalytics": "使用分析",
+      "usageAnalyticsDescription": "分享匿名的效能指標，協助我們改善 Mouthpiece。我們絕不會傳送轉錄內容——只有計時和錯誤資料。"
+    },
+    "prompts": {
+      "description": "檢視、自訂和測試用於文字整理和指令偵測的統一系統提示詞",
+      "title": "提示詞工作室"
+    },
+    "transcription": {
+      "customSetup": "自訂設定",
+      "customSetupDescription": "使用你自己的供應商和 API Key。",
+      "description": "選擇 Mouthpiece 轉錄語音的方式",
+      "openwhisprCloud": "Mouthpiece Cloud",
+      "openwhisprCloudDescription": "即開即用，無需設定。",
+      "title": "語音轉文字",
+      "toasts": {
+        "switchedCloud": {
+          "description": "轉錄將使用 Mouthpiece 雲端服務。",
+          "title": "已切換至 Mouthpiece Cloud"
+        },
+        "switchedCustom": {
+          "description": "設定你自己的供應商和 API Key。",
+          "title": "已切換至自訂設定"
+        }
+      },
+      "cloudDisabled": "已停用",
+      "cloudOffline": "離線"
+    }
+  },
+  "models": {
+    "descriptions": {
+      "parakeet": {
+        "parakeet_tdt_0_6b_v3": "快速多語言 ASR，自動語言偵測（25 種語言）"
+      },
+      "whisper": {
+        "tiny": "最快速，品質較低",
+        "base": "均衡表現",
+        "small": "品質更佳，速度較慢",
+        "medium": "高品質",
+        "large": "最佳品質，速度最慢",
+        "turbo": "速度快且品質佳"
+      },
+      "transcription": {
+        "openai_gpt_4o_mini_transcribe": "快速且準確的轉錄",
+        "openai_gpt_4o_transcribe": "最高準確度的轉錄",
+        "openai_whisper_1": "原始 Whisper 模型",
+        "groq_whisper_large_v3_turbo": "216 倍即時速度",
+        "groq_whisper_large_v3": "Large v3 模型，快速且精準",
+        "mistral_voxtral_mini_latest": "快速多語言轉錄"
+      },
+      "cloud": {
+        "openai_gpt_5_2": "最新旗艦推理模型",
+        "openai_gpt_5_mini": "快速且經濟實惠",
+        "openai_gpt_5_nano": "超快速，低延遲",
+        "openai_gpt_4_1": "穩健基礎，1M 上下文",
+        "openai_gpt_4_1_mini": "較小的 GPT-4.1 模型",
+        "openai_gpt_4_1_nano": "最低延遲的 GPT-4.1",
+        "anthropic_claude_sonnet_4_5": "均衡表現",
+        "anthropic_claude_haiku_4_5": "快速且接近頂尖智慧",
+        "anthropic_claude_opus_4_5": "最強大的 Claude 模型",
+        "gemini_gemini_3_pro_preview": "新一代旗艦模型，擅長複雜推理",
+        "gemini_gemini_3_flash_preview": "超快速、高性能的新一代模型",
+        "gemini_gemini_2_5_flash_lite": "最低延遲和成本",
+        "groq_qwen_qwen3_32b": "強大推理模型，131K 上下文",
+        "groq_openai_gpt_oss_120b": "OpenAI 開源旗艦，500 T/sec",
+        "groq_openai_gpt_oss_20b": "快速開源模型，1000 T/sec",
+        "groq_llama_3_3_70b_versatile": "Meta 多功能模型，280 T/sec",
+        "groq_llama_3_1_8b_instant": "超快速 560 T/sec，131K 上下文",
+        "groq_llama_4_scout": "Meta 高效多模態，750 T/sec",
+        "groq_compound": "Groq Compound 系統，450 T/sec",
+        "groq_compound_mini": "快速 Compound 系統，3x 更低延遲",
+        "groq_kimi_k2_0905": "Moonshot AI 1T MoE，256K 上下文"
+      },
+      "local": {
+        "qwen_qwen3_8b_q4_k_m": "最新 Qwen3，支援思考模式",
+        "qwen_qwen3_8b_q5_k_m": "更高品質 Qwen3，支援思考模式",
+        "qwen_qwen3_4b_q4_k_m": "精巧 Qwen3，具推理能力",
+        "qwen_qwen3_1_7b_q8_0": "小巧但有能力的 Qwen3 模型",
+        "qwen_qwen3_0_6b_q8_0": "極小型 Qwen3，適合邊緣裝置",
+        "qwen_qwen3_32b_q4_k_m": "最強大的本機 Qwen3，深度推理",
+        "qwen_qwen2_5_0_5b_instruct_q5_k_m": "最小型模型，快速但能力有限",
+        "qwen_qwen2_5_1_5b_instruct_q5_k_m": "小型模型，適合基本任務",
+        "qwen_qwen2_5_3b_instruct_q5_k_m": "均衡模型，通用型",
+        "qwen_qwen2_5_7b_instruct_q4_k_m": "大型模型，高品質（Q4_K_M）",
+        "qwen_qwen2_5_7b_instruct_q5_k_m": "大型模型，高品質推理（Q5_K_M）",
+        "mistral_mistral_7b_instruct_v0_3_q4_k_m": "快速且高效的指令模型",
+        "mistral_mistral_7b_instruct_v0_3_q5_k_m": "更高品質的指令模型",
+        "llama_llama_3_2_1b_instruct_q4_k_m": "極小型模型，適合邊緣裝置",
+        "llama_llama_3_2_3b_instruct_q4_k_m": "小巧但有能力的多語言模型",
+        "llama_llama_3_1_8b_instruct_q4_k_m": "強大的高效能模型",
+        "openai_oss_gpt_oss_20b_mxfp4": "OpenAI 開放權重模型，適用於消費級硬體",
+        "gemma_gemma_3_4b_it_q4_k_m": "Google 開放權重模型，速度與品質的絕佳平衡",
+        "gemma_gemma_3_1b_it_q4_k_m": "超快 Google 模型，最適合短語音清理"
+      }
+    }
+  },
+  "referral": {
+    "modalTitle": "推薦計畫",
+    "title": "推薦好友賺取獎勵",
+    "subtitle": "送一個月，得一個月。",
+    "tabs": {
+      "refer": "推薦",
+      "pastInvites": "過去的邀請"
+    },
+    "howItWorks": {
+      "shareLink": "分享您的邀請連結",
+      "theySignUp": "對方註冊即可獲得",
+      "freeMonthOfPro": "一個月免費 Pro",
+      "youGet": "您可獲得",
+      "freeMonth": "一個月免費",
+      "whenTheyDictate": "當對方聽寫滿 2,000 字時"
+    },
+    "inviteLink": {
+      "title": "您的邀請連結",
+      "copy": "複製",
+      "copied": "已複製"
+    },
+    "sendInvites": {
+      "title": "發送邀請",
+      "placeholder": "friend@example.com",
+      "send": "發送",
+      "sending": "發送中"
+    },
+    "stats": {
+      "referred": "已推薦",
+      "converted": "已轉換",
+      "monthsEarned": "已獲得月數"
+    },
+    "status": {
+      "converted": "已轉換",
+      "opened": "已開啟",
+      "failed": "失敗",
+      "sent": "已發送"
+    },
+    "empty": {
+      "title": "尚未發送任何邀請",
+      "description": "分享您的連結或發送邀請以開始使用"
+    },
+    "toasts": {
+      "copiedTitle": "已複製！",
+      "copiedDescription": "推薦連結已複製到剪貼簿",
+      "copyFailedTitle": "複製失敗",
+      "copyFailedDescription": "無法將連結複製到剪貼簿",
+      "invalidEmailTitle": "無效的電子郵件",
+      "invalidEmailDescription": "請輸入有效的電子郵件地址",
+      "inviteSentTitle": "邀請已發送！",
+      "inviteSentDescription": "邀請已發送至 {{email}}",
+      "sendFailedTitle": "發送失敗",
+      "sendFailedDescription": "無法發送邀請，請重試。"
+    },
+    "errors": {
+      "unableToLoad": "無法載入推薦資料",
+      "unableToLoadStats": "無法載入推薦統計資料，請稍後再試。"
+    },
+    "tryAgain": "重試",
+    "card": {
+      "brand": "Mouthpiece",
+      "signalId": "Signal ID",
+      "audioSignature": "您的音訊簽名",
+      "stop": "停止",
+      "playSignal": "播放信號"
+    },
+    "friends": {
+      "title": "好友",
+      "completed": "已完成",
+      "sentInvites": "已發送的邀請"
+    }
+  },
+  "notes": {
+    "folders": {
+      "title": "資料夾",
+      "soon": "即將推出",
+      "folderName": "資料夾名稱",
+      "couldNotCreate": "無法建立資料夾",
+      "couldNotRename": "無法重新命名資料夾",
+      "couldNotDelete": "無法刪除資料夾"
+    },
+    "list": {
+      "title": "筆記",
+      "newNote": "新增筆記",
+      "untitled": "未命名",
+      "untitledNote": "未命名筆記",
+      "timeNow": "剛剛",
+      "minutesAgo": "{{count}} 分鐘前",
+      "hoursAgo": "{{count}} 小時前",
+      "daysAgo": "{{count}} 天前"
+    },
+    "editor": {
+      "untitled": "未命名",
+      "noteTitle": "筆記標題",
+      "stop": "停止",
+      "transcribe": "轉錄",
+      "processing": "處理中...",
+      "export": "匯出",
+      "asMarkdown": "匯出為 Markdown",
+      "asPlainText": "匯出為純文字",
+      "raw": "原始",
+      "enhanced": "已增強",
+      "saving": "儲存中",
+      "wordsCount": "{{count}} 個字",
+      "startWriting": "開始撰寫...",
+      "staleIndicator": "內容在增強後已變更",
+      "live": "即時"
+    },
+    "upload": {
+      "title": "上傳音訊",
+      "using": "使用 {{model}}",
+      "dropOrBrowse": "拖放音訊檔案或點擊瀏覽",
+      "supportedFormats": "MP3、WAV、M4A、WebM、OGG、FLAC、AAC",
+      "dropToUpload": "拖放以上傳",
+      "transcribe": "轉錄",
+      "cancel": "取消",
+      "transcribingCloud": "透過雲端轉錄中...",
+      "transcribingLocal": "本機轉錄中...",
+      "transcribingProvider": "透過 {{provider}} 轉錄中...",
+      "transcriptionComplete": "轉錄完成",
+      "openNote": "開啟筆記",
+      "uploadAnother": "上傳另一個",
+      "retry": "重試",
+      "startOver": "重新開始",
+      "transcriptionSettings": "轉錄設定",
+      "newFolder": "新增資料夾",
+      "folderName": "資料夾名稱",
+      "create": "建立",
+      "setupTitle": "設定轉錄",
+      "setupDescription": "選擇音訊轉錄方式。此設定同樣適用於即時聽寫。",
+      "continue": "繼續",
+      "openwhisprCloud": "Mouthpiece Cloud",
+      "custom": "自訂",
+      "selectFolder": "選擇資料夾",
+      "transcriptionFailed": "轉錄失敗",
+      "errorOccurred": "發生錯誤",
+      "noProviderTitle": "尚未設定轉錄服務供應商",
+      "noProviderDescription": "新增 API Key 或下載本機模型以開始轉錄。",
+      "noProviderAction": "開啟轉錄設定",
+      "fileTooLarge": "此檔案超過 500 MB 的大小限制。",
+      "largeFileNote": "大型檔案將被分割並平行轉錄。",
+      "chunkProgress": "正在轉錄第 {{completed}} 部分，共 {{total}} 部分...",
+      "byokTooLarge": "第三方 API 金鑰僅支援 25 MB 以內的檔案。",
+      "byokTooLargeDetail": "超過 25 MB 的檔案由 Mouthpiece Cloud 負責分割、平行處理和重組——無需依賴第三方服務限制，即可獲得可靠的結果。",
+      "switchToCloudForLargeFiles": "切換到 Mouthpiece Cloud 來轉錄此檔案。",
+      "createAccount": "建立帳戶",
+      "switchToCloud": "Mouthpiece Cloud"
+    },
+    "meeting": {
+      "title": "會議筆記",
+      "description": "說話者辨識與結構化摘要",
+      "comingSoon": "即將推出"
+    },
+    "context": {
+      "moveToFolder": "移動到資料夾",
+      "delete": "刪除",
+      "rename": "重新命名",
+      "searchFolders": "搜尋資料夾...",
+      "noResults": "找不到資料夾",
+      "newFolder": "新增資料夾"
+    },
+    "actions": {
+      "manage": "管理動作...",
+      "manageTitle": "自訂動作",
+      "addAction": "新增動作",
+      "editAction": "編輯動作",
+      "namePlaceholder": "動作名稱",
+      "descriptionPlaceholder": "簡要描述（選填）",
+      "promptPlaceholder": "AI 應如何處理筆記內容？",
+      "builtIn": "內建",
+      "save": "儲存",
+      "update": "更新",
+      "cancel": "取消",
+      "noActions": "尚無自訂動作",
+      "runAction": "執行 {{name}}",
+      "selectAction": "選擇動作",
+      "done": "完成",
+      "builtin": {
+        "cleanupNotes": {
+          "name": "整理筆記",
+          "description": "修正文法、結構和格式"
+        }
+      },
+      "errors": {
+        "noModel": "未選擇 AI 模型。請在設定中進行配置。",
+        "actionFailed": "操作失敗"
+      }
+    },
+    "empty": {
+      "title": "這裡還沒有筆記",
+      "description": "建立你的第一則筆記，開始書寫",
+      "selectTitle": "選擇筆記",
+      "selectDescription": "從側邊欄選擇一則筆記",
+      "createNote": "建立筆記",
+      "emptyFolder": "此資料夾中沒有筆記"
+    },
+    "addToFolder": {
+      "title": "新增筆記",
+      "searchPlaceholder": "搜尋要新增的筆記...",
+      "addExisting": "新增現有筆記",
+      "addCount": "新增 {{count}} 則筆記",
+      "noResults": "沒有符合的筆記",
+      "noNotesAvailable": "沒有其他可用的筆記"
+    },
+    "onboarding": {
+      "llm": {
+        "title": "設定 AI 模型",
+        "description": "動作使用 AI 來處理你的筆記。設定語言模型以開始使用。",
+        "configured": "AI 模型已設定"
+      },
+      "actions": {
+        "title": "AI 驅動的動作",
+        "description": "動作可以處理你的筆記——整理轉錄、摘要會議等。使用內建動作或建立你自己的。",
+        "builtInLabel": "內建",
+        "createTitle": "建立你的動作",
+        "createDescription": "使用你自己的 AI 提示詞定義自訂動作。你隨時可以在設定中編輯或新增更多。",
+        "created": "已建立！"
+      },
+      "getStarted": "開始使用"
+    },
+    "enhance": {
+      "title": "增強錯誤"
+    }
+  },
+  "dictionary": {
+    "addWord": "新增詞語",
+    "removeWord": "移除 {{word}}",
+    "clearAll": "全部清除",
+    "howItWorks": "運作方式",
+    "howItWorksDetail": "你新增的詞彙會包含在 AI 提示詞中，讓模型在轉錄整理時能辨識並保留這些詞彙。",
+    "autoManaged": "助理名稱（自動管理）",
+    "inputHint": "按 Enter 新增",
+    "title": "自訂字典",
+    "description": "教 AI 學習你的詞彙 — 名字、專業術語和它可能遺漏的表達",
+    "clearTitle": "清空字典？",
+    "clearDescription": "這將移除自訂字典中的所有詞彙。此操作無法復原。",
+    "addPlaceholder": "新增詞語或片語..."
+  },
+  "sidebar": {
+    "home": "首頁",
+    "notes": "筆記",
+    "upload": "上傳",
+    "dictionary": "字典",
+    "referral": "獲得一個月免費",
+    "settings": "設定",
+    "support": "支援",
+    "defaultUser": "使用者",
+    "notSignedIn": "尚未登入"
+  },
+  "support": {
+    "joinDiscord": "加入 Discord",
+    "contactSupport": "聯絡支援",
+    "submitBug": "提交 Bug"
+  },
+  "apiKeyInput": {
+    "placeholder": "輸入你的 API Key",
+    "label": "API Key",
+    "save": "儲存",
+    "cancelEdit": "取消編輯",
+    "edit": "編輯",
+    "add": "新增",
+    "editButton": "編輯金鑰",
+    "addButton": "新增金鑰"
+  },
+  "gpu": {
+    "transcriptionBanner": "使用 GPU 加速轉錄",
+    "reasoningBanner": "使用 GPU 加速 AI 處理",
+    "enableButton": "啟用 GPU",
+    "active": "GPU 加速已啟用",
+    "ready": "GPU 加速已就緒",
+    "activating": "正在啟動 GPU...",
+    "activationFailed": "無法啟動 GPU",
+    "retry": "重試",
+    "remove": "移除",
+    "dismiss": "暫時不要",
+    "cancel": "取消"
+  },
+  "app": {
+    "toasts": {
+      "hotkeyChanged": {
+        "title": "快捷鍵已變更"
+      },
+      "hotkeyUnavailable": {
+        "title": "快捷鍵無法使用",
+        "description": "無法註冊所選快捷鍵。請在設定中選擇其他快捷鍵。"
+      },
+      "addedToDict": "已將 {{words}} 加入到你的詞典",
+      "undo": "復原"
+    },
+    "mic": {
+      "hotkeyToSpeak": "按 {{hotkey}} 開始說話",
+      "recording": "錄音中...",
+      "processing": "處理中...",
+      "clickToSpeak": "點擊開始說話"
+    },
+    "buttons": {
+      "cancelRecording": "取消錄音",
+      "cancelProcessing": "取消處理"
+    },
+    "commandMenu": {
+      "stopListening": "停止錄音",
+      "startListening": "開始錄音",
+      "hideForNow": "暫時隱藏"
+    },
+    "oauth": {
+      "redirectTitle": "正在跳轉到應用程式...",
+      "closeTab": "您可以關閉此分頁。"
+    }
+  }
+}
