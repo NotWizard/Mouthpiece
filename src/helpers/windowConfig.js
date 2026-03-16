@@ -6,10 +6,10 @@ const isGnomeWayland =
   /gnome|ubuntu|unity/i.test(process.env.XDG_CURRENT_DESKTOP || "");
 
 const WINDOW_SIZES = {
-  BASE: { width: 420, height: 150 },
-  WITH_MENU: { width: 420, height: 320 },
-  WITH_TOAST: { width: 420, height: 520 },
-  EXPANDED: { width: 420, height: 520 },
+  BASE: { width: 344, height: 132 },
+  WITH_MENU: { width: 344, height: 320 },
+  WITH_TOAST: { width: 344, height: 520 },
+  EXPANDED: { width: 344, height: 520 },
 };
 
 // Main dictation window configuration
