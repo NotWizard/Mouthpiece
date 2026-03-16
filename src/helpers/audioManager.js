@@ -1794,7 +1794,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           stack: error.stack,
           fallbackToCleanup: true,
         });
-        logger.warn("Reasoning failed", { source, error: error.message }, "notes");
+        logger.warn("Reasoning failed", { source, error: error.message }, "reasoning");
       }
     }
 
@@ -2775,18 +2775,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       return false;
     }
 
-    // For notes context, check user preference first
-    if (this.context === "notes") {
-      const userPref = localStorage.getItem("notesStreamingPreference");
-      if (userPref === "streaming") return true;
-      if (userPref === "batch") return false;
-    }
-
     // Config-driven: check mode for this context
     if (this.sttConfig) {
-      const contextConfig =
-        this.context === "notes" ? this.sttConfig.notes : this.sttConfig.dictation;
-      return contextConfig?.mode === "streaming";
+      return this.sttConfig.dictation?.mode === "streaming";
     }
 
     // Fallback when config not yet loaded

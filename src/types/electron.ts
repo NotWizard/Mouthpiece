@@ -7,42 +7,6 @@ export interface TranscriptionItem {
   created_at: string;
 }
 
-export interface NoteItem {
-  id: number;
-  title: string;
-  content: string;
-  enhanced_content: string | null;
-  enhancement_prompt: string | null;
-  enhanced_at_content_hash: string | null;
-  note_type: "personal" | "meeting" | "upload";
-  source_file: string | null;
-  audio_duration_seconds: number | null;
-  folder_id: number | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface FolderItem {
-  id: number;
-  name: string;
-  is_default: number;
-  sort_order: number;
-  created_at: string;
-}
-
-export interface ActionItem {
-  id: number;
-  name: string;
-  description: string;
-  prompt: string;
-  icon: string;
-  is_builtin: number;
-  sort_order: number;
-  translation_key: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface GpuInfo {
   hasNvidiaGpu: boolean;
   gpuName?: string;
@@ -318,7 +282,6 @@ declare global {
       getSttConfig?: () => Promise<{
         success: boolean;
         dictation: { mode: string };
-        notes: { mode: string };
         streamingProvider: string;
       } | null>;
 
@@ -335,93 +298,6 @@ declare global {
       setAutoLearnEnabled?: (enabled: boolean) => void;
       onCorrectionsLearned?: (callback: (words: string[]) => void) => () => void;
       undoLearnedCorrections?: (words: string[]) => Promise<{ success: boolean }>;
-
-      // Note operations
-      saveNote: (
-        title: string,
-        content: string,
-        noteType?: string,
-        sourceFile?: string | null,
-        audioDuration?: number | null,
-        folderId?: number | null
-      ) => Promise<{ success: boolean; note?: NoteItem }>;
-      getNote: (id: number) => Promise<NoteItem | null>;
-      getNotes: (
-        noteType?: string | null,
-        limit?: number,
-        folderId?: number | null
-      ) => Promise<NoteItem[]>;
-      updateNote: (
-        id: number,
-        updates: {
-          title?: string;
-          content?: string;
-          enhanced_content?: string | null;
-          enhancement_prompt?: string | null;
-          enhanced_at_content_hash?: string | null;
-          folder_id?: number | null;
-        }
-      ) => Promise<{ success: boolean; note?: NoteItem }>;
-      deleteNote: (id: number) => Promise<{ success: boolean }>;
-      exportNote: (
-        noteId: number,
-        format: "txt" | "md"
-      ) => Promise<{ success: boolean; error?: string }>;
-
-      // Folder operations
-      getFolders: () => Promise<FolderItem[]>;
-      createFolder: (
-        name: string
-      ) => Promise<{ success: boolean; folder?: FolderItem; error?: string }>;
-      deleteFolder: (id: number) => Promise<{ success: boolean; error?: string }>;
-      renameFolder: (
-        id: number,
-        name: string
-      ) => Promise<{ success: boolean; folder?: FolderItem; error?: string }>;
-      getFolderNoteCounts: () => Promise<Array<{ folder_id: number; count: number }>>;
-
-      // Action operations
-      getActions: () => Promise<ActionItem[]>;
-      getAction: (id: number) => Promise<ActionItem | null>;
-      createAction: (
-        name: string,
-        description: string,
-        prompt: string,
-        icon?: string
-      ) => Promise<{ success: boolean; action?: ActionItem; error?: string }>;
-      updateAction: (
-        id: number,
-        updates: {
-          name?: string;
-          description?: string;
-          prompt?: string;
-          icon?: string;
-          sort_order?: number;
-        }
-      ) => Promise<{ success: boolean; action?: ActionItem; error?: string }>;
-      deleteAction: (id: number) => Promise<{ success: boolean; id?: number; error?: string }>;
-      onActionCreated?: (callback: (action: ActionItem) => void) => () => void;
-      onActionUpdated?: (callback: (action: ActionItem) => void) => () => void;
-      onActionDeleted?: (callback: (payload: { id: number }) => void) => () => void;
-
-      // Audio file operations
-      selectAudioFile: () => Promise<{ canceled: boolean; filePath?: string }>;
-      getFileSize?: (filePath: string) => Promise<number>;
-      transcribeAudioFile: (
-        filePath: string,
-        options?: {
-          provider?: "whisper" | "nvidia";
-          model?: string;
-          language?: string;
-          [key: string]: unknown;
-        }
-      ) => Promise<{ success: boolean; text?: string; error?: string }>;
-      getPathForFile: (file: File) => string;
-
-      // Note event listeners
-      onNoteAdded?: (callback: (note: NoteItem) => void) => () => void;
-      onNoteUpdated?: (callback: (note: NoteItem) => void) => () => void;
-      onNoteDeleted?: (callback: (payload: { id: number }) => void) => () => void;
 
       // Database event listeners
       onTranscriptionAdded?: (callback: (item: TranscriptionItem) => void) => () => void;
@@ -766,30 +642,6 @@ declare global {
         success: boolean;
         error?: string;
         code?: string;
-      }>;
-
-      // Cloud audio file transcription
-      transcribeAudioFileCloud?: (filePath: string) => Promise<{
-        success: boolean;
-        text?: string;
-        error?: string;
-        code?: string;
-      }>;
-
-      onUploadTranscriptionProgress?: (
-        callback: (data: { stage: string; chunksTotal: number; chunksCompleted: number }) => void
-      ) => () => void;
-
-      // BYOK audio file transcription
-      transcribeAudioFileByok?: (options: {
-        filePath: string;
-        apiKey: string;
-        baseUrl: string;
-        model: string;
-      }) => Promise<{
-        success: boolean;
-        text?: string;
-        error?: string;
       }>;
 
       // AssemblyAI Streaming
