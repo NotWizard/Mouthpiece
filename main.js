@@ -280,6 +280,7 @@ let whisperCudaManager = null;
 let ipcHandlers = null;
 let globeKeyAlertShown = false;
 let authBridgeServer = null;
+let globeKeyRestartTimer = null;
 
 function parseAuthBridgePort() {
   const raw = (process.env.OPENWHISPR_AUTH_BRIDGE_PORT || "").trim();
@@ -771,11 +772,25 @@ async function startApp() {
     globeKeyManager.start();
 
     // Reset native key state when hotkey changes
-    ipcMain.on("hotkey-changed", (_event, _newHotkey) => {
+    ipcMain.on("hotkey-changed", (_event, newHotkey) => {
       globeAutoSession.abort();
       globeLastStopTime = 0;
       rightModifierAutoSession.abort();
       rightModLastStopTime = 0;
+
+      if (globeKeyManager) {
+        debugLogger?.debug("[Globe] Restarting native listener after hotkey change", {
+          hotkey: newHotkey,
+        });
+        globeKeyManager.stop();
+        if (globeKeyRestartTimer) {
+          clearTimeout(globeKeyRestartTimer);
+        }
+        globeKeyRestartTimer = setTimeout(() => {
+          globeKeyRestartTimer = null;
+          globeKeyManager?.start();
+        }, 100);
+      }
     });
   }
 

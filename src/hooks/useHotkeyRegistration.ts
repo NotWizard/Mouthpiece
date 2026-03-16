@@ -158,6 +158,7 @@ export function useHotkeyRegistration(
           });
         }
 
+        window.electronAPI?.notifyHotkeyChanged?.(hotkey);
         onSuccess?.(hotkey);
         return true;
       } catch (error) {

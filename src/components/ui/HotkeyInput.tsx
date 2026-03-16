@@ -285,6 +285,7 @@ export function HotkeyInput({
       setValidationWarning(null);
       lastCapturedHotkeyRef.current = hotkey;
       onChange(hotkey);
+      window.electronAPI?.setHotkeyListeningMode?.(false, hotkey);
       setIsCapturing(false);
       setActiveModifiers(new Set());
       clearFnHeld();
