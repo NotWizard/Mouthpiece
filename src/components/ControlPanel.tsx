@@ -20,16 +20,14 @@ import HistoryView from "./HistoryView";
 
 const platform = getCachedPlatform();
 
-const SettingsModal = React.lazy(() => import("./SettingsModal"));
 const ReferralModal = React.lazy(() => import("./ReferralModal"));
 const DictionaryView = React.lazy(() => import("./DictionaryView"));
+const SettingsPage = React.lazy(() => import("./SettingsPage"));
 
 export default function ControlPanel() {
   const { t } = useTranslation();
   const history = useTranscriptions();
   const [isLoading, setIsLoading] = useState(true);
-  const [showSettings, setShowSettings] = useState(false);
-  const [settingsSection, setSettingsSection] = useState<string | undefined>();
   const [aiCTADismissed, setAiCTADismissed] = useState(
     () => localStorage.getItem("aiCTADismissed") === "true"
   );
@@ -188,19 +186,6 @@ export default function ControlPanel() {
         onOk={() => {}}
       />
 
-      {showSettings && (
-        <Suspense fallback={null}>
-          <SettingsModal
-            open={showSettings}
-            onOpenChange={(open) => {
-              setShowSettings(open);
-              if (!open) setSettingsSection(undefined);
-            }}
-            initialSection={settingsSection}
-          />
-        </Suspense>
-      )}
-
       {showReferrals && (
         <Suspense fallback={null}>
           <ReferralModal open={showReferrals} onOpenChange={setShowReferrals} />
@@ -211,10 +196,6 @@ export default function ControlPanel() {
         <ControlPanelSidebar
           activeView={activeView}
           onViewChange={setActiveView}
-          onOpenSettings={() => {
-            setSettingsSection(undefined);
-            setShowSettings(true);
-          }}
           onOpenReferrals={() => setShowReferrals(true)}
           userName={user?.name}
           userEmail={user?.email}
@@ -256,10 +237,9 @@ export default function ControlPanel() {
                             size="sm"
                             className="h-7 text-xs"
                             onClick={() => {
-                              setSettingsSection(
+                              setActiveView(
                                 gpuAccelAvailable.cuda ? "transcription" : "intelligence"
                               );
-                              setShowSettings(true);
                             }}
                           >
                             {t("controlPanel.gpu.enableButton")}
@@ -292,14 +272,23 @@ export default function ControlPanel() {
                 copyToClipboard={copyToClipboard}
                 deleteTranscription={deleteTranscription}
                 onOpenSettings={(section) => {
-                  setSettingsSection(section);
-                  setShowSettings(true);
+                  setActiveView(section as ControlPanelView);
                 }}
               />
             )}
             {activeView === "dictionary" && (
               <Suspense fallback={null}>
                 <DictionaryView />
+              </Suspense>
+            )}
+            {(activeView === "general" ||
+              activeView === "hotkeys" ||
+              activeView === "transcription" ||
+              activeView === "intelligence" ||
+              activeView === "privacyData" ||
+              activeView === "system") && (
+              <Suspense fallback={null}>
+                <SettingsPage activeSection={activeView} />
               </Suspense>
             )}
           </div>
