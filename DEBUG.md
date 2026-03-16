@@ -1,73 +1,111 @@
-# Debug Mode
+# Debug Logging
 
-Enable verbose logging to diagnose issues like "no audio detected" or transcription failures.
+Use debug logging when Mouthpiece launches but does not record, transcribe, paste, or load correctly.
 
-## Enable Debug Logging
+## Turn It On
 
-### Option 1: Command Line
+### Option 1: From the app
+
+1. Open the Mouthpiece Control Panel
+2. Go to `Privacy & Data`
+3. In the `Developer` section, enable `Debug mode`
+4. Reproduce the issue
+
+### Option 2: Launch from the command line
+
 ```bash
-# macOS
-/Applications/OpenWhispr.app/Contents/MacOS/OpenWhispr --log-level=debug
+# macOS packaged app
+/Applications/Mouthpiece.app/Contents/MacOS/Mouthpiece --log-level=debug
 
-# Windows
-OpenWhispr.exe --log-level=debug
+# Windows packaged app
+Mouthpiece.exe --log-level=debug
 ```
 
-### Option 2: Environment File
-Add to your `.env` file and restart:
-```
+You can also use `--log-level=trace` for even more detail.
+
+### Option 3: Set the environment file
+
+Add this to the `.env` file inside Mouthpiece's user-data directory and restart the app:
+
+```env
 OPENWHISPR_LOG_LEVEL=debug
 ```
 
-**Env file locations:**
-- macOS: `~/Library/Application Support/OpenWhispr/.env`
-- Windows: `%APPDATA%\OpenWhispr\.env`
-- Linux: `~/.config/OpenWhispr/.env`
+The environment variable still uses the legacy `OPENWHISPR_LOG_LEVEL` name for compatibility.
+
+## Where the `.env` File Lives
+
+Mouthpiece stores runtime settings in `app.getPath("userData")`. Typical production paths are:
+
+- macOS: `~/Library/Application Support/Mouthpiece/.env`
+- Windows: `%APPDATA%\Mouthpiece\.env`
+- Linux: `~/.config/Mouthpiece/.env`
+
+Development and staging builds may use a suffixed directory such as `Mouthpiece-development`.
 
 ## Log File Locations
 
-- **macOS**: `~/Library/Application Support/OpenWhispr/logs/debug-*.log`
-- **Windows**: `%APPDATA%\OpenWhispr\logs\debug-*.log`
-- **Linux**: `~/.config/OpenWhispr/logs/debug-*.log`
+Debug logs are written to the `logs/` folder inside the same user-data directory:
+
+- macOS: `~/Library/Application Support/Mouthpiece/logs/debug-*.log`
+- Windows: `%APPDATA%\Mouthpiece\logs\debug-*.log`
+- Linux: `~/.config/Mouthpiece/logs/debug-*.log`
+
+If you are troubleshooting an older install, also check legacy directories such as `OpenWhispr` if the app migrated from a previous build.
 
 ## What Gets Logged
 
-| Stage | Details |
-|-------|---------|
-| FFmpeg | Path resolution, permissions, ASAR unpacking |
-| Audio Recording | Permission requests, chunk sizes, audio levels |
-| Audio Processing | File creation, Whisper command, process output |
-| IPC | Messages between renderer and main process |
+| Area                | Examples                                                                   |
+| ------------------- | -------------------------------------------------------------------------- |
+| App startup         | environment loading, user-data path selection, window load failures        |
+| Audio capture       | microphone permissions, selected device, chunk sizes, silence detection    |
+| Local transcription | whisper-server startup, model selection, FFmpeg conversion, parse failures |
+| Cloud requests      | request lifecycle, provider failures, timeouts                             |
+| Clipboard and paste | permission checks, paste method selection, platform-specific fallback      |
+| IPC                 | renderer/main-process message flow and handler failures                    |
 
-## Common Issues
+## What to Search For
 
-### "No Audio Detected"
+### No audio or silent recordings
+
+Look for lines such as:
+
+- `maxLevel < 0.01`
+- `Audio appears to be silent`
+- `No active audio input was found`
+
+### Local transcription failures
+
 Look for:
-- `maxLevel < 0.01` → Audio too quiet
-- `Audio appears to be silent` → Microphone issue
-- `FFmpeg not available` → Path resolution failed
 
-### Transcription Fails
-Look for:
-- `Whisper stderr:` → whisper.cpp/FFmpeg errors
-- `Process closed with code: [non-zero]` → Process failure
-- `Failed to parse Whisper output` → Invalid JSON
+- `whisper-server binary not found`
+- `whisper-server failed to start`
+- `FFmpeg not found`
+- `Failed to parse whisper-server response`
 
-### Permission Issues
+### Permission or paste issues
+
 Look for:
+
 - `Microphone Access Denied`
-- `isExecutable: false` → FFmpeg permission issue
+- `Accessibility permissions needed`
+- `clipboard`
+- `ydotool`
+- `wtype`
+- `xdotool`
 
 ## Sharing Logs
 
-When reporting issues:
-1. Enable debug mode and reproduce the issue
-2. Locate the log file
-3. Redact any sensitive information
-4. Include relevant log sections in your issue report
+1. Enable debug mode
+2. Reproduce the issue once
+3. Open the logs folder from the Control Panel if available, or browse to the path above
+4. Remove any private content you do not want to share
+5. Attach the newest `debug-*.log` file to your issue report
 
-## Disable Debug Mode
+## Turn It Off
 
-Debug mode is off by default. To ensure it's disabled:
-- Remove `--log-level=debug` from command
-- Remove `OPENWHISPR_LOG_LEVEL` from `.env`
+Debug mode is off by default. To disable it again:
+
+- turn off `Debug mode` in the Control Panel
+- remove `--log-level=debug` from your launch command
+- remove `OPENWHISPR_LOG_LEVEL` from the user-data `.env` file

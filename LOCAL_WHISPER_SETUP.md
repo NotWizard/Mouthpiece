@@ -1,83 +1,101 @@
 # Local Whisper Setup
 
-OpenWhispr supports local speech-to-text processing using whisper.cpp. This keeps your audio completely private—nothing leaves your device.
+Mouthpiece supports fully local transcription with OpenAI Whisper models. In local mode, your audio stays on the device and is processed by a bundled `whisper-server` binary built from whisper.cpp.
+
+This document covers the `OpenAI Whisper` local provider. If you want a different local engine, use the `NVIDIA Parakeet` provider in the same settings area.
 
 ## Quick Start
 
-1. Open the **Control Panel** (right-click tray icon or click the overlay)
-2. Go to **Settings** → **Speech to Text Processing**
-3. Enable **Use Local Whisper**
-4. Select a model (recommended: `base`)
-5. Click **Save**
+1. Open the Mouthpiece Control Panel
+2. Go to `Settings`
+3. Open the `Speech to Text` section
+4. Switch the processing mode to `Local`
+5. Choose `OpenAI Whisper` as the local provider
+6. Download and select a model
+7. Start dictating
 
-The first transcription will download the model automatically.
+The first time you use a model, Mouthpiece downloads it automatically.
 
-## Model Selection
+## Recommended Models
 
-| Model  | Size   | Speed    | Quality | RAM    | Best For              |
-|--------|--------|----------|---------|--------|-----------------------|
-| tiny   | 75MB   | Fastest  | Basic   | ~1GB   | Quick notes           |
-| base   | 142MB  | Fast     | Good    | ~1GB   | **Recommended**       |
-| small  | 466MB  | Medium   | Better  | ~2GB   | Professional use      |
-| medium | 1.5GB  | Slow     | High    | ~5GB   | High accuracy         |
-| large  | 3GB    | Slowest  | Best    | ~10GB  | Maximum quality       |
+| Model    | Size   | Speed             | Quality | Best for                             |
+| -------- | ------ | ----------------- | ------- | ------------------------------------ |
+| `tiny`   | ~75MB  | Fastest           | Basic   | quick tests and low-end hardware     |
+| `base`   | ~142MB | Fast              | Good    | most users                           |
+| `small`  | ~466MB | Medium            | Better  | longer dictation and better accuracy |
+| `medium` | ~1.5GB | Slow              | High    | quality-focused local use            |
+| `large`  | ~3GB   | Slowest           | Best    | maximum accuracy                     |
+| `turbo`  | ~1.6GB | Fast for its size | High    | faster high-quality local use        |
 
-## How It Works
+## How Mouthpiece Runs Local Whisper
 
-OpenWhispr uses whisper.cpp, a high-performance C++ implementation of OpenAI's Whisper model:
+1. Mouthpiece starts a bundled `whisper-server` binary from `resources/bin/`
+2. Audio is normalized to the format Whisper expects, using bundled FFmpeg when available
+3. The selected GGML model is loaded from the local model cache
+4. Transcription runs on-device and the text is returned to the app
 
-1. whisper.cpp binary is bundled with the app (or uses system installation as fallback)
-2. GGML models are downloaded on first use to `~/.cache/openwhispr/whisper-models/`
-3. Audio is processed locally using FFmpeg (bundled with the app)
+## Model Cache Location
+
+Whisper model files are stored in the legacy cache namespace:
+
+- macOS: `~/.cache/openwhispr/whisper-models/`
+- Windows: `%USERPROFILE%\.cache\openwhispr\whisper-models\`
+- Linux: `~/.cache/openwhispr/whisper-models/`
+
+The `openwhispr` folder name is still used internally for compatibility with existing installs.
 
 ## Requirements
 
-- **Disk Space**: 75MB–3GB depending on model
-- **RAM**: 1GB–10GB depending on model
-- **No additional dependencies required** - whisper.cpp is bundled in packaged builds
+- Disk space: about 75MB to 3GB depending on model
+- RAM: about 1GB to 10GB depending on model size
+- No separate Whisper install required for packaged builds
 
 ## Running From Source
 
-If you're running OpenWhispr locally from a git checkout (not a packaged app), download the whisper.cpp binary for your current platform:
+If you are developing from a git checkout instead of a packaged build, download the local Whisper runtime for your current platform first:
 
 ```bash
 npm run download:whisper-cpp
 ```
 
-This puts the binary in `resources/bin/`. For multi-platform packaging from a single machine, use:
+That populates the current-platform binary under `resources/bin/`.
+
+If you are preparing multi-platform release artifacts from one machine, use:
 
 ```bash
 npm run download:whisper-cpp:all
 ```
 
-## File Locations
+## Common Problems
 
-| Data              | macOS                                        | Windows                              | Linux                           |
-|-------------------|----------------------------------------------|--------------------------------------|---------------------------------|
-| Models            | `~/.cache/openwhispr/whisper-models/`        | `%USERPROFILE%\.cache\openwhispr\whisper-models\` | `~/.cache/openwhispr/whisper-models/` |
+### "whisper-server binary not found"
 
-## Troubleshooting
+1. Restart Mouthpiece
+2. If running from source, rerun `npm run download:whisper-cpp`
+3. If using a packaged build, reinstall the app
+4. On Windows, check whether antivirus quarantined the bundled binary
 
-### "Not Found" Status
-1. Click **Recheck Installation** in Control Panel
-2. Restart the app
-3. If bundled binary fails, install via package manager:
-   - macOS: `brew install whisper-cpp`
-   - Linux: Build from source at https://github.com/ggml-org/whisper.cpp
+### Model will not download or install
 
-### Transcription Fails
-1. Verify microphone permissions
-2. Try a smaller model (tiny/base)
-3. Check disk space for model downloads
+1. Check internet access
+2. Verify you have enough free disk space
+3. Try deleting the failed model from the Control Panel and downloading again
+4. If needed, clear the model cache from `Privacy & Data` -> `Developer`
 
-### Slow Performance
-1. Use smaller models (tiny or base)
-2. Close resource-intensive apps
-3. Consider using cloud mode for large files
+### Transcription starts slowly on first run
+
+This is expected when the selected model is being loaded or when the local server is warming up for the first time. Later requests should be faster.
+
+### Local transcription keeps failing
+
+1. Confirm your microphone works in Mouthpiece
+2. Try a smaller model such as `base`
+3. Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md) and [DEBUG.md](DEBUG.md)
+4. Temporarily switch to cloud mode to confirm the problem is local-provider specific
 
 ## Privacy Comparison
 
-| Mode  | Audio Leaves Device | Internet Required | Cost      |
-|-------|---------------------|-------------------|-----------|
-| Local | No                  | Only for model download | Free |
-| Cloud | Yes (to OpenAI)     | Yes               | API usage |
+| Mode          | Audio leaves device | Internet required       | Notes                                               |
+| ------------- | ------------------- | ----------------------- | --------------------------------------------------- |
+| Local Whisper | No                  | Only for model download | best privacy, works offline after setup             |
+| Cloud         | Yes                 | Yes                     | lower setup cost, depends on provider configuration |
