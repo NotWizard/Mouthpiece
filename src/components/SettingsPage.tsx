@@ -10,7 +10,6 @@ import {
   Sun,
   Moon,
   Monitor,
-  Cloud,
   Key,
   ChevronDown,
 } from "lucide-react";
@@ -188,6 +187,9 @@ function TranscriptionSection({
     ? t("settingsPage.transcription.cloudDisabled")
     : t("settingsPage.transcription.cloudOffline");
 
+  // NOTE: Mouthpiece Cloud option has been hidden as the cloud service is discontinued.
+  // Only Custom Setup (BYOK) mode is now available for cloud transcription.
+
   return (
     <div className="space-y-4">
       <SectionHeader
@@ -195,80 +197,8 @@ function TranscriptionSection({
         description={t("settingsPage.transcription.description")}
       />
 
-      {/* Mode selector */}
+      {/* Mode selector - Only Custom Setup shown */}
       <SettingsPanel>
-        <SettingsPanelRow>
-          <button
-            disabled={openWhisprLocked}
-            onClick={() => {
-              if (!isCloudMode) {
-                setCloudTranscriptionMode("openwhispr");
-                setUseLocalWhisper(false);
-                updateTranscriptionSettings({ useLocalWhisper: false });
-                toast({
-                  title: t("settingsPage.transcription.toasts.switchedCloud.title"),
-                  description: t("settingsPage.transcription.toasts.switchedCloud.description"),
-                  variant: "success",
-                  duration: 3000,
-                });
-              }
-            }}
-            className={cn(
-              "w-full flex items-center gap-3 text-left",
-              openWhisprLocked ? "cursor-not-allowed opacity-60" : "cursor-pointer group"
-            )}
-          >
-            <div
-              className={cn(
-                "w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors",
-                isCloudMode
-                  ? "bg-primary/10 dark:bg-primary/15"
-                  : "bg-muted/60 dark:bg-surface-raised",
-                !openWhisprLocked && "group-hover:bg-muted dark:group-hover:bg-surface-3"
-              )}
-            >
-              <Cloud
-                className={cn(
-                  "w-4 h-4 transition-colors",
-                  isCloudMode ? "text-primary" : "text-muted-foreground"
-                )}
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-foreground">
-                  {t("settingsPage.transcription.openwhisprCloud")}
-                </span>
-                {isCloudMode ? (
-                  <span className="text-xs font-medium text-primary bg-primary/10 dark:bg-primary/15 px-1.5 py-px rounded-sm">
-                    {t("common.active")}
-                  </span>
-                ) : openWhisprLocked ? (
-                  <span className="text-xs font-medium text-muted-foreground bg-muted/70 px-1.5 py-px rounded-sm">
-                    {cloudLockedLabel}
-                  </span>
-                ) : null}
-              </div>
-              <p className="text-xs text-muted-foreground/80 mt-0.5">
-                {t("settingsPage.transcription.openwhisprCloudDescription")}
-              </p>
-            </div>
-            <div
-              className={cn(
-                "w-4 h-4 rounded-full border-2 shrink-0 transition-colors",
-                isCloudMode
-                  ? "border-primary bg-primary"
-                  : "border-border-hover dark:border-border-subtle"
-              )}
-            >
-              {isCloudMode && (
-                <div className="w-full h-full flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
-                </div>
-              )}
-            </div>
-          </button>
-        </SettingsPanelRow>
         <SettingsPanelRow>
           <button
             onClick={() => {
@@ -433,7 +363,9 @@ function AiModelsSection({
 }: AiModelsSectionProps) {
   const { t } = useTranslation();
   const isCustomMode = cloudReasoningMode === "byok";
-  const isCloudMode = isSignedIn && cloudReasoningMode === "openwhispr";
+
+  // NOTE: Mouthpiece Cloud option has been hidden as the cloud service is discontinued.
+  // Only Custom Setup (BYOK) mode is now available for AI models.
 
   return (
     <div className="space-y-4">
@@ -456,128 +388,68 @@ function AiModelsSection({
 
       {useReasoningModel && (
         <>
-          {/* Mode selector */}
-          {isSignedIn && (
-            <SettingsPanel>
-              <SettingsPanelRow>
-                <button
-                  onClick={() => {
-                    if (!isCloudMode) {
-                      setCloudReasoningMode("openwhispr");
-                      window.electronAPI?.llamaServerStop?.();
-                      toast({
-                        title: t("settingsPage.aiModels.toasts.switchedCloud.title"),
-                        description: t("settingsPage.aiModels.toasts.switchedCloud.description"),
-                        variant: "success",
-                        duration: 3000,
-                      });
-                    }
-                  }}
-                  className="w-full flex items-center gap-3 text-left cursor-pointer group"
+          {/* Mode selector - NOTE: Mouthpiece Cloud option hidden, only Custom Setup shown */}
+          <SettingsPanel>
+            <SettingsPanelRow>
+              <button
+                onClick={() => {
+                  if (!isCustomMode) {
+                    setCloudReasoningMode("byok");
+                    window.electronAPI?.llamaServerStop?.();
+                    toast({
+                      title: t("settingsPage.aiModels.toasts.switchedCustom.title"),
+                      description: t("settingsPage.aiModels.toasts.switchedCustom.description"),
+                      variant: "success",
+                      duration: 3000,
+                    });
+                  }
+                }}
+                className="w-full flex items-center gap-3 text-left cursor-pointer group"
+              >
+                <div
+                  className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors ${
+                    isCustomMode
+                      ? "bg-accent/10 dark:bg-accent/15"
+                      : "bg-muted/60 dark:bg-surface-raised group-hover:bg-muted dark:group-hover:bg-surface-3"
+                  }`}
                 >
-                  <div
-                    className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors ${
-                      isCloudMode
-                        ? "bg-primary/10 dark:bg-primary/15"
-                        : "bg-muted/60 dark:bg-surface-raised group-hover:bg-muted dark:group-hover:bg-surface-3"
+                  <Key
+                    className={`w-4 h-4 transition-colors ${
+                      isCustomMode ? "text-accent" : "text-muted-foreground"
                     }`}
-                  >
-                    <Cloud
-                      className={`w-4 h-4 transition-colors ${
-                        isCloudMode ? "text-primary" : "text-muted-foreground"
-                      }`}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-foreground">
-                        {t("settingsPage.aiModels.openwhisprCloud")}
-                      </span>
-                      {isCloudMode && (
-                        <span className="text-xs font-medium text-primary bg-primary/10 dark:bg-primary/15 px-1.5 py-px rounded-sm">
-                          {t("common.active")}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground/80 mt-0.5">
-                      {t("settingsPage.aiModels.openwhisprCloudDescription")}
-                    </p>
-                  </div>
-                  <div
-                    className={`w-4 h-4 rounded-full border-2 shrink-0 transition-colors ${
-                      isCloudMode
-                        ? "border-primary bg-primary"
-                        : "border-border-hover dark:border-border-subtle"
-                    }`}
-                  >
-                    {isCloudMode && (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
-                      </div>
-                    )}
-                  </div>
-                </button>
-              </SettingsPanelRow>
-              <SettingsPanelRow>
-                <button
-                  onClick={() => {
-                    if (!isCustomMode) {
-                      setCloudReasoningMode("byok");
-                      toast({
-                        title: t("settingsPage.aiModels.toasts.switchedCustom.title"),
-                        description: t("settingsPage.aiModels.toasts.switchedCustom.description"),
-                        variant: "success",
-                        duration: 3000,
-                      });
-                    }
-                  }}
-                  className="w-full flex items-center gap-3 text-left cursor-pointer group"
-                >
-                  <div
-                    className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors ${
-                      isCustomMode
-                        ? "bg-accent/10 dark:bg-accent/15"
-                        : "bg-muted/60 dark:bg-surface-raised group-hover:bg-muted dark:group-hover:bg-surface-3"
-                    }`}
-                  >
-                    <Key
-                      className={`w-4 h-4 transition-colors ${
-                        isCustomMode ? "text-accent" : "text-muted-foreground"
-                      }`}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-foreground">
-                        {t("settingsPage.aiModels.customSetup")}
-                      </span>
-                      {isCustomMode && (
-                        <span className="text-xs font-medium text-accent bg-accent/10 dark:bg-accent/15 px-1.5 py-px rounded-sm">
-                          {t("common.active")}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground/80 mt-0.5">
-                      {t("settingsPage.aiModels.customSetupDescription")}
-                    </p>
-                  </div>
-                  <div
-                    className={`w-4 h-4 rounded-full border-2 shrink-0 transition-colors ${
-                      isCustomMode
-                        ? "border-accent bg-accent"
-                        : "border-border-hover dark:border-border-subtle"
-                    }`}
-                  >
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-foreground">
+                      {t("settingsPage.aiModels.customSetup")}
+                    </span>
                     {isCustomMode && (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 rounded-full bg-accent-foreground" />
-                      </div>
+                      <span className="text-xs font-medium text-accent bg-accent/10 dark:bg-accent/15 px-1.5 py-px rounded-sm">
+                        {t("common.active")}
+                      </span>
                     )}
                   </div>
-                </button>
-              </SettingsPanelRow>
-            </SettingsPanel>
-          )}
+                  <p className="text-xs text-muted-foreground/80 mt-0.5">
+                    {t("settingsPage.aiModels.customSetupDescription")}
+                  </p>
+                </div>
+                <div
+                  className={`w-4 h-4 rounded-full border-2 shrink-0 transition-colors ${
+                    isCustomMode
+                      ? "border-accent bg-accent"
+                      : "border-border-hover dark:border-border-subtle"
+                  }`}
+                >
+                  {isCustomMode && (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-accent-foreground" />
+                    </div>
+                  )}
+                </div>
+              </button>
+            </SettingsPanelRow>
+          </SettingsPanel>
 
           {/* Custom Setup model picker — shown when Custom Setup is active or not signed in */}
           {(isCustomMode || !isSignedIn) && (
@@ -672,8 +544,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     setCloudReasoningMode,
     audioCuesEnabled,
     setAudioCuesEnabled,
-    cloudBackupEnabled,
-    setCloudBackupEnabled,
     customDictionary,
     setCustomDictionary,
   } = useSettings();
@@ -1456,106 +1326,82 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
         );
 
       case "privacyData":
+        // NOTE: Privacy module has been removed. Redirect to system section.
         return (
           <div className="space-y-6">
-            {/* Privacy */}
-            <div>
-              <SectionHeader
-                title={t("settingsPage.privacy.title")}
-                description={t("settingsPage.privacy.description")}
+            <SectionHeader
+              title={t("settingsPage.permissions.title")}
+              description={t("settingsPage.permissions.description")}
+            />
+
+            <div className="space-y-3">
+              <PermissionCard
+                icon={Mic}
+                title={t("settingsPage.permissions.microphoneTitle")}
+                description={t("settingsPage.permissions.microphoneDescription")}
+                granted={permissionsHook.micPermissionGranted}
+                onRequest={permissionsHook.requestMicPermission}
+                buttonText={t("settingsPage.permissions.test")}
+                onOpenSettings={permissionsHook.openMicPrivacySettings}
               />
 
-              {isSignedIn && (
-                <SettingsPanel className="mb-4">
+              {platform === "darwin" && (
+                <PermissionCard
+                  icon={Shield}
+                  title={t("settingsPage.permissions.accessibilityTitle")}
+                  description={t("settingsPage.permissions.accessibilityDescription")}
+                  granted={permissionsHook.accessibilityPermissionGranted}
+                  onRequest={permissionsHook.testAccessibilityPermission}
+                  buttonText={t("settingsPage.permissions.testAndGrant")}
+                  onOpenSettings={permissionsHook.openAccessibilitySettings}
+                />
+              )}
+            </div>
+
+            {!permissionsHook.micPermissionGranted && permissionsHook.micPermissionError && (
+              <MicPermissionWarning
+                error={permissionsHook.micPermissionError}
+                onOpenSoundSettings={permissionsHook.openSoundInputSettings}
+                onOpenPrivacySettings={permissionsHook.openMicPrivacySettings}
+              />
+            )}
+
+            {platform === "linux" &&
+              permissionsHook.pasteToolsInfo &&
+              !permissionsHook.pasteToolsInfo.available && (
+                <PasteToolsInfo
+                  pasteToolsInfo={permissionsHook.pasteToolsInfo}
+                  isChecking={permissionsHook.isCheckingPasteTools}
+                  onCheck={permissionsHook.checkPasteToolsAvailability}
+                />
+              )}
+
+            {platform === "darwin" && (
+              <div className="mt-5">
+                <p className="text-xs font-medium text-foreground mb-3">
+                  {t("settingsPage.permissions.troubleshootingTitle")}
+                </p>
+                <SettingsPanel>
                   <SettingsPanelRow>
                     <SettingsRow
-                      label={t("settingsPage.privacy.cloudBackup")}
-                      description={t("settingsPage.privacy.cloudBackupDescription")}
+                      label={t("settingsPage.permissions.resetAccessibility.label")}
+                      description={t(
+                        "settingsPage.permissions.resetAccessibility.rowDescription"
+                      )}
                     >
-                      <Toggle checked={cloudBackupEnabled} onChange={setCloudBackupEnabled} />
+                      <Button
+                        onClick={resetAccessibilityPermissions}
+                        variant="ghost"
+                        size="sm"
+                        className="text-foreground/70 hover:text-foreground"
+                      >
+                        {t("settingsPage.permissions.troubleshoot")}
+                      </Button>
                     </SettingsRow>
                   </SettingsPanelRow>
                 </SettingsPanel>
-              )}
-
-            </div>
-
-            {/* Permissions */}
-            <div className="border-t border-border/40 pt-6">
-              <SectionHeader
-                title={t("settingsPage.permissions.title")}
-                description={t("settingsPage.permissions.description")}
-              />
-
-              <div className="space-y-3">
-                <PermissionCard
-                  icon={Mic}
-                  title={t("settingsPage.permissions.microphoneTitle")}
-                  description={t("settingsPage.permissions.microphoneDescription")}
-                  granted={permissionsHook.micPermissionGranted}
-                  onRequest={permissionsHook.requestMicPermission}
-                  buttonText={t("settingsPage.permissions.test")}
-                  onOpenSettings={permissionsHook.openMicPrivacySettings}
-                />
-
-                {platform === "darwin" && (
-                  <PermissionCard
-                    icon={Shield}
-                    title={t("settingsPage.permissions.accessibilityTitle")}
-                    description={t("settingsPage.permissions.accessibilityDescription")}
-                    granted={permissionsHook.accessibilityPermissionGranted}
-                    onRequest={permissionsHook.testAccessibilityPermission}
-                    buttonText={t("settingsPage.permissions.testAndGrant")}
-                    onOpenSettings={permissionsHook.openAccessibilitySettings}
-                  />
-                )}
               </div>
-
-              {!permissionsHook.micPermissionGranted && permissionsHook.micPermissionError && (
-                <MicPermissionWarning
-                  error={permissionsHook.micPermissionError}
-                  onOpenSoundSettings={permissionsHook.openSoundInputSettings}
-                  onOpenPrivacySettings={permissionsHook.openMicPrivacySettings}
-                />
-              )}
-
-              {platform === "linux" &&
-                permissionsHook.pasteToolsInfo &&
-                !permissionsHook.pasteToolsInfo.available && (
-                  <PasteToolsInfo
-                    pasteToolsInfo={permissionsHook.pasteToolsInfo}
-                    isChecking={permissionsHook.isCheckingPasteTools}
-                    onCheck={permissionsHook.checkPasteToolsAvailability}
-                  />
-                )}
-
-              {platform === "darwin" && (
-                <div className="mt-5">
-                  <p className="text-xs font-medium text-foreground mb-3">
-                    {t("settingsPage.permissions.troubleshootingTitle")}
-                  </p>
-                  <SettingsPanel>
-                    <SettingsPanelRow>
-                      <SettingsRow
-                        label={t("settingsPage.permissions.resetAccessibility.label")}
-                        description={t(
-                          "settingsPage.permissions.resetAccessibility.rowDescription"
-                        )}
-                      >
-                        <Button
-                          onClick={resetAccessibilityPermissions}
-                          variant="ghost"
-                          size="sm"
-                          className="text-foreground/70 hover:text-foreground"
-                        >
-                          {t("settingsPage.permissions.troubleshoot")}
-                        </Button>
-                      </SettingsRow>
-                    </SettingsPanelRow>
-                  </SettingsPanel>
-                </div>
-              )}
-            </div>
+            )}
           </div>
         );
 

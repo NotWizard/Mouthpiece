@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Sliders, Mic, Brain, Wrench, Keyboard, Shield } from "lucide-react";
+import { Sliders, Mic, Brain, Wrench, Keyboard } from "lucide-react";
 import SidebarModal, { SidebarItem } from "./ui/SidebarModal";
 import SettingsPage, { SettingsSectionType } from "./SettingsPage";
 
@@ -14,8 +14,8 @@ const SECTION_ALIASES: Record<string, SettingsSectionType> = {
   agentConfig: "intelligence",
   prompts: "intelligence",
   softwareUpdates: "system",
-  privacy: "privacyData",
-  permissions: "privacyData",
+  privacy: "system",
+  permissions: "system",
   developer: "system",
 };
 
@@ -56,13 +56,6 @@ export default function SettingsModal({ open, onOpenChange, initialSection }: Se
         icon: Brain,
         description: t("settingsModal.sections.intelligence.description"),
         group: t("settingsModal.groups.speechAi"),
-      },
-      {
-        id: "privacyData",
-        label: t("settingsModal.sections.privacyData.label"),
-        icon: Shield,
-        description: t("settingsModal.sections.privacyData.description"),
-        group: t("settingsModal.groups.system"),
       },
       {
         id: "system",
