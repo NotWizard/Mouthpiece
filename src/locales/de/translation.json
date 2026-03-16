@@ -798,11 +798,11 @@
         "label": "Intelligenz"
       },
       "privacyData": {
-        "description": "Datenschutz, Berechtigungen & Analyse",
+        "description": "Datenschutz, Berechtigungen & Sicherung",
         "label": "Datenschutz & Daten"
       },
       "system": {
-        "description": "Updates, Speicher & Entwicklertools",
+        "description": "Version, Speicher & Entwicklertools",
         "label": "System"
       }
     },
@@ -1021,9 +1021,14 @@
       "cloudBackup": "Cloud-Backup",
       "cloudBackupDescription": "Speichern Sie Ihre Transkriptionen in der Cloud, damit sie nicht verloren gehen.",
       "description": "Steuern Sie, welche Daten Ihr Gerät verlassen. Standardmäßig ist alles deaktiviert.",
-      "title": "Datenschutz",
-      "usageAnalytics": "Nutzungsanalysen",
-      "usageAnalyticsDescription": "Helfen Sie uns, Mouthpiece zu verbessern, indem Sie anonyme Leistungsdaten teilen. Wir senden niemals Transkriptionsinhalte – nur Timing- und Fehlerdaten."
+      "title": "Datenschutz"
+    },
+    "system": {
+      "currentVersion": "Aktuelle Version",
+      "description": "Installierte Version anzeigen und lokale App-Daten verwalten.",
+      "title": "System",
+      "versionDescription": "Auf diesem Gerät installiert",
+      "versionPlaceholder": "—"
     },
     "prompts": {
       "description": "Den einheitlichen System-Prompt anzeigen, anpassen und testen, der Textbereinigung und Anweisungserkennung steuert",

@@ -785,11 +785,11 @@
         "label": "Inteligência"
       },
       "privacyData": {
-        "description": "Privacidade, permissões e análise",
+        "description": "Privacidade, permissões e backup",
         "label": "Privacidade e dados"
       },
       "system": {
-        "description": "Atualizações, armazenamento e ferramentas de desenvolvimento",
+        "description": "Versão, armazenamento e ferramentas de desenvolvimento",
         "label": "Sistema"
       }
     },
@@ -1008,9 +1008,14 @@
       "cloudBackup": "Backup na nuvem",
       "cloudBackupDescription": "Salve suas transcrições na nuvem para nunca perdê-las.",
       "description": "Controle quais dados saem do seu dispositivo. Tudo está desativado por padrão.",
-      "title": "Privacidade",
-      "usageAnalytics": "Análise de uso",
-      "usageAnalyticsDescription": "Ajude-nos a melhorar o Mouthpiece compartilhando métricas anônimas de desempenho. Nunca enviamos conteúdo de transcrição — apenas dados de tempo e erros."
+      "title": "Privacidade"
+    },
+    "system": {
+      "currentVersion": "Versão atual",
+      "description": "Veja a versão instalada e gerencie os dados locais do app.",
+      "title": "Sistema",
+      "versionDescription": "Instalada neste dispositivo",
+      "versionPlaceholder": "—"
     },
     "prompts": {
       "description": "Visualize, personalize e teste o prompt de sistema unificado que alimenta a limpeza de texto e a detecção de instruções",

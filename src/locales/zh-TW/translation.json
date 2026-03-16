@@ -798,11 +798,11 @@
         "label": "智慧功能"
       },
       "privacyData": {
-        "description": "隱私、權限與資料分析",
+        "description": "隱私、權限與備份",
         "label": "隱私與資料"
       },
       "system": {
-        "description": "更新、儲存與開發者工具",
+        "description": "版本、儲存與開發者工具",
         "label": "系統"
       }
     },
@@ -1021,9 +1021,14 @@
       "cloudBackup": "雲端備份",
       "cloudBackupDescription": "將轉錄記錄儲存至雲端，確保不會遺失。",
       "description": "控制哪些資料會離開你的裝置。預設全部關閉。",
-      "title": "隱私權",
-      "usageAnalytics": "使用分析",
-      "usageAnalyticsDescription": "分享匿名的效能指標，協助我們改善 Mouthpiece。我們絕不會傳送轉錄內容——只有計時和錯誤資料。"
+      "title": "隱私權"
+    },
+    "system": {
+      "currentVersion": "目前版本",
+      "description": "查看已安裝版本並管理本機應用資料。",
+      "title": "系統",
+      "versionDescription": "已安裝於此裝置",
+      "versionPlaceholder": "—"
     },
     "prompts": {
       "description": "檢視、自訂和測試用於文字整理和指令偵測的統一系統提示詞",

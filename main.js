@@ -253,7 +253,6 @@ const WhisperManager = require("./src/helpers/whisper");
 const ParakeetManager = require("./src/helpers/parakeet");
 const TrayManager = require("./src/helpers/tray");
 const IPCHandlers = require("./src/helpers/ipcHandlers");
-const UpdateManager = require("./src/updater");
 const GlobeKeyManager = require("./src/helpers/globeKeyManager");
 const DevServerManager = require("./src/helpers/devServerManager");
 const WindowsKeyManager = require("./src/helpers/windowsKeyManager");
@@ -272,7 +271,6 @@ let clipboardManager = null;
 let whisperManager = null;
 let parakeetManager = null;
 let trayManager = null;
-let updateManager = null;
 let globeKeyManager = null;
 let windowsKeyManager = null;
 let textEditMonitor = null;
@@ -344,7 +342,6 @@ function initializeCoreManagers() {
     whisperCudaManager = new WhisperCudaManager();
   }
   parakeetManager = new ParakeetManager();
-  updateManager = new UpdateManager();
   windowsKeyManager = new WindowsKeyManager();
   textEditMonitor = new TextEditMonitor();
   windowManager.textEditMonitor = textEditMonitor;
@@ -357,7 +354,6 @@ function initializeCoreManagers() {
     whisperManager,
     parakeetManager,
     windowManager,
-    updateManager,
     windowsKeyManager,
     textEditMonitor,
     whisperCudaManager,
@@ -641,9 +637,6 @@ async function startApp() {
   trayManager.setWindowManager(windowManager);
   trayManager.setCreateControlPanelCallback(() => windowManager.createControlPanelWindow());
   await trayManager.createTray();
-
-  updateManager.setWindows(windowManager.mainWindow, windowManager.controlPanelWindow);
-  updateManager.checkForUpdatesOnStartup();
 
   if (process.platform === "darwin") {
     const { isGlobeLikeHotkey } = require("./src/helpers/hotkeyManager");
@@ -997,9 +990,6 @@ if (gotSingleInstanceLock) {
     }
     if (textEditMonitor) {
       textEditMonitor.stopMonitoring();
-    }
-    if (updateManager) {
-      updateManager.cleanup();
     }
     // Stop whisper server if running
     if (whisperManager) {

@@ -51,7 +51,6 @@ export interface ApiKeySettings {
 
 export interface PrivacySettings {
   cloudBackupEnabled: boolean;
-  telemetryEnabled: boolean;
 }
 
 export interface ThemeSettings {
@@ -218,8 +217,6 @@ function useSettingsInternal() {
     setAutoLearnCorrections,
     cloudBackupEnabled: store.cloudBackupEnabled,
     setCloudBackupEnabled: store.setCloudBackupEnabled,
-    telemetryEnabled: store.telemetryEnabled,
-    setTelemetryEnabled: store.setTelemetryEnabled,
     updateTranscriptionSettings: store.updateTranscriptionSettings,
     updateReasoningSettings: store.updateReasoningSettings,
     updateApiKeys: store.updateApiKeys,

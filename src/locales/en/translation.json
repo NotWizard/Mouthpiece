@@ -798,11 +798,11 @@
         "label": "Intelligence"
       },
       "privacyData": {
-        "description": "Privacy, permissions & analytics",
+        "description": "Privacy, permissions & backup",
         "label": "Privacy & Data"
       },
       "system": {
-        "description": "Updates, storage & developer tools",
+        "description": "Version, storage & developer tools",
         "label": "System"
       }
     },
@@ -1021,9 +1021,14 @@
       "cloudBackup": "Cloud backup",
       "cloudBackupDescription": "Save your transcriptions to the cloud so you never lose them.",
       "description": "Control what data leaves your device. Everything is off by default.",
-      "title": "Privacy",
-      "usageAnalytics": "Usage analytics",
-      "usageAnalyticsDescription": "Help us improve Mouthpiece by sharing anonymous performance metrics. We never send transcription content — only timing and error data."
+      "title": "Privacy"
+    },
+    "system": {
+      "currentVersion": "Current version",
+      "description": "View the installed app version and manage local app data.",
+      "title": "System",
+      "versionDescription": "Installed on this device",
+      "versionPlaceholder": "—"
     },
     "prompts": {
       "description": "View, customize, and test the unified system prompt that powers text cleanup and instruction detection",

@@ -25,7 +25,6 @@
     "src/types/**/*",
     "src/utils.js",
     "src/utils/**/*",
-    "src/updater.js",
     "src/components.json",
     "!node_modules/.cache/**/*",
     "!src/node_modules/**/*",

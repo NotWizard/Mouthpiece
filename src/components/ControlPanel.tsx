@@ -1,12 +1,11 @@
 import React, { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
-import { Download, RefreshCw, Loader2, Zap } from "lucide-react";
+import { Zap } from "lucide-react";
 import { ConfirmDialog, AlertDialog } from "./ui/dialog";
 import { useDialogs } from "../hooks/useDialogs";
 import { useHotkey } from "../hooks/useHotkey";
 import { useToast } from "./ui/Toast";
-import { useUpdater } from "../hooks/useUpdater";
 import { useSettings } from "../hooks/useSettings";
 import { useAuth } from "../hooks/useAuth";
 import {
@@ -60,16 +59,6 @@ export default function ControlPanel() {
   const { isSignedIn, isLoaded: authLoaded, user } = useAuth();
 
   const {
-    status: updateStatus,
-    downloadProgress,
-    isDownloading,
-    isInstalling,
-    downloadUpdate,
-    installUpdate,
-    error: updateError,
-  } = useUpdater();
-
-  const {
     confirmDialog,
     alertDialog,
     showConfirmDialog,
@@ -81,26 +70,6 @@ export default function ControlPanel() {
   useEffect(() => {
     loadTranscriptions();
   }, []);
-
-  useEffect(() => {
-    if (updateStatus.updateDownloaded && !isDownloading) {
-      toast({
-        title: t("controlPanel.update.readyTitle"),
-        description: t("controlPanel.update.readyDescription"),
-        variant: "success",
-      });
-    }
-  }, [updateStatus.updateDownloaded, isDownloading, toast, t]);
-
-  useEffect(() => {
-    if (updateError) {
-      toast({
-        title: t("controlPanel.update.problemTitle"),
-        description: t("controlPanel.update.problemDescription"),
-        variant: "destructive",
-      });
-    }
-  }, [updateError, toast, t]);
 
   useEffect(() => {
     if (!authLoaded || !isSignedIn || cloudMigrationProcessed.current) return;
@@ -203,72 +172,6 @@ export default function ControlPanel() {
     [showConfirmDialog, showAlertDialog, t]
   );
 
-  const handleUpdateClick = async () => {
-    if (updateStatus.updateDownloaded) {
-      showConfirmDialog({
-        title: t("controlPanel.update.installTitle"),
-        description: t("controlPanel.update.installDescription"),
-        onConfirm: async () => {
-          try {
-            await installUpdate();
-          } catch (error) {
-            toast({
-              title: t("controlPanel.update.couldNotInstallTitle"),
-              description: t("controlPanel.update.couldNotInstallDescription"),
-              variant: "destructive",
-            });
-          }
-        },
-      });
-    } else if (updateStatus.updateAvailable && !isDownloading) {
-      try {
-        await downloadUpdate();
-      } catch (error) {
-        toast({
-          title: t("controlPanel.update.couldNotDownloadTitle"),
-          description: t("controlPanel.update.couldNotDownloadDescription"),
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
-  const getUpdateButtonContent = () => {
-    if (isInstalling) {
-      return (
-        <>
-          <Loader2 size={14} className="animate-spin" />
-          <span>{t("controlPanel.update.installing")}</span>
-        </>
-      );
-    }
-    if (isDownloading) {
-      return (
-        <>
-          <Loader2 size={14} className="animate-spin" />
-          <span>{Math.round(downloadProgress)}%</span>
-        </>
-      );
-    }
-    if (updateStatus.updateDownloaded) {
-      return (
-        <>
-          <RefreshCw size={14} />
-          <span>{t("controlPanel.update.installButton")}</span>
-        </>
-      );
-    }
-    if (updateStatus.updateAvailable) {
-      return (
-        <>
-          <Download size={14} />
-          <span>{t("controlPanel.update.availableButton")}</span>
-        </>
-      );
-    }
-    return null;
-  };
-
   return (
     <div className="h-screen bg-background flex flex-col">
       <ConfirmDialog
@@ -321,23 +224,6 @@ export default function ControlPanel() {
           userImage={user?.image}
           isSignedIn={isSignedIn}
           authLoaded={authLoaded}
-          updateAction={
-            !updateStatus.isDevelopment &&
-            (updateStatus.updateAvailable ||
-              updateStatus.updateDownloaded ||
-              isDownloading ||
-              isInstalling) ? (
-              <Button
-                variant={updateStatus.updateDownloaded ? "default" : "outline"}
-                size="sm"
-                onClick={handleUpdateClick}
-                disabled={isInstalling || isDownloading}
-                className="gap-1.5 text-xs w-full h-7"
-              >
-                {getUpdateButtonContent()}
-              </Button>
-            ) : undefined
-          }
         />
         <main className="flex-1 flex flex-col overflow-hidden">
           <div
