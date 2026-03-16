@@ -69,7 +69,7 @@ test("dictation overlay constants match the dock-aligned compact layout", async 
   const mod = await loadOverlayStateModule();
 
   assert.equal(mod.DICTATION_CAPSULE_BOTTOM_OFFSET_PX, 15);
-  assert.equal(mod.DICTATION_CAPSULE_WIDTH_PX, 384);
+  assert.equal(mod.DICTATION_CAPSULE_WIDTH_PX, 308);
 });
 
 test("main window defaults to a smaller centered capsule position above the dock", () => {
@@ -77,16 +77,16 @@ test("main window defaults to a smaller centered capsule position above the dock
     path.resolve(process.cwd(), "src/helpers/windowConfig.js")
   );
 
-  assert.deepEqual(WINDOW_SIZES.BASE, { width: 420, height: 150 });
+  assert.deepEqual(WINDOW_SIZES.BASE, { width: 344, height: 132 });
 
   const display = {
     workArea: { x: 0, y: 23, width: 1440, height: 877 },
   };
 
   assert.deepEqual(WindowPositionUtil.getMainWindowPosition(display), {
-    x: 510,
-    y: 750,
-    width: 420,
-    height: 150,
+    x: 548,
+    y: 768,
+    width: 344,
+    height: 132,
   });
 });

@@ -2,6 +2,12 @@ import { useEffect, useState, type MouseEvent, type RefObject } from "react";
 import { buildWaveformDots } from "../utils/dictationWaveform.mjs";
 import { DICTATION_CAPSULE_WIDTH_PX } from "../utils/dictationOverlayState.mjs";
 
+const WAVEFORM_DOT_COUNT = 29;
+
+function createSilentSamples() {
+  return Array.from({ length: WAVEFORM_DOT_COUNT }, () => 0);
+}
+
 interface DictationCapsuleProps {
   agentName: string;
   brandLabel: string;
@@ -24,11 +30,11 @@ interface DictationCapsuleProps {
 
 function AssistantGlyph() {
   return (
-    <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-[18px] border border-white/70 bg-white/85 shadow-[0_8px_18px_rgba(15,23,42,0.12)]">
-      <div className="absolute inset-[4px] rounded-[12px] bg-[radial-gradient(circle_at_30%_25%,rgba(255,255,255,0.95),rgba(255,255,255,0.2)_45%,transparent_70%),linear-gradient(135deg,rgba(115,126,255,0.98),rgba(66,92,255,0.88))]" />
+    <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-[14px] border border-white/70 bg-white/85 shadow-[0_6px_14px_rgba(15,23,42,0.12)]">
+      <div className="absolute inset-[3px] rounded-[10px] bg-[radial-gradient(circle_at_30%_25%,rgba(255,255,255,0.95),rgba(255,255,255,0.2)_45%,transparent_70%),linear-gradient(135deg,rgba(115,126,255,0.98),rgba(66,92,255,0.88))]" />
       <div className="relative flex items-center gap-1">
-        <span className="block h-2.5 w-2.5 rounded-full bg-white/92 shadow-[0_0_8px_rgba(255,255,255,0.65)]" />
-        <span className="block h-2.5 w-3.5 rounded-full bg-white/78 shadow-[0_0_8px_rgba(255,255,255,0.45)]" />
+        <span className="block h-2 w-2 rounded-full bg-white/92 shadow-[0_0_8px_rgba(255,255,255,0.65)]" />
+        <span className="block h-2 w-3 rounded-full bg-white/78 shadow-[0_0_8px_rgba(255,255,255,0.45)]" />
       </div>
     </div>
   );
@@ -36,12 +42,12 @@ function AssistantGlyph() {
 
 function BrandGlyph() {
   return (
-    <div className="flex items-center gap-1.5 text-[rgba(43,43,43,0.62)]">
+    <div className="flex items-center gap-1 text-[rgba(43,43,43,0.62)]">
       {[0.65, 1, 0.72].map((height, index) => (
         <span
           key={index}
-          className="block w-[4px] rounded-full bg-current"
-          style={{ height: `${Math.round(height * 14)}px` }}
+          className="block w-[3px] rounded-full bg-current"
+          style={{ height: `${Math.round(height * 11)}px` }}
         />
       ))}
     </div>
@@ -67,26 +73,30 @@ export default function DictationCapsule({
   onFocus,
   onBlur,
 }: DictationCapsuleProps) {
-  const [phase, setPhase] = useState(0);
+  const [sampleHistory, setSampleHistory] = useState<number[]>(() => createSilentSamples());
 
   useEffect(() => {
-    const isActive = isRecording || isProcessing || isHovered;
-    const interval = window.setInterval(() => {
-      setPhase((current) => {
-        const speed = isRecording ? 0.28 + audioLevel * 0.42 : isProcessing ? 0.24 : 0.16;
-        return current + speed;
-      });
-    }, isActive ? 46 : 70);
+    if (!isRecording) {
+      setSampleHistory(createSilentSamples());
+      return;
+    }
 
-    return () => window.clearInterval(interval);
-  }, [audioLevel, isHovered, isProcessing, isRecording]);
+    setSampleHistory((current) => {
+      const next = current.slice(-(WAVEFORM_DOT_COUNT - 1));
+      next.push(audioLevel);
 
-  const visualLevel = isRecording ? audioLevel : isProcessing ? 0.38 : isHovered ? 0.14 : 0.03;
+      while (next.length < WAVEFORM_DOT_COUNT) {
+        next.unshift(0);
+      }
+
+      return next;
+    });
+  }, [audioLevel, isRecording]);
+
   const dots = buildWaveformDots({
-    count: 29,
-    level: visualLevel,
-    phase,
-    active: isRecording || isProcessing || isHovered,
+    count: WAVEFORM_DOT_COUNT,
+    samples: sampleHistory,
+    active: isRecording,
   });
 
   const helperText = isRecording || isProcessing ? secondaryLabel : hotkeyLabel;
@@ -104,7 +114,7 @@ export default function DictationCapsule({
       onContextMenu={onContextMenu}
       onFocus={onFocus}
       onBlur={onBlur}
-      className="relative max-w-[calc(100vw-2rem)] overflow-hidden rounded-[26px] px-3.5 py-3 text-left outline-none transition-transform duration-200 ease-out"
+      className="relative max-w-[calc(100vw-2rem)] overflow-hidden rounded-[22px] px-3 py-2.5 text-left outline-none transition-transform duration-200 ease-out"
       style={{
         width: `${DICTATION_CAPSULE_WIDTH_PX}px`,
         background:
@@ -112,22 +122,22 @@ export default function DictationCapsule({
         border: `1px solid ${borderColor}`,
         boxShadow:
           isRecording || isProcessing
-            ? `0 18px 36px rgba(15, 23, 42, 0.16), 0 6px 14px rgba(15, 23, 42, 0.09), 0 0 0 1px rgba(255,255,255,0.78) inset, 0 0 18px ${glowColor}`
-            : "0 14px 28px rgba(15, 23, 42, 0.12), 0 4px 10px rgba(15, 23, 42, 0.07), 0 0 0 1px rgba(255,255,255,0.78) inset",
+            ? `0 14px 28px rgba(15, 23, 42, 0.16), 0 5px 12px rgba(15, 23, 42, 0.09), 0 0 0 1px rgba(255,255,255,0.78) inset, 0 0 14px ${glowColor}`
+            : "0 10px 22px rgba(15, 23, 42, 0.12), 0 4px 8px rgba(15, 23, 42, 0.07), 0 0 0 1px rgba(255,255,255,0.78) inset",
         transform: isDragging ? "scale(1.01)" : isHovered ? "translateY(-1px)" : "translateY(0)",
         cursor: isDragging ? "grabbing" : "pointer",
       }}
     >
-      <div className="pointer-events-none absolute inset-x-5 bottom-0 h-8 rounded-t-full bg-[radial-gradient(circle_at_50%_0%,rgba(0,0,0,0.18),transparent_68%)] opacity-35 blur-xl" />
+      <div className="pointer-events-none absolute inset-x-4 bottom-0 h-6 rounded-t-full bg-[radial-gradient(circle_at_50%_0%,rgba(0,0,0,0.18),transparent_68%)] opacity-35 blur-xl" />
 
-      <div className="relative flex items-center justify-between gap-3.5">
-        <div className="flex min-w-0 items-center gap-2.5">
+      <div className="relative flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
           <AssistantGlyph />
           <div className="min-w-0">
-            <div className="truncate text-[15px] font-semibold tracking-[-0.03em] text-[rgba(22,22,22,0.96)]">
+            <div className="truncate text-[12px] font-semibold tracking-[-0.03em] text-[rgba(22,22,22,0.96)]">
               {agentName}
             </div>
-            <div className="truncate text-[11px] font-medium text-[rgba(92,92,92,0.72)]">
+            <div className="truncate text-[10px] font-medium text-[rgba(92,92,92,0.72)]">
               {helperText}
             </div>
           </div>
@@ -135,36 +145,37 @@ export default function DictationCapsule({
 
         <div className="flex shrink-0 items-center gap-1.5">
           <BrandGlyph />
-          <div className="text-[13px] font-semibold tracking-[-0.03em] text-[rgba(116,116,116,0.82)]">
+          <div className="text-[11px] font-semibold tracking-[-0.03em] text-[rgba(116,116,116,0.82)]">
             {brandLabel}
           </div>
         </div>
       </div>
 
-      <div className="relative mt-3 flex items-end justify-between gap-[5px] px-0.5">
+      <div className="relative mt-2.5 flex h-3 items-center justify-between gap-[3px] px-0.5">
         {dots.map((value, index) => {
-          const height = 7 + value * 9;
-          const opacity = 0.55 + value * 0.4;
-          const translateY = (1 - value) * 1.5;
+          const waveformAmplitude = Math.max(0, value - 0.04);
+          const scaleY = 1 + waveformAmplitude * 7.2;
+          const scaleX = 1 + waveformAmplitude * 0.3;
           const activeColor =
             isRecording || isProcessing ? "rgba(53, 53, 53, 0.96)" : "rgba(58, 58, 58, 0.88)";
 
           return (
             <span
               key={index}
-              className="block flex-1 rounded-full"
+              className="block shrink-0 rounded-full"
               style={{
-                minWidth: "6px",
-                height: `${height}px`,
-                opacity,
-                transform: `translateY(${translateY}px)`,
+                width: "7px",
+                height: "3px",
+                opacity: isRecording ? 0.92 : 0.86,
+                transform: `scaleX(${scaleX}) scaleY(${scaleY})`,
+                transformOrigin: "center",
                 background: activeColor,
                 boxShadow:
                   isRecording || isProcessing
                     ? "0 0 8px rgba(255,255,255,0.12) inset"
                     : "0 1px 2px rgba(255,255,255,0.08) inset",
                 transition:
-                  "height 90ms ease-out, opacity 90ms ease-out, transform 90ms ease-out, background-color 150ms ease",
+                  "transform 90ms ease-out, opacity 90ms ease-out, background-color 150ms ease",
               }}
             />
           );
