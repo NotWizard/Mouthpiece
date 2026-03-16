@@ -152,12 +152,15 @@
     },
     "activation": {
       "title": "Configurazione attivazione",
-      "description": "Configura come avviare la dettatura",
+      "description": "Scegli una scorciatoia e Mouthpiece deciderà automaticamente se volevi un tocco breve o una pressione prolungata",
       "hotkey": "Scorciatoia",
       "mode": "Modalità",
+      "modeDescription": "Una pressione breve avvia o interrompe la dettatura. Una pressione prolungata registra solo mentre tieni premuto il tasto quando il sistema lo supporta.",
+      "modeFallbackDescription": "Il tuo attuale sistema di scorciatoie supporta solo l'attivazione con pressione breve, quindi Mouthpiece effettuerà automaticamente il fallback quando il rilascio non è rilevabile.",
       "tapDescription": "Premi per avviare/fermare",
       "holdDescription": "Tieni premuto mentre parli",
       "test": "Test",
+      "testDescription": "Prova qui {{hotkey}}. Una pressione breve avvia o interrompe la dettatura e una pressione prolungata registra mentre tieni premuto il tasto quando disponibile.",
       "hotkeyToStartStop": "{{hotkey}} per avviare/fermare",
       "holdHotkey": "Tieni premuto {{hotkey}}",
       "textareaPlaceholder": "Clicca qui e usa la scorciatoia per dettare..."
@@ -917,6 +920,9 @@
         "title": "Icona flottante"
       },
       "hotkey": {
+        "activationBehavior": "Attivazione automatica",
+        "activationBehaviorDescription": "Una pressione breve avvia o interrompe la dettatura. Una pressione prolungata registra solo mentre tieni premuto il tasto quando il sistema può rilevare il rilascio.",
+        "activationBehaviorFallback": "Il tuo attuale sistema di scorciatoie supporta solo la pressione breve, quindi Mouthpiece effettuerà automaticamente il fallback.",
         "activationMode": "Modalità di attivazione",
         "description": "La combinazione di tasti che avvia e ferma la dettatura vocale",
         "resetToDefault": "Ripristina a {{hotkey}}",

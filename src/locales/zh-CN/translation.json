@@ -152,12 +152,15 @@
     },
     "activation": {
       "title": "激活设置",
-      "description": "配置触发听写的方式",
+      "description": "选择一个快捷键，Mouthpiece 会自动判断你想要的是短按还是长按",
       "hotkey": "快捷键",
       "mode": "模式",
+      "modeDescription": "短按可开始或停止听写。长按时，在系统支持的情况下，仅在按住期间持续录音。",
+      "modeFallbackDescription": "你当前的快捷键系统仅支持短按触发，因此在无法检测松键时，Mouthpiece 会自动回退为点按模式。",
       "tapDescription": "按下开始/停止",
       "holdDescription": "按住说话",
       "test": "测试",
+      "testDescription": "在这里试试 {{hotkey}}。短按可开始或停止听写，长按时在可用情况下会在按住期间持续录音。",
       "hotkeyToStartStop": "{{hotkey}} 开始/停止",
       "holdHotkey": "按住 {{hotkey}}",
       "textareaPlaceholder": "点击此处，然后使用快捷键进行听写..."
@@ -917,6 +920,9 @@
         "title": "悬浮图标"
       },
       "hotkey": {
+        "activationBehavior": "自动激活",
+        "activationBehaviorDescription": "短按可开始或停止听写。长按时，当系统可以检测松键时，仅在按住期间持续录音。",
+        "activationBehaviorFallback": "你当前的快捷键系统仅支持短按触发，因此 Mouthpiece 会自动回退到该方式。",
         "activationMode": "激活模式",
         "description": "用于开始和停止语音听写的组合键",
         "resetToDefault": "重置为 {{hotkey}}",

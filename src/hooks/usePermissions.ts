@@ -264,7 +264,8 @@ export const usePermissions = (
     if (platform === "darwin") {
       try {
         const result = await window.electronAPI.pasteText(
-          t("hooks.permissions.accessibilityTestText")
+          t("hooks.permissions.accessibilityTestText"),
+          { suppressDictationPanelRestore: true }
         );
         if (result?.mode !== "pasted") {
           throw new Error(result?.message || "Automatic paste unavailable");

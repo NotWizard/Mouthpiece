@@ -56,7 +56,6 @@ const BOOLEAN_SETTINGS = new Set([
   "cloudBackupEnabled",
   "telemetryEnabled",
   "audioCuesEnabled",
-  "floatingIconAutoHide",
   "isSignedIn",
 ]);
 
@@ -85,7 +84,6 @@ export interface SettingsState
     ThemeSettings {
   isSignedIn: boolean;
   audioCuesEnabled: boolean;
-  floatingIconAutoHide: boolean;
 
   setUseLocalWhisper: (value: boolean) => void;
   setWhisperModel: (value: string) => void;
@@ -117,7 +115,6 @@ export interface SettingsState
   setCustomReasoningApiKey: (key: string) => void;
 
   setDictationKey: (key: string) => void;
-  setActivationMode: (mode: "tap" | "push") => void;
 
   setPreferBuiltInMic: (value: boolean) => void;
   setSelectedMicDeviceId: (value: string) => void;
@@ -126,7 +123,6 @@ export interface SettingsState
   setCloudBackupEnabled: (value: boolean) => void;
   setTelemetryEnabled: (value: boolean) => void;
   setAudioCuesEnabled: (value: boolean) => void;
-  setFloatingIconAutoHide: (enabled: boolean) => void;
   setIsSignedIn: (value: boolean) => void;
 
   updateTranscriptionSettings: (settings: Partial<TranscriptionSettings>) => void;
@@ -222,9 +218,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   customReasoningApiKey: readString("customReasoningApiKey", ""),
 
   dictationKey: readString("dictationKey", ""),
-  activationMode: (readString("activationMode", "tap") === "push" ? "push" : "tap") as
-    | "tap"
-    | "push",
 
   preferBuiltInMic: readBoolean("preferBuiltInMic", true),
   selectedMicDeviceId: readString("selectedMicDeviceId", ""),
@@ -237,7 +230,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   cloudBackupEnabled: readBoolean("cloudBackupEnabled", false),
   telemetryEnabled: readBoolean("telemetryEnabled", false),
   audioCuesEnabled: readBoolean("audioCuesEnabled", true),
-  floatingIconAutoHide: readBoolean("floatingIconAutoHide", false),
   isSignedIn: CLOUD_AUTH_AVAILABLE ? readBoolean("isSignedIn", false) : false,
 
   setUseLocalWhisper: createBooleanSetter("useLocalWhisper"),
@@ -342,14 +334,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     }
   },
 
-  setActivationMode: (mode: "tap" | "push") => {
-    if (isBrowser) localStorage.setItem("activationMode", mode);
-    set({ activationMode: mode });
-    if (isBrowser) {
-      window.electronAPI?.notifyActivationModeChanged?.(mode);
-    }
-  },
-
   setPreferBuiltInMic: createBooleanSetter("preferBuiltInMic"),
   setSelectedMicDeviceId: createStringSetter("selectedMicDeviceId"),
 
@@ -361,15 +345,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setCloudBackupEnabled: createBooleanSetter("cloudBackupEnabled"),
   setTelemetryEnabled: createBooleanSetter("telemetryEnabled"),
   setAudioCuesEnabled: createBooleanSetter("audioCuesEnabled"),
-
-  setFloatingIconAutoHide: (enabled: boolean) => {
-    if (get().floatingIconAutoHide === enabled) return;
-    if (isBrowser) localStorage.setItem("floatingIconAutoHide", String(enabled));
-    set({ floatingIconAutoHide: enabled });
-    if (isBrowser) {
-      window.electronAPI?.notifyFloatingIconAutoHideChanged?.(enabled);
-    }
-  },
 
   setIsSignedIn: (value: boolean) => {
     if (isBrowser) localStorage.setItem("isSignedIn", String(value));
@@ -468,6 +443,9 @@ export async function initializeSettings(): Promise<void> {
 
   if (!isBrowser) return;
 
+  localStorage.removeItem("activationMode");
+  localStorage.removeItem("floatingIconAutoHide");
+
   const state = useSettingsStore.getState();
 
   // Sync API keys from main process (if localStorage is empty, read from .env via IPC)
@@ -545,21 +523,6 @@ export async function initializeSettings(): Promise<void> {
     } catch (err) {
       logger.warn(
         "Failed to sync dictation key on startup",
-        { error: (err as Error).message },
-        "settings"
-      );
-    }
-
-    // Sync activation mode from main process
-    try {
-      const envMode = await window.electronAPI.getActivationMode?.();
-      if (envMode && envMode !== state.activationMode) {
-        if (isBrowser) localStorage.setItem("activationMode", envMode);
-        useSettingsStore.setState({ activationMode: envMode });
-      }
-    } catch (err) {
-      logger.warn(
-        "Failed to sync activation mode on startup",
         { error: (err as Error).message },
         "settings"
       );

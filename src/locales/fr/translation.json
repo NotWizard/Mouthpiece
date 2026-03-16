@@ -152,12 +152,15 @@
     },
     "activation": {
       "title": "Configuration de l'activation",
-      "description": "Configurez la façon de déclencher la dictée",
+      "description": "Choisissez un raccourci et Mouthpiece décidera automatiquement s'il s'agit d'un appui court ou long",
       "hotkey": "Raccourci",
       "mode": "Mode",
+      "modeDescription": "Un appui court active ou arrête la dictée. Un appui long enregistre seulement tant que vous gardez la touche enfoncée lorsque votre système le permet.",
+      "modeFallbackDescription": "Votre système de raccourcis actuel ne prend en charge que l'appui court ; Mouthpiece reviendra donc automatiquement à ce mode lorsque la détection du relâchement n'est pas disponible.",
       "tapDescription": "Appuyer pour démarrer/arrêter",
       "holdDescription": "Maintenir pendant que vous parlez",
       "test": "Test",
+      "testDescription": "Essayez {{hotkey}} ici. Un appui court active ou arrête la dictée et un appui long enregistre tant que la touche est maintenue lorsqu'il est disponible.",
       "hotkeyToStartStop": "{{hotkey}} pour démarrer/arrêter",
       "holdHotkey": "Maintenir {{hotkey}}",
       "textareaPlaceholder": "Cliquez ici puis utilisez votre raccourci pour dicter..."
@@ -917,6 +920,9 @@
         "title": "Icône flottante"
       },
       "hotkey": {
+        "activationBehavior": "Activation automatique",
+        "activationBehaviorDescription": "Un appui court active ou arrête la dictée. Un appui long enregistre seulement tant que vous gardez la touche enfoncée lorsque votre système peut détecter le relâchement.",
+        "activationBehaviorFallback": "Votre système de raccourcis actuel ne prend en charge que l'appui court, donc Mouthpiece reviendra automatiquement à ce mode.",
         "activationMode": "Mode d'activation",
         "description": "La combinaison de touches qui démarre et arrête la dictée vocale",
         "resetToDefault": "Réinitialiser à {{hotkey}}",

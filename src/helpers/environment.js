@@ -20,8 +20,6 @@ const PERSISTED_KEYS = [
   "LLAMA_GPU_BACKEND",
   "LLAMA_VULKAN_ENABLED",
   "DICTATION_KEY",
-  "ACTIVATION_MODE",
-  "FLOATING_ICON_AUTO_HIDE",
   "UI_LANGUAGE",
   "WHISPER_CUDA_ENABLED",
 ];
@@ -127,28 +125,6 @@ class EnvironmentManager {
 
   saveDictationKey(key) {
     const result = this._saveKey("DICTATION_KEY", key);
-    this.saveAllKeysToEnvFile().catch(() => {});
-    return result;
-  }
-
-  getActivationMode() {
-    const mode = this._getKey("ACTIVATION_MODE");
-    return mode === "push" ? "push" : "tap";
-  }
-
-  saveActivationMode(mode) {
-    const validMode = mode === "push" ? "push" : "tap";
-    const result = this._saveKey("ACTIVATION_MODE", validMode);
-    this.saveAllKeysToEnvFile().catch(() => {});
-    return result;
-  }
-
-  getFloatingIconAutoHide() {
-    return this._getKey("FLOATING_ICON_AUTO_HIDE") === "true";
-  }
-
-  saveFloatingIconAutoHide(enabled) {
-    const result = this._saveKey("FLOATING_ICON_AUTO_HIDE", String(enabled));
     this.saveAllKeysToEnvFile().catch(() => {});
     return result;
   }

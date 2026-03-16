@@ -41,7 +41,6 @@ import { useHotkeyRegistration } from "../hooks/useHotkeyRegistration";
 import { getValidationMessage } from "../utils/hotkeyValidator";
 import { getPlatform, getCachedPlatform } from "../utils/platform";
 import { getDefaultHotkey, formatHotkeyLabel } from "../utils/hotkeys";
-import { ActivationModeSelector } from "./ui/ActivationModeSelector";
 import { Toggle } from "./ui/toggle";
 import DeveloperSection from "./DeveloperSection";
 import LanguageSelector from "./ui/LanguageSelector";
@@ -641,8 +640,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     groqApiKey,
     mistralApiKey,
     dictationKey,
-    activationMode,
-    setActivationMode,
     preferBuiltInMic,
     selectedMicDeviceId,
     setPreferBuiltInMic,
@@ -679,8 +676,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     setCloudReasoningMode,
     audioCuesEnabled,
     setAudioCuesEnabled,
-    floatingIconAutoHide,
-    setFloatingIconAutoHide,
     cloudBackupEnabled,
     setCloudBackupEnabled,
     telemetryEnabled,
@@ -930,14 +925,13 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
         const info = await window.electronAPI?.getHotkeyModeInfo();
         if (info?.isUsingGnome) {
           setIsUsingGnomeHotkeys(true);
-          setActivationMode("tap");
         }
       } catch (error) {
         logger.error("Failed to check hotkey mode", error, "settings");
       }
     };
     checkHotkeyMode();
-  }, [setActivationMode]);
+  }, []);
 
   useEffect(() => {
     if (updateError) {
@@ -1093,24 +1087,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
               </SettingsPanel>
             </div>
 
-            {/* Floating Icon */}
-            <div>
-              <SectionHeader
-                title={t("settingsPage.general.floatingIcon.title")}
-                description={t("settingsPage.general.floatingIcon.description")}
-              />
-              <SettingsPanel>
-                <SettingsPanelRow>
-                  <SettingsRow
-                    label={t("settingsPage.general.floatingIcon.autoHide")}
-                    description={t("settingsPage.general.floatingIcon.autoHideDescription")}
-                  >
-                    <Toggle checked={floatingIconAutoHide} onChange={setFloatingIconAutoHide} />
-                  </SettingsRow>
-                </SettingsPanelRow>
-              </SettingsPanel>
-            </div>
-
             {/* Language */}
             <div>
               <SectionHeader
@@ -1235,14 +1211,19 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
                   )}
                 </SettingsPanelRow>
 
-                {!isUsingGnomeHotkeys && (
-                  <SettingsPanelRow>
-                    <p className="text-xs font-medium text-muted-foreground/80 mb-2">
-                      {t("settingsPage.general.hotkey.activationMode")}
+                <SettingsPanelRow className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground/80">
+                    {t("settingsPage.general.hotkey.activationBehavior")}
+                  </p>
+                  <p className="text-xs leading-relaxed text-muted-foreground/70">
+                    {t("settingsPage.general.hotkey.activationBehaviorDescription")}
+                  </p>
+                  {isUsingGnomeHotkeys && (
+                    <p className="text-xs leading-relaxed text-muted-foreground/60">
+                      {t("settingsPage.general.hotkey.activationBehaviorFallback")}
                     </p>
-                    <ActivationModeSelector value={activationMode} onChange={setActivationMode} />
-                  </SettingsPanelRow>
-                )}
+                  )}
+                </SettingsPanelRow>
               </SettingsPanel>
             </div>
           </div>

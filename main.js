@@ -3,6 +3,7 @@ const path = require("path");
 const fs = require("fs");
 const http = require("http");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
+const { createAutomaticActivationSession } = require("./src/helpers/automaticActivation");
 
 const VALID_CHANNELS = new Set(["development", "staging", "production"]);
 const DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL = {
@@ -589,23 +590,6 @@ async function startApp() {
     }
   );
 
-  windowManager.setActivationModeCache(environmentManager.getActivationMode());
-  windowManager.setFloatingIconAutoHide(environmentManager.getFloatingIconAutoHide());
-
-  ipcMain.on("activation-mode-changed", (_event, mode) => {
-    windowManager.setActivationModeCache(mode);
-    environmentManager.saveActivationMode(mode);
-  });
-
-  ipcMain.on("floating-icon-auto-hide-changed", (_event, enabled) => {
-    windowManager.setFloatingIconAutoHide(enabled);
-    environmentManager.saveFloatingIconAutoHide(enabled);
-    // Relay to the floating icon window so it can react immediately
-    if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) {
-      windowManager.mainWindow.webContents.send("floating-icon-auto-hide-changed", enabled);
-    }
-  });
-
   if (process.platform === "darwin") {
     app.setActivationPolicy("regular");
   }
@@ -662,11 +646,26 @@ async function startApp() {
 
   if (process.platform === "darwin") {
     const { isGlobeLikeHotkey } = require("./src/helpers/hotkeyManager");
-    let globeKeyDownTime = 0;
-    let globeKeyIsRecording = false;
     let globeLastStopTime = 0;
-    const MIN_HOLD_DURATION_MS = 150;
     const POST_STOP_COOLDOWN_MS = 300;
+    const globeAutoSession = createAutomaticActivationSession({
+      onShow: () => windowManager.showDictationPanel(),
+      onTap: () => {
+        if (isLiveWindow(windowManager.mainWindow)) {
+          windowManager.mainWindow.webContents.send("toggle-dictation");
+        }
+      },
+      onHoldStart: () => {
+        debugLogger?.debug("[Globe] Starting dictation (automatic hold)");
+        windowManager.sendStartDictation();
+      },
+      onHoldStop: () => {
+        globeLastStopTime = Date.now();
+        debugLogger?.debug("[Globe] Stopping dictation (automatic release)");
+        windowManager.sendStopDictation();
+      },
+      onPendingCancel: () => windowManager.hideDictationPanel(),
+    });
 
     globeKeyManager.on("globe-down", async () => {
       const currentHotkey = hotkeyManager.getCurrentHotkey && hotkeyManager.getCurrentHotkey();
@@ -674,7 +673,6 @@ async function startApp() {
       debugLogger?.debug("[Globe] globe-down received", {
         currentHotkey,
         mainWindowLive,
-        activationMode: mainWindowLive ? windowManager.getActivationMode() : "n/a",
       });
 
       // Forward to control panel for hotkey capture
@@ -685,30 +683,13 @@ async function startApp() {
       // Handle dictation if Globe/Fn is the current hotkey
       if (isGlobeLikeHotkey(currentHotkey)) {
         if (mainWindowLive) {
-          // Capture target app PID BEFORE showing the overlay
-          if (textEditMonitor) textEditMonitor.captureTargetPid();
-          const activationMode = windowManager.getActivationMode();
-          if (activationMode === "push") {
-            const now = Date.now();
-            if (now - globeLastStopTime < POST_STOP_COOLDOWN_MS) {
-              debugLogger?.debug("[Globe] Ignored — cooldown active");
-              return;
-            }
-            windowManager.showDictationPanel();
-            const pressTime = now;
-            globeKeyDownTime = pressTime;
-            globeKeyIsRecording = false;
-            setTimeout(async () => {
-              if (globeKeyDownTime === pressTime && !globeKeyIsRecording) {
-                globeKeyIsRecording = true;
-                debugLogger?.debug("[Globe] Starting dictation (push hold)");
-                windowManager.sendStartDictation();
-              }
-            }, MIN_HOLD_DURATION_MS);
-          } else {
-            windowManager.showDictationPanel();
-            windowManager.mainWindow.webContents.send("toggle-dictation");
+          const now = Date.now();
+          if (now - globeLastStopTime < POST_STOP_COOLDOWN_MS) {
+            debugLogger?.debug("[Globe] Ignored — cooldown active");
+            return;
           }
+          if (textEditMonitor) textEditMonitor.captureTargetPid();
+          globeAutoSession.keyDown();
         } else {
           debugLogger?.debug("[Globe] Ignored — mainWindow not live");
         }
@@ -718,7 +699,7 @@ async function startApp() {
     });
 
     globeKeyManager.on("globe-up", async () => {
-      debugLogger?.debug("[Globe] globe-up received", { wasRecording: globeKeyIsRecording });
+      debugLogger?.debug("[Globe] globe-up received", globeAutoSession.getState());
 
       // Forward to control panel for hotkey capture (Fn key released)
       if (isLiveWindow(windowManager.controlPanelWindow)) {
@@ -726,16 +707,7 @@ async function startApp() {
       }
 
       if (hotkeyManager.getCurrentHotkey && isGlobeLikeHotkey(hotkeyManager.getCurrentHotkey())) {
-        const activationMode = windowManager.getActivationMode();
-        if (activationMode === "push") {
-          globeKeyDownTime = 0;
-          globeLastStopTime = Date.now();
-          if (globeKeyIsRecording) {
-            globeKeyIsRecording = false;
-            debugLogger?.debug("[Globe] Stopping dictation (push release)");
-            windowManager.sendStopDictation();
-          }
-        }
+        globeAutoSession.keyUp();
       }
 
       // Fn release also stops compound push-to-talk for Fn+F-key hotkeys
@@ -749,34 +721,31 @@ async function startApp() {
     });
 
     // Right-side single modifier handling (e.g., RightOption as hotkey)
-    let rightModDownTime = 0;
-    let rightModIsRecording = false;
     let rightModLastStopTime = 0;
+    const rightModifierAutoSession = createAutomaticActivationSession({
+      onShow: () => windowManager.showDictationPanel(),
+      onTap: () => {
+        if (isLiveWindow(windowManager.mainWindow)) {
+          windowManager.mainWindow.webContents.send("toggle-dictation");
+        }
+      },
+      onHoldStart: () => windowManager.sendStartDictation(),
+      onHoldStop: () => {
+        rightModLastStopTime = Date.now();
+        windowManager.sendStopDictation();
+      },
+      onPendingCancel: () => windowManager.hideDictationPanel(),
+    });
 
     globeKeyManager.on("right-modifier-down", async (modifier) => {
       const currentHotkey = hotkeyManager.getCurrentHotkey && hotkeyManager.getCurrentHotkey();
       if (currentHotkey !== modifier) return;
       if (!isLiveWindow(windowManager.mainWindow)) return;
 
-      const activationMode = windowManager.getActivationMode();
+      const now = Date.now();
+      if (now - rightModLastStopTime < POST_STOP_COOLDOWN_MS) return;
       if (textEditMonitor) textEditMonitor.captureTargetPid();
-      if (activationMode === "push") {
-        const now = Date.now();
-        if (now - rightModLastStopTime < POST_STOP_COOLDOWN_MS) return;
-        windowManager.showDictationPanel();
-        const pressTime = now;
-        rightModDownTime = pressTime;
-        rightModIsRecording = false;
-        setTimeout(() => {
-          if (rightModDownTime === pressTime && !rightModIsRecording) {
-            rightModIsRecording = true;
-            windowManager.sendStartDictation();
-          }
-        }, MIN_HOLD_DURATION_MS);
-      } else {
-        windowManager.showDictationPanel();
-        windowManager.mainWindow.webContents.send("toggle-dictation");
-      }
+      rightModifierAutoSession.keyDown();
     });
 
     globeKeyManager.on("right-modifier-up", async (modifier) => {
@@ -784,18 +753,7 @@ async function startApp() {
 
       if (currentHotkey === modifier) {
         if (!isLiveWindow(windowManager.mainWindow)) return;
-
-        const activationMode = windowManager.getActivationMode();
-        if (activationMode === "push") {
-          rightModDownTime = 0;
-          rightModLastStopTime = Date.now();
-          if (rightModIsRecording) {
-            rightModIsRecording = false;
-            windowManager.sendStopDictation();
-          } else {
-            windowManager.hideDictationPanel();
-          }
-        }
+        rightModifierAutoSession.keyUp();
       }
 
       const rightModToBase = {
@@ -814,59 +772,37 @@ async function startApp() {
 
     // Reset native key state when hotkey changes
     ipcMain.on("hotkey-changed", (_event, _newHotkey) => {
-      globeKeyDownTime = 0;
-      globeKeyIsRecording = false;
+      globeAutoSession.abort();
       globeLastStopTime = 0;
-      rightModDownTime = 0;
-      rightModIsRecording = false;
+      rightModifierAutoSession.abort();
       rightModLastStopTime = 0;
     });
   }
 
-  // Set up Windows Push-to-Talk handling
+  // Set up Windows automatic activation handling
   if (process.platform === "win32") {
-    debugLogger.debug("[Push-to-Talk] Windows Push-to-Talk setup starting");
+    debugLogger.debug("[Hotkey] Windows automatic activation setup starting");
 
-    const {
-      isGlobeLikeHotkey: isGlobeLike,
-      isModifierOnlyHotkey,
-    } = require("./src/helpers/hotkeyManager");
+    const { isGlobeLikeHotkey: isGlobeLike } = require("./src/helpers/hotkeyManager");
     const isValidHotkey = (hotkey) => hotkey && !isGlobeLike(hotkey);
-
-    const isRightSideMod = (hotkey) =>
-      /^Right(Control|Ctrl|Alt|Option|Shift|Super|Win|Meta|Command|Cmd)$/i.test(hotkey);
-
-    const needsNativeListener = (hotkey, mode) => {
-      if (!isValidHotkey(hotkey)) return false;
-      if (mode === "push") return true;
-      return isRightSideMod(hotkey) || isModifierOnlyHotkey(hotkey);
-    };
+    const needsNativeListener = (hotkey) => isValidHotkey(hotkey);
 
     windowsKeyManager.on("key-down", (_key) => {
       if (!isLiveWindow(windowManager.mainWindow)) return;
 
       windowManager.textEditMonitor?.captureTargetPid?.();
-
-      const activationMode = windowManager.getActivationMode();
-      if (activationMode === "push") {
-        windowManager.startWindowsPushToTalk();
-      } else if (activationMode === "tap") {
-        windowManager.showDictationPanel();
-        windowManager.mainWindow.webContents.send("toggle-dictation");
-      }
+      windowManager.startWindowsPushToTalk();
     });
 
     windowsKeyManager.on("key-up", () => {
       if (!isLiveWindow(windowManager.mainWindow)) return;
-
-      const activationMode = windowManager.getActivationMode();
-      if (activationMode === "push") {
-        windowManager.handleWindowsPushKeyUp();
-      }
+      windowManager.handleWindowsPushKeyUp();
     });
 
     windowsKeyManager.on("error", (error) => {
-      debugLogger.warn("[Push-to-Talk] Windows key listener error", { error: error.message });
+      windowManager.setWindowsNativeHotkeyEnabled(false);
+      windowManager.resetWindowsPushState();
+      debugLogger.warn("[Hotkey] Windows key listener error", { error: error.message });
       if (isLiveWindow(windowManager.mainWindow)) {
         windowManager.mainWindow.webContents.send("windows-ptt-unavailable", {
           reason: "error",
@@ -876,8 +812,9 @@ async function startApp() {
     });
 
     windowsKeyManager.on("unavailable", () => {
+      windowManager.setWindowsNativeHotkeyEnabled(false);
       debugLogger.debug(
-        "[Push-to-Talk] Windows key listener not available - falling back to toggle mode"
+        "[Hotkey] Windows key listener not available - falling back to tap mode"
       );
       if (isLiveWindow(windowManager.mainWindow)) {
         windowManager.mainWindow.webContents.send("windows-ptt-unavailable", {
@@ -888,40 +825,31 @@ async function startApp() {
     });
 
     windowsKeyManager.on("ready", () => {
-      debugLogger.debug("[Push-to-Talk] WindowsKeyManager is ready and listening");
+      windowManager.setWindowsNativeHotkeyEnabled(true);
+      debugLogger.debug("[Hotkey] WindowsKeyManager is ready for automatic hold detection");
     });
 
-    const startWindowsKeyListener = () => {
-      if (!isLiveWindow(windowManager.mainWindow)) return;
-      const activationMode = windowManager.getActivationMode();
-      const currentHotkey = hotkeyManager.getCurrentHotkey();
+    const restartWindowsKeyListener = (hotkey = hotkeyManager.getCurrentHotkey()) => {
+      windowManager.setWindowsNativeHotkeyEnabled(false);
+      windowManager.resetWindowsPushState();
+      windowsKeyManager.stop();
 
-      if (needsNativeListener(currentHotkey, activationMode)) {
-        windowsKeyManager.start(currentHotkey);
+      if (!isLiveWindow(windowManager.mainWindow)) return;
+      if (needsNativeListener(hotkey)) {
+        windowsKeyManager.start(hotkey);
       }
     };
 
     const STARTUP_DELAY_MS = 3000;
-    setTimeout(startWindowsKeyListener, STARTUP_DELAY_MS);
-
-    ipcMain.on("activation-mode-changed", (_event, mode) => {
-      windowManager.resetWindowsPushState();
-      const currentHotkey = hotkeyManager.getCurrentHotkey();
-      if (needsNativeListener(currentHotkey, mode)) {
-        windowsKeyManager.start(currentHotkey);
-      } else {
-        windowsKeyManager.stop();
-      }
-    });
+    setTimeout(() => restartWindowsKeyListener(), STARTUP_DELAY_MS);
 
     ipcMain.on("hotkey-changed", (_event, hotkey) => {
-      if (!isLiveWindow(windowManager.mainWindow)) return;
-      windowManager.resetWindowsPushState();
-      const activationMode = windowManager.getActivationMode();
+      restartWindowsKeyListener(hotkey);
+    });
+
+    app.on("before-quit", () => {
+      windowManager.setWindowsNativeHotkeyEnabled(false);
       windowsKeyManager.stop();
-      if (needsNativeListener(hotkey, activationMode)) {
-        windowsKeyManager.start(hotkey);
-      }
     });
   }
 }

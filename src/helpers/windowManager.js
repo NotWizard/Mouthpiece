@@ -6,6 +6,10 @@ const DragManager = require("./dragManager");
 const MenuManager = require("./menuManager");
 const DevServerManager = require("./devServerManager");
 const { i18nMain } = require("./i18nMain");
+const {
+  createAutomaticActivationSession,
+  getAutomaticActivationSupport,
+} = require("./automaticActivation");
 const { DEV_SERVER_PORT } = DevServerManager;
 const {
   MAIN_WINDOW_CONFIG,
@@ -26,8 +30,7 @@ class WindowManager {
     this.loadErrorShown = false;
     this.macCompoundPushState = null;
     this.winPushState = null;
-    this._cachedActivationMode = "tap";
-    this._floatingIconAutoHide = false;
+    this.windowsNativeHotkeyEnabled = false;
 
     app.on("before-quit", () => {
       this.isQuitting = true;
@@ -158,12 +161,17 @@ class WindowManager {
         return;
       }
 
-      const activationMode = this.getActivationMode();
       const currentHotkey = this.hotkeyManager.getCurrentHotkey?.();
+      const automaticActivation = getAutomaticActivationSupport({
+        platform: process.platform,
+        hotkey: currentHotkey,
+        isUsingGnome: this.isUsingGnomeHotkeys(),
+        windowsListenerAvailable: this.windowsNativeHotkeyEnabled,
+      });
 
       if (
         process.platform === "darwin" &&
-        activationMode === "push" &&
+        automaticActivation.supportsHold &&
         currentHotkey &&
         !isGlobeLikeHotkey(currentHotkey) &&
         currentHotkey.includes("+")
@@ -172,8 +180,8 @@ class WindowManager {
         return;
       }
 
-      // Windows push mode: always defer to native listener (globalShortcut can't detect key-up)
-      if (process.platform === "win32" && activationMode === "push") {
+      // Windows automatic hold support uses the native listener when available.
+      if (process.platform === "win32" && this.windowsNativeHotkeyEnabled) {
         return;
       }
 
@@ -198,41 +206,43 @@ class WindowManager {
 
     const requiredModifiers = this.getMacRequiredModifiers(hotkey);
     if (requiredModifiers.size === 0) {
+      if (this.textEditMonitor) this.textEditMonitor.captureTargetPid();
+      this.showDictationPanel();
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.webContents.send("toggle-dictation");
+      }
       return;
     }
 
-    const MIN_HOLD_DURATION_MS = 150;
     const MAX_PUSH_DURATION_MS = 300000; // 5 minutes max recording
-    const downTime = Date.now();
+    const session = createAutomaticActivationSession({
+      onShow: () => this.showDictationPanel(),
+      onTap: () => {
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.webContents.send("toggle-dictation");
+        }
+      },
+      onHoldStart: () => this.sendStartDictation(),
+      onHoldStop: () => this.sendStopDictation(),
+      onPendingCancel: () => this.hideDictationPanel(),
+    });
 
     if (this.textEditMonitor) this.textEditMonitor.captureTargetPid();
-    this.showDictationPanel();
+    session.keyDown();
 
     const safetyTimeoutId = setTimeout(() => {
       if (this.macCompoundPushState?.active) {
-        debugLogger.warn("Compound PTT safety timeout", undefined, "ptt");
+        debugLogger.warn("Compound automatic activation safety timeout", undefined, "ptt");
         this.forceStopMacCompoundPush("timeout");
       }
     }, MAX_PUSH_DURATION_MS);
 
     this.macCompoundPushState = {
       active: true,
-      downTime,
-      isRecording: false,
       requiredModifiers,
       safetyTimeoutId,
+      session,
     };
-
-    setTimeout(() => {
-      if (!this.macCompoundPushState || this.macCompoundPushState.downTime !== downTime) {
-        return;
-      }
-
-      if (!this.macCompoundPushState.isRecording) {
-        this.macCompoundPushState.isRecording = true;
-        this.sendStartDictation();
-      }
-    }, MIN_HOLD_DURATION_MS);
   }
 
   handleMacPushModifierUp(modifier) {
@@ -248,14 +258,10 @@ class WindowManager {
       clearTimeout(this.macCompoundPushState.safetyTimeoutId);
     }
 
-    const wasRecording = this.macCompoundPushState.isRecording;
+    const session = this.macCompoundPushState.session;
     this.macCompoundPushState = null;
 
-    if (wasRecording) {
-      this.sendStopDictation();
-    } else {
-      this.hideDictationPanel();
-    }
+    session?.keyUp();
   }
 
   forceStopMacCompoundPush(reason = "manual") {
@@ -267,12 +273,10 @@ class WindowManager {
       clearTimeout(this.macCompoundPushState.safetyTimeoutId);
     }
 
-    const wasRecording = this.macCompoundPushState.isRecording;
+    const session = this.macCompoundPushState.session;
     this.macCompoundPushState = null;
 
-    if (wasRecording) {
-      this.sendStopDictation();
-    }
+    session?.abort();
     this.hideDictationPanel();
 
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
@@ -327,28 +331,24 @@ class WindowManager {
       return;
     }
 
-    const MIN_HOLD_DURATION_MS = 150;
-    const downTime = Date.now();
+    const session = createAutomaticActivationSession({
+      onShow: () => this.showDictationPanel(),
+      onTap: () => {
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.webContents.send("toggle-dictation");
+        }
+      },
+      onHoldStart: () => this.sendStartDictation(),
+      onHoldStop: () => this.sendStopDictation(),
+      onPendingCancel: () => this.hideDictationPanel(),
+    });
 
-    this.textEditMonitor?.captureTargetPid?.();
-    this.showDictationPanel();
+    session.keyDown();
 
     this.winPushState = {
       active: true,
-      downTime,
-      isRecording: false,
+      session,
     };
-
-    setTimeout(() => {
-      if (!this.winPushState || this.winPushState.downTime !== downTime) {
-        return;
-      }
-
-      if (!this.winPushState.isRecording) {
-        this.winPushState.isRecording = true;
-        this.sendStartDictation();
-      }
-    }, MIN_HOLD_DURATION_MS);
   }
 
   handleWindowsPushKeyUp() {
@@ -356,17 +356,16 @@ class WindowManager {
       return;
     }
 
-    const wasRecording = this.winPushState.isRecording;
+    const session = this.winPushState.session;
     this.winPushState = null;
 
-    if (wasRecording) {
-      this.sendStopDictation();
-    } else {
-      this.hideDictationPanel();
-    }
+    session?.keyUp();
   }
 
   resetWindowsPushState() {
+    if (this.winPushState?.session) {
+      this.winPushState.session.abort();
+    }
     this.winPushState = null;
   }
 
@@ -389,16 +388,8 @@ class WindowManager {
     }
   }
 
-  getActivationMode() {
-    return this._cachedActivationMode;
-  }
-
-  setActivationModeCache(mode) {
-    this._cachedActivationMode = mode === "push" ? "push" : "tap";
-  }
-
-  setFloatingIconAutoHide(enabled) {
-    this._floatingIconAutoHide = Boolean(enabled);
+  setWindowsNativeHotkeyEnabled(enabled) {
+    this.windowsNativeHotkeyEnabled = Boolean(enabled);
   }
 
   setHotkeyListeningMode(enabled) {
@@ -616,28 +607,8 @@ class WindowManager {
       return;
     }
 
-    // Safety timeout: force show the window if ready-to-show doesn't fire within 10 seconds
-    const showTimeout = setTimeout(() => {
-      if (
-        this.mainWindow &&
-        !this.mainWindow.isDestroyed() &&
-        !this.mainWindow.isVisible() &&
-        !this._floatingIconAutoHide
-      ) {
-        this.showDictationPanel();
-      }
-    }, 10000);
-
     this.mainWindow.once("ready-to-show", () => {
-      clearTimeout(showTimeout);
       this.enforceMainWindowOnTop();
-      if (!this.mainWindow.isVisible() && !this._floatingIconAutoHide) {
-        if (typeof this.mainWindow.showInactive === "function") {
-          this.mainWindow.showInactive();
-        } else {
-          this.mainWindow.show();
-        }
-      }
     });
 
     this.mainWindow.on("show", () => {

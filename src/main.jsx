@@ -11,6 +11,10 @@ import { SettingsProvider } from "./hooks/useSettings";
 import { useTheme } from "./hooks/useTheme";
 import { useAuth } from "./hooks/useAuth";
 import { RUNTIME_CONFIG } from "./config/runtimeConfig";
+import {
+  normalizeOnboardingStep,
+  shouldShowDictationPanelForOnboardingStep,
+} from "./utils/onboardingFlow.mjs";
 import i18n from "./i18n";
 import "./index.css";
 
@@ -320,9 +324,9 @@ function AppRouter() {
     }
 
     if (isDictationPanel && !resolved) {
-      const rawStep = parseInt(localStorage.getItem("onboardingCurrentStep") || "0");
-      const currentStep = Math.max(0, Math.min(rawStep, 5));
-      if (currentStep < 4) {
+      const rawStep = parseInt(localStorage.getItem("onboardingCurrentStep") || "0", 10);
+      const currentStep = normalizeOnboardingStep(rawStep);
+      if (!shouldShowDictationPanelForOnboardingStep(currentStep)) {
         window.electronAPI?.hideWindow?.();
       }
     }

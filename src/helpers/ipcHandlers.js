@@ -9,6 +9,7 @@ const GnomeShortcutManager = require("./gnomeShortcut");
 const AssemblyAiStreaming = require("./assemblyAiStreaming");
 const { i18nMain, changeLanguage } = require("./i18nMain");
 const DeepgramStreaming = require("./deepgramStreaming");
+const { shouldRestoreDictationPanelAfterPaste } = require("./pasteUiState");
 
 const MISTRAL_TRANSCRIPTION_URL = "https://api.mistral.ai/v1/audio/transcriptions";
 const HTTP_REQUEST_TIMEOUT_MS = 120000;
@@ -771,7 +772,7 @@ class IPCHandlers {
         "clipboard"
       );
 
-      if (result?.mode === "copied" || result?.mode === "failed") {
+      if (shouldRestoreDictationPanelAfterPaste(result, options)) {
         this.windowManager?.showDictationPanel?.();
       }
 
@@ -1221,14 +1222,10 @@ class IPCHandlers {
         }
 
         if (process.platform === "win32" && this.windowsKeyManager) {
-          const activationMode = this.windowManager.getActivationMode();
           debugLogger.log(
-            `[IPC] Exiting hotkey capture mode, activationMode="${activationMode}", hotkey="${effectiveHotkey}"`
+            `[IPC] Exiting hotkey capture mode, hotkey="${effectiveHotkey}"`
           );
-          const needsListener =
-            effectiveHotkey &&
-            !isGlobeLikeHotkey(effectiveHotkey) &&
-            (activationMode === "push" || isModifierOnlyHotkey(effectiveHotkey));
+          const needsListener = effectiveHotkey && !isGlobeLikeHotkey(effectiveHotkey);
           if (needsListener) {
             debugLogger.log(`[IPC] Restarting Windows key listener for hotkey: ${effectiveHotkey}`);
             this.windowsKeyManager.start(effectiveHotkey);
@@ -1489,14 +1486,6 @@ class IPCHandlers {
 
     ipcMain.handle("save-dictation-key", async (event, key) => {
       return this.environmentManager.saveDictationKey(key);
-    });
-
-    ipcMain.handle("get-activation-mode", async () => {
-      return this.environmentManager.getActivationMode();
-    });
-
-    ipcMain.handle("save-activation-mode", async (event, mode) => {
-      return this.environmentManager.saveActivationMode(mode);
     });
 
     ipcMain.handle("save-anthropic-key", async (event, key) => {

@@ -1,5 +1,6 @@
 import { useEffect, useState, type MouseEvent, type RefObject } from "react";
 import { buildWaveformDots } from "../utils/dictationWaveform.mjs";
+import { DICTATION_CAPSULE_WIDTH_PX } from "../utils/dictationOverlayState.mjs";
 
 interface DictationCapsuleProps {
   agentName: string;
@@ -23,11 +24,11 @@ interface DictationCapsuleProps {
 
 function AssistantGlyph() {
   return (
-    <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-white/70 bg-white/85 shadow-[0_10px_22px_rgba(15,23,42,0.14)]">
-      <div className="absolute inset-[5px] rounded-[14px] bg-[radial-gradient(circle_at_30%_25%,rgba(255,255,255,0.95),rgba(255,255,255,0.2)_45%,transparent_70%),linear-gradient(135deg,rgba(115,126,255,0.98),rgba(66,92,255,0.88))]" />
+    <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-[18px] border border-white/70 bg-white/85 shadow-[0_8px_18px_rgba(15,23,42,0.12)]">
+      <div className="absolute inset-[4px] rounded-[12px] bg-[radial-gradient(circle_at_30%_25%,rgba(255,255,255,0.95),rgba(255,255,255,0.2)_45%,transparent_70%),linear-gradient(135deg,rgba(115,126,255,0.98),rgba(66,92,255,0.88))]" />
       <div className="relative flex items-center gap-1">
-        <span className="block h-2.5 w-2.5 rounded-full bg-white/92 shadow-[0_0_10px_rgba(255,255,255,0.65)]" />
-        <span className="block h-2.5 w-4 rounded-full bg-white/78 shadow-[0_0_10px_rgba(255,255,255,0.45)]" />
+        <span className="block h-2.5 w-2.5 rounded-full bg-white/92 shadow-[0_0_8px_rgba(255,255,255,0.65)]" />
+        <span className="block h-2.5 w-3.5 rounded-full bg-white/78 shadow-[0_0_8px_rgba(255,255,255,0.45)]" />
       </div>
     </div>
   );
@@ -40,7 +41,7 @@ function BrandGlyph() {
         <span
           key={index}
           className="block w-[4px] rounded-full bg-current"
-          style={{ height: `${Math.round(height * 16)}px` }}
+          style={{ height: `${Math.round(height * 14)}px` }}
         />
       ))}
     </div>
@@ -103,47 +104,48 @@ export default function DictationCapsule({
       onContextMenu={onContextMenu}
       onFocus={onFocus}
       onBlur={onBlur}
-      className="relative w-[428px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[30px] px-4 py-4 text-left outline-none transition-transform duration-200 ease-out"
+      className="relative max-w-[calc(100vw-2rem)] overflow-hidden rounded-[26px] px-3.5 py-3 text-left outline-none transition-transform duration-200 ease-out"
       style={{
+        width: `${DICTATION_CAPSULE_WIDTH_PX}px`,
         background:
           "linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(250,247,245,0.94) 100%)",
         border: `1px solid ${borderColor}`,
         boxShadow:
           isRecording || isProcessing
-            ? `0 22px 44px rgba(15, 23, 42, 0.18), 0 8px 18px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(255,255,255,0.78) inset, 0 0 22px ${glowColor}`
-            : "0 18px 38px rgba(15, 23, 42, 0.14), 0 6px 14px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(255,255,255,0.78) inset",
+            ? `0 18px 36px rgba(15, 23, 42, 0.16), 0 6px 14px rgba(15, 23, 42, 0.09), 0 0 0 1px rgba(255,255,255,0.78) inset, 0 0 18px ${glowColor}`
+            : "0 14px 28px rgba(15, 23, 42, 0.12), 0 4px 10px rgba(15, 23, 42, 0.07), 0 0 0 1px rgba(255,255,255,0.78) inset",
         transform: isDragging ? "scale(1.01)" : isHovered ? "translateY(-1px)" : "translateY(0)",
         cursor: isDragging ? "grabbing" : "pointer",
       }}
     >
-      <div className="pointer-events-none absolute inset-x-6 bottom-0 h-10 rounded-t-full bg-[radial-gradient(circle_at_50%_0%,rgba(0,0,0,0.18),transparent_68%)] opacity-40 blur-xl" />
+      <div className="pointer-events-none absolute inset-x-5 bottom-0 h-8 rounded-t-full bg-[radial-gradient(circle_at_50%_0%,rgba(0,0,0,0.18),transparent_68%)] opacity-35 blur-xl" />
 
-      <div className="relative flex items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3">
+      <div className="relative flex items-center justify-between gap-3.5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <AssistantGlyph />
           <div className="min-w-0">
-            <div className="truncate text-[17px] font-semibold tracking-[-0.03em] text-[rgba(22,22,22,0.96)]">
+            <div className="truncate text-[15px] font-semibold tracking-[-0.03em] text-[rgba(22,22,22,0.96)]">
               {agentName}
             </div>
-            <div className="truncate text-[12px] font-medium text-[rgba(92,92,92,0.72)]">
+            <div className="truncate text-[11px] font-medium text-[rgba(92,92,92,0.72)]">
               {helperText}
             </div>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5">
           <BrandGlyph />
-          <div className="text-[15px] font-semibold tracking-[-0.03em] text-[rgba(116,116,116,0.82)]">
+          <div className="text-[13px] font-semibold tracking-[-0.03em] text-[rgba(116,116,116,0.82)]">
             {brandLabel}
           </div>
         </div>
       </div>
 
-      <div className="relative mt-4 flex items-end justify-between gap-[6px] px-1">
+      <div className="relative mt-3 flex items-end justify-between gap-[5px] px-0.5">
         {dots.map((value, index) => {
-          const height = 8 + value * 10;
+          const height = 7 + value * 9;
           const opacity = 0.55 + value * 0.4;
-          const translateY = (1 - value) * 1.8;
+          const translateY = (1 - value) * 1.5;
           const activeColor =
             isRecording || isProcessing ? "rgba(53, 53, 53, 0.96)" : "rgba(58, 58, 58, 0.88)";
 
@@ -152,7 +154,7 @@ export default function DictationCapsule({
               key={index}
               className="block flex-1 rounded-full"
               style={{
-                minWidth: "7px",
+                minWidth: "6px",
                 height: `${height}px`,
                 opacity,
                 transform: `translateY(${translateY}px)`,

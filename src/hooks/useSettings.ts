@@ -32,7 +32,6 @@ export interface ReasoningSettings {
 
 export interface HotkeySettings {
   dictationKey: string;
-  activationMode: "tap" | "push";
 }
 
 export interface MicrophoneSettings {
@@ -62,8 +61,8 @@ export interface ThemeSettings {
 function useSettingsInternal() {
   const store = useSettingsStore();
 
-  // One-time initialization: sync API keys, dictation key, activation mode,
-  // UI language, and dictionary from the main process / SQLite.
+  // One-time initialization: sync API keys, dictation key, UI language,
+  // and dictionary from the main process / SQLite.
   const hasInitialized = useRef(false);
   useEffect(() => {
     if (hasInitialized.current) return;
@@ -209,12 +208,8 @@ function useSettingsInternal() {
     setCustomReasoningApiKey: store.setCustomReasoningApiKey,
     setDictationKey: store.setDictationKey,
     setTheme: store.setTheme,
-    activationMode: store.activationMode,
-    setActivationMode: store.setActivationMode,
     audioCuesEnabled: store.audioCuesEnabled,
     setAudioCuesEnabled: store.setAudioCuesEnabled,
-    floatingIconAutoHide: store.floatingIconAutoHide,
-    setFloatingIconAutoHide: store.setFloatingIconAutoHide,
     preferBuiltInMic: store.preferBuiltInMic,
     selectedMicDeviceId: store.selectedMicDeviceId,
     setPreferBuiltInMic: store.setPreferBuiltInMic,

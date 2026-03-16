@@ -304,10 +304,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getDictationKey: () => ipcRenderer.invoke("get-dictation-key"),
   saveDictationKey: (key) => ipcRenderer.invoke("save-dictation-key", key),
 
-  // Activation mode persistence (file-based for reliable startup)
-  getActivationMode: () => ipcRenderer.invoke("get-activation-mode"),
-  saveActivationMode: (mode) => ipcRenderer.invoke("save-activation-mode", mode),
-
   saveAllKeysToEnv: () => ipcRenderer.invoke("save-all-keys-to-env"),
   syncStartupPreferences: (prefs) => ipcRenderer.invoke("sync-startup-preferences", prefs),
 
@@ -454,17 +450,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   onWindowsPushToTalkUnavailable: registerListener("windows-ptt-unavailable"),
 
-  // Notify main process of activation mode changes (for Windows Push-to-Talk)
-  notifyActivationModeChanged: (mode) => ipcRenderer.send("activation-mode-changed", mode),
   notifyHotkeyChanged: (hotkey) => ipcRenderer.send("hotkey-changed", hotkey),
-
-  // Floating icon auto-hide
-  notifyFloatingIconAutoHideChanged: (enabled) =>
-    ipcRenderer.send("floating-icon-auto-hide-changed", enabled),
-  onFloatingIconAutoHideChanged: registerListener(
-    "floating-icon-auto-hide-changed",
-    (callback) => (_event, enabled) => callback(enabled)
-  ),
 
   // Auto-start management
   getAutoStartEnabled: () => ipcRenderer.invoke("get-auto-start-enabled"),

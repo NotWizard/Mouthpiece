@@ -152,12 +152,15 @@
     },
     "activation": {
       "title": "Configuración de activación",
-      "description": "Configura cómo activar el dictado",
+      "description": "Elige un atajo y Mouthpiece decidirá automáticamente si querías pulsar o mantener",
       "hotkey": "Atajo",
       "mode": "Modo",
+      "modeDescription": "Una pulsación corta activa o detiene el dictado. Una pulsación larga graba solo mientras mantienes la tecla presionada cuando el sistema lo permite.",
+      "modeFallbackDescription": "Tu sistema actual de atajos solo admite la activación con pulsación corta, así que Mouthpiece cambiará automáticamente cuando la detección de liberación no esté disponible.",
       "tapDescription": "Pulsa para iniciar/detener",
       "holdDescription": "Mantén pulsado mientras hablas",
       "test": "Prueba",
+      "testDescription": "Prueba aquí {{hotkey}}. Una pulsación corta activa o detiene el dictado y una pulsación larga graba mientras mantienes la tecla presionada cuando está disponible.",
       "hotkeyToStartStop": "{{hotkey}} para iniciar/detener",
       "holdHotkey": "Mantener {{hotkey}}",
       "textareaPlaceholder": "Haz clic aquí y usa tu atajo para dictar..."
@@ -917,6 +920,9 @@
         "title": "Ícono flotante"
       },
       "hotkey": {
+        "activationBehavior": "Activación automática",
+        "activationBehaviorDescription": "Una pulsación corta activa o detiene el dictado. Una pulsación larga graba solo mientras mantienes la tecla presionada cuando el sistema puede detectar la liberación.",
+        "activationBehaviorFallback": "Tu sistema actual de atajos solo admite la pulsación corta, así que Mouthpiece cambiará automáticamente.",
         "activationMode": "Modo de activación",
         "description": "La combinación de teclas que inicia y detiene el dictado por voz",
         "resetToDefault": "Restablecer a {{hotkey}}",

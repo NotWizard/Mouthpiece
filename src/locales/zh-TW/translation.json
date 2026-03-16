@@ -152,12 +152,15 @@
     },
     "activation": {
       "title": "啟用設定",
-      "description": "設定觸發語音輸入的方式",
+      "description": "選擇一個快捷鍵，Mouthpiece 會自動判斷你要的是短按還是長按",
       "hotkey": "快捷鍵",
       "mode": "模式",
+      "modeDescription": "短按可開始或停止聽寫。長按時，在系統支援的情況下，只有按住期間會持續錄音。",
+      "modeFallbackDescription": "你目前的快捷鍵系統僅支援短按觸發，因此在無法偵測放鍵時，Mouthpiece 會自動回退為點按模式。",
       "tapDescription": "按一下開始/停止",
       "holdDescription": "按住時說話",
       "test": "測試",
+      "testDescription": "在這裡試試 {{hotkey}}。短按可開始或停止聽寫，長按時在可用情況下會在按住期間持續錄音。",
       "hotkeyToStartStop": "{{hotkey}} 開始/停止",
       "holdHotkey": "按住 {{hotkey}}",
       "textareaPlaceholder": "點擊這裡，然後使用快捷鍵開始語音輸入..."
@@ -917,6 +920,9 @@
         "title": "浮動圖示"
       },
       "hotkey": {
+        "activationBehavior": "自動啟用",
+        "activationBehaviorDescription": "短按可開始或停止聽寫。長按時，當系統可以偵測放鍵時，只有按住期間會持續錄音。",
+        "activationBehaviorFallback": "你目前的快捷鍵系統僅支援短按觸發，因此 Mouthpiece 會自動回退到該方式。",
         "activationMode": "啟用模式",
         "description": "用來開始和停止語音輸入的組合鍵",
         "resetToDefault": "重置為 {{hotkey}}",

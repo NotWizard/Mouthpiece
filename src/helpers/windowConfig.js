@@ -6,10 +6,10 @@ const isGnomeWayland =
   /gnome|ubuntu|unity/i.test(process.env.XDG_CURRENT_DESKTOP || "");
 
 const WINDOW_SIZES = {
-  BASE: { width: 476, height: 172 },
-  WITH_MENU: { width: 476, height: 360 },
-  WITH_TOAST: { width: 476, height: 540 },
-  EXPANDED: { width: 476, height: 540 },
+  BASE: { width: 420, height: 150 },
+  WITH_MENU: { width: 420, height: 320 },
+  WITH_TOAST: { width: 420, height: 520 },
+  EXPANDED: { width: 420, height: 520 },
 };
 
 // Main dictation window configuration
@@ -86,10 +86,9 @@ const CONTROL_PANEL_CONFIG = {
 class WindowPositionUtil {
   static getMainWindowPosition(display, customSize = null) {
     const { width, height } = customSize || WINDOW_SIZES.BASE;
-    const MARGIN = 24;
     const workArea = display.workArea || display.bounds;
-    const x = Math.max(0, workArea.x + workArea.width - width - MARGIN);
-    const y = Math.max(0, workArea.y + workArea.height - height - MARGIN);
+    const x = Math.max(workArea.x, Math.round(workArea.x + (workArea.width - width) / 2));
+    const y = Math.max(workArea.y, workArea.y + workArea.height - height);
     return { x, y, width, height };
   }
 

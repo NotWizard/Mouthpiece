@@ -152,12 +152,15 @@
     },
     "activation": {
       "title": "アクティベーション設定",
-      "description": "ディクテーションの起動方法を設定",
+      "description": "ホットキーを選ぶと、Mouthpiece が短押しと長押しを自動で判定します",
       "hotkey": "ホットキー",
       "mode": "モード",
+      "modeDescription": "短押しでディクテーションの開始と停止を切り替えます。長押しは、システムが対応している場合に押している間だけ録音します。",
+      "modeFallbackDescription": "現在のショートカット方式は短押しのみをサポートしているため、キーを離したことを検出できない場合は Mouthpiece が自動で短押し動作に切り替えます。",
       "tapDescription": "押して開始/停止",
       "holdDescription": "押しながら話す",
       "test": "テスト",
+      "testDescription": "ここで {{hotkey}} を試してください。短押しでディクテーションを開始または停止し、利用可能な場合は長押し中だけ録音します。",
       "hotkeyToStartStop": "{{hotkey}} で開始/停止",
       "holdHotkey": "{{hotkey}} を押し続ける",
       "textareaPlaceholder": "ここをクリックしてホットキーでディクテーション..."
@@ -917,6 +920,9 @@
         "title": "フローティングアイコン"
       },
       "hotkey": {
+        "activationBehavior": "自動アクティベーション",
+        "activationBehaviorDescription": "短押しでディクテーションを開始または停止します。長押しは、システムがキーの解放を検出できる場合に押している間だけ録音します。",
+        "activationBehaviorFallback": "現在のショートカット方式は短押しのみをサポートしているため、Mouthpiece は自動でその動作に切り替えます。",
         "activationMode": "起動モード",
         "description": "音声ディクテーションの開始/停止に使用するキーの組み合わせ",
         "resetToDefault": "{{hotkey}}にリセット",

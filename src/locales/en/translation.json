@@ -152,12 +152,15 @@
     },
     "activation": {
       "title": "Activation Setup",
-      "description": "Configure how you trigger dictation",
+      "description": "Choose a hotkey and Mouthpiece will decide whether you meant a tap or a hold",
       "hotkey": "Hotkey",
       "mode": "Mode",
+      "modeDescription": "Short press toggles dictation. Long press records only while you keep the hotkey held when your system supports it.",
+      "modeFallbackDescription": "Your current shortcut system uses short-press activation only. Mouthpiece falls back automatically when hold detection is unavailable.",
       "tapDescription": "Press to start/stop",
       "holdDescription": "Hold while speaking",
       "test": "Test",
+      "testDescription": "Try {{hotkey}} here. Short press toggles dictation, and long press records while held when available.",
       "hotkeyToStartStop": "{{hotkey}} to start/stop",
       "holdHotkey": "Hold {{hotkey}}",
       "textareaPlaceholder": "Click here and use your hotkey to dictate..."
@@ -917,6 +920,9 @@
         "title": "Floating Icon"
       },
       "hotkey": {
+        "activationBehavior": "Automatic activation",
+        "activationBehaviorDescription": "Short press toggles dictation. Long press records only while you keep the hotkey held when your system supports release detection.",
+        "activationBehaviorFallback": "Your current shortcut system only supports short-press activation, so Mouthpiece will fall back automatically.",
         "activationMode": "Activation Mode",
         "description": "The key combination that starts and stops voice dictation",
         "resetToDefault": "Reset to {{hotkey}}",

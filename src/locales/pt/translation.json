@@ -139,12 +139,15 @@
     },
     "activation": {
       "title": "Configuração de ativação",
-      "description": "Configure como acionar o ditado",
+      "description": "Escolha um atalho e o Mouthpiece decidirá automaticamente se você queria toque curto ou pressão longa",
       "hotkey": "Atalho",
       "mode": "Modo",
+      "modeDescription": "Um toque curto inicia ou para o ditado. Um toque longo grava apenas enquanto você mantiver a tecla pressionada quando o sistema oferecer suporte.",
+      "modeFallbackDescription": "Seu sistema atual de atalhos só oferece ativação por toque curto, então o Mouthpiece fará o fallback automaticamente quando não houver detecção de soltura.",
       "tapDescription": "Pressione para iniciar/parar",
       "holdDescription": "Segure enquanto fala",
       "test": "Teste",
+      "testDescription": "Experimente {{hotkey}} aqui. Um toque curto inicia ou para o ditado, e um toque longo grava enquanto a tecla estiver pressionada quando disponível.",
       "hotkeyToStartStop": "{{hotkey}} para iniciar/parar",
       "holdHotkey": "Segure {{hotkey}}",
       "textareaPlaceholder": "Clique aqui e use seu atalho para ditar..."
@@ -904,6 +907,9 @@
         "title": "Ícone flutuante"
       },
       "hotkey": {
+        "activationBehavior": "Ativação automática",
+        "activationBehaviorDescription": "Um toque curto inicia ou para o ditado. Um toque longo grava apenas enquanto você mantiver a tecla pressionada quando o sistema puder detectar a soltura.",
+        "activationBehaviorFallback": "Seu sistema atual de atalhos só oferece ativação por toque curto, então o Mouthpiece fará o fallback automaticamente.",
         "activationMode": "Modo de ativação",
         "description": "A combinação de teclas que inicia e para o ditado por voz",
         "resetToDefault": "Redefinir para {{hotkey}}",

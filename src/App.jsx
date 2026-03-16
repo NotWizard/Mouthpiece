@@ -6,8 +6,13 @@ import { useToast } from "./components/ui/Toast";
 import { useAudioRecording } from "./hooks/useAudioRecording";
 import { useHotkey } from "./hooks/useHotkey";
 import { useWindowDrag } from "./hooks/useWindowDrag";
-import { useSettingsStore } from "./stores/settingsStore";
 import { getAgentName } from "./utils/agentName";
+import {
+  DICTATION_CAPSULE_BOTTOM_OFFSET_PX,
+  DICTATION_WINDOW_IDLE_HIDE_DELAY_MS,
+  shouldKeepDictationWindowVisible,
+  shouldShowDictationCapsule,
+} from "./utils/dictationOverlayState.mjs";
 import { formatHotkeyLabel } from "./utils/hotkeys";
 import "./index.css";
 
@@ -19,14 +24,12 @@ export default function App() {
 
   const commandMenuRef = useRef(null);
   const buttonRef = useRef(null);
-  const prevAutoHideRef = useRef(useSettingsStore.getState().floatingIconAutoHide);
+  const hasRecordedSinceShowRef = useRef(false);
 
   const { toast, dismiss, toastCount } = useToast();
   const { t } = useTranslation();
   const { hotkey } = useHotkey();
   const { isDragging, handleMouseDown, handleMouseUp } = useWindowDrag();
-
-  const floatingIconAutoHide = useSettingsStore((s) => s.floatingIconAutoHide);
 
   const setWindowInteractivity = React.useCallback((shouldCapture) => {
     window.electronAPI?.setMainWindowInteractivity?.(shouldCapture);
@@ -136,29 +139,36 @@ export default function App() {
     dismiss,
   });
 
-  useEffect(() => {
-    const unsubscribe = window.electronAPI?.onFloatingIconAutoHideChanged?.((enabled) => {
-      localStorage.setItem("floatingIconAutoHide", String(enabled));
-      useSettingsStore.setState({ floatingIconAutoHide: enabled });
-    });
+  const shouldRenderCapsule = shouldShowDictationCapsule({ isRecording });
+  const shouldKeepWindowVisible = shouldKeepDictationWindowVisible({
+    isRecording,
+    isCommandMenuOpen,
+    toastCount,
+  });
 
-    return () => unsubscribe?.();
-  }, []);
+  useEffect(() => {
+    if (isRecording) {
+      hasRecordedSinceShowRef.current = true;
+      return;
+    }
+
+    setIsCommandMenuOpen(false);
+  }, [isRecording]);
 
   useEffect(() => {
     let hideTimeout;
 
-    if (floatingIconAutoHide && !isRecording && !isProcessing && toastCount === 0) {
+    if (!shouldKeepWindowVisible) {
+      const hideDelay = hasRecordedSinceShowRef.current ? DICTATION_WINDOW_IDLE_HIDE_DELAY_MS : 900;
       hideTimeout = setTimeout(() => {
+        hasRecordedSinceShowRef.current = false;
+        setWindowInteractivity(false);
         window.electronAPI?.hideWindow?.();
-      }, 500);
-    } else if (!floatingIconAutoHide && prevAutoHideRef.current) {
-      window.electronAPI?.showDictationPanel?.();
+      }, hideDelay);
     }
 
-    prevAutoHideRef.current = floatingIconAutoHide;
     return () => clearTimeout(hideTimeout);
-  }, [floatingIconAutoHide, isProcessing, isRecording, toastCount]);
+  }, [setWindowInteractivity, shouldKeepWindowVisible]);
 
   const handleClose = () => {
     window.electronAPI.hideWindow();
@@ -205,9 +215,10 @@ export default function App() {
 
   return (
     <div className="dictation-window">
-      <div className="fixed bottom-6 right-6 z-50">
+      {(shouldRenderCapsule || isCommandMenuOpen) && (
         <div
-          className="relative"
+          className="fixed inset-x-0 z-50 flex justify-center"
+          style={{ bottom: `${DICTATION_CAPSULE_BOTTOM_OFFSET_PX}px` }}
           onMouseEnter={() => {
             setIsHovered(true);
             setWindowInteractivity(true);
@@ -219,114 +230,120 @@ export default function App() {
             }
           }}
         >
-          {(isRecording || isProcessing) && isHovered && (
-            <button
-              aria-label={
-                isRecording ? t("app.buttons.cancelRecording") : t("app.buttons.cancelProcessing")
-              }
-              onClick={(event) => {
-                event.stopPropagation();
-                isRecording ? cancelRecording() : cancelProcessing();
-              }}
-              className="group/cancel absolute -right-2 -top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-[rgba(255,255,255,0.74)] bg-[rgba(24,24,27,0.72)] shadow-[0_14px_26px_rgba(15,23,42,0.22)] backdrop-blur-md transition-colors duration-150 hover:border-[rgba(255,196,196,0.95)] hover:bg-destructive"
-            >
-              <X
-                size={12}
-                strokeWidth={2.5}
-                className="text-white transition-colors duration-150 group-hover/cancel:text-destructive-foreground"
-              />
-            </button>
-          )}
-
-          <DictationCapsule
-            buttonRef={buttonRef}
-            agentName={agentName}
-            brandLabel="Mouthpiece"
-            secondaryLabel={secondaryLabel}
-            hotkeyLabel={hotkeyLabel}
-            audioLevel={audioLevel}
-            isHovered={isHovered}
-            isRecording={isRecording}
-            isProcessing={isProcessing}
-            isDragging={isDragging}
-            onMouseDown={(event) => {
-              setIsCommandMenuOpen(false);
-              setDragStartPos({ x: event.clientX, y: event.clientY });
-              setHasDragged(false);
-              handleMouseDown(event);
-            }}
-            onMouseMove={(event) => {
-              if (dragStartPos && !hasDragged) {
-                const distance = Math.sqrt(
-                  Math.pow(event.clientX - dragStartPos.x, 2) +
-                    Math.pow(event.clientY - dragStartPos.y, 2)
-                );
-
-                if (distance > 5) {
-                  setHasDragged(true);
-                }
-              }
-            }}
-            onMouseUp={(event) => {
-              handleMouseUp(event);
-              setDragStartPos(null);
-            }}
-            onClick={(event) => {
-              if (!hasDragged) {
-                setIsCommandMenuOpen(false);
-                toggleListening();
-              }
-              event.preventDefault();
-            }}
-            onContextMenu={(event) => {
-              event.preventDefault();
-              if (!hasDragged) {
-                setWindowInteractivity(true);
-                setIsCommandMenuOpen((previous) => !previous);
-              }
-            }}
-            onFocus={() => setIsHovered(true)}
-            onBlur={() => setIsHovered(false)}
-          />
-
-          {isCommandMenuOpen && (
-            <div
-              ref={commandMenuRef}
-              className="absolute bottom-full right-2 mb-4 w-56 rounded-2xl border border-[rgba(220,220,220,0.94)] bg-[rgba(255,255,255,0.94)] text-popover-foreground shadow-[0_22px_44px_rgba(15,23,42,0.16)] backdrop-blur-xl"
-              onMouseEnter={() => {
-                setWindowInteractivity(true);
-              }}
-              onMouseLeave={() => {
-                if (!isHovered) {
-                  setWindowInteractivity(false);
-                }
-              }}
-            >
+          <div className="relative">
+            {shouldRenderCapsule && isHovered && (
               <button
-                className="w-full rounded-t-2xl px-4 py-3 text-left text-sm font-medium text-[rgba(28,28,28,0.88)] transition-colors duration-150 hover:bg-[rgba(24,24,24,0.05)] focus:bg-[rgba(24,24,24,0.05)] focus:outline-none"
-                onClick={() => {
-                  toggleListening();
+                aria-label={
+                  isRecording
+                    ? t("app.buttons.cancelRecording")
+                    : t("app.buttons.cancelProcessing")
+                }
+                onClick={(event) => {
+                  event.stopPropagation();
+                  isRecording ? cancelRecording() : cancelProcessing();
                 }}
+                className="group/cancel absolute -right-1.5 -top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-[rgba(255,255,255,0.74)] bg-[rgba(24,24,27,0.72)] shadow-[0_12px_20px_rgba(15,23,42,0.18)] backdrop-blur-md transition-colors duration-150 hover:border-[rgba(255,196,196,0.95)] hover:bg-destructive"
               >
-                {isRecording
-                  ? t("app.commandMenu.stopListening")
-                  : t("app.commandMenu.startListening")}
+                <X
+                  size={11}
+                  strokeWidth={2.5}
+                  className="text-white transition-colors duration-150 group-hover/cancel:text-destructive-foreground"
+                />
               </button>
-              <div className="h-px bg-border" />
-              <button
-                className="w-full rounded-b-2xl px-4 py-3 text-left text-sm text-[rgba(28,28,28,0.78)] transition-colors duration-150 hover:bg-[rgba(24,24,24,0.05)] focus:bg-[rgba(24,24,24,0.05)] focus:outline-none"
-                onClick={() => {
+            )}
+
+            {shouldRenderCapsule && (
+              <DictationCapsule
+                buttonRef={buttonRef}
+                agentName={agentName}
+                brandLabel="Mouthpiece"
+                secondaryLabel={secondaryLabel}
+                hotkeyLabel={hotkeyLabel}
+                audioLevel={audioLevel}
+                isHovered={isHovered}
+                isRecording={isRecording}
+                isProcessing={isProcessing}
+                isDragging={isDragging}
+                onMouseDown={(event) => {
                   setIsCommandMenuOpen(false);
-                  setWindowInteractivity(false);
-                  handleClose();
+                  setDragStartPos({ x: event.clientX, y: event.clientY });
+                  setHasDragged(false);
+                  handleMouseDown(event);
+                }}
+                onMouseMove={(event) => {
+                  if (dragStartPos && !hasDragged) {
+                    const distance = Math.sqrt(
+                      Math.pow(event.clientX - dragStartPos.x, 2) +
+                        Math.pow(event.clientY - dragStartPos.y, 2)
+                    );
+
+                    if (distance > 5) {
+                      setHasDragged(true);
+                    }
+                  }
+                }}
+                onMouseUp={(event) => {
+                  handleMouseUp(event);
+                  setDragStartPos(null);
+                }}
+                onClick={(event) => {
+                  if (!hasDragged) {
+                    setIsCommandMenuOpen(false);
+                    toggleListening();
+                  }
+                  event.preventDefault();
+                }}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  if (!hasDragged) {
+                    setWindowInteractivity(true);
+                    setIsCommandMenuOpen((previous) => !previous);
+                  }
+                }}
+                onFocus={() => setIsHovered(true)}
+                onBlur={() => setIsHovered(false)}
+              />
+            )}
+
+            {isCommandMenuOpen && (
+              <div
+                ref={commandMenuRef}
+                className="absolute bottom-full right-2 mb-4 w-56 rounded-2xl border border-[rgba(220,220,220,0.94)] bg-[rgba(255,255,255,0.94)] text-popover-foreground shadow-[0_22px_44px_rgba(15,23,42,0.16)] backdrop-blur-xl"
+                onMouseEnter={() => {
+                  setWindowInteractivity(true);
+                }}
+                onMouseLeave={() => {
+                  if (!isHovered) {
+                    setWindowInteractivity(false);
+                  }
                 }}
               >
-                {t("app.commandMenu.hideForNow")}
-              </button>
-            </div>
-          )}
+                <button
+                  className="w-full rounded-t-2xl px-4 py-3 text-left text-sm font-medium text-[rgba(28,28,28,0.88)] transition-colors duration-150 hover:bg-[rgba(24,24,24,0.05)] focus:bg-[rgba(24,24,24,0.05)] focus:outline-none"
+                  onClick={() => {
+                    toggleListening();
+                  }}
+                >
+                  {isRecording
+                    ? t("app.commandMenu.stopListening")
+                    : t("app.commandMenu.startListening")}
+                </button>
+                <div className="h-px bg-border" />
+                <button
+                  className="w-full rounded-b-2xl px-4 py-3 text-left text-sm text-[rgba(28,28,28,0.78)] transition-colors duration-150 hover:bg-[rgba(24,24,24,0.05)] focus:bg-[rgba(24,24,24,0.05)] focus:outline-none"
+                  onClick={() => {
+                    setIsCommandMenuOpen(false);
+                    setWindowInteractivity(false);
+                    handleClose();
+                  }}
+                >
+                  {t("app.commandMenu.hideForNow")}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

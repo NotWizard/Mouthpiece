@@ -304,7 +304,10 @@ declare global {
       }>;
 
       // Basic window operations
-      pasteText: (text: string, options?: { fromStreaming?: boolean }) => Promise<PasteResult>;
+      pasteText: (
+        text: string,
+        options?: { fromStreaming?: boolean; suppressDictationPanelRestore?: boolean }
+      ) => Promise<PasteResult>;
       hideWindow: () => Promise<void>;
       showDictationPanel: () => Promise<void>;
       onToggleDictation: (callback: () => void) => () => void;
@@ -674,10 +677,6 @@ declare global {
       getDictationKey?: () => Promise<string | null>;
       saveDictationKey?: (key: string) => Promise<void>;
 
-      // Activation mode persistence (file-based for reliable startup)
-      getActivationMode?: () => Promise<"tap" | "push">;
-      saveActivationMode?: (mode: "tap" | "push") => Promise<void>;
-
       // Debug logging
       getLogLevel?: () => Promise<string>;
       log?: (entry: {
@@ -712,10 +711,7 @@ declare global {
       openWhisperModelsFolder?: () => Promise<{ success: boolean; error?: string }>;
 
       // Windows Push-to-Talk notifications
-      notifyActivationModeChanged?: (mode: "tap" | "push") => void;
       notifyHotkeyChanged?: (hotkey: string) => void;
-      notifyFloatingIconAutoHideChanged?: (enabled: boolean) => void;
-      onFloatingIconAutoHideChanged?: (callback: (enabled: boolean) => void) => () => void;
 
       // Auto-start at login
       getAutoStartEnabled?: () => Promise<boolean>;

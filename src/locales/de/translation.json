@@ -152,12 +152,15 @@
     },
     "activation": {
       "title": "Aktivierungs-Einrichtung",
-      "description": "Legen Sie fest, wie Sie das Diktat auslösen",
+      "description": "Wählen Sie einen Hotkey und Mouthpiece entscheidet automatisch, ob Sie tippen oder gedrückt halten wollten",
       "hotkey": "Hotkey",
       "mode": "Modus",
+      "modeDescription": "Kurzes Drücken startet oder stoppt das Diktat. Langes Drücken nimmt nur so lange auf, wie Sie die Taste gedrückt halten, wenn Ihr System das unterstützt.",
+      "modeFallbackDescription": "Ihr aktuelles Hotkey-System unterstützt nur kurzes Drücken. Mouthpiece fällt daher automatisch darauf zurück, wenn das Loslassen nicht erkannt werden kann.",
       "tapDescription": "Drücken zum Starten/Stoppen",
       "holdDescription": "Gedrückt halten beim Sprechen",
       "test": "Test",
+      "testDescription": "Testen Sie hier {{hotkey}}. Kurzes Drücken startet oder stoppt das Diktat, langes Drücken nimmt auf, solange die Taste gehalten wird, wenn verfügbar.",
       "hotkeyToStartStop": "{{hotkey}} zum Starten/Stoppen",
       "holdHotkey": "{{hotkey}} gedrückt halten",
       "textareaPlaceholder": "Hier klicken und Hotkey zum Diktieren verwenden..."
@@ -917,6 +920,9 @@
         "title": "Schwebendes Symbol"
       },
       "hotkey": {
+        "activationBehavior": "Automatische Aktivierung",
+        "activationBehaviorDescription": "Kurzes Drücken startet oder stoppt das Diktat. Langes Drücken nimmt nur so lange auf, wie Sie die Taste gedrückt halten, wenn Ihr System das Loslassen erkennen kann.",
+        "activationBehaviorFallback": "Ihr aktuelles Hotkey-System unterstützt nur kurzes Drücken, daher greift Mouthpiece automatisch darauf zurück.",
         "activationMode": "Aktivierungsmodus",
         "description": "Die Tastenkombination, die das Sprachdiktat startet und stoppt",
         "resetToDefault": "Auf {{hotkey}} zurücksetzen",
