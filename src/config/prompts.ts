@@ -11,7 +11,7 @@ export const UNIFIED_SYSTEM_PROMPT = promptData.FULL_PROMPT;
 export const LEGACY_PROMPTS = promptData.LEGACY_PROMPTS;
 
 function getPromptBundle(uiLanguage?: string): PromptBundle {
-  const locale = normalizeUiLanguage(uiLanguage || "en");
+  const locale = normalizeUiLanguage(uiLanguage || "zh-CN");
   const t = i18n.getFixedT(locale, "prompts");
 
   return {
@@ -61,7 +61,7 @@ function getContextInstruction(context?: ContextClassification): string {
 }
 
 function getDictionaryEnforcementInstruction(uiLanguage?: string): string {
-  const locale = normalizeUiLanguage(uiLanguage || "en");
+  const locale = normalizeUiLanguage(uiLanguage || "zh-CN");
   const isZh = locale.startsWith("zh");
 
   if (isZh) {

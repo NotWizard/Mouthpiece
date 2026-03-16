@@ -36,7 +36,7 @@ function normalizeUiLanguage(language) {
 
   // Fall back to base language code (e.g. "en" from "en-US")
   const base = candidate.split("-")[0].split("_")[0].toLowerCase();
-  return SUPPORTED_UI_LANGUAGES.includes(base) ? base : "en";
+  return SUPPORTED_UI_LANGUAGES.includes(base) ? base : "zh-CN";
 }
 
 const i18nMain = i18next.createInstance();
@@ -85,7 +85,7 @@ void i18nMain.init({
       prompts: zhTWPrompts,
     },
   },
-  lng: normalizeUiLanguage(process.env.UI_LANGUAGE),
+  lng: normalizeUiLanguage(process.env.UI_LANGUAGE || "zh-CN"),
   fallbackLng: "en",
   ns: ["translation", "prompts"],
   defaultNS: "translation",

@@ -130,7 +130,7 @@ class EnvironmentManager {
   }
 
   getUiLanguage() {
-    return normalizeUiLanguage(this._getKey("UI_LANGUAGE"));
+    return normalizeUiLanguage(this._getKey("UI_LANGUAGE") || "zh-CN");
   }
 
   saveUiLanguage(language) {

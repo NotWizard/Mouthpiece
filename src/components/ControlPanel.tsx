@@ -23,6 +23,7 @@ const platform = getCachedPlatform();
 const ReferralModal = React.lazy(() => import("./ReferralModal"));
 const DictionaryView = React.lazy(() => import("./DictionaryView"));
 const SettingsPage = React.lazy(() => import("./SettingsPage"));
+const SIDEBAR_VIEW_CONTENT_CLASS_NAME = "px-6 pb-6";
 
 export default function ControlPanel() {
   const { t } = useTranslation();
@@ -277,9 +278,11 @@ export default function ControlPanel() {
               />
             )}
             {activeView === "dictionary" && (
-              <Suspense fallback={null}>
-                <DictionaryView />
-              </Suspense>
+              <div className={SIDEBAR_VIEW_CONTENT_CLASS_NAME}>
+                <Suspense fallback={null}>
+                  <DictionaryView />
+                </Suspense>
+              </div>
             )}
             {(activeView === "general" ||
               activeView === "hotkeys" ||
@@ -287,9 +290,11 @@ export default function ControlPanel() {
               activeView === "intelligence" ||
               activeView === "privacyData" ||
               activeView === "system") && (
-              <Suspense fallback={null}>
-                <SettingsPage activeSection={activeView} />
-              </Suspense>
+              <div className={SIDEBAR_VIEW_CONTENT_CLASS_NAME}>
+                <Suspense fallback={null}>
+                  <SettingsPage activeSection={activeView} />
+                </Suspense>
+              </div>
             )}
           </div>
         </main>

@@ -2049,7 +2049,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             settings.customDictionary,
             settings.preferredLanguage || "auto",
             processedText,
-            settings.uiLanguage || "en",
+            settings.uiLanguage || "zh-CN",
             contextClassification || undefined
           );
           const res = await window.electronAPI.cloudReason(processedText, {
@@ -2058,7 +2058,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             customPrompt: this.getCustomPrompt(),
             systemPrompt,
             language: settings.preferredLanguage || "auto",
-            locale: settings.uiLanguage || "en",
+            locale: settings.uiLanguage || "zh-CN",
             sttProvider: result.sttProvider,
             sttModel: result.sttModel,
             sttProcessingMs: result.sttProcessingMs,
@@ -3241,7 +3241,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
               stSettings.customDictionary,
               stSettings.preferredLanguage || "auto",
               finalText,
-              stSettings.uiLanguage || "en",
+              stSettings.uiLanguage || "zh-CN",
               contextClassification || undefined
             );
             const res = await window.electronAPI.cloudReason(finalText, {
@@ -3250,7 +3250,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
               customPrompt: this.getCustomPrompt(),
               systemPrompt,
               language: stSettings.preferredLanguage || "auto",
-              locale: stSettings.uiLanguage || "en",
+              locale: stSettings.uiLanguage || "zh-CN",
               sttProvider: this.sttConfig?.streamingProvider || "deepgram",
               sttModel: streamingSttModel,
               sttProcessingMs: streamingSttProcessingMs,

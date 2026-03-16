@@ -24,7 +24,7 @@ export abstract class BaseReasoningService {
   }
 
   protected getUiLanguage(): string {
-    return getSettings().uiLanguage || "en";
+    return getSettings().uiLanguage || "zh-CN";
   }
 
   protected getSystemPrompt(
