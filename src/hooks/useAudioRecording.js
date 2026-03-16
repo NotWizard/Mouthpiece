@@ -123,7 +123,9 @@ export const useAudioRecording = (toast, options = {}) => {
           const pasteStart = performance.now();
           const pasteResult = await audioManagerRef.current.safePaste(
             result.text,
-            isStreaming ? { fromStreaming: true } : {}
+            isStreaming
+              ? { fromStreaming: true, preserveClipboard: true }
+              : { preserveClipboard: true }
           );
           const pasteMode = pasteResult?.mode || (pasteResult?.success ? "pasted" : "failed");
 

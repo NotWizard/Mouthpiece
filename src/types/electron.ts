@@ -243,7 +243,11 @@ declare global {
       // Basic window operations
       pasteText: (
         text: string,
-        options?: { fromStreaming?: boolean; suppressDictationPanelRestore?: boolean }
+        options?: {
+          fromStreaming?: boolean;
+          suppressDictationPanelRestore?: boolean;
+          preserveClipboard?: boolean;
+        }
       ) => Promise<PasteResult>;
       hideWindow: () => Promise<void>;
       showDictationPanel: () => Promise<void>;

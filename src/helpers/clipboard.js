@@ -612,7 +612,9 @@ class ClipboardManager {
         controlType !== "ControlType.Document";
       const ambiguousContainerTarget = isTopLevelContainer && !classLooksNonText;
       const shouldSkipForLikelyNonText =
-        classLooksNonText || controlLooksNonText || (noEditablePattern && !ambiguousContainerTarget);
+        classLooksNonText ||
+        controlLooksNonText ||
+        (noEditablePattern && !ambiguousContainerTarget);
 
       debugLogger.debug(
         "Windows focus probe",
@@ -724,7 +726,8 @@ class ClipboardManager {
           return buildPasteResult({
             success: false,
             mode: "copied",
-            message: "No editable text field detected. Text copied to clipboard; paste manually with Ctrl+V.",
+            message:
+              "No editable text field detected. Text copied to clipboard; paste manually with Ctrl+V.",
             reason: focusProbe.reason,
             method,
             platform,
@@ -819,15 +822,20 @@ class ClipboardManager {
       const mode = clipboardWritten ? "copied" : "failed";
       const reason = inferPasteFailureReason(error, clipboardWritten);
 
-      this.safeLog(clipboardWritten ? "⚠️ Paste automation failed, clipboard preserved" : "❌ Paste operation failed", {
-        platform,
-        method,
-        mode,
-        reason,
-        clipboardWritten,
-        elapsedMs: Date.now() - startTime,
-        error: message,
-      });
+      this.safeLog(
+        clipboardWritten
+          ? "⚠️ Paste automation failed, clipboard preserved"
+          : "❌ Paste operation failed",
+        {
+          platform,
+          method,
+          mode,
+          reason,
+          clipboardWritten,
+          elapsedMs: Date.now() - startTime,
+          error: message,
+        }
+      );
       return buildPasteResult({
         success: false,
         mode,
@@ -842,6 +850,7 @@ class ClipboardManager {
   async pasteMacOS(originalClipboard, options = {}) {
     const fastPasteBinary = this.resolveFastPasteBinary();
     const useFastPaste = !!fastPasteBinary;
+    const shouldRestoreClipboard = !options?.preserveClipboard;
     const pasteDelay = options.fromStreaming ? (useFastPaste ? 15 : 50) : PASTE_DELAYS.darwin;
 
     return new Promise((resolve, reject) => {
@@ -867,9 +876,14 @@ class ClipboardManager {
 
           if (code === 0) {
             this.safeLog(`Text pasted successfully via ${useFastPaste ? "CGEvent" : "osascript"}`);
-            setTimeout(() => {
-              clipboard.writeText(originalClipboard);
-            }, RESTORE_DELAYS.darwin);
+            if (shouldRestoreClipboard) {
+              setTimeout(() => {
+                clipboard.writeText(originalClipboard);
+                this.safeLog("🔄 Clipboard restored");
+              }, RESTORE_DELAYS.darwin);
+            } else {
+              this.safeLog("📋 Clipboard preserved with pasted text");
+            }
             resolve();
           } else if (useFastPaste) {
             this.safeLog(
@@ -879,7 +893,7 @@ class ClipboardManager {
             );
             this.fastPasteChecked = true;
             this.fastPastePath = null;
-            this.pasteMacOSWithOsascript(originalClipboard).then(resolve).catch(reject);
+            this.pasteMacOSWithOsascript(originalClipboard, options).then(resolve).catch(reject);
           } else {
             this.accessibilityCache = { value: null, expiresAt: 0 };
             const errorMsg = `Paste failed (code ${code}). Text is copied to clipboard - please paste manually with Cmd+V.`;
@@ -896,7 +910,7 @@ class ClipboardManager {
             this.safeLog("CGEvent paste error, falling back to osascript");
             this.fastPasteChecked = true;
             this.fastPastePath = null;
-            this.pasteMacOSWithOsascript(originalClipboard).then(resolve).catch(reject);
+            this.pasteMacOSWithOsascript(originalClipboard, options).then(resolve).catch(reject);
           } else {
             const errorMsg = `Paste command failed: ${error.message}. Text is copied to clipboard - please paste manually with Cmd+V.`;
             reject(new Error(errorMsg));
@@ -915,8 +929,9 @@ class ClipboardManager {
     });
   }
 
-  async pasteMacOSWithOsascript(originalClipboard) {
+  async pasteMacOSWithOsascript(originalClipboard, options = {}) {
     return new Promise((resolve, reject) => {
+      const shouldRestoreClipboard = !options?.preserveClipboard;
       const pasteProcess = spawn("osascript", [
         "-e",
         'tell application "System Events" to key code 9 using command down',
@@ -931,9 +946,14 @@ class ClipboardManager {
 
         if (code === 0) {
           this.safeLog("Text pasted successfully via osascript fallback");
-          setTimeout(() => {
-            clipboard.writeText(originalClipboard);
-          }, RESTORE_DELAYS.darwin);
+          if (shouldRestoreClipboard) {
+            setTimeout(() => {
+              clipboard.writeText(originalClipboard);
+              this.safeLog("🔄 Clipboard restored");
+            }, RESTORE_DELAYS.darwin);
+          } else {
+            this.safeLog("📋 Clipboard preserved with pasted text");
+          }
           resolve();
         } else {
           this.accessibilityCache = { value: null, expiresAt: 0 };
@@ -978,6 +998,7 @@ class ClipboardManager {
       setTimeout(() => {
         let hasTimedOut = false;
         const startTime = Date.now();
+        const shouldRestoreClipboard = !options?.preserveClipboard;
 
         this.safeLog("⚡ Windows fast-paste starting");
 
@@ -1009,17 +1030,23 @@ class ClipboardManager {
               elapsedMs: elapsed,
               output,
             });
-            setTimeout(() => {
-              clipboard.writeText(originalClipboard);
-              this.safeLog("🔄 Clipboard restored");
-            }, RESTORE_DELAYS.win32_nircmd);
+            if (shouldRestoreClipboard) {
+              setTimeout(() => {
+                clipboard.writeText(originalClipboard);
+                this.safeLog("🔄 Clipboard restored");
+              }, RESTORE_DELAYS.win32_nircmd);
+            } else {
+              this.safeLog("📋 Clipboard preserved with pasted text");
+            }
             resolve();
           } else {
             this.safeLog(
               `❌ Windows fast-paste failed (code ${code}), falling back to nircmd/PowerShell`,
               { elapsedMs: elapsed, stderr: stderrData.trim() }
             );
-            this.pasteWithNircmdOrPowerShell(originalClipboard, options).then(resolve).catch(reject);
+            this.pasteWithNircmdOrPowerShell(originalClipboard, options)
+              .then(resolve)
+              .catch(reject);
           }
         });
 
@@ -1223,6 +1250,7 @@ class ClipboardManager {
   async pasteLinux(originalClipboard, options = {}) {
     const { isWayland, xwaylandAvailable, isGnome, isKde, isWlroots } = getLinuxSessionInfo();
     const webContents = options.webContents;
+    const shouldRestoreClipboard = !options?.preserveClipboard;
     const xdotoolExists = this.commandExists("xdotool");
     const wtypeExists = this.commandExists("wtype");
     const ydotoolExists = this.commandExists("ydotool");
@@ -1252,12 +1280,17 @@ class ClipboardManager {
     );
 
     const restoreClipboard = () => {
+      if (!shouldRestoreClipboard) {
+        this.safeLog("📋 Clipboard preserved with pasted text");
+        return;
+      }
       setTimeout(() => {
         if (isWayland) {
           this._writeClipboardWayland(originalClipboard, webContents);
         } else {
           clipboard.writeText(originalClipboard);
         }
+        this.safeLog("🔄 Clipboard restored");
       }, RESTORE_DELAYS.linux);
     };
 
