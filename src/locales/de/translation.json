@@ -246,7 +246,10 @@
       "noModels": "Keine Modelle zurückgegeben. Prüfen Sie die Endpoint-URL.",
       "providerName": "Benutzerdefiniert",
       "ownerLabel": "Anbieter: {{owner}}",
-      "unableToLoadModels": "Modelle konnten nicht vom Endpoint geladen werden."
+      "unableToLoadModels": "Modelle konnten nicht vom Endpoint geladen werden.",
+      "selectModelPlaceholder": "Modell auswählen...",
+      "searchModelsPlaceholder": "Modelle suchen...",
+      "noModelsAvailable": "Keine Modelle verfügbar"
     },
     "getApiKey": "API-Schlüssel holen ->",
     "selectModel": "Modell auswählen",

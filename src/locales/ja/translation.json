@@ -246,7 +246,10 @@
       "noModels": "モデルが見つかりません。エンドポイント URL を確認してください。",
       "providerName": "カスタム",
       "ownerLabel": "提供元: {{owner}}",
-      "unableToLoadModels": "エンドポイントからモデルを読み込めませんでした。"
+      "unableToLoadModels": "エンドポイントからモデルを読み込めませんでした。",
+      "selectModelPlaceholder": "モデルを選択...",
+      "searchModelsPlaceholder": "モデルを検索...",
+      "noModelsAvailable": "利用可能なモデルがありません"
     },
     "getApiKey": "API キーを取得 ->",
     "selectModel": "モデルを選択",

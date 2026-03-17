@@ -233,7 +233,10 @@
       "noModels": "Nenhum modelo retornado. Verifique a URL do endpoint.",
       "providerName": "Personalizado",
       "ownerLabel": "Proprietário: {{owner}}",
-      "unableToLoadModels": "Não foi possível carregar modelos do endpoint."
+      "unableToLoadModels": "Não foi possível carregar modelos do endpoint.",
+      "selectModelPlaceholder": "Selecionar modelo...",
+      "searchModelsPlaceholder": "Pesquisar modelos...",
+      "noModelsAvailable": "Nenhum modelo disponível"
     },
     "getApiKey": "Obter chave API ->",
     "selectModel": "Selecionar modelo",
