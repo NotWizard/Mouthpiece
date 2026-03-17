@@ -246,7 +246,10 @@
       "noModels": "沒有取得任何模型。請檢查端點 URL。",
       "providerName": "自訂",
       "ownerLabel": "擁有者：{{owner}}",
-      "unableToLoadModels": "無法從端點載入模型。"
+      "unableToLoadModels": "無法從端點載入模型。",
+      "selectModelPlaceholder": "選擇模型...",
+      "searchModelsPlaceholder": "搜尋模型...",
+      "noModelsAvailable": "沒有可用模型"
     },
     "getApiKey": "取得 API Key ->",
     "selectModel": "選擇模型",

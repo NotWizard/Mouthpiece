@@ -11,6 +11,7 @@ import { Input } from "./ui/input";
 import { Cloud, Lock, Zap } from "lucide-react";
 import ApiKeyInput from "./ui/ApiKeyInput";
 import ModelCardList from "./ui/ModelCardList";
+import SearchableModelSelect from "./ui/SearchableModelSelect";
 import LocalModelPicker, { type LocalProvider } from "./LocalModelPicker";
 import { ProviderTabs } from "./ui/ProviderTabs";
 import { API_ENDPOINTS, buildApiUrl, normalizeBaseUrl } from "../config/constants";
@@ -855,10 +856,13 @@ export default function ReasoningModelSelector({
                           )}
                       </>
                     )}
-                    <ModelCardList
+                    <SearchableModelSelect
                       models={selectedCloudModels}
                       selectedModel={reasoningModel}
                       onModelSelect={setReasoningModel}
+                      placeholder={t("reasoning.custom.selectModelPlaceholder")}
+                      searchPlaceholder={t("reasoning.custom.searchModelsPlaceholder")}
+                      emptyMessage={t("reasoning.custom.noModelsAvailable")}
                     />
                   </div>
                 </>
