@@ -4,18 +4,12 @@ const fs = require("fs");
 const http = require("http");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 const { createAutomaticActivationSession } = require("./src/helpers/automaticActivation");
+const productIdentity = require("./src/config/productIdentity");
 
-const VALID_CHANNELS = new Set(["development", "staging", "production"]);
-const DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL = {
-  development: "mouthpiece-dev",
-  staging: "mouthpiece-staging",
-  production: "mouthpiece",
-};
-const BASE_WINDOWS_APP_ID = "com.mouthpiece.app";
+const VALID_CHANNELS = new Set(productIdentity.VALID_APP_CHANNELS);
 const DEFAULT_AUTH_BRIDGE_PORT = 5199;
-const CURRENT_USER_DATA_BASENAME = "Mouthpiece";
-const PREVIOUS_BRAND_USER_DATA_BASENAME = "Voice" + "Ink";
-const LEGACY_USER_DATA_BASENAMES = ["OpenWhispr", PREVIOUS_BRAND_USER_DATA_BASENAME];
+const CURRENT_USER_DATA_BASENAME = productIdentity.CURRENT_USER_DATA_BASENAME;
+const LEGACY_USER_DATA_BASENAMES = productIdentity.LEGACY_USER_DATA_BASENAMES;
 
 function isElectronBinaryExec() {
   const execPath = (process.execPath || "").toLowerCase();
@@ -172,7 +166,9 @@ if (process.platform === "linux" && process.env.XDG_SESSION_TYPE === "wayland") 
 // Group all windows under single taskbar entry on Windows
 if (process.platform === "win32") {
   const windowsAppId =
-    APP_CHANNEL === "production" ? BASE_WINDOWS_APP_ID : `${BASE_WINDOWS_APP_ID}.${APP_CHANNEL}`;
+    APP_CHANNEL === "production"
+      ? productIdentity.BASE_WINDOWS_APP_ID
+      : `${productIdentity.BASE_WINDOWS_APP_ID}.${APP_CHANNEL}`;
   app.setAppUserModelId(windowsAppId);
 }
 
@@ -186,7 +182,8 @@ function getOAuthProtocol() {
   }
 
   return (
-    DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL[APP_CHANNEL] || DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL.production
+    productIdentity.DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL[APP_CHANNEL] ||
+    productIdentity.DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL.production
   );
 }
 
@@ -225,8 +222,8 @@ if (!gotSingleInstanceLock) {
 const isLiveWindow = (window) => window && !window.isDestroyed();
 
 // Ensure macOS menus use the proper casing for the app name
-if (process.platform === "darwin" && app.getName() !== "Mouthpiece") {
-  app.setName("Mouthpiece");
+if (process.platform === "darwin" && app.getName() !== productIdentity.PRODUCT_NAME) {
+  app.setName(productIdentity.PRODUCT_NAME);
 }
 
 // Add global error handling for uncaught exceptions

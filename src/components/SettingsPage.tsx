@@ -45,6 +45,8 @@ import type { LocalTranscriptionProvider } from "../types/electron";
 import logger from "../utils/logger";
 import { SettingsRow } from "./ui/SettingsSection";
 import { cn } from "./lib/utils";
+import localeManifest from "../locales/localeManifest";
+import productIdentity from "../config/productIdentity";
 
 export type SettingsSectionType =
   | "general"
@@ -60,19 +62,6 @@ export type SettingsSectionType =
 interface SettingsPageProps {
   activeSection?: SettingsSectionType;
 }
-
-const UI_LANGUAGE_OPTIONS: import("./ui/LanguageSelector").LanguageOption[] = [
-  { value: "en", label: "English", flag: "🇺🇸" },
-  { value: "es", label: "Español", flag: "🇪🇸" },
-  { value: "fr", label: "Français", flag: "🇫🇷" },
-  { value: "de", label: "Deutsch", flag: "🇩🇪" },
-  { value: "pt", label: "Português", flag: "🇵🇹" },
-  { value: "it", label: "Italiano", flag: "🇮🇹" },
-  { value: "ru", label: "Русский", flag: "🇷🇺" },
-  { value: "ja", label: "日本語", flag: "🇯🇵" },
-  { value: "zh-CN", label: "简体中文", flag: "🇨🇳" },
-  { value: "zh-TW", label: "繁體中文", flag: "🇹🇼" },
-];
 
 function SettingsPanel({
   children,
@@ -555,8 +544,8 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
   const [isRemovingModels, setIsRemovingModels] = useState(false);
   const cachePathHint =
     typeof navigator !== "undefined" && /Windows/i.test(navigator.userAgent)
-      ? "%USERPROFILE%\\.cache\\openwhispr"
-      : "~/.cache/openwhispr";
+      ? `%USERPROFILE%\\.cache\\${productIdentity.LEGACY_CACHE_DIRNAME}`
+      : `~/.cache/${productIdentity.LEGACY_CACHE_DIRNAME}`;
 
   const whisperHook = useWhisper();
   const permissionsHook = usePermissions(showAlertDialog);
@@ -920,7 +909,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
                     <LanguageSelector
                       value={uiLanguage}
                       onChange={setUiLanguage}
-                      options={UI_LANGUAGE_OPTIONS}
+                      options={[...localeManifest.UI_LANGUAGE_OPTIONS]}
                       className="min-w-32"
                     />
                   </SettingsRow>

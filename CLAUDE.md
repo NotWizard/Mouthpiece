@@ -85,7 +85,7 @@ OpenWhispr is an Electron-based desktop dictation application that uses whisper.
 
 - **App.jsx**: Main dictation interface with recording states
 - **ControlPanel.tsx**: Settings, history, model management UI
-- **OnboardingFlow.tsx**: 8-step first-time setup wizard
+- **OnboardingFlow.tsx**: 3-step first-time setup wizard (authentication, permissions, activation)
 - **SettingsPage.tsx**: Comprehensive settings interface
 - **WhisperModelPicker.tsx**: Model selection and download UI
 - **ui/**: Reusable UI components (buttons, cards, inputs, etc.)
@@ -187,13 +187,15 @@ Models stored in `~/.cache/openwhispr/whisper-models/`:
 ```sql
 CREATE TABLE transcriptions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  text TEXT NOT NULL,
   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-  original_text TEXT NOT NULL,
-  processed_text TEXT,
-  is_processed BOOLEAN DEFAULT 0,
-  processing_method TEXT DEFAULT 'none',
-  agent_name TEXT,
-  error TEXT
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE custom_dictionary (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  word TEXT NOT NULL UNIQUE,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
@@ -226,8 +228,8 @@ Environment variables persisted to `.env` (via `saveAllKeysToEnvFile()`):
 
 ### 7. Agent Naming System
 
-- User names their agent during onboarding (step 6/8)
-- Name stored in localStorage and database
+- Agent name defaults to `Mouthpiece` and can be changed later in Settings.
+- Name stored in localStorage and synchronized into the custom dictionary
 - ReasoningService detects "Hey [AgentName]" patterns
 - AI processes command and removes agent reference from output
 - Supports multiple AI providers (all models defined in `src/models/modelRegistryData.json`):

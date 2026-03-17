@@ -19,7 +19,21 @@ import type {
 let _ReasoningService: typeof import("../services/ReasoningService").default | null = null;
 
 const isBrowser = typeof window !== "undefined";
-const CLOUD_AUTH_AVAILABLE = Boolean(RUNTIME_CONFIG.authUrl);
+const MOUTHPIECE_CLOUD_ENABLED = Boolean(RUNTIME_CONFIG.enableMouthpieceCloud);
+const CLOUD_AUTH_AVAILABLE = MOUTHPIECE_CLOUD_ENABLED && Boolean(RUNTIME_CONFIG.authUrl);
+
+function normalizeCloudMode(value: string | null | undefined): string {
+  const trimmed = (value || "").trim();
+  if (!trimmed) {
+    return "byok";
+  }
+
+  if (!MOUTHPIECE_CLOUD_ENABLED && trimmed === "openwhispr") {
+    return "byok";
+  }
+
+  return trimmed;
+}
 
 function readString(key: string, fallback: string): string {
   if (!isBrowser) return fallback;
@@ -194,11 +208,13 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     "cloudTranscriptionBaseUrl",
     API_ENDPOINTS.TRANSCRIPTION_BASE
   ),
-  cloudTranscriptionMode: readString(
-    "cloudTranscriptionMode",
-    hasStoredByokKey() || !CLOUD_AUTH_AVAILABLE ? "byok" : "openwhispr"
+  cloudTranscriptionMode: normalizeCloudMode(
+    readString(
+      "cloudTranscriptionMode",
+      hasStoredByokKey() || !CLOUD_AUTH_AVAILABLE ? "byok" : "byok"
+    )
   ),
-  cloudReasoningMode: readString("cloudReasoningMode", CLOUD_AUTH_AVAILABLE ? "openwhispr" : "byok"),
+  cloudReasoningMode: normalizeCloudMode(readString("cloudReasoningMode", "byok")),
   cloudReasoningBaseUrl: readString("cloudReasoningBaseUrl", API_ENDPOINTS.OPENAI_BASE),
   customDictionary: readStringArray("customDictionary", []),
   assemblyAiStreaming: readBoolean("assemblyAiStreaming", true),
@@ -406,7 +422,10 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 // --- Selectors (derived state, not stored) ---
 
 export const selectIsCloudReasoningMode = (state: SettingsState) =>
-  CLOUD_AUTH_AVAILABLE && state.isSignedIn && state.cloudReasoningMode === "openwhispr";
+  MOUTHPIECE_CLOUD_ENABLED &&
+  CLOUD_AUTH_AVAILABLE &&
+  state.isSignedIn &&
+  state.cloudReasoningMode === "openwhispr";
 
 export const selectEffectiveReasoningProvider = (state: SettingsState) =>
   selectIsCloudReasoningMode(state) ? "openwhispr" : state.reasoningProvider;
