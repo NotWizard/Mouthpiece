@@ -1263,6 +1263,7 @@
       "hotkeyToSpeak": "{{hotkey}} drücken zum Sprechen",
       "recording": "Aufnahme...",
       "processing": "Verarbeitung...",
+      "transcribing": "Transkribiere...",
       "clickToSpeak": "Klicken zum Sprechen"
     },
     "buttons": {

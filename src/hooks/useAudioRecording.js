@@ -10,6 +10,7 @@ export const useAudioRecording = (toast, options = {}) => {
   const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
   const [transcript, setTranscript] = useState("");
@@ -68,6 +69,8 @@ export const useAudioRecording = (toast, options = {}) => {
 
       if (didStop) {
         void playStopCue();
+        // Set transcribing state when recording stops (will show loading capsule)
+        setIsTranscribing(true);
       }
 
       return didStop;
@@ -84,6 +87,10 @@ export const useAudioRecording = (toast, options = {}) => {
         setIsRecording(isRecording);
         setIsProcessing(isProcessing);
         setIsStreaming(isStreaming ?? false);
+        // Reset transcribing state when processing is done
+        if (!isProcessing && !isRecording) {
+          setIsTranscribing(false);
+        }
         if (isRecording) {
           clearPasteFallbackToast();
         }
@@ -105,11 +112,15 @@ export const useAudioRecording = (toast, options = {}) => {
           variant: "destructive",
           duration: error.code === "AUTH_EXPIRED" ? 8000 : undefined,
         });
+        // Reset transcribing state on error
+        setIsTranscribing(false);
       },
       onPartialTranscript: (text) => {
         setPartialTranscript(text);
       },
       onTranscriptionComplete: async (result) => {
+        // Reset transcribing state when transcription is complete
+        setIsTranscribing(false);
         if (result.success) {
           const transcribedText = result.text?.trim();
 
@@ -282,6 +293,7 @@ export const useAudioRecording = (toast, options = {}) => {
   return {
     isRecording,
     isProcessing,
+    isTranscribing,
     isStreaming,
     audioLevel,
     transcript,

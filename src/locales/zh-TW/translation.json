@@ -1263,6 +1263,7 @@
       "hotkeyToSpeak": "按 {{hotkey}} 開始說話",
       "recording": "錄音中...",
       "processing": "處理中...",
+      "transcribing": "轉寫中...",
       "clickToSpeak": "點擊開始說話"
     },
     "buttons": {

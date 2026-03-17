@@ -7,7 +7,7 @@ import { app } from "electron";
 import { modelRegistry } from "../models/ModelRegistry";
 import { inferenceConfig } from "../config/InferenceConfig";
 import { MODEL_CONSTRAINTS } from "../config/constants";
-import productIdentity from "../config/productIdentity";
+import { LEGACY_CACHE_DIRNAME } from "../config/productIdentity";
 import { parseLlamaCppOutput } from "../utils/llamaOutputParser";
 
 // Error types
@@ -47,7 +47,7 @@ class ModelManager {
 
   private getModelsDir(): string {
     const homeDir = app.getPath("home");
-    return path.join(homeDir, ".cache", productIdentity.LEGACY_CACHE_DIRNAME, "models");
+    return path.join(homeDir, ".cache", LEGACY_CACHE_DIRNAME, "models");
   }
 
   async ensureModelsDir(): Promise<void> {
