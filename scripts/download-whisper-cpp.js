@@ -60,13 +60,17 @@ function getDownloadUrl(release, zipName) {
   return asset?.url || null;
 }
 
+function getOutputPath(config) {
+  return path.join(BIN_DIR, config.outputName);
+}
+
 async function downloadBinary(platformArch, config, release, isForce = false) {
   if (!config) {
     console.log(`  [server] ${platformArch}: Not supported`);
     return false;
   }
 
-  const outputPath = path.join(BIN_DIR, config.outputName);
+  const outputPath = getOutputPath(config);
 
   if (fs.existsSync(outputPath) && !isForce) {
     console.log(`  [server] ${platformArch}: Already exists (use --force to re-download)`);
@@ -112,6 +116,30 @@ async function downloadBinary(platformArch, config, release, isForce = false) {
 }
 
 async function main() {
+  const args = parseArgs();
+  fs.mkdirSync(BIN_DIR, { recursive: true });
+
+  if (args.isCurrent) {
+    const config = BINARIES[args.platformArch];
+
+    if (!config) {
+      console.error(`Unsupported platform/arch: ${args.platformArch}`);
+      process.exitCode = 1;
+      return;
+    }
+
+    const outputPath = getOutputPath(config);
+    if (fs.existsSync(outputPath) && !args.isForce) {
+      console.log(`\n[whisper-server] ${args.platformArch}: already available at ${config.outputName}`);
+      console.log("[whisper-server] Skipping release fetch because the binary already exists.");
+
+      if (args.shouldCleanup) {
+        cleanupFiles(BIN_DIR, "whisper-server", `whisper-server-${args.platformArch}`);
+      }
+      return;
+    }
+  }
+
   if (VERSION_OVERRIDE) {
     console.log(`\n[whisper-server] Using pinned version: ${VERSION_OVERRIDE}`);
   } else {
@@ -127,10 +155,6 @@ async function main() {
   }
 
   console.log(`\nDownloading whisper-server binaries (${release.tag})...\n`);
-
-  fs.mkdirSync(BIN_DIR, { recursive: true });
-
-  const args = parseArgs();
 
   if (args.isCurrent) {
     if (!BINARIES[args.platformArch]) {
