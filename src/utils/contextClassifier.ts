@@ -1,4 +1,5 @@
 import type { TargetAppInfo } from "../types/electron";
+import { hasAgentDirectAddress } from "./agentDirectAddress.mjs";
 export const DEFAULT_STRICT_OVERLAP_THRESHOLD = 0.72;
 
 export type ReasoningContext = "general" | "code" | "email" | "chat" | "document";
@@ -46,8 +47,6 @@ const CONTENT_CONTEXT_RULES: Array<{ context: ReasoningContext; re: RegExp; sign
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
 const parseStrictThreshold = (): number => {
   if (typeof window === "undefined" || !window.localStorage) {
     return DEFAULT_STRICT_OVERLAP_THRESHOLD;
@@ -83,18 +82,9 @@ const detectInstructionIntent = (text: string, agentName: string | null, signals
   const trimmed = text.trim();
   if (!trimmed) return false;
 
-  if (agentName) {
-    const escapedName = escapeRegExp(agentName.trim());
-    if (escapedName) {
-      const directAddress = new RegExp(
-        `^(?:hey|hi|ok|okay)?\\s*${escapedName}(?:\\s*[:,]\\s*|\\s+)(?:please\\s+)?`,
-        "i"
-      );
-      if (directAddress.test(trimmed)) {
-        signals.push("intent:agent_direct_address");
-        return true;
-      }
-    }
+  if (hasAgentDirectAddress(trimmed, agentName)) {
+    signals.push("intent:agent_direct_address");
+    return true;
   }
 
   return false;
