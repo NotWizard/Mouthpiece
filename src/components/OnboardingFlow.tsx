@@ -60,7 +60,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     }
   );
 
-  const { dictationKey, setDictationKey } = useSettings();
+  const { dictationKey, setDictationKey, setVoiceAssistantEnabled } = useSettings();
 
   const [hotkey, setHotkey] = useState(dictationKey || getDefaultHotkey());
   const agentName = getAgentName();
@@ -195,6 +195,9 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     }
     setDictationKey(hotkey);
     saveAgentName(agentName);
+    if (localStorage.getItem("voiceAssistantEnabled") === null) {
+      setVoiceAssistantEnabled(true);
+    }
 
     const skippedAuth = skipAuth;
     localStorage.setItem("authenticationSkipped", skippedAuth.toString());
@@ -202,7 +205,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     localStorage.setItem("skipAuth", skippedAuth.toString());
 
     return true;
-  }, [hotkey, agentName, setDictationKey, ensureHotkeyRegistered, skipAuth]);
+  }, [hotkey, agentName, setDictationKey, setVoiceAssistantEnabled, ensureHotkeyRegistered, skipAuth]);
 
   const nextStep = useCallback(async () => {
     if (currentStep >= steps.length - 1) {

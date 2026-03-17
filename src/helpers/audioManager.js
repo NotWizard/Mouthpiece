@@ -12,6 +12,7 @@ import { isSecureEndpoint } from "../utils/urlUtils";
 import { withSessionRefresh } from "../lib/neonAuth";
 import { getBaseLanguageCode, validateLanguageForModel } from "../utils/languageSupport";
 import { classifyContext, getTargetAppInfo } from "../utils/contextClassifier";
+import { hasAgentDirectAddress } from "../utils/agentDirectAddress.mjs";
 import { normalizeAudioLevel } from "../utils/dictationWaveform.mjs";
 import {
   getSettings,
@@ -63,7 +64,6 @@ const isAnswerLikeTranscriptionOutput = (text) => {
   return ANSWER_LIKE_TRANSCRIPTION_PATTERNS.some((re) => re.test(trimmed));
 };
 
-const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // Split by script family so mixed tokens like "readme在" become ["readme", "在"].
 const DICTIONARY_TOKEN_RE = /[\p{Script=Latin}\p{N}]+|[\p{Script=Han}\p{N}]+|[\p{L}\p{N}]+/gu;
 const MAX_DICTIONARY_NGRAM = 12;
@@ -1577,19 +1577,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   isExplicitAgentInstruction(text, agentName) {
-    const normalizedText = typeof text === "string" ? text.trim() : "";
-    const normalizedAgentName = typeof agentName === "string" ? agentName.trim() : "";
-    if (!normalizedText || !normalizedAgentName) return false;
-
-    const escapedName = escapeRegExp(normalizedAgentName);
-    if (!escapedName) return false;
-
-    const directAddress = new RegExp(
-      `^(?:hey|hi|ok|okay|嘿|嗨|好|好的)?\\s*${escapedName}(?:\\s*[:,，：]\\s*|\\s+)(?:please\\s+)?`,
-      "i"
-    );
-
-    return directAddress.test(normalizedText);
+    return hasAgentDirectAddress(text, agentName);
   }
 
   async processWithReasoningModel(text, model, agentName, config = {}) {
