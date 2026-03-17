@@ -1261,6 +1261,7 @@
       "hotkeyToSpeak": "{{hotkey}} を押して話す",
       "recording": "録音中...",
       "processing": "処理中...",
+      "transcribing": "文字起こし中...",
       "clickToSpeak": "クリックして話す"
     },
     "buttons": {

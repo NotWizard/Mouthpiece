@@ -1261,6 +1261,7 @@
       "hotkeyToSpeak": "Нажмите {{hotkey}} для записи",
       "recording": "Запись...",
       "processing": "Обработка...",
+      "transcribing": "Расшифровка...",
       "clickToSpeak": "Нажмите для записи"
     },
     "buttons": {

@@ -130,6 +130,7 @@ export default function App() {
   const {
     isRecording,
     isProcessing,
+    isTranscribing,
     audioLevel,
     toggleListening,
     cancelRecording,
@@ -139,9 +140,10 @@ export default function App() {
     dismiss,
   });
 
-  const shouldRenderCapsule = shouldShowDictationCapsule({ isRecording });
+  const shouldRenderCapsule = shouldShowDictationCapsule({ isRecording, isTranscribing });
   const shouldKeepWindowVisible = shouldKeepDictationWindowVisible({
     isRecording,
+    isTranscribing,
     isCommandMenuOpen,
     toastCount,
   });
@@ -197,6 +199,11 @@ export default function App() {
   useEffect(() => {
     const handleKeyPress = (event) => {
       if (event.key === "Escape") {
+        // If recording, cancel it first
+        if (isRecording) {
+          cancelRecording();
+          return;
+        }
         if (isCommandMenuOpen) {
           setIsCommandMenuOpen(false);
         } else {
@@ -207,11 +214,15 @@ export default function App() {
 
     document.addEventListener("keydown", handleKeyPress);
     return () => document.removeEventListener("keydown", handleKeyPress);
-  }, [isCommandMenuOpen]);
+  }, [isCommandMenuOpen, isRecording, cancelRecording]);
 
   const hotkeyLabel = formatHotkeyLabel(hotkey);
   const agentName = getAgentName();
-  const secondaryLabel = isRecording ? t("app.mic.recording") : t("app.mic.processing");
+  const secondaryLabel = isRecording
+    ? t("app.mic.recording")
+    : isTranscribing
+      ? t("app.mic.transcribing")
+      : t("app.mic.processing");
 
   return (
     <div className="dictation-window">
@@ -263,6 +274,7 @@ export default function App() {
                 isHovered={isHovered}
                 isRecording={isRecording}
                 isProcessing={isProcessing}
+                isTranscribing={isTranscribing}
                 isDragging={isDragging}
                 onMouseDown={(event) => {
                   setIsCommandMenuOpen(false);

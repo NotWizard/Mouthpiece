@@ -17,6 +17,7 @@ interface DictationCapsuleProps {
   isHovered: boolean;
   isRecording: boolean;
   isProcessing: boolean;
+  isTranscribing: boolean;
   isDragging: boolean;
   buttonRef: RefObject<HTMLButtonElement | null>;
   onMouseDown: (event: MouseEvent<HTMLButtonElement>) => void;
@@ -54,6 +55,35 @@ function BrandGlyph() {
   );
 }
 
+function LoadingSpinner() {
+  return (
+    <div className="relative flex h-4 w-4 items-center justify-center">
+      <svg
+        className="animate-spin"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="rgba(100,100,100,0.3)"
+          strokeWidth="2"
+          fill="none"
+        />
+        <path
+          d="M12 2C6.477 2 2 6.477 2 12c0 1.656.336 3.232.94 4.66"
+          stroke="rgba(80,80,80,0.9)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          fill="none"
+        />
+      </svg>
+    </div>
+  );
+}
+
 export default function DictationCapsule({
   agentName,
   brandLabel,
@@ -63,6 +93,7 @@ export default function DictationCapsule({
   isHovered,
   isRecording,
   isProcessing,
+  isTranscribing,
   isDragging,
   buttonRef,
   onMouseDown,
@@ -99,11 +130,47 @@ export default function DictationCapsule({
     active: isRecording,
   });
 
-  const helperText = isRecording || isProcessing ? secondaryLabel : hotkeyLabel;
+  const helperText = isRecording || isProcessing || isTranscribing ? secondaryLabel : hotkeyLabel;
   const glowColor = isRecording ? "rgba(255, 132, 132, 0.48)" : "rgba(244, 166, 89, 0.26)";
   const borderColor =
-    isRecording || isProcessing ? "rgba(255, 157, 157, 0.72)" : "rgba(201, 201, 201, 0.92)";
+    isRecording || isProcessing || isTranscribing ? "rgba(255, 157, 157, 0.72)" : "rgba(201, 201, 201, 0.92)";
 
+  // Compact transcribing capsule (similar to Spokenly style)
+  if (isTranscribing) {
+    return (
+      <button
+        ref={buttonRef}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        onClick={onClick}
+        onContextMenu={onContextMenu}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        className="relative overflow-hidden rounded-[16px] px-3 py-2 text-left outline-none transition-transform duration-200 ease-out"
+        style={{
+          width: "120px",
+          background:
+            "linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(250,247,245,0.94) 100%)",
+          border: `1px solid ${borderColor}`,
+          boxShadow: `0 14px 28px rgba(15, 23, 42, 0.16), 0 5px 12px rgba(15, 23, 42, 0.09), 0 0 0 1px rgba(255,255,255,0.78) inset, 0 0 14px ${glowColor}`,
+          transform: isDragging ? "scale(1.01)" : isHovered ? "translateY(-1px)" : "translateY(0)",
+          cursor: isDragging ? "grabbing" : "pointer",
+        }}
+      >
+        <div className="pointer-events-none absolute inset-x-4 bottom-0 h-6 rounded-t-full bg-[radial-gradient(circle_at_50%_0%,rgba(0,0,0,0.18),transparent_68%)] opacity-35 blur-xl" />
+
+        <div className="relative flex items-center justify-center gap-2">
+          <LoadingSpinner />
+          <div className="text-[12px] font-medium text-[rgba(80,80,80,0.9)]">
+            {secondaryLabel}
+          </div>
+        </div>
+      </button>
+    );
+  }
+
+  // Normal recording capsule
   return (
     <button
       ref={buttonRef}

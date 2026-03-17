@@ -1261,6 +1261,7 @@
       "hotkeyToSpeak": "Pressione {{hotkey}} para falar",
       "recording": "Gravando...",
       "processing": "Processando...",
+      "transcribing": "Transcrevendo...",
       "clickToSpeak": "Clique para falar"
     },
     "buttons": {
