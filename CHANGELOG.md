@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+> Note: Version numbering restarts at `1.0.0` for this standalone Mouthpiece repository. The `1.5.x` entries below are retained as inherited upstream reference only.
+
+## [1.0.0] - 2026-03-17
+
+### Changed
+
+- Reset the release numbering for this standalone repository so the first official Mouthpiece release starts at `1.0.0`
+- Improved API key setup with direct input, blur-time masking, and an eye toggle for reveal/hide
+- Added Alibaba Bailian as a dedicated reasoning provider
+- Fixed mac packaging preflight so local builds can reuse bundled whisper binaries without failing on unnecessary release lookups
+
 ## [1.5.5] - 2026-03-01
 
 ### Added
