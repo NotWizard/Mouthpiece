@@ -1,12 +1,15 @@
 type RuntimeConfig = {
   apiUrl: string;
   authUrl: string;
+  enableMouthpieceCloud: boolean;
   oauthProtocol: string;
   oauthAuthBridgeUrl: string;
   oauthCallbackUrl: string;
 };
 
 const env = (typeof import.meta !== "undefined" && (import.meta as any).env) || {};
+
+const readBooleanFlag = (value: unknown): boolean => String(value || "").trim().toLowerCase() === "true";
 
 const readRendererRuntimeConfig = (): RuntimeConfig => {
   const preloadConfig =
@@ -15,6 +18,9 @@ const readRendererRuntimeConfig = (): RuntimeConfig => {
   return {
     apiUrl: (preloadConfig?.apiUrl || env.VITE_OPENWHISPR_API_URL || "").trim(),
     authUrl: (preloadConfig?.authUrl || env.VITE_NEON_AUTH_URL || "").trim(),
+    enableMouthpieceCloud: readBooleanFlag(
+      preloadConfig?.enableMouthpieceCloud || env.VITE_ENABLE_MOUTHPIECE_CLOUD
+    ),
     oauthProtocol: (preloadConfig?.oauthProtocol || env.VITE_OPENWHISPR_PROTOCOL || "").trim(),
     oauthAuthBridgeUrl: (
       preloadConfig?.oauthAuthBridgeUrl ||

@@ -1,4 +1,5 @@
 const i18next = require("i18next");
+const localeManifest = require("../locales/localeManifest");
 
 const enTranslation = require("../locales/en/translation.json");
 const esTranslation = require("../locales/es/translation.json");
@@ -22,22 +23,9 @@ const jaPrompts = require("../locales/ja/prompts.json");
 const zhCNPrompts = require("../locales/zh-CN/prompts.json");
 const zhTWPrompts = require("../locales/zh-TW/prompts.json");
 
-const SUPPORTED_UI_LANGUAGES = ["en", "es", "fr", "de", "pt", "it", "ru", "ja", "zh-CN", "zh-TW"];
-
-function normalizeUiLanguage(language) {
-  const candidate = (language || "").trim();
-
-  // Check full language-region code first (e.g. "zh-CN", "zh-TW")
-  const normalized = candidate.replace("_", "-");
-  const fullMatch = SUPPORTED_UI_LANGUAGES.find(
-    (lang) => lang.toLowerCase() === normalized.toLowerCase()
-  );
-  if (fullMatch) return fullMatch;
-
-  // Fall back to base language code (e.g. "en" from "en-US")
-  const base = candidate.split("-")[0].split("_")[0].toLowerCase();
-  return SUPPORTED_UI_LANGUAGES.includes(base) ? base : "zh-CN";
-}
+const SUPPORTED_UI_LANGUAGES = localeManifest.SUPPORTED_UI_LANGUAGES;
+const DEFAULT_UI_LANGUAGE = localeManifest.DEFAULT_UI_LANGUAGE;
+const normalizeUiLanguage = localeManifest.normalizeUiLanguage;
 
 const i18nMain = i18next.createInstance();
 

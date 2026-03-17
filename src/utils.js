@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { app } = require("electron");
+const productIdentity = require("./config/productIdentity");
 
 class AppUtils {
   static cleanup(mainWindow) {
@@ -35,7 +36,12 @@ class AppUtils {
 
     // Local Whisper model deletion
     try {
-      const modelCacheDir = path.join(os.homedir(), ".cache", "openwhispr", "whisper-models");
+      const modelCacheDir = path.join(
+        os.homedir(),
+        ".cache",
+        productIdentity.LEGACY_CACHE_DIRNAME,
+        "whisper-models"
+      );
       if (fs.existsSync(modelCacheDir)) {
         fs.rmSync(modelCacheDir, { recursive: true, force: true });
         console.log("✅ Local Whisper models deleted:", modelCacheDir);

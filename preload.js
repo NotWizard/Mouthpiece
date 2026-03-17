@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 let runtimeConfig = {
   apiUrl: "",
   authUrl: "",
+  enableMouthpieceCloud: false,
   oauthProtocol: "",
   oauthAuthBridgeUrl: "",
   oauthCallbackUrl: "",

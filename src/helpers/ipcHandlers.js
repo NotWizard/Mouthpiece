@@ -1662,6 +1662,14 @@ class IPCHandlers {
     const buildRuntimeConfig = () => ({
       apiUrl: getApiUrl(),
       authUrl: getAuthUrl(),
+      enableMouthpieceCloud:
+        String(
+          process.env.VITE_ENABLE_MOUTHPIECE_CLOUD ||
+            process.env.OPENWHISPR_ENABLE_MOUTHPIECE_CLOUD ||
+            ""
+        )
+          .trim()
+          .toLowerCase() === "true",
       oauthProtocol: getOauthProtocol(),
       oauthAuthBridgeUrl: getAuthBridgeUrl(),
       oauthCallbackUrl: getOAuthCallbackUrl(),

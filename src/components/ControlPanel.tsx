@@ -42,16 +42,9 @@ export default function ControlPanel() {
   const [gpuBannerDismissed, setGpuBannerDismissed] = useState(
     () => localStorage.getItem("gpuBannerDismissedUnified") === "true"
   );
-  const cloudMigrationProcessed = useRef(false);
   const { hotkey } = useHotkey();
   const { toast } = useToast();
-  const {
-    useLocalWhisper,
-    localTranscriptionProvider,
-    useReasoningModel,
-    setUseLocalWhisper,
-    setCloudTranscriptionMode,
-  } = useSettings();
+  const { useLocalWhisper, localTranscriptionProvider, useReasoningModel } = useSettings();
   const { isSignedIn, isLoaded: authLoaded, user } = useAuth();
 
   const {
@@ -66,19 +59,6 @@ export default function ControlPanel() {
   useEffect(() => {
     loadTranscriptions();
   }, []);
-
-  useEffect(() => {
-    if (!authLoaded || !isSignedIn || cloudMigrationProcessed.current) return;
-    const isPending = localStorage.getItem("pendingCloudMigration") === "true";
-    const alreadyShown = localStorage.getItem("cloudMigrationShown") === "true";
-    if (!isPending || alreadyShown) return;
-
-    cloudMigrationProcessed.current = true;
-    setUseLocalWhisper(false);
-    setCloudTranscriptionMode("openwhispr");
-    localStorage.removeItem("pendingCloudMigration");
-    setShowCloudMigrationBanner(true);
-  }, [authLoaded, isSignedIn, setUseLocalWhisper, setCloudTranscriptionMode]);
 
   useEffect(() => {
     if (platform === "darwin" || gpuBannerDismissed) return;

@@ -12,6 +12,7 @@ const {
 const modelRegistryData = require("../models/modelRegistryData.json");
 const LlamaServerManager = require("./llamaServer");
 const debugLogger = require("./debugLogger");
+const productIdentity = require("../config/productIdentity");
 
 const MIN_FILE_SIZE = 1_000_000; // 1MB minimum for valid model files
 
@@ -75,7 +76,7 @@ class ModelManager {
     const os = require("os");
     // Use os.homedir() as fallback if app.getPath fails
     const homeDir = app.isReady() ? app.getPath("home") : os.homedir();
-    return path.join(homeDir, ".cache", "openwhispr", "models");
+    return path.join(homeDir, ".cache", productIdentity.LEGACY_CACHE_DIRNAME, "models");
   }
 
   async ensureModelsDirExists() {

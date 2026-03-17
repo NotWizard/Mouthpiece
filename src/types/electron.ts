@@ -228,6 +228,7 @@ declare global {
       runtimeConfig: {
         apiUrl: string;
         authUrl: string;
+        enableMouthpieceCloud: boolean;
         oauthProtocol: string;
         oauthAuthBridgeUrl: string;
         oauthCallbackUrl: string;
@@ -235,6 +236,7 @@ declare global {
       getRuntimeConfig?: () => Promise<{
         apiUrl: string;
         authUrl: string;
+        enableMouthpieceCloud: boolean;
         oauthProtocol: string;
         oauthAuthBridgeUrl: string;
         oauthCallbackUrl: string;
