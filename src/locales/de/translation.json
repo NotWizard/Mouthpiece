@@ -1240,6 +1240,8 @@
     "cancelEdit": "Bearbeitung abbrechen",
     "edit": "Bearbeiten",
     "add": "Hinzufügen",
+    "show": "API-Schlüssel anzeigen",
+    "hide": "API-Schlüssel verbergen",
     "editButton": "Bearbeiten",
     "addButton": "Hinzufügen"
   },

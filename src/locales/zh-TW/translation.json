@@ -1240,6 +1240,8 @@
     "cancelEdit": "取消編輯",
     "edit": "編輯",
     "add": "新增",
+    "show": "顯示 API Key",
+    "hide": "隱藏 API Key",
     "editButton": "編輯金鑰",
     "addButton": "新增金鑰"
   },

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, X, KeyRound } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Input } from "./input";
 import logger from "../../utils/logger";
 
@@ -17,8 +17,9 @@ interface ApiKeyInputProps {
 }
 
 function maskKey(key: string): string {
-  if (key.length <= 8) return "••••••••";
-  return key.slice(0, 3) + "..." + key.slice(-4);
+  if (!key) return "";
+  if (key.length <= 8) return "*".repeat(Math.max(8, key.length));
+  return key.slice(0, 4) + "*".repeat(Math.max(4, key.length - 8)) + key.slice(-4);
 }
 
 export default function ApiKeyInput({
@@ -35,90 +36,70 @@ export default function ApiKeyInput({
   const { t } = useTranslation();
   const resolvedPlaceholder = placeholder ?? t("apiKeyInput.placeholder");
   const resolvedLabel = label ?? t("apiKeyInput.label");
-  const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const hasKey = apiKey.length > 0;
+  const [draft, setDraft] = useState(apiKey);
+  const [isFocused, setIsFocused] = useState(false);
+  const [isRevealed, setIsRevealed] = useState(false);
   const variantClasses = variant === "purple" ? "border-primary focus:border-primary" : "";
+  const showPlaintext = isFocused || isRevealed || !draft;
+  const displayValue = showPlaintext ? draft : maskKey(draft);
+  const hasKey = draft.length > 0;
 
   useEffect(() => {
-    if (isEditing) {
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      });
+    if (!isFocused || saveMode === "immediate") {
+      setDraft(apiKey);
     }
-  }, [isEditing]);
+  }, [apiKey, isFocused, saveMode]);
 
-  const enterEdit = () => {
-    setDraft(apiKey);
-    setIsEditing(true);
-  };
-
-  const save = () => {
+  const persistApiKey = (nextValue: string) => {
     try {
-      setApiKey(draft.trim());
+      setApiKey(nextValue);
     } catch (err) {
       logger.warn("Failed to save API key", { error: (err as Error).message }, "settings");
     }
-    setIsEditing(false);
   };
 
-  const cancel = () => {
-    setDraft("");
-    setIsEditing(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      save();
+  const commitDraft = () => {
+    const nextValue = draft.trim();
+    if (nextValue !== draft) {
+      setDraft(nextValue);
     }
-    if (e.key === "Escape") {
-      e.preventDefault();
-      cancel();
+    if (nextValue !== apiKey) {
+      persistApiKey(nextValue);
     }
   };
 
-  useEffect(() => {
-    if (!isEditing) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current?.contains(e.target as Node)) return;
-      cancel();
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isEditing]);
+  const handleFocus = () => {
+    setDraft(apiKey);
+    setIsFocused(true);
+  };
 
-  if (saveMode === "immediate") {
-    return (
-      <div className={className}>
-        {resolvedLabel && (
-          <label className="block text-xs font-medium text-foreground mb-1">{resolvedLabel}</label>
-        )}
+  const handleBlur = () => {
+    commitDraft();
+    setIsFocused(false);
+    setIsRevealed(false);
+  };
 
-        <Input
-          type="text"
-          placeholder={resolvedPlaceholder}
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          onBlur={(e) => {
-            const trimmedValue = e.target.value.trim();
-            if (trimmedValue !== apiKey) {
-              setApiKey(trimmedValue);
-            }
-          }}
-          aria-label={ariaLabel || resolvedLabel || t("apiKeyInput.label")}
-          className={`h-8 text-sm font-mono ${variantClasses}`}
-          autoComplete="off"
-          spellCheck={false}
-        />
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextValue = event.target.value;
+    setDraft(nextValue);
+    if (saveMode === "immediate") {
+      persistApiKey(nextValue);
+    }
+  };
 
-        {helpText && <p className="text-xs text-muted-foreground/70 mt-1">{helpText}</p>}
-      </div>
-    );
-  }
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      event.currentTarget.blur();
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setDraft(apiKey);
+      setIsRevealed(false);
+      event.currentTarget.blur();
+    }
+  };
 
   return (
     <div className={className}>
@@ -126,64 +107,31 @@ export default function ApiKeyInput({
         <label className="block text-xs font-medium text-foreground mb-1">{resolvedLabel}</label>
       )}
 
-      <div ref={containerRef} className="relative">
-        {isEditing ? (
-          <div className="relative">
-            <Input
-              ref={inputRef}
-              type="text"
-              placeholder={resolvedPlaceholder}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={handleKeyDown}
-              aria-label={ariaLabel || resolvedLabel || t("apiKeyInput.label")}
-              className={`h-8 text-sm font-mono pr-16 ${variantClasses}`}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
-              <button
-                type="button"
-                onClick={save}
-                className="h-6 w-6 flex items-center justify-center rounded text-success hover:bg-success/10 active:scale-95 transition-all"
-                aria-label={t("apiKeyInput.save")}
-              >
-                <Check className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={cancel}
-                className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 active:scale-95 transition-all"
-                aria-label={t("apiKeyInput.cancelEdit")}
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={enterEdit}
-            className={`w-full h-8 flex items-center px-3 rounded border text-sm transition-all cursor-pointer group ${
-              hasKey
-                ? "border-border/70 bg-input hover:border-border-hover dark:bg-surface-1 dark:border-border-subtle/50 dark:hover:border-border-hover"
-                : "border-dashed border-border/40 bg-transparent hover:border-border/70 hover:bg-muted/30"
-            }`}
-            aria-label={hasKey ? t("apiKeyInput.edit") : t("apiKeyInput.add")}
-          >
-            {hasKey ? (
-              <span className="flex items-center gap-1.5 text-foreground/70 font-mono text-xs tracking-wide">
-                <KeyRound className="w-3 h-3 text-muted-foreground/50 shrink-0" />
-                {maskKey(apiKey)}
-              </span>
-            ) : (
-              <span className="text-muted-foreground/40 text-xs">{resolvedPlaceholder}</span>
-            )}
-            <span className="ml-auto text-muted-foreground/30 text-xs group-hover:text-muted-foreground/60 transition-colors">
-              {hasKey ? t("apiKeyInput.editButton") : t("apiKeyInput.addButton")}
-            </span>
-          </button>
-        )}
+      <div className="relative">
+        <Input
+          type="text"
+          placeholder={resolvedPlaceholder}
+          value={displayValue}
+          onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          aria-label={ariaLabel || resolvedLabel || t("apiKeyInput.label")}
+          className={`h-8 text-sm font-mono pr-10 ${variantClasses}`}
+          autoComplete="off"
+          spellCheck={false}
+        />
+
+        <button
+          type="button"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => setIsRevealed((current) => !current)}
+          aria-label={isRevealed ? t("apiKeyInput.hide") : t("apiKeyInput.show")}
+          disabled={!hasKey}
+          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center rounded text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 disabled:opacity-30 disabled:hover:text-muted-foreground/60 disabled:hover:bg-transparent transition-colors"
+        >
+          {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+        </button>
       </div>
 
       {helpText && <p className="text-xs text-muted-foreground/70 mt-1">{helpText}</p>}

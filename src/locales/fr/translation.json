@@ -1240,6 +1240,8 @@
     "cancelEdit": "Annuler la modification",
     "edit": "Modifier la clé API",
     "add": "Ajouter une clé API",
+    "show": "Afficher la clé API",
+    "hide": "Masquer la clé API",
     "editButton": "modifier",
     "addButton": "ajouter"
   },

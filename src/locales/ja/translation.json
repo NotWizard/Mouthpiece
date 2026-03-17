@@ -1240,6 +1240,8 @@
     "cancelEdit": "編集をキャンセル",
     "edit": "編集",
     "add": "追加",
+    "show": "API キーを表示",
+    "hide": "API キーを非表示",
     "editButton": "編集",
     "addButton": "追加"
   },
