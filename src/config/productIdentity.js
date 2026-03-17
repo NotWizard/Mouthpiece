@@ -12,7 +12,7 @@ const CURRENT_USER_DATA_BASENAME = PRODUCT_NAME;
 const LEGACY_USER_DATA_BASENAMES = /** @type {const} */ (["OpenWhispr", "Voice" + "Ink"]);
 const LEGACY_CACHE_DIRNAME = "openwhispr";
 
-module.exports = {
+export {
   VALID_APP_CHANNELS,
   DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL,
   PRODUCT_NAME,

@@ -45,8 +45,8 @@ import type { LocalTranscriptionProvider } from "../types/electron";
 import logger from "../utils/logger";
 import { SettingsRow } from "./ui/SettingsSection";
 import { cn } from "./lib/utils";
-import localeManifest from "../locales/localeManifest";
-import productIdentity from "../config/productIdentity";
+import { UI_LANGUAGE_OPTIONS } from "../locales/localeManifest";
+import { LEGACY_CACHE_DIRNAME } from "../config/productIdentity";
 
 export type SettingsSectionType =
   | "general"
@@ -544,8 +544,8 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
   const [isRemovingModels, setIsRemovingModels] = useState(false);
   const cachePathHint =
     typeof navigator !== "undefined" && /Windows/i.test(navigator.userAgent)
-      ? `%USERPROFILE%\\.cache\\${productIdentity.LEGACY_CACHE_DIRNAME}`
-      : `~/.cache/${productIdentity.LEGACY_CACHE_DIRNAME}`;
+      ? `%USERPROFILE%\\.cache\\${LEGACY_CACHE_DIRNAME}`
+      : `~/.cache/${LEGACY_CACHE_DIRNAME}`;
 
   const whisperHook = useWhisper();
   const permissionsHook = usePermissions(showAlertDialog);
@@ -909,7 +909,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
                     <LanguageSelector
                       value={uiLanguage}
                       onChange={setUiLanguage}
-                      options={[...localeManifest.UI_LANGUAGE_OPTIONS]}
+                      options={[...UI_LANGUAGE_OPTIONS]}
                       className="min-w-32"
                     />
                   </SettingsRow>

@@ -10,7 +10,11 @@ import { ToastProvider } from "./components/ui/Toast.tsx";
 import { SettingsProvider } from "./hooks/useSettings";
 import { useTheme } from "./hooks/useTheme";
 import { useAuth } from "./hooks/useAuth";
-import productIdentity from "./config/productIdentity";
+import {
+  VALID_APP_CHANNELS,
+  DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL,
+  PRODUCT_NAME,
+} from "./config/productIdentity";
 import { RUNTIME_CONFIG } from "./config/runtimeConfig";
 import {
   normalizeOnboardingStep,
@@ -26,15 +30,15 @@ const OnboardingFlow = React.lazy(onboardingFlowImport);
 
 let root = null;
 
-const VALID_CHANNELS = new Set(productIdentity.VALID_APP_CHANNELS);
+const VALID_CHANNELS = new Set(VALID_APP_CHANNELS);
 const inferredChannel = import.meta.env.DEV ? "development" : "production";
 const configuredChannel = (import.meta.env.VITE_OPENWHISPR_CHANNEL || inferredChannel)
   .trim()
   .toLowerCase();
 const APP_CHANNEL = VALID_CHANNELS.has(configuredChannel) ? configuredChannel : inferredChannel;
 const defaultOAuthProtocol =
-  productIdentity.DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL[APP_CHANNEL] ||
-  productIdentity.DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL.production;
+  DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL[APP_CHANNEL] ||
+  DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL.production;
 const OAUTH_PROTOCOL = (RUNTIME_CONFIG.oauthProtocol || import.meta.env.VITE_OPENWHISPR_PROTOCOL || defaultOAuthProtocol)
   .trim()
   .toLowerCase();

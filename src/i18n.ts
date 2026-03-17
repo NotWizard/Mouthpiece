@@ -1,15 +1,12 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import localeManifest from "./locales/localeManifest";
+import {
+  SUPPORTED_UI_LANGUAGES,
+  DEFAULT_UI_LANGUAGE,
+  normalizeUiLanguage,
+} from "./locales/localeManifest";
 import { PROMPTS_BY_LOCALE } from "./locales/prompts";
 import { TRANSLATIONS_BY_LOCALE } from "./locales/translations";
-
-export const SUPPORTED_UI_LANGUAGES = localeManifest.SUPPORTED_UI_LANGUAGES;
-export const DEFAULT_UI_LANGUAGE = localeManifest.DEFAULT_UI_LANGUAGE;
-export type UiLanguage = (typeof SUPPORTED_UI_LANGUAGES)[number];
-export const normalizeUiLanguage = localeManifest.normalizeUiLanguage as (
-  language: string | null | undefined
-) => UiLanguage;
 
 const resources = {
   en: {
@@ -73,3 +70,5 @@ void i18n.use(initReactI18next).init({
 });
 
 export default i18n;
+export { SUPPORTED_UI_LANGUAGES, DEFAULT_UI_LANGUAGE, normalizeUiLanguage };
+export type UiLanguage = (typeof SUPPORTED_UI_LANGUAGES)[number];

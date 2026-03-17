@@ -559,3 +559,24 @@ const { t } = useTranslation();
 - Cloud model selection
 - Batch transcription
 - Export formats beyond clipboard
+
+---
+
+## Git Commit Guidelines
+
+When writing git commits for this project, follow these requirements:
+
+1. Write Git commits in both Chinese and English. The commit message should have Chinese first, followed by English, separated by a forward slash (/) with spaces around it.
+
+2. Git commit content should be complete and structured, using direct text formatting (e.g., using spaces, line breaks, etc. for line breaks and spacing), do not use Markdown syntax like bullet points, bold, or code blocks.
+
+Example format:
+
+fix: 修复登录页面的样式问题 / Fix login page styling issue
+
+Changes:
+- Adjusted button padding on mobile devices
+- Fixed color contrast for accessibility
+- Updated error message positioning
+
+This ensures commits are readable in plain text format while providing bilingual context for all team members.
