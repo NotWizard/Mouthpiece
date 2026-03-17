@@ -96,12 +96,12 @@ export default function App() {
   }, [dismiss, t, toast]);
 
   useEffect(() => {
-    if (isCommandMenuOpen || toastCount > 0) {
+    if (isRecording || isCommandMenuOpen || toastCount > 0) {
       setWindowInteractivity(true);
     } else if (!isHovered) {
       setWindowInteractivity(false);
     }
-  }, [isCommandMenuOpen, isHovered, setWindowInteractivity, toastCount]);
+  }, [isRecording, isCommandMenuOpen, isHovered, setWindowInteractivity, toastCount]);
 
   useEffect(() => {
     if (isCommandMenuOpen && toastCount > 0) {

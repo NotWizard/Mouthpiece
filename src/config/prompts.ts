@@ -111,8 +111,24 @@ export function getSystemPrompt(
     const agentModeEnabled =
       typeof window !== "undefined" &&
       !!window.localStorage &&
-      window.localStorage.getItem("reasoningEnableAgentMode") === "true";
-    const useFullPrompt = agentModeEnabled && !!transcript && detectAgentName(transcript, name);
+      (window.localStorage.getItem("voiceAssistantEnabled") === "true" ||
+        window.localStorage.getItem("reasoningEnableAgentMode") === "true");
+    const hasTranscript = !!transcript;
+    const detected = hasTranscript && detectAgentName(transcript, name);
+    const useFullPrompt = agentModeEnabled && hasTranscript && detected;
+
+    // Debug logging
+    console.log("[getSystemPrompt] Debug:", {
+      agentModeEnabled,
+      voiceAssistantEnabled: window.localStorage.getItem("voiceAssistantEnabled"),
+      reasoningEnableAgentMode: window.localStorage.getItem("reasoningEnableAgentMode"),
+      hasTranscript,
+      transcriptPreview: transcript?.substring(0, 50),
+      detected,
+      useFullPrompt,
+      name,
+    });
+
     prompt = (useFullPrompt ? prompts.fullPrompt : prompts.cleanupPrompt).replace(
       /\{\{agentName\}\}/g,
       name
