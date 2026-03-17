@@ -95,6 +95,32 @@ export default function App() {
     };
   }, [dismiss, t, toast]);
 
+  const handleDictationToggle = React.useCallback(() => {
+    setIsCommandMenuOpen(false);
+    setWindowInteractivity(false);
+  }, [setWindowInteractivity]);
+
+  const {
+    isRecording,
+    isProcessing,
+    isTranscribing,
+    audioLevel,
+    toggleListening,
+    cancelRecording,
+    cancelProcessing,
+  } = useAudioRecording(toast, {
+    onToggle: handleDictationToggle,
+    dismiss,
+  });
+
+  const shouldRenderCapsule = shouldShowDictationCapsule({ isRecording, isTranscribing });
+  const shouldKeepWindowVisible = shouldKeepDictationWindowVisible({
+    isRecording,
+    isTranscribing,
+    isCommandMenuOpen,
+    toastCount,
+  });
+
   useEffect(() => {
     if (isRecording || isCommandMenuOpen || toastCount > 0) {
       setWindowInteractivity(true);
@@ -121,32 +147,6 @@ export default function App() {
 
     window.electronAPI?.resizeMainWindow?.("BASE");
   }, [isCommandMenuOpen, toastCount]);
-
-  const handleDictationToggle = React.useCallback(() => {
-    setIsCommandMenuOpen(false);
-    setWindowInteractivity(false);
-  }, [setWindowInteractivity]);
-
-  const {
-    isRecording,
-    isProcessing,
-    isTranscribing,
-    audioLevel,
-    toggleListening,
-    cancelRecording,
-    cancelProcessing,
-  } = useAudioRecording(toast, {
-    onToggle: handleDictationToggle,
-    dismiss,
-  });
-
-  const shouldRenderCapsule = shouldShowDictationCapsule({ isRecording, isTranscribing });
-  const shouldKeepWindowVisible = shouldKeepDictationWindowVisible({
-    isRecording,
-    isTranscribing,
-    isCommandMenuOpen,
-    toastCount,
-  });
 
   useEffect(() => {
     if (isRecording) {

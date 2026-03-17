@@ -22,6 +22,18 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("[ErrorBoundary] Uncaught error:", error, errorInfo);
+    window.electronAPI?.log?.({
+      level: "error",
+      scope: "error-boundary",
+      source: "renderer",
+      message: "Renderer uncaught error",
+      meta: {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+        componentStack: errorInfo?.componentStack,
+      },
+    });
   }
 
   handleReload = () => {
