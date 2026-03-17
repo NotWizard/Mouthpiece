@@ -732,7 +732,7 @@
       "none": "Keine",
       "outputLabel": "Ausgabe",
       "processing": "Verarbeitung...",
-      "openwhisprCloud": "Mouthpiece Cloud",
+      "mouthpieceCloud": "Mouthpiece Cloud",
       "providerLabel": "Anbieter",
       "run": "Test ausführen",
       "customEndpoint": "Benutzerdefinierter Endpoint"
@@ -826,6 +826,8 @@
       "placeholder": "z. B. Jarvis, Nova, Atlas...",
       "save": "Speichern",
       "title": "Sprachagent",
+      "voiceAssistantToggle": "Sprachassistent aktivieren",
+      "voiceAssistantToggleDescription": "Wenn aktiviert, sage \"Hey {{agentName}}\" um den KI-Anweisungsmodus auszulösen; wenn deaktiviert, wird nur die Textbereinigung verwendet",
       "examples": {
         "formalEmail": "Hey {{agentName}}, schreibe eine formelle E-Mail zum Thema Budget",
         "professional": "Hey {{agentName}}, mach das professioneller",
@@ -838,8 +840,8 @@
       "description": "Bereinigt Transkriptionen, verarbeitet Befehle und korrigiert Fehler unter Beibehaltung Ihres Stils.",
       "enableTextCleanup": "Textbereinigung aktivieren",
       "enableTextCleanupDescription": "KI verbessert die Transkriptionsqualität",
-      "openwhisprCloud": "Mouthpiece Cloud",
-      "openwhisprCloudDescription": "Funktioniert sofort. Keine Konfiguration nötig.",
+      "mouthpieceCloud": "Mouthpiece Cloud",
+      "mouthpieceCloudDescription": "Funktioniert sofort. Keine Konfiguration nötig.",
       "title": "KI-Textverbesserung",
       "toasts": {
         "switchedCloud": {
@@ -1038,8 +1040,8 @@
       "customSetup": "Benutzerdefinierte Einrichtung",
       "customSetupDescription": "Verwenden Sie Ihren eigenen Anbieter und API-Schlüssel.",
       "description": "Wählen Sie, wie Mouthpiece Ihre Stimme transkribiert",
-      "openwhisprCloud": "Mouthpiece Cloud",
-      "openwhisprCloudDescription": "Funktioniert sofort. Keine Konfiguration nötig.",
+      "mouthpieceCloud": "Mouthpiece Cloud",
+      "mouthpieceCloudDescription": "Funktioniert sofort. Keine Konfiguration nötig.",
       "title": "Sprache-zu-Text",
       "toasts": {
         "switchedCloud": {

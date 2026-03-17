@@ -732,7 +732,7 @@
       "none": "なし",
       "outputLabel": "出力",
       "processing": "処理中...",
-      "openwhisprCloud": "Mouthpiece Cloud",
+      "mouthpieceCloud": "Mouthpiece Cloud",
       "providerLabel": "プロバイダー",
       "run": "テスト実行",
       "customEndpoint": "カスタムエンドポイント"
@@ -826,6 +826,8 @@
       "placeholder": "例: ジャービス、ノヴァ、アトラス...",
       "save": "保存",
       "title": "音声エージェント",
+      "voiceAssistantToggle": "音声アシスタントを有効にする",
+      "voiceAssistantToggleDescription": "有効にすると、「Hey {{agentName}}」と言うとAI指示モードが起動します。無効の場合、テキスト整形のみ使用されます",
       "examples": {
         "formalEmail": "Hey {{agentName}}、予算についてフォーマルなメールを書いて",
         "professional": "Hey {{agentName}}、これをもっとプロフェッショナルにして",
@@ -838,8 +840,8 @@
       "description": "文字起こしのクリーンアップ、コマンド処理、エラー修正を行いながら、あなたの話し方を維持します。",
       "enableTextCleanup": "テキスト補正を有効にする",
       "enableTextCleanupDescription": "AI が文字起こしの品質を向上",
-      "openwhisprCloud": "Mouthpiece Cloud",
-      "openwhisprCloudDescription": "設定不要ですぐに使えます。",
+      "mouthpieceCloud": "Mouthpiece Cloud",
+      "mouthpieceCloudDescription": "設定不要ですぐに使えます。",
       "title": "AI テキスト補正",
       "toasts": {
         "switchedCloud": {
@@ -1038,8 +1040,8 @@
       "customSetup": "カスタム設定",
       "customSetupDescription": "独自のプロバイダーと API キーを使用。",
       "description": "Mouthpiece の音声文字起こし方法を選択",
-      "openwhisprCloud": "Mouthpiece Cloud",
-      "openwhisprCloudDescription": "設定不要ですぐに使えます。",
+      "mouthpieceCloud": "Mouthpiece Cloud",
+      "mouthpieceCloudDescription": "設定不要ですぐに使えます。",
       "title": "音声テキスト変換",
       "toasts": {
         "switchedCloud": {

@@ -253,7 +253,7 @@ export function getReasoningModelLabel(modelId: string): string {
 
 export function getModelProvider(modelId: string): string {
   if (isCloudReasoningMode()) {
-    return "openwhispr";
+    return "mouthpiece";
   }
 
   if (getSettings().reasoningProvider === "custom") {

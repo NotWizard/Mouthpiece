@@ -732,7 +732,7 @@
       "none": "Aucun",
       "outputLabel": "Sortie",
       "processing": "Traitement...",
-      "openwhisprCloud": "Mouthpiece Cloud",
+      "mouthpieceCloud": "Mouthpiece Cloud",
       "providerLabel": "Fournisseur",
       "run": "Lancer le test",
       "customEndpoint": "Endpoint personnalisé"
@@ -826,6 +826,8 @@
       "placeholder": "ex. Jarvis, Nova, Atlas...",
       "save": "Enregistrer",
       "title": "Agent vocal",
+      "voiceAssistantToggle": "Activer l'Assistant Vocal",
+      "voiceAssistantToggleDescription": "Lorsqu'activé, dites \"Hey {{agentName}}\" pour déclencher le mode d'instruction IA ; lorsqu'il est désactivé, seule la nettoyage de texte est utilisé",
       "examples": {
         "formalEmail": "Hey {{agentName}}, rédige un e-mail formel sur le budget",
         "professional": "Hey {{agentName}}, rends ça plus professionnel",
@@ -838,8 +840,8 @@
       "description": "Corrige les transcriptions, gère les commandes et corrige les erreurs tout en préservant votre ton.",
       "enableTextCleanup": "Activer la correction de texte",
       "enableTextCleanupDescription": "L'IA améliore la qualité de transcription",
-      "openwhisprCloud": "Mouthpiece Cloud",
-      "openwhisprCloudDescription": "Fonctionne directement. Aucune configuration requise.",
+      "mouthpieceCloud": "Mouthpiece Cloud",
+      "mouthpieceCloudDescription": "Fonctionne directement. Aucune configuration requise.",
       "title": "Amélioration du texte par IA",
       "toasts": {
         "switchedCloud": {
@@ -1038,8 +1040,8 @@
       "customSetup": "Configuration personnalisée",
       "customSetupDescription": "Utilisez votre propre fournisseur et clé API.",
       "description": "Choisissez comment Mouthpiece transcrit votre voix",
-      "openwhisprCloud": "Mouthpiece Cloud",
-      "openwhisprCloudDescription": "Fonctionne directement. Aucune configuration requise.",
+      "mouthpieceCloud": "Mouthpiece Cloud",
+      "mouthpieceCloudDescription": "Fonctionne directement. Aucune configuration requise.",
       "title": "Reconnaissance vocale",
       "toasts": {
         "switchedCloud": {

@@ -28,7 +28,13 @@ function inferDefaultChannel() {
 }
 
 function resolveAppChannel() {
-  const rawChannel = (process.env.OPENWHISPR_CHANNEL || process.env.VITE_OPENWHISPR_CHANNEL || "")
+  const rawChannel = (
+    process.env.MOUTHPIECE_CHANNEL ||
+    process.env.OPENWHISPR_CHANNEL ||
+    process.env.VITE_MOUTHPIECE_CHANNEL ||
+    process.env.VITE_OPENWHISPR_CHANNEL ||
+    ""
+  )
     .trim()
     .toLowerCase();
 
@@ -40,6 +46,8 @@ function resolveAppChannel() {
 }
 
 const APP_CHANNEL = resolveAppChannel();
+// Set both new and legacy env vars for backward compatibility
+process.env.MOUTHPIECE_CHANNEL = APP_CHANNEL;
 process.env.OPENWHISPR_CHANNEL = APP_CHANNEL;
 
 function buildUserDataDirName(baseName, channel) {
@@ -67,7 +75,11 @@ function getUserDataStateScore(dirPath) {
 }
 
 function resolveUserDataPath() {
-  const override = (process.env.OPENWHISPR_USER_DATA_DIR || "").trim();
+  const override = (
+    process.env.MOUTHPIECE_USER_DATA_DIR ||
+    process.env.OPENWHISPR_USER_DATA_DIR ||
+    ""
+  ).trim();
   if (override) {
     return { selectedPath: override, reason: "env-override" };
   }
@@ -173,7 +185,13 @@ if (process.platform === "win32") {
 }
 
 function getOAuthProtocol() {
-  const fromEnv = (process.env.VITE_OPENWHISPR_PROTOCOL || process.env.OPENWHISPR_PROTOCOL || "")
+  const fromEnv = (
+    process.env.VITE_MOUTHPIECE_PROTOCOL ||
+    process.env.MOUTHPIECE_PROTOCOL ||
+    process.env.VITE_OPENWHISPR_PROTOCOL ||
+    process.env.OPENWHISPR_PROTOCOL ||
+    ""
+  )
     .trim()
     .toLowerCase();
 
@@ -188,6 +206,8 @@ function getOAuthProtocol() {
 }
 
 const OAUTH_PROTOCOL = getOAuthProtocol();
+// Set both new and legacy env vars for backward compatibility
+process.env.MOUTHPIECE_PROTOCOL = OAUTH_PROTOCOL;
 process.env.OPENWHISPR_PROTOCOL = OAUTH_PROTOCOL;
 
 function shouldRegisterProtocolWithAppArg() {
@@ -278,7 +298,11 @@ let authBridgeServer = null;
 let globeKeyRestartTimer = null;
 
 function parseAuthBridgePort() {
-  const raw = (process.env.OPENWHISPR_AUTH_BRIDGE_PORT || "").trim();
+  const raw = (
+    process.env.MOUTHPIECE_AUTH_BRIDGE_PORT ||
+    process.env.OPENWHISPR_AUTH_BRIDGE_PORT ||
+    ""
+  ).trim();
   if (!raw) return DEFAULT_AUTH_BRIDGE_PORT;
 
   const parsed = Number(raw);
@@ -292,9 +316,12 @@ function parseAuthBridgePort() {
 const AUTH_BRIDGE_HOST = "127.0.0.1";
 const AUTH_BRIDGE_PORT = parseAuthBridgePort();
 const AUTH_BRIDGE_PATH = "/oauth/callback";
-process.env.OPENWHISPR_AUTH_BRIDGE_URL =
+// Set both new and legacy env vars for backward compatibility
+process.env.MOUTHPIECE_AUTH_BRIDGE_URL =
+  process.env.MOUTHPIECE_AUTH_BRIDGE_URL ||
   process.env.OPENWHISPR_AUTH_BRIDGE_URL ||
   `http://${AUTH_BRIDGE_HOST}:${AUTH_BRIDGE_PORT}${AUTH_BRIDGE_PATH}`;
+process.env.OPENWHISPR_AUTH_BRIDGE_URL = process.env.MOUTHPIECE_AUTH_BRIDGE_URL;
 
 // Set up PATH for production builds to find system tools (whisper.cpp, ffmpeg)
 function setupProductionPath() {

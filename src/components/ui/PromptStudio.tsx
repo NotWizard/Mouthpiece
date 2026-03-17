@@ -38,6 +38,7 @@ const PROVIDER_CONFIG: Record<string, ProviderConfig> = {
   gemini: { label: "Gemini", apiKeyStorageKey: "geminiApiKey" },
   groq: { label: "Groq", apiKeyStorageKey: "groqApiKey" },
   openwhispr: { label: "Mouthpiece Cloud" },
+  mouthpiece: { label: "Mouthpiece Cloud" },
   custom: {
     label: "Custom endpoint",
     apiKeyStorageKey: "openaiApiKey",
@@ -130,7 +131,7 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
 
     try {
       const reasoningProvider = isCloudMode
-        ? "openwhispr"
+        ? "mouthpiece"
         : reasoningModel
           ? getModelProvider(reasoningModel)
           : "openai";
@@ -360,7 +361,7 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
         {activeTab === "test" &&
           (() => {
             const reasoningProvider = isCloudMode
-              ? "openwhispr"
+              ? "mouthpiece"
               : reasoningModel
                 ? getModelProvider(reasoningModel)
                 : "openai";
@@ -369,7 +370,7 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
             };
 
             const displayModel = isCloudMode
-              ? t("promptStudio.test.openwhisprCloud")
+              ? t("promptStudio.test.mouthpieceCloud")
               : reasoningModel || t("promptStudio.test.none");
             const displayProvider =
               reasoningProvider === "custom"

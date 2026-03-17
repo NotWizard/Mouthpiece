@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { OPENWHISPR_API_URL } from "../config/constants";
+import { MOUTHPIECE_API_URL } from "../config/constants";
 import { Button } from "./ui/button";
 import { Mail, Loader2, Check, RefreshCw } from "lucide-react";
 import logoIcon from "../assets/icon.png";
@@ -25,9 +25,9 @@ export default function EmailVerificationStep({ email, onVerified }: EmailVerifi
   }, [resendCooldown]);
 
   useEffect(() => {
-    if (!OPENWHISPR_API_URL || verified) return;
+    if (!MOUTHPIECE_API_URL || verified) return;
 
-    const url = `${OPENWHISPR_API_URL}/api/auth/verification-status?email=${encodeURIComponent(email)}`;
+    const url = `${MOUTHPIECE_API_URL}/api/auth/verification-status?email=${encodeURIComponent(email)}`;
 
     pollRef.current = setInterval(async () => {
       try {
@@ -54,11 +54,11 @@ export default function EmailVerificationStep({ email, onVerified }: EmailVerifi
   }, [email, verified, onVerified]);
 
   const handleResend = useCallback(async () => {
-    if (resendCooldown > 0 || isResending || !OPENWHISPR_API_URL) return;
+    if (resendCooldown > 0 || isResending || !MOUTHPIECE_API_URL) return;
     setIsResending(true);
     setError(null);
     try {
-      const res = await fetch(`${OPENWHISPR_API_URL}/api/auth/send-verification-email`, {
+      const res = await fetch(`${MOUTHPIECE_API_URL}/api/auth/send-verification-email`, {
         method: "POST",
         credentials: "include",
       });

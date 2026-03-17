@@ -1617,14 +1617,20 @@ class IPCHandlers {
     })();
 
     const getOauthProtocol = () =>
+      process.env.MOUTHPIECE_PROTOCOL ||
+      process.env.VITE_MOUTHPIECE_PROTOCOL ||
       process.env.OPENWHISPR_PROTOCOL ||
       process.env.VITE_OPENWHISPR_PROTOCOL ||
+      runtimeEnv.VITE_MOUTHPIECE_PROTOCOL ||
       runtimeEnv.VITE_OPENWHISPR_PROTOCOL ||
       "";
 
     const getApiUrl = () =>
+      process.env.MOUTHPIECE_API_URL ||
+      process.env.VITE_MOUTHPIECE_API_URL ||
       process.env.OPENWHISPR_API_URL ||
       process.env.VITE_OPENWHISPR_API_URL ||
+      runtimeEnv.VITE_MOUTHPIECE_API_URL ||
       runtimeEnv.VITE_OPENWHISPR_API_URL ||
       "";
 
@@ -1636,8 +1642,11 @@ class IPCHandlers {
 
     const getAuthBridgeUrl = () => {
       const configured =
+        process.env.MOUTHPIECE_AUTH_BRIDGE_URL ||
+        process.env.VITE_MOUTHPIECE_AUTH_BRIDGE_URL ||
         process.env.OPENWHISPR_AUTH_BRIDGE_URL ||
         process.env.VITE_OPENWHISPR_AUTH_BRIDGE_URL ||
+        runtimeEnv.VITE_MOUTHPIECE_AUTH_BRIDGE_URL ||
         runtimeEnv.VITE_OPENWHISPR_AUTH_BRIDGE_URL ||
         "";
 
@@ -1645,7 +1654,11 @@ class IPCHandlers {
         return configured;
       }
 
-      const rawPort = (process.env.OPENWHISPR_AUTH_BRIDGE_PORT || "").trim();
+      const rawPort = (
+        process.env.MOUTHPIECE_AUTH_BRIDGE_PORT ||
+        process.env.OPENWHISPR_AUTH_BRIDGE_PORT ||
+        ""
+      ).trim();
       const parsedPort = Number(rawPort);
       const port =
         Number.isInteger(parsedPort) && parsedPort >= 1 && parsedPort <= 65535 ? parsedPort : 5199;
@@ -1654,8 +1667,11 @@ class IPCHandlers {
     };
 
     const getOAuthCallbackUrl = () =>
+      process.env.MOUTHPIECE_OAUTH_CALLBACK_URL ||
+      process.env.VITE_MOUTHPIECE_OAUTH_CALLBACK_URL ||
       process.env.OPENWHISPR_OAUTH_CALLBACK_URL ||
       process.env.VITE_OPENWHISPR_OAUTH_CALLBACK_URL ||
+      runtimeEnv.VITE_MOUTHPIECE_OAUTH_CALLBACK_URL ||
       runtimeEnv.VITE_OPENWHISPR_OAUTH_CALLBACK_URL ||
       "";
 
@@ -2094,35 +2110,43 @@ class IPCHandlers {
           envContent = fs.readFileSync(envPath, "utf8");
         }
 
-        // Parse lines
+        // Parse lines - support both new and legacy variable names
         const lines = envContent.split("\n");
-        const logLevelIndex = lines.findIndex((line) =>
+        const newLogLevelIndex = lines.findIndex((line) =>
+          line.trim().startsWith("MOUTHPIECE_LOG_LEVEL=")
+        );
+        const legacyLogLevelIndex = lines.findIndex((line) =>
           line.trim().startsWith("OPENWHISPR_LOG_LEVEL=")
         );
 
         if (enabled) {
-          // Set to debug
-          if (logLevelIndex !== -1) {
-            lines[logLevelIndex] = "OPENWHISPR_LOG_LEVEL=debug";
+          // Set to debug - prefer new variable name
+          if (newLogLevelIndex !== -1) {
+            lines[newLogLevelIndex] = "MOUTHPIECE_LOG_LEVEL=debug";
+          } else if (legacyLogLevelIndex !== -1) {
+            lines[legacyLogLevelIndex] = "OPENWHISPR_LOG_LEVEL=debug";
           } else {
             // Add new line
             if (lines.length > 0 && lines[lines.length - 1] !== "") {
               lines.push("");
             }
             lines.push("# Debug logging setting");
-            lines.push("OPENWHISPR_LOG_LEVEL=debug");
+            lines.push("MOUTHPIECE_LOG_LEVEL=debug");
           }
         } else {
-          // Remove or set to info
-          if (logLevelIndex !== -1) {
-            lines[logLevelIndex] = "OPENWHISPR_LOG_LEVEL=info";
+          // Remove or set to info - prefer new variable name
+          if (newLogLevelIndex !== -1) {
+            lines[newLogLevelIndex] = "MOUTHPIECE_LOG_LEVEL=info";
+          } else if (legacyLogLevelIndex !== -1) {
+            lines[legacyLogLevelIndex] = "OPENWHISPR_LOG_LEVEL=info";
           }
         }
 
         // Write back
         fs.writeFileSync(envPath, lines.join("\n"), "utf8");
 
-        // Update environment variable
+        // Update environment variable - prefer new variable name
+        process.env.MOUTHPIECE_LOG_LEVEL = enabled ? "debug" : "info";
         process.env.OPENWHISPR_LOG_LEVEL = enabled ? "debug" : "info";
 
         // Refresh logger state

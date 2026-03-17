@@ -28,8 +28,13 @@ function normalizeCloudMode(value: string | null | undefined): string {
     return "byok";
   }
 
-  if (!MOUTHPIECE_CLOUD_ENABLED && trimmed === "openwhispr") {
+  if (!MOUTHPIECE_CLOUD_ENABLED && (trimmed === "openwhispr" || trimmed === "mouthpiece")) {
     return "byok";
+  }
+
+  // Normalize legacy "openwhispr" to "mouthpiece" for cloud mode
+  if (trimmed === "openwhispr") {
+    return "mouthpiece";
   }
 
   return trimmed;
@@ -66,6 +71,7 @@ const BOOLEAN_SETTINGS = new Set([
   "allowLocalFallback",
   "assemblyAiStreaming",
   "useReasoningModel",
+  "voiceAssistantEnabled",
   "preferBuiltInMic",
   "cloudBackupEnabled",
   "audioCuesEnabled",
@@ -115,6 +121,7 @@ export interface SettingsState
   setCustomDictionary: (words: string[]) => void;
   setAssemblyAiStreaming: (value: boolean) => void;
   setUseReasoningModel: (value: boolean) => void;
+  setVoiceAssistantEnabled: (value: boolean) => void;
   setReasoningModel: (value: string) => void;
   setReasoningProvider: (value: string) => void;
   setUiLanguage: (language: string) => void;
@@ -220,6 +227,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   assemblyAiStreaming: readBoolean("assemblyAiStreaming", true),
 
   useReasoningModel: readBoolean("useReasoningModel", true),
+  voiceAssistantEnabled: readBoolean("voiceAssistantEnabled", false),
   reasoningModel: readString("reasoningModel", ""),
   reasoningProvider: readString("reasoningProvider", "openai"),
 
@@ -264,6 +272,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setCloudReasoningBaseUrl: createStringSetter("cloudReasoningBaseUrl"),
   setAssemblyAiStreaming: createBooleanSetter("assemblyAiStreaming"),
   setUseReasoningModel: createBooleanSetter("useReasoningModel"),
+  setVoiceAssistantEnabled: createBooleanSetter("voiceAssistantEnabled"),
   setReasoningModel: createStringSetter("reasoningModel"),
   setReasoningProvider: createStringSetter("reasoningProvider"),
 
@@ -396,6 +405,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const s = useSettingsStore.getState();
     if (settings.useReasoningModel !== undefined)
       s.setUseReasoningModel(settings.useReasoningModel);
+    if (settings.voiceAssistantEnabled !== undefined)
+      s.setVoiceAssistantEnabled(settings.voiceAssistantEnabled);
     if (settings.reasoningModel !== undefined) s.setReasoningModel(settings.reasoningModel);
     if (settings.reasoningProvider !== undefined)
       s.setReasoningProvider(settings.reasoningProvider);
@@ -425,10 +436,10 @@ export const selectIsCloudReasoningMode = (state: SettingsState) =>
   MOUTHPIECE_CLOUD_ENABLED &&
   CLOUD_AUTH_AVAILABLE &&
   state.isSignedIn &&
-  state.cloudReasoningMode === "openwhispr";
+  (state.cloudReasoningMode === "mouthpiece" || state.cloudReasoningMode === "openwhispr");
 
 export const selectEffectiveReasoningProvider = (state: SettingsState) =>
-  selectIsCloudReasoningMode(state) ? "openwhispr" : state.reasoningProvider;
+  selectIsCloudReasoningMode(state) ? "mouthpiece" : state.reasoningProvider;
 
 // --- Convenience getters for non-React code ---
 

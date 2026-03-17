@@ -732,7 +732,7 @@
       "none": "無",
       "outputLabel": "輸出",
       "processing": "處理中...",
-      "openwhisprCloud": "Mouthpiece Cloud",
+      "mouthpieceCloud": "Mouthpiece Cloud",
       "providerLabel": "供應商",
       "run": "執行測試",
       "customEndpoint": "自訂端點"
@@ -826,6 +826,8 @@
       "placeholder": "例如 Jarvis、Nova、Atlas...",
       "save": "儲存",
       "title": "語音助理",
+      "voiceAssistantToggle": "啟用語音助理",
+      "voiceAssistantToggleDescription": "開啟後，說「Hey {{agentName}}」可觸發 AI 指令模式；關閉時僅使用文字整理功能",
       "examples": {
         "formalEmail": "Hey {{agentName}}，撰寫一封關於預算的正式郵件",
         "professional": "Hey {{agentName}}，讓這個更專業",
@@ -838,8 +840,8 @@
       "description": "整理轉錄文字、處理指令、修正錯誤，同時保留你的語調。",
       "enableTextCleanup": "啟用文字整理",
       "enableTextCleanupDescription": "AI 自動提升轉錄品質",
-      "openwhisprCloud": "Mouthpiece Cloud",
-      "openwhisprCloudDescription": "即開即用，無需設定。",
+      "mouthpieceCloud": "Mouthpiece Cloud",
+      "mouthpieceCloudDescription": "即開即用，無需設定。",
       "title": "AI 文字增強",
       "toasts": {
         "switchedCloud": {
@@ -1038,8 +1040,8 @@
       "customSetup": "自訂設定",
       "customSetupDescription": "使用你自己的供應商和 API Key。",
       "description": "選擇 Mouthpiece 轉錄語音的方式",
-      "openwhisprCloud": "Mouthpiece Cloud",
-      "openwhisprCloudDescription": "即開即用，無需設定。",
+      "mouthpieceCloud": "Mouthpiece Cloud",
+      "mouthpieceCloudDescription": "即開即用，無需設定。",
       "title": "語音轉文字",
       "toasts": {
         "switchedCloud": {

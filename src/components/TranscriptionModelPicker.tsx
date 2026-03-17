@@ -443,8 +443,12 @@ export default function TranscriptionModelPicker({
       loadLocalModels();
       loadParakeetModels();
     };
+    window.addEventListener("mouthpiece-models-cleared", handleModelsCleared);
     window.addEventListener("openwhispr-models-cleared", handleModelsCleared);
-    return () => window.removeEventListener("openwhispr-models-cleared", handleModelsCleared);
+    return () => {
+      window.removeEventListener("mouthpiece-models-cleared", handleModelsCleared);
+      window.removeEventListener("openwhispr-models-cleared", handleModelsCleared);
+    };
   }, [loadLocalModels, loadParakeetModels]);
 
   useEffect(() => {

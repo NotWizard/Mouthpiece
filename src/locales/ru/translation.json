@@ -732,7 +732,7 @@
       "none": "Нет",
       "outputLabel": "Результат",
       "processing": "Обработка...",
-      "openwhisprCloud": "Mouthpiece Cloud",
+      "mouthpieceCloud": "Mouthpiece Cloud",
       "providerLabel": "Провайдер",
       "run": "Запустить тест",
       "customEndpoint": "Пользовательская конечная точка"
@@ -826,6 +826,8 @@
       "placeholder": "например, Джарвис, Нова, Атлас...",
       "save": "Сохранить",
       "title": "Голосовой агент",
+      "voiceAssistantToggle": "Включить голосового помощника",
+      "voiceAssistantToggleDescription": "Когда включено, скажите \"Hey {{agentName}}\" для активации режима инструкций ИИ; когда выключено, используется только очистка текста",
       "examples": {
         "formalEmail": "Hey {{agentName}}, напиши официальное письмо о бюджете",
         "professional": "Hey {{agentName}}, сделай это более профессиональным",
@@ -838,8 +840,8 @@
       "description": "Очищайте транскрипции, обрабатывайте команды и исправляйте ошибки, сохраняя вашу манеру речи.",
       "enableTextCleanup": "Включить очистку текста",
       "enableTextCleanupDescription": "ИИ улучшает качество транскрипции",
-      "openwhisprCloud": "Mouthpiece Cloud",
-      "openwhisprCloudDescription": "Просто работает. Настройка не требуется.",
+      "mouthpieceCloud": "Mouthpiece Cloud",
+      "mouthpieceCloudDescription": "Просто работает. Настройка не требуется.",
       "title": "ИИ-улучшение текста",
       "toasts": {
         "switchedCloud": {
@@ -1038,8 +1040,8 @@
       "customSetup": "Пользовательская настройка",
       "customSetupDescription": "Используйте собственного провайдера и API-ключ.",
       "description": "Выберите, как Mouthpiece будет транскрибировать вашу речь",
-      "openwhisprCloud": "Mouthpiece Cloud",
-      "openwhisprCloudDescription": "Просто работает. Настройка не требуется.",
+      "mouthpieceCloud": "Mouthpiece Cloud",
+      "mouthpieceCloudDescription": "Просто работает. Настройка не требуется.",
       "title": "Распознавание речи",
       "toasts": {
         "switchedCloud": {

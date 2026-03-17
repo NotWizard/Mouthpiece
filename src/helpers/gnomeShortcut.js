@@ -2,11 +2,11 @@ const { execFileSync } = require("child_process");
 const debugLogger = require("./debugLogger");
 
 const DBUS_SERVICE_NAME = "com.mouthpiece.App";
-const DBUS_OBJECT_PATH = "/com/openwhispr/App";
+const DBUS_OBJECT_PATH = "/com/mouthpiece/App";
 const DBUS_INTERFACE = "com.mouthpiece.App";
 
 const KEYBINDING_PATH =
-  "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/openwhispr/";
+  "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/mouthpiece/";
 const KEYBINDING_SCHEMA = "org.gnome.settings-daemon.plugins.media-keys.custom-keybinding";
 
 // Valid pattern for GNOME shortcut format (e.g., "<Alt>r", "<Control><Shift>space")

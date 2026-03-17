@@ -97,7 +97,7 @@ async function setupUinputAccess(log) {
 
   if (lines.length <= 2) return;
 
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-"));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "mouthpiece-"));
   fs.chmodSync(tmpDir, 0o700);
   const tmpScript = path.join(tmpDir, "uinput-setup.sh");
   fs.writeFileSync(tmpScript, lines.join("\n") + "\n", { mode: 0o700 });

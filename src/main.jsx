@@ -32,18 +32,19 @@ let root = null;
 
 const VALID_CHANNELS = new Set(VALID_APP_CHANNELS);
 const inferredChannel = import.meta.env.DEV ? "development" : "production";
-const configuredChannel = (import.meta.env.VITE_OPENWHISPR_CHANNEL || inferredChannel)
+const configuredChannel = (import.meta.env.VITE_MOUTHPIECE_CHANNEL || import.meta.env.VITE_OPENWHISPR_CHANNEL || inferredChannel)
   .trim()
   .toLowerCase();
 const APP_CHANNEL = VALID_CHANNELS.has(configuredChannel) ? configuredChannel : inferredChannel;
 const defaultOAuthProtocol =
   DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL[APP_CHANNEL] ||
   DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL.production;
-const OAUTH_PROTOCOL = (RUNTIME_CONFIG.oauthProtocol || import.meta.env.VITE_OPENWHISPR_PROTOCOL || defaultOAuthProtocol)
+const OAUTH_PROTOCOL = (RUNTIME_CONFIG.oauthProtocol || import.meta.env.VITE_MOUTHPIECE_PROTOCOL || import.meta.env.VITE_OPENWHISPR_PROTOCOL || defaultOAuthProtocol)
   .trim()
   .toLowerCase();
 const OAUTH_AUTH_BRIDGE_URL = (
   RUNTIME_CONFIG.oauthAuthBridgeUrl ||
+  import.meta.env.VITE_MOUTHPIECE_AUTH_BRIDGE_URL ||
   import.meta.env.VITE_OPENWHISPR_AUTH_BRIDGE_URL ||
   ""
 ).trim();

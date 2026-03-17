@@ -10,6 +10,7 @@ const PRODUCT_NAME = "Mouthpiece";
 const BASE_WINDOWS_APP_ID = "com.mouthpiece.app";
 const CURRENT_USER_DATA_BASENAME = PRODUCT_NAME;
 const LEGACY_USER_DATA_BASENAMES = /** @type {const} */ (["OpenWhispr", "Voice" + "Ink"]);
+const CURRENT_CACHE_DIRNAME = "mouthpiece";
 const LEGACY_CACHE_DIRNAME = "openwhispr";
 
 export {
@@ -19,5 +20,6 @@ export {
   BASE_WINDOWS_APP_ID,
   CURRENT_USER_DATA_BASENAME,
   LEGACY_USER_DATA_BASENAMES,
+  CURRENT_CACHE_DIRNAME,
   LEGACY_CACHE_DIRNAME,
 };

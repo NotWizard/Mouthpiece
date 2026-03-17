@@ -732,7 +732,7 @@
       "none": "Ninguno",
       "outputLabel": "Salida",
       "processing": "Procesando...",
-      "openwhisprCloud": "Mouthpiece Cloud",
+      "mouthpieceCloud": "Mouthpiece Cloud",
       "providerLabel": "Proveedor",
       "run": "Ejecutar prueba",
       "customEndpoint": "Endpoint personalizado"
@@ -826,6 +826,8 @@
       "placeholder": "p. ej. Jarvis, Nova, Atlas...",
       "save": "Guardar",
       "title": "Agente de voz",
+      "voiceAssistantToggle": "Activar Asistente de Voz",
+      "voiceAssistantToggleDescription": "Cuando está activado, di \"Hey {{agentName}}\" para activar el modo de instrucción IA; cuando está desactivado, solo se usa la limpieza de texto",
       "examples": {
         "formalEmail": "Hey {{agentName}}, escribe un correo formal sobre el presupuesto",
         "professional": "Hey {{agentName}}, hazlo más profesional",
@@ -838,8 +840,8 @@
       "description": "Corrige transcripciones, gestiona comandos y soluciona errores preservando tu tono.",
       "enableTextCleanup": "Activar corrección de texto",
       "enableTextCleanupDescription": "La IA mejora la calidad de transcripción",
-      "openwhisprCloud": "Mouthpiece Cloud",
-      "openwhisprCloudDescription": "Funciona de inmediato. Sin configuración necesaria.",
+      "mouthpieceCloud": "Mouthpiece Cloud",
+      "mouthpieceCloudDescription": "Funciona de inmediato. Sin configuración necesaria.",
       "title": "Mejora de texto con IA",
       "toasts": {
         "switchedCloud": {
@@ -1038,8 +1040,8 @@
       "customSetup": "Configuración personalizada",
       "customSetupDescription": "Usa tu propio proveedor y clave API.",
       "description": "Elige cómo Mouthpiece transcribe tu voz",
-      "openwhisprCloud": "Mouthpiece Cloud",
-      "openwhisprCloudDescription": "Funciona de inmediato. Sin configuración necesaria.",
+      "mouthpieceCloud": "Mouthpiece Cloud",
+      "mouthpieceCloudDescription": "Funciona de inmediato. Sin configuración necesaria.",
       "title": "Voz a texto",
       "toasts": {
         "switchedCloud": {

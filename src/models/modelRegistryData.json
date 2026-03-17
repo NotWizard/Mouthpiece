@@ -590,7 +590,7 @@
       ]
     }
   ],
-  "openwhisprCloudModels": {
+  "mouthpieceCloudModels": {
     "tiers": [
       {
         "id": "fast",

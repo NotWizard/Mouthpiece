@@ -167,11 +167,11 @@ function TranscriptionSection({
   toast,
 }: TranscriptionSectionProps) {
   const { t } = useTranslation();
-  const openWhisprSelected = cloudTranscriptionMode === "openwhispr" && !useLocalWhisper;
-  const openWhisprLocked = !cloudAuthAvailable || !isSignedIn;
-  const isCloudMode = openWhisprSelected && !openWhisprLocked;
+  const mouthpieceSelected = (cloudTranscriptionMode === "mouthpiece" || cloudTranscriptionMode === "openwhispr") && !useLocalWhisper;
+  const mouthpieceLocked = !cloudAuthAvailable || !isSignedIn;
+  const isCloudMode = mouthpieceSelected && !mouthpieceLocked;
   const isCustomMode = cloudTranscriptionMode === "byok" || useLocalWhisper;
-  const showCustomSetup = isCustomMode || openWhisprLocked;
+  const showCustomSetup = isCustomMode || mouthpieceLocked;
   const cloudLockedLabel = !cloudAuthAvailable
     ? t("settingsPage.transcription.cloudDisabled")
     : t("settingsPage.transcription.cloudOffline");
@@ -489,6 +489,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     cloudTranscriptionBaseUrl,
     cloudReasoningBaseUrl,
     useReasoningModel,
+    voiceAssistantEnabled,
     reasoningModel,
     reasoningProvider,
     openaiApiKey,
@@ -511,6 +512,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     setCloudTranscriptionBaseUrl,
     setCloudReasoningBaseUrl,
     setUseReasoningModel,
+    setVoiceAssistantEnabled,
     setReasoningModel,
     setReasoningProvider,
     setOpenaiApiKey,
@@ -813,7 +815,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
               description: t("settingsPage.developer.removeModels.failedDescription"),
             });
           } else {
-            window.dispatchEvent(new Event("openwhispr-models-cleared"));
+            window.dispatchEvent(new Event("mouthpiece-models-cleared"));
             showAlertDialog({
               title: t("settingsPage.developer.removeModels.successTitle"),
               description: t("settingsPage.developer.removeModels.successDescription"),
@@ -1232,6 +1234,26 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
                 title={t("settingsPage.agentConfig.title")}
                 description={t("settingsPage.agentConfig.description")}
               />
+
+              {/* Voice Assistant Toggle */}
+              <div className="mb-5">
+                <SettingsPanel>
+                  <SettingsPanelRow>
+                    <SettingsRow
+                      label={t("settingsPage.agentConfig.voiceAssistantToggle")}
+                      description={t("settingsPage.agentConfig.voiceAssistantToggleDescription")}
+                    >
+                      <Toggle
+                        checked={voiceAssistantEnabled}
+                        onChange={(checked: boolean) => {
+                          setVoiceAssistantEnabled(checked);
+                          updateReasoningSettings({ voiceAssistantEnabled: checked });
+                        }}
+                      />
+                    </SettingsRow>
+                  </SettingsPanelRow>
+                </SettingsPanel>
+              </div>
 
               <div className="space-y-5">
                 <div>

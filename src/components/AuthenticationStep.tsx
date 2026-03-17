@@ -8,7 +8,7 @@ import {
   updateLastSignInTime,
   type SocialProvider,
 } from "../lib/neonAuth";
-import { OPENWHISPR_API_URL } from "../config/constants";
+import { MOUTHPIECE_API_URL, OPENWHISPR_API_URL } from "../config/constants";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { AlertCircle, ArrowRight, Check, Loader2, ChevronLeft } from "lucide-react";
@@ -98,9 +98,9 @@ export default function AuthenticationStep({
       return;
 
     const initAndComplete = async () => {
-      if (OPENWHISPR_API_URL) {
+      if (MOUTHPIECE_API_URL) {
         try {
-          const res = await fetch(`${OPENWHISPR_API_URL}/api/auth/init-user`, {
+          const res = await fetch(`${MOUTHPIECE_API_URL}/api/auth/init-user`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -172,12 +172,12 @@ export default function AuthenticationStep({
     setError(null);
 
     try {
-      if (!OPENWHISPR_API_URL) {
+      if (!MOUTHPIECE_API_URL) {
         setAuthMode("sign-up");
         return;
       }
 
-      const response = await fetch(`${OPENWHISPR_API_URL}/api/check-user`, {
+      const response = await fetch(`${MOUTHPIECE_API_URL}/api/check-user`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim() }),
@@ -240,9 +240,9 @@ export default function AuthenticationStep({
           } else {
             updateLastSignInTime();
 
-            if (OPENWHISPR_API_URL) {
+            if (MOUTHPIECE_API_URL) {
               try {
-                await fetch(`${OPENWHISPR_API_URL}/api/auth/init-user`, {
+                await fetch(`${MOUTHPIECE_API_URL}/api/auth/init-user`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({

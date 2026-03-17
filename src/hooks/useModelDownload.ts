@@ -93,8 +93,12 @@ export function useModelDownload({
 
   useEffect(() => {
     const handleModelsCleared = () => onModelsClearedRef.current?.();
+    window.addEventListener("mouthpiece-models-cleared", handleModelsCleared);
     window.addEventListener("openwhispr-models-cleared", handleModelsCleared);
-    return () => window.removeEventListener("openwhispr-models-cleared", handleModelsCleared);
+    return () => {
+      window.removeEventListener("mouthpiece-models-cleared", handleModelsCleared);
+      window.removeEventListener("openwhispr-models-cleared", handleModelsCleared);
+    };
   }, []);
 
   const handleWhisperProgress = useCallback(

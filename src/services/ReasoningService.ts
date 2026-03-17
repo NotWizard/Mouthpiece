@@ -637,6 +637,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
           result = await this.processWithGroq(text, model, agentName, config);
           break;
         case "openwhispr":
+        case "mouthpiece":
           result = await this.processWithMouthpiece(text, model, agentName, config);
           break;
         case "custom":
@@ -1230,7 +1231,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
     agentName: string | null = null,
     config: ReasoningConfig = {}
   ): Promise<string> {
-    logger.logReasoning("OPENWHISPR_START", { model, agentName });
+    logger.logReasoning("MOUTHPIECE_START", { model, agentName });
 
     if (this.isProcessing) {
       throw new Error("Already processing a request");
@@ -1263,7 +1264,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
         return res;
       });
 
-      logger.logReasoning("OPENWHISPR_SUCCESS", {
+      logger.logReasoning("MOUTHPIECE_SUCCESS", {
         model: result.model,
         provider: result.provider,
         resultLength: result.text.length,
@@ -1271,7 +1272,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
 
       return result.text;
     } catch (error) {
-      logger.logReasoning("OPENWHISPR_ERROR", {
+      logger.logReasoning("MOUTHPIECE_ERROR", {
         model,
         error: (error as Error).message,
       });

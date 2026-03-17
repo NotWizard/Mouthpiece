@@ -1,6 +1,6 @@
 import { createAuthClient } from "@neondatabase/auth";
 import { BetterAuthReactAdapter } from "@neondatabase/auth/react";
-import { OPENWHISPR_API_URL } from "../config/constants";
+import { MOUTHPIECE_API_URL, OPENWHISPR_API_URL } from "../config/constants";
 import { RUNTIME_CONFIG } from "../config/runtimeConfig";
 import { openExternalLink } from "../utils/externalLinks";
 import logger from "../utils/logger";
@@ -12,7 +12,8 @@ export const authClient = NEON_AUTH_URL
 
 export type SocialProvider = "google";
 
-const LAST_SIGN_IN_STORAGE_KEY = "openwhispr:lastSignInTime";
+const LAST_SIGN_IN_STORAGE_KEY = "mouthpiece:lastSignInTime";
+const LEGACY_SIGN_IN_STORAGE_KEY = "openwhispr:lastSignInTime";
 const GRACE_PERIOD_MS = 60_000;
 const GRACE_RETRY_COUNT = 6;
 const INITIAL_GRACE_RETRY_DELAY_MS = 500;
@@ -32,12 +33,17 @@ function loadLastSignInTimeFromStorage(): number | null {
   const storage = getLocalStorageSafe();
   if (!storage) return null;
 
-  const raw = storage.getItem(LAST_SIGN_IN_STORAGE_KEY);
+  // Check new key first, then legacy key for backward compatibility
+  let raw = storage.getItem(LAST_SIGN_IN_STORAGE_KEY);
+  if (!raw) {
+    raw = storage.getItem(LEGACY_SIGN_IN_STORAGE_KEY);
+  }
   if (!raw) return null;
 
   const parsed = Number(raw);
   if (!Number.isFinite(parsed) || parsed <= 0) {
     storage.removeItem(LAST_SIGN_IN_STORAGE_KEY);
+    storage.removeItem(LEGACY_SIGN_IN_STORAGE_KEY);
     return null;
   }
 
@@ -50,6 +56,7 @@ function persistLastSignInTime(value: number | null): void {
 
   if (value === null) {
     storage.removeItem(LAST_SIGN_IN_STORAGE_KEY);
+    storage.removeItem(LEGACY_SIGN_IN_STORAGE_KEY);
   } else {
     storage.setItem(LAST_SIGN_IN_STORAGE_KEY, String(value));
   }
@@ -209,8 +216,8 @@ export async function requestPasswordReset(email: string): Promise<{ error?: Err
   }
 
   try {
-    if (OPENWHISPR_API_URL) {
-      const res = await fetch(`${OPENWHISPR_API_URL}/api/auth/forgot-password`, {
+    if (MOUTHPIECE_API_URL) {
+      const res = await fetch(`${MOUTHPIECE_API_URL}/api/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim() }),

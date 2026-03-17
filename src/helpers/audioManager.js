@@ -1047,8 +1047,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const cloudTranscriptionMode = s.cloudTranscriptionMode;
       const isSignedIn = s.isSignedIn;
 
-      const isOpenWhisprCloudMode = !useLocalWhisper && cloudTranscriptionMode === "openwhispr";
-      const useCloud = isOpenWhisprCloudMode && isSignedIn;
+      const isMouthpieceCloudMode = !useLocalWhisper && (cloudTranscriptionMode === "mouthpiece" || cloudTranscriptionMode === "openwhispr");
+      const useCloud = isMouthpieceCloudMode && isSignedIn;
       logger.debug(
         "Transcription routing",
         { useLocalWhisper, useCloud, isSignedIn, cloudTranscriptionMode },
@@ -1065,16 +1065,16 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           activeModel = whisperModel;
           result = await this.processWithLocalWhisper(audioBlob, whisperModel, metadata);
         }
-      } else if (isOpenWhisprCloudMode) {
+      } else if (isMouthpieceCloudMode) {
         if (!isSignedIn) {
           const err = new Error(
-            "OpenWhispr Cloud requires sign-in. Please sign in again or switch to BYOK mode."
+            "Mouthpiece Cloud requires sign-in. Please sign in again or switch to BYOK mode."
           );
           err.code = "AUTH_REQUIRED";
           throw err;
         }
-        activeModel = "openwhispr-cloud";
-        result = await this.processWithOpenWhisprCloud(audioBlob, metadata);
+        activeModel = "mouthpiece-cloud";
+        result = await this.processWithMouthpieceCloud(audioBlob, metadata);
       } else {
         activeModel = this.getTranscriptionModel();
         result = await this.processWithOpenAIAPI(audioBlob, metadata);
@@ -1763,7 +1763,10 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         });
 
         let contextClassification = await this.buildReasoningContext(normalizedText, agentName);
-        contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
+        const settings = getSettings();
+        if (!settings.voiceAssistantEnabled) {
+          contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
+        }
         const result = await this.processWithReasoningModel(
           normalizedText,
           reasoningModel,
@@ -1987,7 +1990,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     return result;
   }
 
-  async processWithOpenWhisprCloud(audioBlob, metadata = {}) {
+  async processWithMouthpieceCloud(audioBlob, metadata = {}) {
     if (!navigator.onLine) {
       const err = new Error("You're offline. Cloud transcription requires an internet connection.");
       err.code = "OFFLINE";
@@ -2003,8 +2006,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const audioFormat = audioBlob.type;
     const opts = {};
     if (language) opts.language = language;
-    const reasoningMode = settings.cloudReasoningMode || "openwhispr";
-    if (settings.useReasoningModel && !this.skipReasoning && reasoningMode === "openwhispr") {
+    const reasoningMode = settings.cloudReasoningMode || "mouthpiece";
+    if (settings.useReasoningModel && !this.skipReasoning && (reasoningMode === "mouthpiece" || reasoningMode === "openwhispr")) {
       opts.sendLogs = "false";
     }
 
@@ -2032,17 +2035,19 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const explicitInstruction = this.isExplicitAgentInstruction(processedText, agentName);
       if (explicitInstruction) {
         logger.logReasoning("AGENT_WAKE_PHRASE_DETECTED_CLEANUP_ONLY_ENFORCED", {
-          source: "openwhispr-cloud",
+          source: "mouthpiece-cloud",
           textLength: processedText.length,
           agentName,
         });
       }
-      const cloudReasoningMode = settings.cloudReasoningMode || "openwhispr";
+      const cloudReasoningMode = settings.cloudReasoningMode || "mouthpiece";
       let contextClassification = await this.buildReasoningContext(processedText, agentName);
-      contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
+      if (!settings.voiceAssistantEnabled) {
+        contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
+      }
       const reasoningConfig = this.buildReasoningConfig(contextClassification);
 
-      if (cloudReasoningMode === "openwhispr") {
+      if (cloudReasoningMode === "mouthpiece" || cloudReasoningMode === "openwhispr") {
         const reasonResult = await withSessionRefresh(async () => {
           const systemPrompt = getSystemPrompt(
             agentName,
@@ -2081,8 +2086,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             processedText,
             reasonResult.text,
             reasoningConfig,
-            "openwhispr-cloud",
-            reasonResult.model || "openwhispr-cloud"
+            "mouthpiece-cloud",
+            reasonResult.model || "mouthpiece-cloud"
           );
         }
       } else {
@@ -2104,13 +2109,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
     processedText = this.applyDictionaryNormalization(
       this.basicDictationCleanup(processedText),
-      "openwhispr-cloud-final"
+      "mouthpiece-cloud-final"
     );
 
     return {
       success: true,
       text: processedText,
-      source: "openwhispr",
+      source: "mouthpiece",
       timings,
     };
   }
@@ -2771,7 +2776,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   shouldUseStreaming(isSignedInOverride) {
     const s = getSettings();
     const isSignedIn = isSignedInOverride ?? s.isSignedIn;
-    if (s.useLocalWhisper || s.cloudTranscriptionMode !== "openwhispr" || !isSignedIn) {
+    if (s.useLocalWhisper || (s.cloudTranscriptionMode !== "mouthpiece" && s.cloudTranscriptionMode !== "openwhispr") || !isSignedIn) {
       return false;
     }
 
@@ -3081,7 +3086,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       } else if (error.code === "AUTH_EXPIRED" || error.code === "AUTH_REQUIRED") {
         errorTitle = "Sign-in Required";
         errorDescription =
-          "Your OpenWhispr Cloud session is unavailable. Please sign in again from Settings.";
+          "Your Mouthpiece Cloud session is unavailable. Please sign in again from Settings.";
       }
 
       this.onError?.({
@@ -3230,11 +3235,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       }
       const cloudReasoningMode = stSettings.cloudReasoningMode || "openwhispr";
       let contextClassification = await this.buildReasoningContext(finalText, agentName);
-      contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
+      if (!stSettings.voiceAssistantEnabled) {
+        contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
+      }
       const reasoningConfig = this.buildReasoningConfig(contextClassification);
 
       try {
-        if (cloudReasoningMode === "openwhispr") {
+        if (cloudReasoningMode === "mouthpiece" || cloudReasoningMode === "openwhispr") {
           const reasonResult = await withSessionRefresh(async () => {
             const systemPrompt = getSystemPrompt(
               agentName,
@@ -3273,8 +3280,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
               finalText,
               reasonResult.text,
               reasoningConfig,
-              "openwhispr-cloud",
-              reasonResult.model || "openwhispr-cloud"
+              "mouthpiece-cloud",
+              reasonResult.model || "mouthpiece-cloud"
             );
           }
           usedCloudReasoning = true;
@@ -3325,7 +3332,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         "streaming"
       );
       try {
-        const batchResult = await this.processWithOpenWhisprCloud(fallbackBlob, {
+        const batchResult = await this.processWithMouthpieceCloud(fallbackBlob, {
           durationSeconds,
         });
         if (batchResult?.text) {

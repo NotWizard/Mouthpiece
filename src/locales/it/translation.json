@@ -732,7 +732,7 @@
       "none": "Nessuno",
       "outputLabel": "Output",
       "processing": "Elaborazione...",
-      "openwhisprCloud": "Mouthpiece Cloud",
+      "mouthpieceCloud": "Mouthpiece Cloud",
       "providerLabel": "Provider",
       "run": "Esegui test",
       "customEndpoint": "Endpoint personalizzato"
@@ -826,6 +826,8 @@
       "placeholder": "es. Jarvis, Nova, Atlas...",
       "save": "Salva",
       "title": "Agente vocale",
+      "voiceAssistantToggle": "Abilita Assistente Vocale",
+      "voiceAssistantToggleDescription": "Quando abilitato, dì \"Hey {{agentName}}\" per attivare la modalità istruzioni AI; quando disabilitato, viene usata solo la pulizia del testo",
       "examples": {
         "formalEmail": "Hey {{agentName}}, scrivi un'email formale sul budget",
         "professional": "Hey {{agentName}}, rendi questo più professionale",
@@ -838,8 +840,8 @@
       "description": "Correggi le trascrizioni, gestisci i comandi e risolvi gli errori preservando il tuo tono.",
       "enableTextCleanup": "Attiva correzione testo",
       "enableTextCleanupDescription": "L'IA migliora la qualità della trascrizione",
-      "openwhisprCloud": "Mouthpiece Cloud",
-      "openwhisprCloudDescription": "Funziona subito. Nessuna configurazione necessaria.",
+      "mouthpieceCloud": "Mouthpiece Cloud",
+      "mouthpieceCloudDescription": "Funziona subito. Nessuna configurazione necessaria.",
       "title": "Miglioramento testo con IA",
       "toasts": {
         "switchedCloud": {
@@ -1038,8 +1040,8 @@
       "customSetup": "Configurazione personalizzata",
       "customSetupDescription": "Usa il tuo provider e la tua chiave API.",
       "description": "Scegli come Mouthpiece trascrive la tua voce",
-      "openwhisprCloud": "Mouthpiece Cloud",
-      "openwhisprCloudDescription": "Funziona subito. Nessuna configurazione necessaria.",
+      "mouthpieceCloud": "Mouthpiece Cloud",
+      "mouthpieceCloudDescription": "Funziona subito. Nessuna configurazione necessaria.",
       "title": "Riconoscimento vocale",
       "toasts": {
         "switchedCloud": {

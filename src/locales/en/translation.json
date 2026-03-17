@@ -732,7 +732,7 @@
       "none": "None",
       "outputLabel": "Output",
       "processing": "Processing...",
-      "openwhisprCloud": "Mouthpiece Cloud",
+      "mouthpieceCloud": "Mouthpiece Cloud",
       "providerLabel": "Provider",
       "run": "Run Test",
       "customEndpoint": "Custom endpoint"
@@ -826,6 +826,8 @@
       "placeholder": "e.g. Jarvis, Nova, Atlas...",
       "save": "Save",
       "title": "Voice Agent",
+      "voiceAssistantToggle": "Enable Voice Assistant",
+      "voiceAssistantToggleDescription": "When enabled, say \"Hey {{agentName}}\" to trigger AI instruction mode; when disabled, only text cleanup is used",
       "examples": {
         "formalEmail": "Hey {{agentName}}, write a formal email about the budget",
         "professional": "Hey {{agentName}}, make this more professional",
@@ -838,8 +840,8 @@
       "description": "Clean up transcriptions, handle commands, and fix errors while preserving your tone.",
       "enableTextCleanup": "Enable text cleanup",
       "enableTextCleanupDescription": "AI improves transcription quality",
-      "openwhisprCloud": "Mouthpiece Cloud",
-      "openwhisprCloudDescription": "Just works. No configuration needed.",
+      "mouthpieceCloud": "Mouthpiece Cloud",
+      "mouthpieceCloudDescription": "Just works. No configuration needed.",
       "title": "AI Text Enhancement",
       "toasts": {
         "switchedCloud": {
@@ -1038,8 +1040,8 @@
       "customSetup": "Custom Setup",
       "customSetupDescription": "Use your own provider and API key.",
       "description": "Choose how Mouthpiece transcribes your voice",
-      "openwhisprCloud": "Mouthpiece Cloud",
-      "openwhisprCloudDescription": "Just works. No configuration needed.",
+      "mouthpieceCloud": "Mouthpiece Cloud",
+      "mouthpieceCloudDescription": "Just works. No configuration needed.",
       "title": "Speech to Text",
       "toasts": {
         "switchedCloud": {

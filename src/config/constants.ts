@@ -52,12 +52,17 @@ const computeBaseUrl = (candidates: Array<string | undefined>, fallback: string)
 };
 
 const DEFAULT_OPENAI_BASE = computeBaseUrl(
-  [env.OPENWHISPR_OPENAI_BASE_URL as string | undefined, env.OPENAI_BASE_URL as string | undefined],
+  [
+    env.MOUTHPIECE_OPENAI_BASE_URL as string | undefined,
+    env.OPENWHISPR_OPENAI_BASE_URL as string | undefined,
+    env.OPENAI_BASE_URL as string | undefined,
+  ],
   "https://api.openai.com/v1"
 );
 
 const DEFAULT_TRANSCRIPTION_BASE = computeBaseUrl(
   [
+    env.MOUTHPIECE_TRANSCRIPTION_BASE_URL as string | undefined,
     env.OPENWHISPR_TRANSCRIPTION_BASE_URL as string | undefined,
     env.WHISPER_BASE_URL as string | undefined,
   ],
@@ -109,6 +114,8 @@ export const CACHE_CONFIG = {
 } as const;
 
 // Mouthpiece Cloud API
+export const MOUTHPIECE_API_URL = RUNTIME_CONFIG.apiUrl;
+// Deprecated: Use MOUTHPIECE_API_URL instead
 export const OPENWHISPR_API_URL = RUNTIME_CONFIG.apiUrl;
 
 // Retry Configuration

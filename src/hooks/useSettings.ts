@@ -24,6 +24,7 @@ export interface TranscriptionSettings {
 
 export interface ReasoningSettings {
   useReasoningModel: boolean;
+  voiceAssistantEnabled: boolean;
   reasoningModel: string;
   reasoningProvider: string;
   cloudReasoningBaseUrl?: string;
@@ -168,6 +169,7 @@ function useSettingsInternal() {
     assemblyAiStreaming: store.assemblyAiStreaming,
     setAssemblyAiStreaming: store.setAssemblyAiStreaming,
     useReasoningModel: store.useReasoningModel,
+    voiceAssistantEnabled: store.voiceAssistantEnabled,
     reasoningModel: store.reasoningModel,
     reasoningProvider: store.reasoningProvider,
     openaiApiKey: store.openaiApiKey,
@@ -194,6 +196,7 @@ function useSettingsInternal() {
     setCloudReasoningMode: store.setCloudReasoningMode,
     setCustomDictionary: store.setCustomDictionary,
     setUseReasoningModel: store.setUseReasoningModel,
+    setVoiceAssistantEnabled: store.setVoiceAssistantEnabled,
     setReasoningModel: store.setReasoningModel,
     setReasoningProvider: store.setReasoningProvider,
     setOpenaiApiKey: store.setOpenaiApiKey,
