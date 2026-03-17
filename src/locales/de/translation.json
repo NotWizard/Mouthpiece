@@ -249,7 +249,9 @@
       "unableToLoadModels": "Modelle konnten nicht vom Endpoint geladen werden.",
       "selectModelPlaceholder": "Modell auswählen...",
       "searchModelsPlaceholder": "Modelle suchen...",
-      "noModelsAvailable": "Keine Modelle verfügbar"
+      "noModelsAvailable": "Keine Modelle verfügbar",
+      "enableThinkingLabel": "Denkmodus aktivieren",
+      "enableThinkingHelp": "Schalten Sie dies aus, um die KI-Textverbesserung bei kompatiblen Modellen zu beschleunigen. Gilt nur für benutzerdefinierte OpenAI-kompatible Endpunkte mit Unterstützung für `enable_thinking`."
     },
     "getApiKey": "API-Schlüssel holen ->",
     "selectModel": "Modell auswählen",

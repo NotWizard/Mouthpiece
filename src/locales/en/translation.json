@@ -249,7 +249,9 @@
       "unableToLoadModels": "Unable to load models from endpoint.",
       "selectModelPlaceholder": "Select a model...",
       "searchModelsPlaceholder": "Search models...",
-      "noModelsAvailable": "No models available"
+      "noModelsAvailable": "No models available",
+      "enableThinkingLabel": "Enable thinking",
+      "enableThinkingHelp": "Turn this off to speed up AI cleanup on compatible models. Only applies to custom OpenAI-compatible endpoints that support `enable_thinking`."
     },
     "getApiKey": "Get your API key ->",
     "selectModel": "Select Model",

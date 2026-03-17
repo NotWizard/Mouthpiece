@@ -249,7 +249,9 @@
       "unableToLoadModels": "Не удалось загрузить модели с конечной точки.",
       "selectModelPlaceholder": "Выберите модель...",
       "searchModelsPlaceholder": "Поиск моделей...",
-      "noModelsAvailable": "Нет доступных моделей"
+      "noModelsAvailable": "Нет доступных моделей",
+      "enableThinkingLabel": "Включить размышление",
+      "enableThinkingHelp": "Отключите это, чтобы ускорить улучшение текста ИИ на совместимых моделях. Применяется только к пользовательским OpenAI-совместимым endpoint, которые поддерживают `enable_thinking`."
     },
     "getApiKey": "Получить API-ключ ->",
     "selectModel": "Выберите модель",

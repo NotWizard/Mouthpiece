@@ -313,6 +313,8 @@ interface AiModelsSectionProps {
   setGroqApiKey: (key: string) => void;
   customReasoningApiKey: string;
   setCustomReasoningApiKey: (key: string) => void;
+  customReasoningEnableThinking: boolean;
+  setCustomReasoningEnableThinking: (enabled: boolean) => void;
   showAlertDialog: (dialog: { title: string; description: string }) => void;
   toast: (opts: {
     title: string;
@@ -344,6 +346,8 @@ function AiModelsSection({
   setGroqApiKey,
   customReasoningApiKey,
   setCustomReasoningApiKey,
+  customReasoningEnableThinking,
+  setCustomReasoningEnableThinking,
   showAlertDialog,
   toast,
 }: AiModelsSectionProps) {
@@ -456,6 +460,8 @@ function AiModelsSection({
               setGroqApiKey={setGroqApiKey}
               customReasoningApiKey={customReasoningApiKey}
               setCustomReasoningApiKey={setCustomReasoningApiKey}
+              customReasoningEnableThinking={customReasoningEnableThinking}
+              setCustomReasoningEnableThinking={setCustomReasoningEnableThinking}
             />
           )}
         </>
@@ -488,6 +494,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     useReasoningModel,
     reasoningModel,
     reasoningProvider,
+    customReasoningEnableThinking,
     openaiApiKey,
     anthropicApiKey,
     geminiApiKey,
@@ -510,6 +517,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     setUseReasoningModel,
     setReasoningModel,
     setReasoningProvider,
+    setCustomReasoningEnableThinking,
     setOpenaiApiKey,
     setAnthropicApiKey,
     setGeminiApiKey,
@@ -1003,6 +1011,8 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
             setGroqApiKey={setGroqApiKey}
             customReasoningApiKey={customReasoningApiKey}
             setCustomReasoningApiKey={setCustomReasoningApiKey}
+            customReasoningEnableThinking={customReasoningEnableThinking}
+            setCustomReasoningEnableThinking={setCustomReasoningEnableThinking}
             showAlertDialog={showAlertDialog}
             toast={toast}
           />
@@ -1047,6 +1057,8 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
               setGroqApiKey={setGroqApiKey}
               customReasoningApiKey={customReasoningApiKey}
               setCustomReasoningApiKey={setCustomReasoningApiKey}
+              customReasoningEnableThinking={customReasoningEnableThinking}
+              setCustomReasoningEnableThinking={setCustomReasoningEnableThinking}
               showAlertDialog={showAlertDialog}
               toast={toast}
             />

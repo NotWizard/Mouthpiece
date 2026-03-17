@@ -29,6 +29,7 @@ export interface ReasoningSettings {
   reasoningProvider: string;
   cloudReasoningBaseUrl?: string;
   cloudReasoningMode: string;
+  customReasoningEnableThinking: boolean;
 }
 
 export interface HotkeySettings {
@@ -165,6 +166,7 @@ function useSettingsInternal() {
     cloudReasoningBaseUrl: store.cloudReasoningBaseUrl,
     cloudTranscriptionMode: store.cloudTranscriptionMode,
     cloudReasoningMode: store.cloudReasoningMode,
+    customReasoningEnableThinking: store.customReasoningEnableThinking,
     customDictionary: store.customDictionary,
     assemblyAiStreaming: store.assemblyAiStreaming,
     setAssemblyAiStreaming: store.setAssemblyAiStreaming,
@@ -194,6 +196,7 @@ function useSettingsInternal() {
     setCloudReasoningBaseUrl: store.setCloudReasoningBaseUrl,
     setCloudTranscriptionMode: store.setCloudTranscriptionMode,
     setCloudReasoningMode: store.setCloudReasoningMode,
+    setCustomReasoningEnableThinking: store.setCustomReasoningEnableThinking,
     setCustomDictionary: store.setCustomDictionary,
     setUseReasoningModel: store.setUseReasoningModel,
     setVoiceAssistantEnabled: store.setVoiceAssistantEnabled,
@@ -228,7 +231,15 @@ function useSettingsInternal() {
 
 export type SettingsValue = ReturnType<typeof useSettingsInternal>;
 
-const SettingsContext = createContext<SettingsValue | null>(null);
+declare global {
+  var __mouthpieceSettingsContext: React.Context<SettingsValue | null> | undefined;
+}
+
+const SettingsContext = globalThis.__mouthpieceSettingsContext ?? createContext<SettingsValue | null>(null);
+
+if (!globalThis.__mouthpieceSettingsContext) {
+  globalThis.__mouthpieceSettingsContext = SettingsContext;
+}
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const value = useSettingsInternal();

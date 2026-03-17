@@ -342,6 +342,82 @@ test("custom reasoning falls back to chat completions when responses times out",
   }
 });
 
+test("custom reasoning can explicitly enable thinking for chat completions", async () => {
+  const requests = [];
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options = {}) => {
+    const body = options.body ? JSON.parse(options.body) : null;
+    requests.push({
+      url: String(url),
+      body,
+      headers: options.headers || {},
+    });
+
+    if (String(url).endsWith("/responses")) {
+      return new Response(JSON.stringify({ error: { message: "not supported" } }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(
+      JSON.stringify({
+        choices: [{ message: { content: "我在上海没有亲戚朋友。" } }],
+        usage: { total_tokens: 42 },
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  };
+
+  const { service, cleanup } = await loadReasoningService({
+    storage: {
+      customReasoningApiKey: "sk-test-custom",
+      customReasoningEnableThinking: "true",
+      preferredLanguage: "zh-CN",
+      cloudReasoningBaseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    },
+    electronAPI: {
+      getCustomReasoningKey: async () => "sk-test-custom",
+    },
+  });
+
+  try {
+    const result = await service.processText("嗯，我上海没亲戚朋友。", "qwen3.5-flash", "AI", {
+      contextClassification: {
+        context: "general",
+        intent: "cleanup",
+        confidence: 0.9,
+        strictMode: true,
+        strictOverlapThreshold: 0.72,
+        signals: [],
+        targetApp: {
+          appName: "Notes",
+          processId: 1,
+          platform: "darwin",
+          source: "renderer-fallback",
+          capturedAt: null,
+        },
+      },
+      strictMode: true,
+      strictOverlapThreshold: 0.86,
+    });
+
+    assert.equal(result, "我在上海没有亲戚朋友。");
+    assert.equal(requests.length, 2);
+    assert.equal(
+      requests[1].url,
+      "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+    );
+    assert.equal(requests[1].body.enable_thinking, true);
+  } finally {
+    globalThis.fetch = previousFetch;
+    cleanup();
+  }
+});
+
 test("custom reasoning keeps Chinese cleanup output when the API returns a polished rewrite", async () => {
   const requests = [];
   const previousFetch = globalThis.fetch;

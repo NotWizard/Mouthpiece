@@ -744,7 +744,9 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
       ];
 
       const isOlderModel = model && (model.startsWith("gpt-4") || model.startsWith("gpt-3"));
-      const isCustomQwenModel = isCustomProvider && /qwen/i.test(model);
+      const customReasoningEnableThinking = isCustomProvider
+        ? getSettings().customReasoningEnableThinking
+        : false;
 
       const openAiBase = this.getConfiguredOpenAIBase();
       const endpointCandidates = this.getOpenAIEndpointCandidates(openAiBase, {
@@ -787,8 +789,8 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
               requestBody.store = false;
             } else {
               requestBody.messages = messages;
-              if (isCustomQwenModel) {
-                requestBody.enable_thinking = false;
+              if (isCustomProvider) {
+                requestBody.enable_thinking = customReasoningEnableThinking;
               }
               if (isOlderModel) {
                 requestBody.temperature = config.temperature || 0.3;

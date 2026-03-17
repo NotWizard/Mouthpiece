@@ -249,7 +249,9 @@
       "unableToLoadModels": "无法从端点加载模型。",
       "selectModelPlaceholder": "选择模型...",
       "searchModelsPlaceholder": "搜索模型...",
-      "noModelsAvailable": "没有可用模型"
+      "noModelsAvailable": "没有可用模型",
+      "enableThinkingLabel": "开启思考",
+      "enableThinkingHelp": "关闭后，兼容模型上的 AI 文本增强通常会更快。仅对支持 `enable_thinking` 的自定义 OpenAI 兼容端点生效。"
     },
     "getApiKey": "获取你的 API Key ->",
     "selectModel": "选择模型",

@@ -72,6 +72,7 @@ const BOOLEAN_SETTINGS = new Set([
   "assemblyAiStreaming",
   "useReasoningModel",
   "voiceAssistantEnabled",
+  "customReasoningEnableThinking",
   "preferBuiltInMic",
   "cloudBackupEnabled",
   "audioCuesEnabled",
@@ -118,6 +119,7 @@ export interface SettingsState
   setCloudTranscriptionMode: (value: string) => void;
   setCloudReasoningMode: (value: string) => void;
   setCloudReasoningBaseUrl: (value: string) => void;
+  setCustomReasoningEnableThinking: (value: boolean) => void;
   setCustomDictionary: (words: string[]) => void;
   setAssemblyAiStreaming: (value: boolean) => void;
   setUseReasoningModel: (value: boolean) => void;
@@ -223,6 +225,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   ),
   cloudReasoningMode: normalizeCloudMode(readString("cloudReasoningMode", "byok")),
   cloudReasoningBaseUrl: readString("cloudReasoningBaseUrl", API_ENDPOINTS.OPENAI_BASE),
+  customReasoningEnableThinking: readBoolean("customReasoningEnableThinking", false),
   customDictionary: readStringArray("customDictionary", []),
   assemblyAiStreaming: readBoolean("assemblyAiStreaming", true),
 
@@ -270,6 +273,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setCloudTranscriptionMode: createStringSetter("cloudTranscriptionMode"),
   setCloudReasoningMode: createStringSetter("cloudReasoningMode"),
   setCloudReasoningBaseUrl: createStringSetter("cloudReasoningBaseUrl"),
+  setCustomReasoningEnableThinking: createBooleanSetter("customReasoningEnableThinking"),
   setAssemblyAiStreaming: createBooleanSetter("assemblyAiStreaming"),
   setUseReasoningModel: createBooleanSetter("useReasoningModel"),
   setVoiceAssistantEnabled: createBooleanSetter("voiceAssistantEnabled"),
@@ -414,6 +418,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       s.setCloudReasoningBaseUrl(settings.cloudReasoningBaseUrl);
     if (settings.cloudReasoningMode !== undefined)
       s.setCloudReasoningMode(settings.cloudReasoningMode);
+    if (settings.customReasoningEnableThinking !== undefined)
+      s.setCustomReasoningEnableThinking(settings.customReasoningEnableThinking);
   },
 
   updateApiKeys: (keys: Partial<ApiKeySettings>) => {

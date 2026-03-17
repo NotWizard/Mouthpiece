@@ -249,7 +249,9 @@
       "unableToLoadModels": "Impossible de charger les modèles depuis le endpoint.",
       "selectModelPlaceholder": "Sélectionner un modèle...",
       "searchModelsPlaceholder": "Rechercher des modèles...",
-      "noModelsAvailable": "Aucun modèle disponible"
+      "noModelsAvailable": "Aucun modèle disponible",
+      "enableThinkingLabel": "Activer la réflexion",
+      "enableThinkingHelp": "Désactivez cette option pour accélérer l'amélioration de texte IA sur les modèles compatibles. S'applique uniquement aux endpoints OpenAI personnalisés compatibles avec `enable_thinking`."
     },
     "getApiKey": "Obtenir la clé API ->",
     "selectModel": "Sélectionner un modèle",

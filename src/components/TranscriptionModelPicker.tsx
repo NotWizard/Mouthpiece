@@ -851,6 +851,7 @@ export default function TranscriptionModelPicker({
                   setApiKey={setCustomTranscriptionApiKey || (() => {})}
                   label={t("transcription.apiKeyOptional")}
                   helpText=""
+                  saveMode="immediate"
                 />
 
                 <div className="space-y-1.5">

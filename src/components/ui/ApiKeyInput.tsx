@@ -13,6 +13,7 @@ interface ApiKeyInputProps {
   ariaLabel?: string;
   helpText?: React.ReactNode;
   variant?: "default" | "purple";
+  saveMode?: "manual" | "immediate";
 }
 
 function maskKey(key: string): string {
@@ -29,6 +30,7 @@ export default function ApiKeyInput({
   ariaLabel,
   helpText,
   variant = "default",
+  saveMode = "manual",
 }: ApiKeyInputProps) {
   const { t } = useTranslation();
   const resolvedPlaceholder = placeholder ?? t("apiKeyInput.placeholder");
@@ -88,6 +90,35 @@ export default function ApiKeyInput({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isEditing]);
+
+  if (saveMode === "immediate") {
+    return (
+      <div className={className}>
+        {resolvedLabel && (
+          <label className="block text-xs font-medium text-foreground mb-1">{resolvedLabel}</label>
+        )}
+
+        <Input
+          type="text"
+          placeholder={resolvedPlaceholder}
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          onBlur={(e) => {
+            const trimmedValue = e.target.value.trim();
+            if (trimmedValue !== apiKey) {
+              setApiKey(trimmedValue);
+            }
+          }}
+          aria-label={ariaLabel || resolvedLabel || t("apiKeyInput.label")}
+          className={`h-8 text-sm font-mono ${variantClasses}`}
+          autoComplete="off"
+          spellCheck={false}
+        />
+
+        {helpText && <p className="text-xs text-muted-foreground/70 mt-1">{helpText}</p>}
+      </div>
+    );
+  }
 
   return (
     <div className={className}>

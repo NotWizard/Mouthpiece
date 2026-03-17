@@ -10,6 +10,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Cloud, Lock, Zap } from "lucide-react";
 import ApiKeyInput from "./ui/ApiKeyInput";
+import { Toggle } from "./ui/toggle";
 import ModelCardList from "./ui/ModelCardList";
 import SearchableModelSelect from "./ui/SearchableModelSelect";
 import LocalModelPicker, { type LocalProvider } from "./LocalModelPicker";
@@ -50,6 +51,8 @@ interface ReasoningModelSelectorProps {
   setGroqApiKey: (key: string) => void;
   customReasoningApiKey?: string;
   setCustomReasoningApiKey?: (key: string) => void;
+  customReasoningEnableThinking: boolean;
+  setCustomReasoningEnableThinking: (enabled: boolean) => void;
 }
 
 function GpuStatusBadge() {
@@ -320,6 +323,8 @@ export default function ReasoningModelSelector({
   setGroqApiKey,
   customReasoningApiKey = "",
   setCustomReasoningApiKey,
+  customReasoningEnableThinking,
+  setCustomReasoningEnableThinking,
 }: ReasoningModelSelectorProps) {
   const { t } = useTranslation();
   const [selectedMode, setSelectedMode] = useState<"cloud" | "local">("cloud");
@@ -786,7 +791,29 @@ export default function ReasoningModelSelector({
                       setApiKey={setCustomReasoningApiKey || (() => {})}
                       label=""
                       helpText={t("reasoning.custom.apiKeyHelp")}
+                      saveMode="immediate"
                     />
+                  </div>
+
+                  <div className="pt-3">
+                    <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-medium text-foreground">
+                            {t("reasoning.custom.enableThinkingLabel")}
+                          </h4>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {t("reasoning.custom.enableThinkingHelp")}
+                          </p>
+                        </div>
+                        <div className="shrink-0 pt-0.5">
+                          <Toggle
+                            checked={customReasoningEnableThinking}
+                            onChange={setCustomReasoningEnableThinking}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-2 pt-3">

@@ -249,7 +249,9 @@
       "unableToLoadModels": "無法從端點載入模型。",
       "selectModelPlaceholder": "選擇模型...",
       "searchModelsPlaceholder": "搜尋模型...",
-      "noModelsAvailable": "沒有可用模型"
+      "noModelsAvailable": "沒有可用模型",
+      "enableThinkingLabel": "開啟思考",
+      "enableThinkingHelp": "關閉後，AI 文字增強在相容模型上通常會更快。僅對支援 `enable_thinking` 的自訂 OpenAI 相容端點生效。"
     },
     "getApiKey": "取得 API Key ->",
     "selectModel": "選擇模型",

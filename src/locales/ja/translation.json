@@ -249,7 +249,9 @@
       "unableToLoadModels": "エンドポイントからモデルを読み込めませんでした。",
       "selectModelPlaceholder": "モデルを選択...",
       "searchModelsPlaceholder": "モデルを検索...",
-      "noModelsAvailable": "利用可能なモデルがありません"
+      "noModelsAvailable": "利用可能なモデルがありません",
+      "enableThinkingLabel": "思考を有効にする",
+      "enableThinkingHelp": "無効にすると、互換モデルでの AI テキスト補正が通常より速くなります。`enable_thinking` をサポートするカスタム OpenAI 互換エンドポイントにのみ適用されます。"
     },
     "getApiKey": "API キーを取得 ->",
     "selectModel": "モデルを選択",
