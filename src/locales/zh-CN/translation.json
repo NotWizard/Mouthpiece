@@ -1236,6 +1236,8 @@
     "cancelEdit": "取消编辑",
     "edit": "编辑",
     "add": "添加",
+    "show": "显示 API Key",
+    "hide": "隐藏 API Key",
     "editButton": "编辑密钥",
     "addButton": "添加密钥"
   },

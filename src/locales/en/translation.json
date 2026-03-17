@@ -1236,6 +1236,8 @@
     "cancelEdit": "Cancel editing",
     "edit": "Edit API key",
     "add": "Add API key",
+    "show": "Show API key",
+    "hide": "Hide API key",
     "editButton": "edit",
     "addButton": "add"
   },

@@ -1236,6 +1236,8 @@
     "cancelEdit": "Cancelar edição",
     "edit": "Editar",
     "add": "Adicionar",
+    "show": "Mostrar chave da API",
+    "hide": "Ocultar chave da API",
     "editButton": "Editar",
     "addButton": "Adicionar"
   },

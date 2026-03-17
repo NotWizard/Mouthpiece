@@ -1236,6 +1236,8 @@
     "cancelEdit": "Annulla modifica",
     "edit": "Modifica",
     "add": "Aggiungi",
+    "show": "Mostra chiave API",
+    "hide": "Nascondi chiave API",
     "editButton": "Modifica",
     "addButton": "Aggiungi"
   },
