@@ -255,7 +255,11 @@
     },
     "getApiKey": "获取你的 API Key ->",
     "selectModel": "选择模型",
-    "availableModels": "可用模型"
+    "availableModels": "可用模型",
+    "bailian": {
+      "apiKeyHelp": "填写你的阿里百炼 API Key。请求会固定走 DashScope 的 OpenAI 兼容 chat completions 端点。",
+      "enableThinkingHelp": "默认关闭以获得更快的文本清理速度。只有在你确实需要更深的推理、并且能接受更高延迟时再开启。"
+    }
   },
   "transcription": {
     "deleteModel": {

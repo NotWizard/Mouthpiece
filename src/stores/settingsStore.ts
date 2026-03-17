@@ -72,6 +72,7 @@ const BOOLEAN_SETTINGS = new Set([
   "assemblyAiStreaming",
   "useReasoningModel",
   "voiceAssistantEnabled",
+  "bailianReasoningEnableThinking",
   "customReasoningEnableThinking",
   "preferBuiltInMic",
   "cloudBackupEnabled",
@@ -119,6 +120,7 @@ export interface SettingsState
   setCloudTranscriptionMode: (value: string) => void;
   setCloudReasoningMode: (value: string) => void;
   setCloudReasoningBaseUrl: (value: string) => void;
+  setBailianReasoningEnableThinking: (value: boolean) => void;
   setCustomReasoningEnableThinking: (value: boolean) => void;
   setCustomDictionary: (words: string[]) => void;
   setAssemblyAiStreaming: (value: boolean) => void;
@@ -133,6 +135,7 @@ export interface SettingsState
   setGeminiApiKey: (key: string) => void;
   setGroqApiKey: (key: string) => void;
   setMistralApiKey: (key: string) => void;
+  setBailianApiKey: (key: string) => void;
   setCustomTranscriptionApiKey: (key: string) => void;
   setCustomReasoningApiKey: (key: string) => void;
 
@@ -181,7 +184,7 @@ function debouncedPersistToEnv() {
 }
 
 function invalidateApiKeyCaches(
-  provider?: "openai" | "anthropic" | "gemini" | "groq" | "mistral" | "custom"
+  provider?: "openai" | "anthropic" | "gemini" | "groq" | "mistral" | "custom" | "bailian"
 ) {
   if (provider) {
     if (_ReasoningService) {
@@ -225,6 +228,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   ),
   cloudReasoningMode: normalizeCloudMode(readString("cloudReasoningMode", "byok")),
   cloudReasoningBaseUrl: readString("cloudReasoningBaseUrl", API_ENDPOINTS.OPENAI_BASE),
+  bailianReasoningEnableThinking: readBoolean("bailianReasoningEnableThinking", false),
   customReasoningEnableThinking: readBoolean("customReasoningEnableThinking", false),
   customDictionary: readStringArray("customDictionary", []),
   assemblyAiStreaming: readBoolean("assemblyAiStreaming", true),
@@ -239,6 +243,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   geminiApiKey: readString("geminiApiKey", ""),
   groqApiKey: readString("groqApiKey", ""),
   mistralApiKey: readString("mistralApiKey", ""),
+  bailianApiKey: readString("bailianApiKey", ""),
   customTranscriptionApiKey: readString("customTranscriptionApiKey", ""),
   customReasoningApiKey: readString("customReasoningApiKey", ""),
 
@@ -273,6 +278,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setCloudTranscriptionMode: createStringSetter("cloudTranscriptionMode"),
   setCloudReasoningMode: createStringSetter("cloudReasoningMode"),
   setCloudReasoningBaseUrl: createStringSetter("cloudReasoningBaseUrl"),
+  setBailianReasoningEnableThinking: createBooleanSetter("bailianReasoningEnableThinking"),
   setCustomReasoningEnableThinking: createBooleanSetter("customReasoningEnableThinking"),
   setAssemblyAiStreaming: createBooleanSetter("assemblyAiStreaming"),
   setUseReasoningModel: createBooleanSetter("useReasoningModel"),
@@ -337,6 +343,12 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     set({ mistralApiKey: key });
     window.electronAPI?.saveMistralKey?.(key);
     invalidateApiKeyCaches("mistral");
+  },
+  setBailianApiKey: (key: string) => {
+    if (isBrowser) localStorage.setItem("bailianApiKey", key);
+    set({ bailianApiKey: key });
+    window.electronAPI?.saveBailianKey?.(key);
+    invalidateApiKeyCaches("bailian");
   },
   setCustomTranscriptionApiKey: (key: string) => {
     if (isBrowser) localStorage.setItem("customTranscriptionApiKey", key);
@@ -418,6 +430,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       s.setCloudReasoningBaseUrl(settings.cloudReasoningBaseUrl);
     if (settings.cloudReasoningMode !== undefined)
       s.setCloudReasoningMode(settings.cloudReasoningMode);
+    if (settings.bailianReasoningEnableThinking !== undefined)
+      s.setBailianReasoningEnableThinking(settings.bailianReasoningEnableThinking);
     if (settings.customReasoningEnableThinking !== undefined)
       s.setCustomReasoningEnableThinking(settings.customReasoningEnableThinking);
   },
@@ -429,6 +443,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     if (keys.geminiApiKey !== undefined) s.setGeminiApiKey(keys.geminiApiKey);
     if (keys.groqApiKey !== undefined) s.setGroqApiKey(keys.groqApiKey);
     if (keys.mistralApiKey !== undefined) s.setMistralApiKey(keys.mistralApiKey);
+    if (keys.bailianApiKey !== undefined) s.setBailianApiKey(keys.bailianApiKey);
     if (keys.customTranscriptionApiKey !== undefined)
       s.setCustomTranscriptionApiKey(keys.customTranscriptionApiKey);
     if (keys.customReasoningApiKey !== undefined)
@@ -503,6 +518,10 @@ export async function initializeSettings(): Promise<void> {
         const envKey = await window.electronAPI.getMistralKey?.();
         if (envKey) createStringSetter("mistralApiKey")(envKey);
       }
+      if (!state.bailianApiKey) {
+        const envKey = await window.electronAPI.getBailianKey?.();
+        if (envKey) createStringSetter("bailianApiKey")(envKey);
+      }
       if (!state.customTranscriptionApiKey) {
         const envKey = await window.electronAPI.getCustomTranscriptionKey?.();
         if (envKey) createStringSetter("customTranscriptionApiKey")(envKey);
@@ -523,6 +542,7 @@ export async function initializeSettings(): Promise<void> {
     const hasExplicitCloudMode = Boolean(localStorage.getItem("cloudTranscriptionMode"));
     const hasEnvOrStoredByokKey = hasAnyByokKey([
       refreshedState.openaiApiKey,
+      refreshedState.bailianApiKey,
       refreshedState.groqApiKey,
       refreshedState.mistralApiKey,
       refreshedState.customTranscriptionApiKey,

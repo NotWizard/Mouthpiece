@@ -312,6 +312,27 @@
           "descriptionKey": "models.descriptions.cloud.groq_kimi_k2_0905"
         }
       ]
+    },
+    {
+      "id": "bailian",
+      "name": "Alibaba Bailian",
+      "models": [
+        {
+          "id": "qwen3.5-flash",
+          "name": "Qwen 3.5 Flash",
+          "description": "Fast default for low-latency cleanup"
+        },
+        {
+          "id": "qwen3.5-plus",
+          "name": "Qwen 3.5 Plus",
+          "description": "Higher quality with moderate latency"
+        },
+        {
+          "id": "qwen3-max",
+          "name": "Qwen 3 Max",
+          "description": "Most capable Bailian model"
+        }
+      ]
     }
   ],
   "localProviders": [

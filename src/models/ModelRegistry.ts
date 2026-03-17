@@ -256,6 +256,10 @@ export function getModelProvider(modelId: string): string {
     return "mouthpiece";
   }
 
+  if (getSettings().reasoningProvider === "bailian") {
+    return "bailian";
+  }
+
   if (getSettings().reasoningProvider === "custom") {
     return "custom";
   }

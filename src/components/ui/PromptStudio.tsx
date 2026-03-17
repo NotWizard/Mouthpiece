@@ -37,6 +37,7 @@ const PROVIDER_CONFIG: Record<string, ProviderConfig> = {
   anthropic: { label: "Anthropic", apiKeyStorageKey: "anthropicApiKey" },
   gemini: { label: "Gemini", apiKeyStorageKey: "geminiApiKey" },
   groq: { label: "Groq", apiKeyStorageKey: "groqApiKey" },
+  bailian: { label: "Alibaba Bailian", apiKeyStorageKey: "bailianApiKey" },
   openwhispr: { label: "Mouthpiece Cloud" },
   mouthpiece: { label: "Mouthpiece Cloud" },
   custom: {

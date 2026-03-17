@@ -29,6 +29,7 @@ export interface ReasoningSettings {
   reasoningProvider: string;
   cloudReasoningBaseUrl?: string;
   cloudReasoningMode: string;
+  bailianReasoningEnableThinking: boolean;
   customReasoningEnableThinking: boolean;
 }
 
@@ -47,6 +48,7 @@ export interface ApiKeySettings {
   geminiApiKey: string;
   groqApiKey: string;
   mistralApiKey: string;
+  bailianApiKey: string;
   customTranscriptionApiKey: string;
   customReasoningApiKey: string;
 }
@@ -166,6 +168,7 @@ function useSettingsInternal() {
     cloudReasoningBaseUrl: store.cloudReasoningBaseUrl,
     cloudTranscriptionMode: store.cloudTranscriptionMode,
     cloudReasoningMode: store.cloudReasoningMode,
+    bailianReasoningEnableThinking: store.bailianReasoningEnableThinking,
     customReasoningEnableThinking: store.customReasoningEnableThinking,
     customDictionary: store.customDictionary,
     assemblyAiStreaming: store.assemblyAiStreaming,
@@ -179,6 +182,7 @@ function useSettingsInternal() {
     geminiApiKey: store.geminiApiKey,
     groqApiKey: store.groqApiKey,
     mistralApiKey: store.mistralApiKey,
+    bailianApiKey: store.bailianApiKey,
     dictationKey: store.dictationKey,
     theme: store.theme,
     setUseLocalWhisper: store.setUseLocalWhisper,
@@ -196,6 +200,7 @@ function useSettingsInternal() {
     setCloudReasoningBaseUrl: store.setCloudReasoningBaseUrl,
     setCloudTranscriptionMode: store.setCloudTranscriptionMode,
     setCloudReasoningMode: store.setCloudReasoningMode,
+    setBailianReasoningEnableThinking: store.setBailianReasoningEnableThinking,
     setCustomReasoningEnableThinking: store.setCustomReasoningEnableThinking,
     setCustomDictionary: store.setCustomDictionary,
     setUseReasoningModel: store.setUseReasoningModel,
@@ -207,6 +212,7 @@ function useSettingsInternal() {
     setGeminiApiKey: store.setGeminiApiKey,
     setGroqApiKey: store.setGroqApiKey,
     setMistralApiKey: store.setMistralApiKey,
+    setBailianApiKey: store.setBailianApiKey,
     customTranscriptionApiKey: store.customTranscriptionApiKey,
     setCustomTranscriptionApiKey: store.setCustomTranscriptionApiKey,
     customReasoningApiKey: store.customReasoningApiKey,

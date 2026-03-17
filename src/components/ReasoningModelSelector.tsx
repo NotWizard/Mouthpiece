@@ -49,6 +49,10 @@ interface ReasoningModelSelectorProps {
   setGeminiApiKey: (key: string) => void;
   groqApiKey: string;
   setGroqApiKey: (key: string) => void;
+  bailianApiKey: string;
+  setBailianApiKey: (key: string) => void;
+  bailianReasoningEnableThinking: boolean;
+  setBailianReasoningEnableThinking: (enabled: boolean) => void;
   customReasoningApiKey?: string;
   setCustomReasoningApiKey?: (key: string) => void;
   customReasoningEnableThinking: boolean;
@@ -321,6 +325,10 @@ export default function ReasoningModelSelector({
   setGeminiApiKey,
   groqApiKey,
   setGroqApiKey,
+  bailianApiKey,
+  setBailianApiKey,
+  bailianReasoningEnableThinking,
+  setBailianReasoningEnableThinking,
   customReasoningApiKey = "",
   setCustomReasoningApiKey,
   customReasoningEnableThinking,
@@ -498,7 +506,7 @@ export default function ReasoningModelSelector({
     return customModelOptions;
   }, [isCustomBaseDirty, customModelOptions]);
 
-  const cloudProviderIds = ["openai", "anthropic", "gemini", "groq", "custom"];
+  const cloudProviderIds = ["openai", "anthropic", "gemini", "groq", "bailian", "custom"];
   const cloudProviders = cloudProviderIds.map((id) => ({
     id,
     name:
@@ -890,6 +898,53 @@ export default function ReasoningModelSelector({
                       placeholder={t("reasoning.custom.selectModelPlaceholder")}
                       searchPlaceholder={t("reasoning.custom.searchModelsPlaceholder")}
                       emptyMessage={t("reasoning.custom.noModelsAvailable")}
+                    />
+                  </div>
+                </>
+              ) : selectedCloudProvider === "bailian" ? (
+                <>
+                  <div className="space-y-2">
+                    <div className="flex items-baseline justify-between">
+                      <h4 className="font-medium text-foreground">{t("common.apiKey")}</h4>
+                    </div>
+                    <ApiKeyInput
+                      apiKey={bailianApiKey}
+                      setApiKey={setBailianApiKey}
+                      label=""
+                      helpText={t("reasoning.bailian.apiKeyHelp")}
+                      saveMode="immediate"
+                    />
+                  </div>
+
+                  <div className="pt-3">
+                    <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-medium text-foreground">
+                            {t("reasoning.custom.enableThinkingLabel")}
+                          </h4>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {t("reasoning.bailian.enableThinkingHelp")}
+                          </p>
+                        </div>
+                        <div className="shrink-0 pt-0.5">
+                          <Toggle
+                            checked={bailianReasoningEnableThinking}
+                            onChange={setBailianReasoningEnableThinking}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 space-y-2">
+                    <h4 className="text-sm font-medium text-foreground">
+                      {t("reasoning.selectModel")}
+                    </h4>
+                    <ModelCardList
+                      models={selectedCloudModels}
+                      selectedModel={reasoningModel}
+                      onModelSelect={setReasoningModel}
                     />
                   </div>
                 </>

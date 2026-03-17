@@ -40,3 +40,29 @@ test("custom transcription and reasoning API key sections use immediate-save mod
     /selectedCloudProvider === "custom"[\s\S]*?<Toggle[\s\S]*checked=\{customReasoningEnableThinking\}[\s\S]*onChange=\{setCustomReasoningEnableThinking\}/
   );
 });
+
+test("bailian reasoning provider is exposed as a first-class cloud option with its own fast defaults", async () => {
+  const [reasoningSource, settingsStoreSource, settingsHookSource] = await Promise.all([
+    readRepoFile("src/components/ReasoningModelSelector.tsx"),
+    readRepoFile("src/stores/settingsStore.ts"),
+    readRepoFile("src/hooks/useSettings.ts"),
+  ]);
+
+  assert.match(reasoningSource, /cloudProviderIds = \["openai", "anthropic", "gemini", "groq", "bailian", "custom"\]/);
+  assert.match(reasoningSource, /selectedCloudProvider === "bailian"/);
+  assert.match(reasoningSource, /bailianApiKey\??: string;/);
+  assert.match(reasoningSource, /bailianReasoningEnableThinking: boolean;/);
+  assert.match(
+    reasoningSource,
+    /selectedCloudProvider === "bailian"[\s\S]*?<ApiKeyInput[\s\S]*setApiKey=\{setBailianApiKey/
+  );
+  assert.match(
+    reasoningSource,
+    /selectedCloudProvider === "bailian"[\s\S]*?<Toggle[\s\S]*checked=\{bailianReasoningEnableThinking\}[\s\S]*onChange=\{setBailianReasoningEnableThinking\}/
+  );
+
+  assert.match(settingsStoreSource, /bailianReasoningEnableThinking: readBoolean\("bailianReasoningEnableThinking", false\)/);
+  assert.match(settingsStoreSource, /bailianApiKey: readString\("bailianApiKey", ""\)/);
+  assert.match(settingsHookSource, /bailianReasoningEnableThinking: boolean;/);
+  assert.match(settingsHookSource, /bailianApiKey: string;/);
+});

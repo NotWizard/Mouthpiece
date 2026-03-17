@@ -11,6 +11,7 @@ export const hasStoredByokKey = () => {
 
   return hasAnyByokKey([
     localStorage.getItem("openaiApiKey"),
+    localStorage.getItem("bailianApiKey"),
     localStorage.getItem("groqApiKey"),
     localStorage.getItem("mistralApiKey"),
     localStorage.getItem("customTranscriptionApiKey"),

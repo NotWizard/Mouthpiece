@@ -1170,6 +1170,14 @@ class IPCHandlers {
       return this.environmentManager.saveCustomTranscriptionKey(key);
     });
 
+    ipcMain.handle("get-bailian-key", async () => {
+      return this.environmentManager.getBailianKey();
+    });
+
+    ipcMain.handle("save-bailian-key", async (event, key) => {
+      return this.environmentManager.saveBailianKey(key);
+    });
+
     ipcMain.handle("get-custom-reasoning-key", async () => {
       return this.environmentManager.getCustomReasoningKey();
     });

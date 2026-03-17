@@ -499,3 +499,81 @@ test("custom reasoning keeps Chinese cleanup output when the API returns a polis
     cleanup();
   }
 });
+
+test("bailian reasoning goes straight to chat completions with thinking disabled by default", async () => {
+  const requests = [];
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options = {}) => {
+    const body = options.body ? JSON.parse(options.body) : null;
+    requests.push({
+      url: String(url),
+      body,
+      headers: options.headers || {},
+    });
+
+    return new Response(
+      JSON.stringify({
+        choices: [{ message: { content: "现在这个胶囊的样式没问题了，恢复正常了。" } }],
+        usage: { total_tokens: 36 },
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  };
+
+  const { service, cleanup } = await loadReasoningService({
+    storage: {
+      reasoningProvider: "bailian",
+      bailianApiKey: "sk-test-bailian",
+      reasoningModel: "qwen3.5-flash",
+      customUnifiedPrompt: JSON.stringify("PROMPT::{{agentName}}::CUSTOM"),
+    },
+    electronAPI: {
+      getBailianKey: async () => "sk-test-bailian",
+    },
+  });
+
+  try {
+    const result = await service.processText(
+      "请把这句话润色得更自然，但不要改变原意：现在这个胶囊的样式没有问题了，正常了。",
+      "qwen3.5-flash",
+      "AI",
+      {
+        contextClassification: {
+          context: "general",
+          intent: "cleanup",
+          confidence: 0.9,
+          strictMode: true,
+          strictOverlapThreshold: 0.72,
+          signals: [],
+          targetApp: {
+            appName: "Notes",
+            processId: 1,
+            platform: "darwin",
+            source: "renderer-fallback",
+            capturedAt: null,
+          },
+        },
+        strictMode: true,
+        strictOverlapThreshold: 0.86,
+      }
+    );
+
+    assert.equal(
+      result,
+      "请把这句话润色得更自然，但不要改变原意：现在这个胶囊的样式没有问题了，正常了。"
+    );
+    assert.equal(requests.length, 1);
+    assert.equal(
+      requests[0].url,
+      "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+    );
+    assert.equal(requests[0].body.enable_thinking, false);
+    assert.equal(requests[0].body.model, "qwen3.5-flash");
+  } finally {
+    globalThis.fetch = previousFetch;
+    cleanup();
+  }
+});

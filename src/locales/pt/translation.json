@@ -242,7 +242,11 @@
     },
     "getApiKey": "Obter chave API ->",
     "selectModel": "Selecionar modelo",
-    "availableModels": "Modelos disponíveis"
+    "availableModels": "Modelos disponíveis",
+    "bailian": {
+      "apiKeyHelp": "Enter your Alibaba Bailian API key. Requests use DashScope's OpenAI-compatible chat completions endpoint.",
+      "enableThinkingHelp": "Disabled by default for faster cleanup. Turn it on only if you want deeper reasoning and can accept higher latency."
+    }
   },
   "transcription": {
     "deleteModel": {

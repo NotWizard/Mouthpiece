@@ -311,6 +311,10 @@ interface AiModelsSectionProps {
   setGeminiApiKey: (key: string) => void;
   groqApiKey: string;
   setGroqApiKey: (key: string) => void;
+  bailianApiKey: string;
+  setBailianApiKey: (key: string) => void;
+  bailianReasoningEnableThinking: boolean;
+  setBailianReasoningEnableThinking: (enabled: boolean) => void;
   customReasoningApiKey: string;
   setCustomReasoningApiKey: (key: string) => void;
   customReasoningEnableThinking: boolean;
@@ -344,6 +348,10 @@ function AiModelsSection({
   setGeminiApiKey,
   groqApiKey,
   setGroqApiKey,
+  bailianApiKey,
+  setBailianApiKey,
+  bailianReasoningEnableThinking,
+  setBailianReasoningEnableThinking,
   customReasoningApiKey,
   setCustomReasoningApiKey,
   customReasoningEnableThinking,
@@ -458,6 +466,10 @@ function AiModelsSection({
               setGeminiApiKey={setGeminiApiKey}
               groqApiKey={groqApiKey}
               setGroqApiKey={setGroqApiKey}
+              bailianApiKey={bailianApiKey}
+              setBailianApiKey={setBailianApiKey}
+              bailianReasoningEnableThinking={bailianReasoningEnableThinking}
+              setBailianReasoningEnableThinking={setBailianReasoningEnableThinking}
               customReasoningApiKey={customReasoningApiKey}
               setCustomReasoningApiKey={setCustomReasoningApiKey}
               customReasoningEnableThinking={customReasoningEnableThinking}
@@ -494,12 +506,14 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     useReasoningModel,
     reasoningModel,
     reasoningProvider,
+    bailianReasoningEnableThinking,
     customReasoningEnableThinking,
     openaiApiKey,
     anthropicApiKey,
     geminiApiKey,
     groqApiKey,
     mistralApiKey,
+    bailianApiKey,
     dictationKey,
     preferBuiltInMic,
     selectedMicDeviceId,
@@ -517,12 +531,14 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     setUseReasoningModel,
     setReasoningModel,
     setReasoningProvider,
+    setBailianReasoningEnableThinking,
     setCustomReasoningEnableThinking,
     setOpenaiApiKey,
     setAnthropicApiKey,
     setGeminiApiKey,
     setGroqApiKey,
     setMistralApiKey,
+    setBailianApiKey,
     customTranscriptionApiKey,
     setCustomTranscriptionApiKey,
     customReasoningApiKey,
@@ -1009,6 +1025,10 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
             setGeminiApiKey={setGeminiApiKey}
             groqApiKey={groqApiKey}
             setGroqApiKey={setGroqApiKey}
+            bailianApiKey={bailianApiKey}
+            setBailianApiKey={setBailianApiKey}
+            bailianReasoningEnableThinking={bailianReasoningEnableThinking}
+            setBailianReasoningEnableThinking={setBailianReasoningEnableThinking}
             customReasoningApiKey={customReasoningApiKey}
             setCustomReasoningApiKey={setCustomReasoningApiKey}
             customReasoningEnableThinking={customReasoningEnableThinking}
@@ -1055,6 +1075,10 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
               setGeminiApiKey={setGeminiApiKey}
               groqApiKey={groqApiKey}
               setGroqApiKey={setGroqApiKey}
+              bailianApiKey={bailianApiKey}
+              setBailianApiKey={setBailianApiKey}
+              bailianReasoningEnableThinking={bailianReasoningEnableThinking}
+              setBailianReasoningEnableThinking={setBailianReasoningEnableThinking}
               customReasoningApiKey={customReasoningApiKey}
               setCustomReasoningApiKey={setCustomReasoningApiKey}
               customReasoningEnableThinking={customReasoningEnableThinking}

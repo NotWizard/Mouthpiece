@@ -509,6 +509,10 @@ declare global {
         contextBias?: string[];
       }) => Promise<{ text: string }>;
 
+      // Bailian API key management
+      getBailianKey?: () => Promise<string | null>;
+      saveBailianKey?: (key: string) => Promise<void>;
+
       // Custom endpoint API keys
       getCustomTranscriptionKey?: () => Promise<string | null>;
       saveCustomTranscriptionKey?: (key: string) => Promise<void>;

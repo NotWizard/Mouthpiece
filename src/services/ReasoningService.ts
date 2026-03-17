@@ -402,7 +402,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
   }
 
   private async getApiKey(
-    provider: "openai" | "anthropic" | "gemini" | "groq" | "custom"
+    provider: "openai" | "anthropic" | "gemini" | "groq" | "custom" | "bailian"
   ): Promise<string> {
     if (provider === "custom") {
       let customKey = "";
@@ -417,6 +417,27 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
       const trimmedKey = customKey.trim();
 
       logger.logReasoning("CUSTOM_KEY_RETRIEVAL", {
+        provider,
+        hasKey: !!trimmedKey,
+        keyLength: trimmedKey.length,
+      });
+
+      return trimmedKey;
+    }
+
+    if (provider === "bailian") {
+      let bailianKey = "";
+      try {
+        bailianKey = (await window.electronAPI?.getBailianKey?.()) || "";
+      } catch (err) {
+        logger.logReasoning("BAILIAN_KEY_IPC_FALLBACK", { error: (err as Error)?.message });
+      }
+      if (!bailianKey || !bailianKey.trim()) {
+        bailianKey = getSettings().bailianApiKey || "";
+      }
+      const trimmedKey = bailianKey.trim();
+
+      logger.logReasoning("BAILIAN_KEY_RETRIEVAL", {
         provider,
         hasKey: !!trimmedKey,
         keyLength: trimmedKey.length,
@@ -652,6 +673,9 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
         case "openai":
           result = await this.processWithOpenAI(text, trimmedModel, agentName, config);
           break;
+        case "bailian":
+          result = await this.processWithOpenAI(text, trimmedModel, agentName, config);
+          break;
         case "anthropic":
           result = await this.processWithAnthropic(text, trimmedModel, agentName, config);
           break;
@@ -713,11 +737,13 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
   ): Promise<string> {
     const reasoningProvider = getSettings().reasoningProvider || "";
     const isCustomProvider = reasoningProvider === "custom";
+    const isBailianProvider = reasoningProvider === "bailian";
 
     logger.logReasoning("OPENAI_START", {
       model,
       agentName,
       isCustomProvider,
+      isBailianProvider,
       hasApiKey: false, // Will update after fetching
     });
 
@@ -725,7 +751,9 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
       throw new Error("Already processing a request");
     }
 
-    const apiKey = await this.getApiKey(isCustomProvider ? "custom" : "openai");
+    const apiKey = await this.getApiKey(
+      isBailianProvider ? "bailian" : isCustomProvider ? "custom" : "openai"
+    );
 
     logger.logReasoning("OPENAI_API_KEY", {
       hasApiKey: !!apiKey,
@@ -744,19 +772,32 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
       ];
 
       const isOlderModel = model && (model.startsWith("gpt-4") || model.startsWith("gpt-3"));
+      const bailianReasoningEnableThinking = isBailianProvider
+        ? getSettings().bailianReasoningEnableThinking
+        : false;
       const customReasoningEnableThinking = isCustomProvider
         ? getSettings().customReasoningEnableThinking
         : false;
 
-      const openAiBase = this.getConfiguredOpenAIBase();
-      const endpointCandidates = this.getOpenAIEndpointCandidates(openAiBase, {
-        ignoreStoredPreference: isCustomProvider,
-      });
-      const isCustomEndpoint = openAiBase !== API_ENDPOINTS.OPENAI_BASE;
+      const openAiBase = isBailianProvider
+        ? API_ENDPOINTS.DASHSCOPE_BASE
+        : this.getConfiguredOpenAIBase();
+      const endpointCandidates = isBailianProvider
+        ? [
+            {
+              url: buildApiUrl(API_ENDPOINTS.DASHSCOPE_BASE, "/chat/completions"),
+              type: "chat" as const,
+            },
+          ]
+        : this.getOpenAIEndpointCandidates(openAiBase, {
+            ignoreStoredPreference: isCustomProvider,
+          });
+      const isCustomEndpoint = isBailianProvider || openAiBase !== API_ENDPOINTS.OPENAI_BASE;
 
       logger.logReasoning("OPENAI_ENDPOINTS", {
         base: openAiBase,
         isCustomEndpoint,
+        isBailianProvider,
         candidates: endpointCandidates.map((candidate) => candidate.url),
         preference: this.getStoredOpenAiPreference(openAiBase) || null,
       });
@@ -789,8 +830,10 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
               requestBody.store = false;
             } else {
               requestBody.messages = messages;
-              if (isCustomProvider) {
-                requestBody.enable_thinking = customReasoningEnableThinking;
+              if (isCustomProvider || isBailianProvider) {
+                requestBody.enable_thinking = isBailianProvider
+                  ? bailianReasoningEnableThinking
+                  : customReasoningEnableThinking;
               }
               if (isOlderModel) {
                 requestBody.temperature = config.temperature || 0.3;
@@ -1360,6 +1403,8 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
       const anthropicKey = await window.electronAPI?.getAnthropicKey?.();
       const geminiKey = await window.electronAPI?.getGeminiKey?.();
       const groqKey = await window.electronAPI?.getGroqKey?.();
+      const bailianKey =
+        (await window.electronAPI?.getBailianKey?.()) || settings.bailianApiKey || "";
       const isCustomProvider = settings.reasoningProvider === "custom";
       let customKey = "";
       if (isCustomProvider) {
@@ -1384,6 +1429,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
         hasAnthropic: !!anthropicKey,
         hasGemini: !!geminiKey,
         hasGroq: !!groqKey,
+        hasBailian: !!bailianKey,
         isCustomProvider,
         hasCustom: !!customKey.trim(),
         hasCustomBaseUrl: !!customBaseUrl,
@@ -1395,6 +1441,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
         anthropicKey ||
         geminiKey ||
         groqKey ||
+        bailianKey ||
         customAvailable ||
         localAvailable
       );
@@ -1409,10 +1456,10 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
   }
 
   clearApiKeyCache(
-    provider?: "openai" | "anthropic" | "gemini" | "groq" | "mistral" | "custom"
+    provider?: "openai" | "anthropic" | "gemini" | "groq" | "mistral" | "custom" | "bailian"
   ): void {
     if (provider) {
-      if (provider !== "custom") {
+      if (provider !== "custom" && provider !== "bailian") {
         this.apiKeyCache.delete(provider);
       }
       logger.logReasoning("API_KEY_CACHE_CLEARED", { provider });
