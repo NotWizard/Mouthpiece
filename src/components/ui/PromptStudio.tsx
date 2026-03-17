@@ -204,7 +204,6 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
     }
   };
 
-  const isAgentAddressed = testText.toLowerCase().includes(agentName.toLowerCase());
   const isCustomPrompt = getCurrentPrompt() !== UNIFIED_SYSTEM_PROMPT;
 
   const tabs = [
@@ -255,10 +254,6 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
                   {
                     mode: t("promptStudio.view.modes.cleanup.label"),
                     desc: t("promptStudio.view.modes.cleanup.description"),
-                  },
-                  {
-                    mode: t("promptStudio.view.modes.agent.label"),
-                    desc: t("promptStudio.view.modes.agent.description", { agentName }),
                   },
                 ].map((item) => (
                   <div key={item.mode} className="flex items-start gap-3">
@@ -417,24 +412,16 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
                 </div>
 
                 <div className="px-5 py-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-medium text-foreground">
-                      {t("promptStudio.test.inputLabel")}
-                    </p>
-                    {testText && (
-                      <span
-                        className={`text-xs font-medium uppercase tracking-wider px-1.5 py-px rounded ${
-                          isAgentAddressed
-                            ? "bg-primary/10 text-primary dark:bg-primary/15"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {isAgentAddressed
-                          ? t("promptStudio.test.instruction")
-                          : t("promptStudio.test.cleanup")}
-                      </span>
-                    )}
-                  </div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-medium text-foreground">
+                    {t("promptStudio.test.inputLabel")}
+                  </p>
+                  {testText && (
+                    <span className="text-xs font-medium uppercase tracking-wider px-1.5 py-px rounded bg-muted text-muted-foreground">
+                      {t("promptStudio.test.cleanup")}
+                    </span>
+                  )}
+                </div>
                   <Textarea
                     value={testText}
                     onChange={(e) => setTestText(e.target.value)}
@@ -442,9 +429,6 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
                     className="text-xs"
                     placeholder={t("promptStudio.test.inputPlaceholder")}
                   />
-                  <p className="text-xs text-muted-foreground/40 mt-1.5">
-                    {t("promptStudio.test.addressHint", { agentName })}
-                  </p>
                 </div>
 
                 <div className="px-5 py-4">

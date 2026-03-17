@@ -19,7 +19,6 @@ import { useClipboard } from "../hooks/useClipboard";
 import { useSettings } from "../hooks/useSettings";
 import AuthenticationStep from "./AuthenticationStep";
 import EmailVerificationStep from "./EmailVerificationStep";
-import { getAgentName, setAgentName as saveAgentName } from "../utils/agentName";
 import { formatHotkeyLabel, getDefaultHotkey, isGlobeLikeHotkey } from "../utils/hotkeys";
 import { useAuth } from "../hooks/useAuth";
 import { NEON_AUTH_URL } from "../lib/neonAuth";
@@ -60,10 +59,9 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     }
   );
 
-  const { dictationKey, setDictationKey, setVoiceAssistantEnabled } = useSettings();
+  const { dictationKey, setDictationKey } = useSettings();
 
   const [hotkey, setHotkey] = useState(dictationKey || getDefaultHotkey());
-  const agentName = getAgentName();
   const [skipAuth, setSkipAuth] = useState(false);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
   const [isUsingGnomeHotkeys, setIsUsingGnomeHotkeys] = useState(false);
@@ -194,10 +192,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       return false;
     }
     setDictationKey(hotkey);
-    saveAgentName(agentName);
-    if (localStorage.getItem("voiceAssistantEnabled") === null) {
-      setVoiceAssistantEnabled(true);
-    }
 
     const skippedAuth = skipAuth;
     localStorage.setItem("authenticationSkipped", skippedAuth.toString());
@@ -205,7 +199,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     localStorage.setItem("skipAuth", skippedAuth.toString());
 
     return true;
-  }, [hotkey, agentName, setDictationKey, setVoiceAssistantEnabled, ensureHotkeyRegistered, skipAuth]);
+  }, [hotkey, setDictationKey, ensureHotkeyRegistered, skipAuth]);
 
   const nextStep = useCallback(async () => {
     if (currentStep >= steps.length - 1) {

@@ -14,7 +14,6 @@ function createSilentSamples() {
 }
 
 interface DictationCapsuleProps {
-  agentName: string;
   brandLabel: string;
   secondaryLabel: string;
   hotkeyLabel: string;
@@ -109,7 +108,6 @@ function MorphBridge() {
 }
 
 export default function DictationCapsule({
-  agentName,
   brandLabel,
   secondaryLabel,
   hotkeyLabel,
@@ -266,7 +264,7 @@ export default function DictationCapsule({
                 <AssistantGlyph />
                 <div className="min-w-0">
                   <div className="truncate text-[12px] font-semibold tracking-[-0.03em] text-[rgba(22,22,22,0.96)]">
-                    {agentName}
+                    {brandLabel}
                   </div>
                   <div className="truncate text-[10px] font-medium text-[rgba(92,92,92,0.72)]">
                     {helperText}

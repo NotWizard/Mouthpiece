@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
 import {
   Command,
   Mic,
@@ -23,7 +22,6 @@ import TranscriptionModelPicker from "./TranscriptionModelPicker";
 import { ConfirmDialog, AlertDialog } from "./ui/dialog";
 import { useSettings } from "../hooks/useSettings";
 import { useDialogs } from "../hooks/useDialogs";
-import { useAgentName } from "../utils/agentName";
 import { useWhisper } from "../hooks/useWhisper";
 import { usePermissions } from "../hooks/usePermissions";
 import { useClipboard } from "../hooks/useClipboard";
@@ -56,7 +54,6 @@ export type SettingsSectionType =
   | "privacyData"
   | "system"
   | "aiModels"
-  | "agentConfig"
   | "prompts";
 
 interface SettingsPageProps {
@@ -489,7 +486,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     cloudTranscriptionBaseUrl,
     cloudReasoningBaseUrl,
     useReasoningModel,
-    voiceAssistantEnabled,
     reasoningModel,
     reasoningProvider,
     openaiApiKey,
@@ -512,7 +508,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     setCloudTranscriptionBaseUrl,
     setCloudReasoningBaseUrl,
     setUseReasoningModel,
-    setVoiceAssistantEnabled,
     setReasoningModel,
     setReasoningProvider,
     setOpenaiApiKey,
@@ -535,8 +530,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     setCloudReasoningMode,
     audioCuesEnabled,
     setAudioCuesEnabled,
-    customDictionary,
-    setCustomDictionary,
   } = useSettings();
 
   const { t, i18n } = useTranslation();
@@ -552,40 +545,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
   const whisperHook = useWhisper();
   const permissionsHook = usePermissions(showAlertDialog);
   useClipboard(showAlertDialog);
-  const { agentName, setAgentName } = useAgentName();
-  const [agentNameInput, setAgentNameInput] = useState(agentName);
-
-  const handleSaveAgentName = useCallback(() => {
-    const trimmed = agentNameInput.trim();
-    const previousName = agentName;
-
-    setAgentName(trimmed);
-    setAgentNameInput(trimmed);
-
-    let nextDictionary = customDictionary.filter((w) => w !== previousName);
-    if (trimmed) {
-      const hasName = nextDictionary.some((w) => w.toLowerCase() === trimmed.toLowerCase());
-      if (!hasName) {
-        nextDictionary = [trimmed, ...nextDictionary];
-      }
-    }
-    setCustomDictionary(nextDictionary);
-
-    showAlertDialog({
-      title: t("settingsPage.agentConfig.dialogs.updatedTitle"),
-      description: t("settingsPage.agentConfig.dialogs.updatedDescription", {
-        name: trimmed,
-      }),
-    });
-  }, [
-    agentNameInput,
-    agentName,
-    customDictionary,
-    setAgentName,
-    setCustomDictionary,
-    showAlertDialog,
-    t,
-  ]);
 
   const dictionaryAutoLearnCopy = useMemo(
     () => ({
@@ -620,61 +579,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
         },
       ] as const,
     [t]
-  );
-
-  const instructionModeLabel = useMemo(() => t("settingsPage.agentConfig.instructionMode"), [t]);
-  const cleanupModeLabel = useMemo(() => t("settingsPage.agentConfig.cleanupMode"), [t]);
-
-  const agentExamplesCompact = useMemo(
-    () => [
-      {
-        input: `Hey ${agentName}, write a formal email about the budget`,
-        mode: instructionModeLabel,
-        isInstructionMode: true,
-      },
-      {
-        input: `Hey ${agentName}, make this more professional`,
-        mode: instructionModeLabel,
-        isInstructionMode: true,
-      },
-      {
-        input: `Hey ${agentName}, convert this to bullet points`,
-        mode: instructionModeLabel,
-        isInstructionMode: true,
-      },
-      {
-        input: t("settingsPage.agentConfig.cleanupExample"),
-        mode: cleanupModeLabel,
-        isInstructionMode: false,
-      },
-    ],
-    [agentName, cleanupModeLabel, instructionModeLabel, t]
-  );
-
-  const agentExamplesLocalized = useMemo(
-    () => [
-      {
-        input: t("settingsPage.agentConfig.examples.formalEmail", { agentName }),
-        mode: instructionModeLabel,
-        isInstructionMode: true,
-      },
-      {
-        input: t("settingsPage.agentConfig.examples.professional", { agentName }),
-        mode: instructionModeLabel,
-        isInstructionMode: true,
-      },
-      {
-        input: t("settingsPage.agentConfig.examples.bulletPoints", { agentName }),
-        mode: instructionModeLabel,
-        isInstructionMode: true,
-      },
-      {
-        input: t("settingsPage.agentConfig.cleanupExample"),
-        mode: cleanupModeLabel,
-        isInstructionMode: false,
-      },
-    ],
-    [agentName, cleanupModeLabel, instructionModeLabel, t]
   );
 
   const { theme, setTheme } = useTheme();
@@ -1104,86 +1008,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
           />
         );
 
-      case "agentConfig":
-        return (
-          <div className="space-y-5">
-            <SectionHeader
-              title={t("settingsPage.agentConfig.title")}
-              description={t("settingsPage.agentConfig.description")}
-            />
-
-            {/* Agent Name */}
-            <div>
-              <p className="text-[13px] font-medium text-foreground mb-3">
-                {t("settingsPage.agentConfig.agentName")}
-              </p>
-              <SettingsPanel>
-                <SettingsPanelRow>
-                  <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder={t("settingsPage.agentConfig.placeholder")}
-                        value={agentNameInput}
-                        onChange={(e) => setAgentNameInput(e.target.value)}
-                        className="flex-1 text-center text-base font-mono"
-                      />
-                      <Button
-                        onClick={handleSaveAgentName}
-                        disabled={!agentNameInput.trim()}
-                        size="sm"
-                      >
-                        {t("settingsPage.agentConfig.save")}
-                      </Button>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground/60">
-                      {t("settingsPage.agentConfig.helper")}
-                    </p>
-                  </div>
-                </SettingsPanelRow>
-              </SettingsPanel>
-            </div>
-
-            {/* How it works */}
-            <div>
-              <SectionHeader title={t("settingsPage.agentConfig.howItWorksTitle")} />
-              <SettingsPanel>
-                <SettingsPanelRow>
-                  <p className="text-[12px] text-muted-foreground leading-relaxed">
-                    {t("settingsPage.agentConfig.howItWorksDescription", { agentName })}
-                  </p>
-                </SettingsPanelRow>
-              </SettingsPanel>
-            </div>
-
-            {/* Examples */}
-            <div>
-              <SectionHeader title={t("settingsPage.agentConfig.examplesTitle")} />
-              <SettingsPanel>
-                <SettingsPanelRow>
-                  <div className="space-y-2.5">
-                    {agentExamplesCompact.map((example, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        <span
-                          className={`shrink-0 mt-0.5 text-[10px] font-medium uppercase tracking-wider px-1.5 py-px rounded ${
-                            example.isInstructionMode
-                              ? "bg-primary/10 text-primary dark:bg-primary/15"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {example.mode}
-                        </span>
-                        <p className="text-[12px] text-muted-foreground leading-relaxed">
-                          "{example.input}"
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </SettingsPanelRow>
-              </SettingsPanel>
-            </div>
-          </div>
-        );
-
       case "prompts":
         return (
           <div className="space-y-5">
@@ -1199,7 +1023,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
       case "intelligence":
         return (
           <div className="space-y-6">
-            {/* Text Cleanup (AI Models) */}
             <AiModelsSection
               isSignedIn={isSignedIn ?? false}
               cloudReasoningMode={cloudReasoningMode}
@@ -1227,103 +1050,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
               showAlertDialog={showAlertDialog}
               toast={toast}
             />
-
-            {/* Agent Config */}
-            <div className="border-t border-border/40 pt-6">
-              <SectionHeader
-                title={t("settingsPage.agentConfig.title")}
-                description={t("settingsPage.agentConfig.description")}
-              />
-
-              {/* Voice Assistant Toggle */}
-              <div className="mb-5">
-                <SettingsPanel>
-                  <SettingsPanelRow>
-                    <SettingsRow
-                      label={t("settingsPage.agentConfig.voiceAssistantToggle")}
-                      description={t("settingsPage.agentConfig.voiceAssistantToggleDescription")}
-                    >
-                      <Toggle
-                        checked={voiceAssistantEnabled}
-                        onChange={(checked: boolean) => {
-                          setVoiceAssistantEnabled(checked);
-                          updateReasoningSettings({ voiceAssistantEnabled: checked });
-                        }}
-                      />
-                    </SettingsRow>
-                  </SettingsPanelRow>
-                </SettingsPanel>
-              </div>
-
-              <div className="space-y-5">
-                <div>
-                  <p className="text-xs font-medium text-foreground mb-3">
-                    {t("settingsPage.agentConfig.agentName")}
-                  </p>
-                  <SettingsPanel>
-                    <SettingsPanelRow>
-                      <div className="space-y-3">
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder={t("settingsPage.agentConfig.placeholder")}
-                            value={agentNameInput}
-                            onChange={(e) => setAgentNameInput(e.target.value)}
-                            className="flex-1 text-center text-base font-mono"
-                          />
-                          <Button
-                            onClick={handleSaveAgentName}
-                            disabled={!agentNameInput.trim()}
-                            size="sm"
-                          >
-                            {t("settingsPage.agentConfig.save")}
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground/60">
-                          {t("settingsPage.agentConfig.helper")}
-                        </p>
-                      </div>
-                    </SettingsPanelRow>
-                  </SettingsPanel>
-                </div>
-
-                <div>
-                  <SectionHeader title={t("settingsPage.agentConfig.howItWorksTitle")} />
-                  <SettingsPanel>
-                    <SettingsPanelRow>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {t("settingsPage.agentConfig.howItWorksDescription", { agentName })}
-                      </p>
-                    </SettingsPanelRow>
-                  </SettingsPanel>
-                </div>
-
-                <div>
-                  <SectionHeader title={t("settingsPage.agentConfig.examplesTitle")} />
-                  <SettingsPanel>
-                    <SettingsPanelRow>
-                      <div className="space-y-2.5">
-                        {agentExamplesLocalized.map((example, i) => (
-                          <div key={i} className="flex items-start gap-3">
-                            <span
-                              className={`shrink-0 mt-0.5 text-xs font-medium uppercase tracking-wider px-1.5 py-px rounded ${
-                                example.isInstructionMode
-                                  ? "bg-primary/10 text-primary dark:bg-primary/15"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              {example.mode}
-                            </span>
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                              "{example.input}"
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </SettingsPanelRow>
-                  </SettingsPanel>
-                </div>
-              </div>
-            </div>
 
             {/* System Prompt */}
             <div className="border-t border-border/40 pt-6">

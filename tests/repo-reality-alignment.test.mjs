@@ -47,11 +47,11 @@ test("control panel no longer migrates signed-in users back to deprecated openwh
   assert.doesNotMatch(source, /setCloudTranscriptionMode\("openwhispr"\)/);
 });
 
-test("onboarding no longer hardcodes the Mouthpiece agent name", async () => {
+test("onboarding no longer hardcodes or configures a custom agent name", async () => {
   const source = await readRepoFile("src/components/OnboardingFlow.tsx");
 
   assert.doesNotMatch(source, /const agentName = "Mouthpiece"/);
-  assert.match(source, /getAgentName/);
+  assert.doesNotMatch(source, /getAgentName|saveAgentName|setVoiceAssistantEnabled/);
 });
 
 test("only one llamaCppInstaller implementation remains in src/helpers", async () => {

@@ -49,12 +49,26 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
 
   private tokenizeForOverlap(text: string): string[] {
     if (!text) return [];
-    return text
-      .toLowerCase()
-      .normalize("NFKC")
-      .replace(/[^\p{L}\p{N}'-]+/gu, " ")
-      .split(/\s+/)
-      .filter((token) => token.length > 1);
+    const normalized = text.toLowerCase().normalize("NFKC");
+    const segments =
+      normalized.match(
+        /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+|[\p{L}\p{N}'-]+/gu
+      ) || [];
+
+    const tokens: string[] = [];
+
+    for (const segment of segments) {
+      if (/^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+$/u.test(segment)) {
+        tokens.push(...Array.from(segment));
+        continue;
+      }
+
+      if (segment.length > 1) {
+        tokens.push(segment);
+      }
+    }
+
+    return tokens;
   }
 
   private isAnswerLikeOutput(text: string): boolean {
@@ -162,14 +176,20 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
       return fallback;
     }
 
-    const shortInputThreshold = 24;
-    if (source.trim().length < shortInputThreshold) {
-      const fallback = this.localCleanupFallback(source);
+    const normalizedSource = this.localCleanupFallback(source);
+    const normalizedCandidate = this.localCleanupFallback(candidate);
+    const normalizedSourceTokens = this.tokenizeForOverlap(normalizedSource);
+    const shortInputTokenThreshold = 2;
+
+    if (normalizedSourceTokens.length < shortInputTokenThreshold) {
+      const fallback = normalizedSource;
       logger.logReasoning("STRICT_MODE_SHORT_INPUT_LOCAL_CLEANUP", {
         provider,
         model,
         sourceLength: source.trim().length,
-        threshold: shortInputThreshold,
+        normalizedLength: normalizedSource.length,
+        sourceTokenCount: normalizedSourceTokens.length,
+        threshold: shortInputTokenThreshold,
         candidateLength: candidate.length,
         fallbackLength: fallback.length,
       });
@@ -180,7 +200,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
       config.strictOverlapThreshold ||
       config.contextClassification?.strictOverlapThreshold ||
       DEFAULT_STRICT_OVERLAP_THRESHOLD;
-    const overlap = this.calculateOverlapScore(source, candidate);
+    const overlap = this.calculateOverlapScore(normalizedSource, normalizedCandidate);
 
     logger.logReasoning("STRICT_MODE_OVERLAP_CHECK", {
       provider,
@@ -302,7 +322,8 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
   }
 
   private getOpenAIEndpointCandidates(
-    base: string
+    base: string,
+    options: { ignoreStoredPreference?: boolean; preferChat?: boolean } = {}
   ): Array<{ url: string; type: "responses" | "chat" }> {
     const lower = base.toLowerCase();
 
@@ -311,14 +332,21 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
       return [{ url: base, type }];
     }
 
-    const preference = this.getStoredOpenAiPreference(base);
+    const preference = options.ignoreStoredPreference ? undefined : this.getStoredOpenAiPreference(base);
     if (preference === "chat") {
       return [{ url: buildApiUrl(base, "/chat/completions"), type: "chat" }];
     }
 
+    const responsesCandidate = { url: buildApiUrl(base, "/responses"), type: "responses" as const };
+    const chatCandidate = { url: buildApiUrl(base, "/chat/completions"), type: "chat" as const };
+
+    if (options.preferChat) {
+      return [chatCandidate, responsesCandidate];
+    }
+
     const candidates: Array<{ url: string; type: "responses" | "chat" }> = [
-      { url: buildApiUrl(base, "/responses"), type: "responses" },
-      { url: buildApiUrl(base, "/chat/completions"), type: "chat" },
+      responsesCandidate,
+      chatCandidate,
     ];
 
     return candidates;
@@ -716,9 +744,12 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
       ];
 
       const isOlderModel = model && (model.startsWith("gpt-4") || model.startsWith("gpt-3"));
+      const isCustomQwenModel = isCustomProvider && /qwen/i.test(model);
 
       const openAiBase = this.getConfiguredOpenAIBase();
-      const endpointCandidates = this.getOpenAIEndpointCandidates(openAiBase);
+      const endpointCandidates = this.getOpenAIEndpointCandidates(openAiBase, {
+        ignoreStoredPreference: isCustomProvider,
+      });
       const isCustomEndpoint = openAiBase !== API_ENDPOINTS.OPENAI_BASE;
 
       logger.logReasoning("OPENAI_ENDPOINTS", {
@@ -743,7 +774,11 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
 
         for (const { url: endpoint, type } of endpointCandidates) {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000);
+          const endpointTimeoutMs =
+            isCustomProvider && type === "responses"
+              ? 8000
+              : 30000;
+          const timeoutId = setTimeout(() => controller.abort(), endpointTimeoutMs);
           try {
             const requestBody: any = { model };
 
@@ -752,6 +787,9 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
               requestBody.store = false;
             } else {
               requestBody.messages = messages;
+              if (isCustomQwenModel) {
+                requestBody.enable_thinking = false;
+              }
               if (isOlderModel) {
                 requestBody.temperature = config.temperature || 0.3;
               }
@@ -777,7 +815,9 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
 
               if (isUnsupportedEndpoint) {
                 lastError = new Error(errorMessage);
-                this.rememberOpenAiPreference(openAiBase, "chat");
+                if (!isCustomProvider) {
+                  this.rememberOpenAiPreference(openAiBase, "chat");
+                }
                 logger.logReasoning("OPENAI_ENDPOINT_FALLBACK", {
                   attemptedEndpoint: endpoint,
                   error: errorMessage,
@@ -788,11 +828,24 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
               throw new Error(errorMessage);
             }
 
-            this.rememberOpenAiPreference(openAiBase, type);
+            if (!isCustomProvider) {
+              this.rememberOpenAiPreference(openAiBase, type);
+            }
             return res.json();
           } catch (error) {
             if ((error as Error).name === "AbortError") {
-              throw new Error("Request timed out after 30s");
+              const timeoutError = new Error(
+                `Request timed out after ${Math.round(endpointTimeoutMs / 1000)}s`
+              );
+              lastError = timeoutError;
+              if (type === "responses") {
+                logger.logReasoning("OPENAI_ENDPOINT_FALLBACK", {
+                  attemptedEndpoint: endpoint,
+                  error: timeoutError.message,
+                });
+                continue;
+              }
+              throw timeoutError;
             }
             lastError = error as Error;
             if (type === "responses") {
@@ -1300,10 +1353,28 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
         return true;
       }
 
+      const settings = getSettings();
       const openaiKey = await window.electronAPI?.getOpenAIKey?.();
       const anthropicKey = await window.electronAPI?.getAnthropicKey?.();
       const geminiKey = await window.electronAPI?.getGeminiKey?.();
       const groqKey = await window.electronAPI?.getGroqKey?.();
+      const isCustomProvider = settings.reasoningProvider === "custom";
+      let customKey = "";
+      if (isCustomProvider) {
+        try {
+          customKey = (await window.electronAPI?.getCustomReasoningKey?.()) || "";
+        } catch (error) {
+          logger.logReasoning("CUSTOM_KEY_AVAILABILITY_CHECK_FALLBACK", {
+            error: (error as Error).message,
+          });
+        }
+
+        if (!customKey.trim()) {
+          customKey = settings.customReasoningApiKey || "";
+        }
+      }
+      const customBaseUrl = (settings.cloudReasoningBaseUrl || "").trim();
+      const customAvailable = isCustomProvider && !!customKey.trim() && !!customBaseUrl;
       const localAvailable = await window.electronAPI?.checkLocalReasoningAvailable?.();
 
       logger.logReasoning("API_KEY_CHECK", {
@@ -1311,10 +1382,20 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
         hasAnthropic: !!anthropicKey,
         hasGemini: !!geminiKey,
         hasGroq: !!groqKey,
+        isCustomProvider,
+        hasCustom: !!customKey.trim(),
+        hasCustomBaseUrl: !!customBaseUrl,
         hasLocal: !!localAvailable,
       });
 
-      return !!(openaiKey || anthropicKey || geminiKey || groqKey || localAvailable);
+      return !!(
+        openaiKey ||
+        anthropicKey ||
+        geminiKey ||
+        groqKey ||
+        customAvailable ||
+        localAvailable
+      );
     } catch (error) {
       logger.logReasoning("API_KEY_CHECK_ERROR", {
         error: (error as Error).message,

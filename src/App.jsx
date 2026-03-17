@@ -6,7 +6,6 @@ import { useToast } from "./components/ui/Toast";
 import { useAudioRecording } from "./hooks/useAudioRecording";
 import { useHotkey } from "./hooks/useHotkey";
 import { useWindowDrag } from "./hooks/useWindowDrag";
-import { getAgentName } from "./utils/agentName";
 import {
   DICTATION_CAPSULE_BOTTOM_OFFSET_PX,
   DICTATION_WINDOW_IDLE_HIDE_DELAY_MS,
@@ -204,6 +203,10 @@ export default function App() {
           cancelRecording();
           return;
         }
+        if (isTranscribing || isProcessing) {
+          cancelProcessing();
+          return;
+        }
         if (isCommandMenuOpen) {
           setIsCommandMenuOpen(false);
         } else {
@@ -214,15 +217,16 @@ export default function App() {
 
     document.addEventListener("keydown", handleKeyPress);
     return () => document.removeEventListener("keydown", handleKeyPress);
-  }, [isCommandMenuOpen, isRecording, cancelRecording]);
+  }, [isCommandMenuOpen, isRecording, isTranscribing, isProcessing, cancelRecording, cancelProcessing]);
 
   const hotkeyLabel = formatHotkeyLabel(hotkey);
-  const agentName = getAgentName();
   const secondaryLabel = isRecording
     ? t("app.mic.recording")
-    : isTranscribing
-      ? t("app.mic.transcribing")
-      : t("app.mic.processing");
+    : isProcessing
+      ? t("app.mic.processing")
+      : isTranscribing
+        ? t("app.mic.transcribing")
+        : t("app.mic.processing");
 
   return (
     <div className="dictation-window">
@@ -266,7 +270,6 @@ export default function App() {
             {shouldRenderCapsule && (
               <DictationCapsule
                 buttonRef={buttonRef}
-                agentName={agentName}
                 brandLabel="Mouthpiece"
                 secondaryLabel={secondaryLabel}
                 hotkeyLabel={hotkeyLabel}

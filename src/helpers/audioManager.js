@@ -12,7 +12,6 @@ import { isSecureEndpoint } from "../utils/urlUtils";
 import { withSessionRefresh } from "../lib/neonAuth";
 import { getBaseLanguageCode, validateLanguageForModel } from "../utils/languageSupport";
 import { classifyContext, getTargetAppInfo } from "../utils/contextClassifier";
-import { hasAgentDirectAddress } from "../utils/agentDirectAddress.mjs";
 import { normalizeAudioLevel } from "../utils/dictationWaveform.mjs";
 import {
   getSettings,
@@ -1576,10 +1575,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     return normalizedText;
   }
 
-  isExplicitAgentInstruction(text, agentName) {
-    return hasAgentDirectAddress(text, agentName);
-  }
-
   async processWithReasoningModel(text, model, agentName, config = {}) {
     logger.logReasoning("CALLING_REASONING_SERVICE", {
       model,
@@ -1733,15 +1728,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       agentName,
     });
 
-    const explicitInstruction = this.isExplicitAgentInstruction(normalizedText, agentName);
-    if (explicitInstruction) {
-      logger.logReasoning("AGENT_WAKE_PHRASE_DETECTED_CLEANUP_ONLY_ENFORCED", {
-        source,
-        textLength: normalizedText.length,
-        agentName,
-      });
-    }
-
     if (useReasoning) {
       try {
         logger.logReasoning("SENDING_TO_REASONING", {
@@ -1751,10 +1737,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         });
 
         let contextClassification = await this.buildReasoningContext(normalizedText, agentName);
-        const settings = getSettings();
-        if (!settings.voiceAssistantEnabled) {
-          contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
-        }
+        contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
         const result = await this.processWithReasoningModel(
           normalizedText,
           reasoningModel,
@@ -2020,19 +2003,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     if (settings.useReasoningModel && processedText && !this.skipReasoning) {
       const reasoningStart = performance.now();
       const agentName = localStorage.getItem("agentName") || "";
-      const explicitInstruction = this.isExplicitAgentInstruction(processedText, agentName);
-      if (explicitInstruction) {
-        logger.logReasoning("AGENT_WAKE_PHRASE_DETECTED_CLEANUP_ONLY_ENFORCED", {
-          source: "mouthpiece-cloud",
-          textLength: processedText.length,
-          agentName,
-        });
-      }
       const cloudReasoningMode = settings.cloudReasoningMode || "mouthpiece";
       let contextClassification = await this.buildReasoningContext(processedText, agentName);
-      if (!settings.voiceAssistantEnabled) {
-        contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
-      }
+      contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
       const reasoningConfig = this.buildReasoningConfig(contextClassification);
 
       if (cloudReasoningMode === "mouthpiece" || cloudReasoningMode === "openwhispr") {
@@ -3213,19 +3186,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     if (stSettings.useReasoningModel && finalText && !this.skipReasoning) {
       const reasoningStart = performance.now();
       const agentName = localStorage.getItem("agentName") || "";
-      const explicitInstruction = this.isExplicitAgentInstruction(finalText, agentName);
-      if (explicitInstruction) {
-        logger.logReasoning("AGENT_WAKE_PHRASE_DETECTED_CLEANUP_ONLY_ENFORCED", {
-          source: "streaming",
-          textLength: finalText.length,
-          agentName,
-        });
-      }
       const cloudReasoningMode = stSettings.cloudReasoningMode || "openwhispr";
       let contextClassification = await this.buildReasoningContext(finalText, agentName);
-      if (!stSettings.voiceAssistantEnabled) {
-        contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
-      }
+      contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
       const reasoningConfig = this.buildReasoningConfig(contextClassification);
 
       try {

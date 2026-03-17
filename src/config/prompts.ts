@@ -6,8 +6,8 @@ import type { ContextClassification } from "../utils/contextClassifier";
 
 export const CLEANUP_PROMPT = promptData.CLEANUP_PROMPT;
 export const FULL_PROMPT = promptData.FULL_PROMPT;
-/** @deprecated Use FULL_PROMPT instead — kept for PromptStudio backwards compat */
-export const UNIFIED_SYSTEM_PROMPT = promptData.FULL_PROMPT;
+/** @deprecated Cleanup-only default kept for PromptStudio backwards compat */
+export const UNIFIED_SYSTEM_PROMPT = promptData.CLEANUP_PROMPT;
 export const LEGACY_PROMPTS = promptData.LEGACY_PROMPTS;
 
 function getPromptBundle(uiLanguage?: string): PromptBundle {
@@ -19,17 +19,6 @@ function getPromptBundle(uiLanguage?: string): PromptBundle {
     fullPrompt: t("fullPrompt", { defaultValue: enPrompts.fullPrompt }),
     dictionarySuffix: t("dictionarySuffix", { defaultValue: enPrompts.dictionarySuffix }),
   };
-}
-
-function detectAgentName(transcript: string, agentName: string): boolean {
-  const lower = transcript.toLowerCase();
-  const name = agentName.toLowerCase();
-
-  if (lower.includes(name)) return true;
-
-  const variants: string[] = [];
-
-  return variants.some((v) => lower.includes(v));
 }
 
 function getContextInstruction(context?: ContextClassification): string {
@@ -108,31 +97,7 @@ export function getSystemPrompt(
   if (promptTemplate) {
     prompt = promptTemplate.replace(/\{\{agentName\}\}/g, name);
   } else {
-    const agentModeEnabled =
-      typeof window !== "undefined" &&
-      !!window.localStorage &&
-      (window.localStorage.getItem("voiceAssistantEnabled") === "true" ||
-        window.localStorage.getItem("reasoningEnableAgentMode") === "true");
-    const hasTranscript = !!transcript;
-    const detected = hasTranscript && detectAgentName(transcript, name);
-    const useFullPrompt = agentModeEnabled && hasTranscript && detected;
-
-    // Debug logging
-    console.log("[getSystemPrompt] Debug:", {
-      agentModeEnabled,
-      voiceAssistantEnabled: window.localStorage.getItem("voiceAssistantEnabled"),
-      reasoningEnableAgentMode: window.localStorage.getItem("reasoningEnableAgentMode"),
-      hasTranscript,
-      transcriptPreview: transcript?.substring(0, 50),
-      detected,
-      useFullPrompt,
-      name,
-    });
-
-    prompt = (useFullPrompt ? prompts.fullPrompt : prompts.cleanupPrompt).replace(
-      /\{\{agentName\}\}/g,
-      name
-    );
+    prompt = prompts.cleanupPrompt.replace(/\{\{agentName\}\}/g, name);
   }
 
   const langInstruction = getLanguageInstruction(language);
