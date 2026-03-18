@@ -329,6 +329,11 @@ class IPCHandlers {
       return { success: true };
     });
 
+    ipcMain.handle("set-dictation-cancel-enabled", (event, enabled) => {
+      this.windowManager.setDictationCancelEnabled(Boolean(enabled));
+      return { success: true };
+    });
+
     ipcMain.handle("resize-main-window", (event, sizeKey) => {
       return this.windowManager.resizeMainWindow(sizeKey);
     });

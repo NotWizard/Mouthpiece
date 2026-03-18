@@ -1,4 +1,4 @@
-const { app, screen, BrowserWindow, shell, dialog } = require("electron");
+const { app, screen, BrowserWindow, shell, dialog, globalShortcut } = require("electron");
 const debugLogger = require("./debugLogger");
 const HotkeyManager = require("./hotkeyManager");
 const { isGlobeLikeHotkey } = HotkeyManager;
@@ -31,9 +31,12 @@ class WindowManager {
     this.macCompoundPushState = null;
     this.winPushState = null;
     this.windowsNativeHotkeyEnabled = false;
+    this.dictationCancelEnabled = false;
+    this.dictationCancelShortcutRegistered = false;
 
     app.on("before-quit", () => {
       this.isQuitting = true;
+      this.unregisterDictationCancelShortcut();
     });
   }
 
@@ -95,6 +98,92 @@ class WindowManager {
       this.mainWindow.setIgnoreMouseEvents(true, { forward: true });
     }
     this.isMainWindowInteractive = shouldCapture;
+  }
+
+  canUseDictationCancelShortcut() {
+    return !(process.platform === "linux" && this.hotkeyManager.isUsingGnome());
+  }
+
+  registerDictationCancelShortcut() {
+    if (!this.canUseDictationCancelShortcut()) {
+      this.dictationCancelShortcutRegistered = false;
+      return false;
+    }
+
+    if (this.dictationCancelShortcutRegistered && globalShortcut.isRegistered("Escape")) {
+      return true;
+    }
+
+    const registered = globalShortcut.register("Escape", () => this.requestDictationCancel("escape"));
+    this.dictationCancelShortcutRegistered = registered;
+
+    if (!registered) {
+      debugLogger.warn("Failed to register dictation cancel shortcut", { accelerator: "Escape" }, "hotkey");
+    }
+
+    return registered;
+  }
+
+  unregisterDictationCancelShortcut() {
+    if (globalShortcut.isRegistered("Escape")) {
+      globalShortcut.unregister("Escape");
+    }
+    this.dictationCancelShortcutRegistered = false;
+  }
+
+  setDictationCancelEnabled(enabled) {
+    this.dictationCancelEnabled = Boolean(enabled);
+
+    if (this.dictationCancelEnabled) {
+      this.registerDictationCancelShortcut();
+    } else {
+      this.unregisterDictationCancelShortcut();
+    }
+
+    return {
+      success: true,
+      enabled: this.dictationCancelEnabled,
+      registered: this.dictationCancelShortcutRegistered,
+    };
+  }
+
+  cancelActiveAutomaticActivation() {
+    let shouldHidePanel = false;
+
+    if (this.macCompoundPushState?.session?.cancel) {
+      if (this.macCompoundPushState.safetyTimeoutId) {
+        clearTimeout(this.macCompoundPushState.safetyTimeoutId);
+      }
+      const outcome = this.macCompoundPushState.session.cancel();
+      shouldHidePanel = shouldHidePanel || outcome === "pending";
+      this.macCompoundPushState = null;
+    }
+
+    if (this.winPushState?.session?.cancel) {
+      const outcome = this.winPushState.session.cancel();
+      shouldHidePanel = shouldHidePanel || outcome === "pending";
+      this.winPushState = null;
+    }
+
+    return shouldHidePanel;
+  }
+
+  requestDictationCancel(source = "escape") {
+    if (this.hotkeyManager.isInListeningMode()) {
+      return false;
+    }
+
+    const shouldHidePanel = this.cancelActiveAutomaticActivation();
+    if (shouldHidePanel) {
+      this.hideDictationPanel();
+    }
+
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send("cancel-dictation", { source });
+      return true;
+    }
+
+    return false;
   }
 
   resizeMainWindow(sizeKey) {
@@ -620,6 +709,7 @@ class WindowManager {
     });
 
     this.mainWindow.on("closed", () => {
+      this.unregisterDictationCancelShortcut();
       this.dragManager.cleanup();
       this.mainWindow = null;
       this.isMainWindowInteractive = false;

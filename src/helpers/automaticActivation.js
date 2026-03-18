@@ -141,6 +141,18 @@ function createAutomaticActivationSession({
       return "pending";
     },
 
+    cancel() {
+      if (!active) {
+        return "idle";
+      }
+
+      const outcome = holdStarted ? "hold" : "pending";
+      clearHoldTimer();
+      active = false;
+      holdStarted = false;
+      return outcome;
+    },
+
     getState() {
       return {
         active,

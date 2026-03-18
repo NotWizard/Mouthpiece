@@ -7,10 +7,18 @@ test("App initializes recording state before any effect reads isRecording", asyn
   const source = await fs.readFile(path.resolve(process.cwd(), "src/App.jsx"), "utf8");
 
   const recordingHookIndex = source.indexOf("} = useAudioRecording(toast, {");
-  const firstRecordingEffectIndex = source.indexOf("useEffect(() => {\n    if (isRecording || isCommandMenuOpen || toastCount > 0) {");
+  const activityDerivationIndex = source.indexOf(
+    "const shouldCaptureWindowInput = shouldCaptureDictationWindowInput({"
+  );
+  const firstRecordingEffectIndex = source.indexOf("useEffect(() => {\n    if (shouldCaptureWindowInput) {");
 
   assert.notEqual(recordingHookIndex, -1);
+  assert.notEqual(activityDerivationIndex, -1);
   assert.notEqual(firstRecordingEffectIndex, -1);
+  assert.ok(
+    recordingHookIndex < activityDerivationIndex,
+    "useAudioRecording must run before derived dictation activity state is computed"
+  );
   assert.ok(
     recordingHookIndex < firstRecordingEffectIndex,
     "useAudioRecording must run before effects read isRecording"

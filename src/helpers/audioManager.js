@@ -3078,6 +3078,14 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
     const t0 = performance.now();
     let finalText = this.streamingFinalText || "";
+    const shouldStopBeforeCompletion = (stage) => {
+      if (this.isProcessing) {
+        return false;
+      }
+
+      logger.info("Streaming processing cancelled", { stage }, "streaming");
+      return true;
+    };
 
     // 1. Update UI immediately
     this.isRecording = false;
@@ -3161,6 +3169,10 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     }
 
     this.cleanupStreamingListeners();
+
+    if (shouldStopBeforeCompletion("after-stream-stop")) {
+      return true;
+    }
 
     logger.info(
       "Streaming stop timing",
@@ -3273,6 +3285,10 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       }
     }
 
+    if (shouldStopBeforeCompletion("after-reasoning")) {
+      return true;
+    }
+
     // If streaming produced no text, fall back to batch transcription
     // (batch fallback records usage server-side via /api/transcribe)
     let usedBatchFallback = false;
@@ -3296,11 +3312,19 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       }
     }
 
+    if (shouldStopBeforeCompletion("after-batch-fallback")) {
+      return true;
+    }
+
     if (finalText) {
       finalText = this.applyDictionaryNormalization(
         this.basicDictationCleanup(finalText),
         "streaming-final"
       );
+
+      if (shouldStopBeforeCompletion("before-completion-delivery")) {
+        return true;
+      }
 
       const tBeforePaste = performance.now();
       const clientTotalMs = Math.round(tBeforePaste - t0);

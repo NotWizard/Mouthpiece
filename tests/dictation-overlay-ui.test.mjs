@@ -18,16 +18,17 @@ async function loadOverlayStateModule() {
   }
 }
 
-test("dictation capsule only renders while recording", async () => {
+test("dictation capsule stays visible for any active dictation stage", async () => {
   const mod = await loadOverlayStateModule();
 
   assert.equal(typeof mod.shouldShowDictationCapsule, "function");
   assert.equal(mod.shouldShowDictationCapsule({ isRecording: true }), true);
-  assert.equal(mod.shouldShowDictationCapsule({ isRecording: false, isProcessing: true }), false);
+  assert.equal(mod.shouldShowDictationCapsule({ isRecording: false, isTranscribing: true }), true);
+  assert.equal(mod.shouldShowDictationCapsule({ isRecording: false, isProcessing: true }), true);
   assert.equal(mod.shouldShowDictationCapsule({ isRecording: false, isProcessing: false }), false);
 });
 
-test("dictation window stays visible only for active recording, menu, or toasts", async () => {
+test("dictation window stays visible while dictation is active, menu is open, or toasts are present", async () => {
   const mod = await loadOverlayStateModule();
 
   assert.equal(typeof mod.shouldKeepDictationWindowVisible, "function");
@@ -50,6 +51,24 @@ test("dictation window stays visible only for active recording, menu, or toasts"
   assert.equal(
     mod.shouldKeepDictationWindowVisible({
       isRecording: false,
+      isTranscribing: true,
+      isCommandMenuOpen: false,
+      toastCount: 0,
+    }),
+    true
+  );
+  assert.equal(
+    mod.shouldKeepDictationWindowVisible({
+      isRecording: false,
+      isProcessing: true,
+      isCommandMenuOpen: false,
+      toastCount: 0,
+    }),
+    true
+  );
+  assert.equal(
+    mod.shouldKeepDictationWindowVisible({
+      isRecording: false,
       isCommandMenuOpen: false,
       toastCount: 1,
     }),
@@ -58,6 +77,40 @@ test("dictation window stays visible only for active recording, menu, or toasts"
   assert.equal(
     mod.shouldKeepDictationWindowVisible({
       isRecording: false,
+      isCommandMenuOpen: false,
+      toastCount: 0,
+    }),
+    false
+  );
+});
+
+test("dictation window keeps input capture enabled while active processing is still running", async () => {
+  const mod = await loadOverlayStateModule();
+
+  assert.equal(typeof mod.shouldCaptureDictationWindowInput, "function");
+  assert.equal(
+    mod.shouldCaptureDictationWindowInput({
+      isRecording: false,
+      isProcessing: true,
+      isCommandMenuOpen: false,
+      toastCount: 0,
+    }),
+    true
+  );
+  assert.equal(
+    mod.shouldCaptureDictationWindowInput({
+      isRecording: false,
+      isTranscribing: true,
+      isCommandMenuOpen: false,
+      toastCount: 0,
+    }),
+    true
+  );
+  assert.equal(
+    mod.shouldCaptureDictationWindowInput({
+      isRecording: false,
+      isProcessing: false,
+      isTranscribing: false,
       isCommandMenuOpen: false,
       toastCount: 0,
     }),

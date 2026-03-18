@@ -49,6 +49,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onToggleDictation: registerListener("toggle-dictation", (callback) => () => callback()),
   onStartDictation: registerListener("start-dictation", (callback) => () => callback()),
   onStopDictation: registerListener("stop-dictation", (callback) => () => callback()),
+  onCancelDictation: registerListener(
+    "cancel-dictation",
+    (callback) => (_event, data) => callback(data)
+  ),
 
   // Database functions
   saveTranscription: (text) => ipcRenderer.invoke("db-save-transcription", text),
@@ -170,6 +174,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   stopWindowDrag: () => ipcRenderer.invoke("stop-window-drag"),
   setMainWindowInteractivity: (interactive) =>
     ipcRenderer.invoke("set-main-window-interactivity", interactive),
+  setDictationCancelEnabled: (enabled) =>
+    ipcRenderer.invoke("set-dictation-cancel-enabled", enabled),
   resizeMainWindow: (sizeKey) => ipcRenderer.invoke("resize-main-window", sizeKey),
 
   getAppVersion: () => ipcRenderer.invoke("get-app-version"),

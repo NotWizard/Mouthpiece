@@ -9,6 +9,7 @@ import { useWindowDrag } from "./hooks/useWindowDrag";
 import {
   DICTATION_CAPSULE_BOTTOM_OFFSET_PX,
   DICTATION_WINDOW_IDLE_HIDE_DELAY_MS,
+  shouldCaptureDictationWindowInput,
   shouldKeepDictationWindowVisible,
   shouldShowDictationCapsule,
 } from "./utils/dictationOverlayState.mjs";
@@ -112,21 +113,34 @@ export default function App() {
     dismiss,
   });
 
-  const shouldRenderCapsule = shouldShowDictationCapsule({ isRecording, isTranscribing });
+  const capsuleIsBusy = isTranscribing || isProcessing;
+  const shouldRenderCapsule = shouldShowDictationCapsule({
+    isRecording,
+    isTranscribing,
+    isProcessing,
+  });
   const shouldKeepWindowVisible = shouldKeepDictationWindowVisible({
     isRecording,
     isTranscribing,
+    isProcessing,
+    isCommandMenuOpen,
+    toastCount,
+  });
+  const shouldCaptureWindowInput = shouldCaptureDictationWindowInput({
+    isRecording,
+    isTranscribing,
+    isProcessing,
     isCommandMenuOpen,
     toastCount,
   });
 
   useEffect(() => {
-    if (isRecording || isCommandMenuOpen || toastCount > 0) {
+    if (shouldCaptureWindowInput) {
       setWindowInteractivity(true);
     } else if (!isHovered) {
       setWindowInteractivity(false);
     }
-  }, [isRecording, isCommandMenuOpen, isHovered, setWindowInteractivity, toastCount]);
+  }, [isHovered, setWindowInteractivity, shouldCaptureWindowInput]);
 
   useEffect(() => {
     if (isCommandMenuOpen && toastCount > 0) {
@@ -240,7 +254,7 @@ export default function App() {
           }}
           onMouseLeave={() => {
             setIsHovered(false);
-            if (!isCommandMenuOpen) {
+            if (!isCommandMenuOpen && !shouldCaptureWindowInput) {
               setWindowInteractivity(false);
             }
           }}
@@ -277,7 +291,7 @@ export default function App() {
                 isHovered={isHovered}
                 isRecording={isRecording}
                 isProcessing={isProcessing}
-                isTranscribing={isTranscribing}
+                isTranscribing={capsuleIsBusy}
                 isDragging={isDragging}
                 onMouseDown={(event) => {
                   setIsCommandMenuOpen(false);
@@ -328,7 +342,7 @@ export default function App() {
                   setWindowInteractivity(true);
                 }}
                 onMouseLeave={() => {
-                  if (!isHovered) {
+                  if (!isHovered && !shouldCaptureWindowInput) {
                     setWindowInteractivity(false);
                   }
                 }}

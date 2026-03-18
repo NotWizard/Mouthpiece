@@ -20,6 +20,7 @@ export const useAudioRecording = (toast, options = {}) => {
   const stopLockRef = useRef(false);
   const pasteFallbackToastIdRef = useRef(null);
   const { onToggle, dismiss } = options;
+  const isDictationActive = isRecording || isProcessing || isTranscribing;
 
   const clearPasteFallbackToast = useCallback(() => {
     if (pasteFallbackToastIdRef.current && typeof dismiss === "function") {
@@ -264,7 +265,7 @@ export const useAudioRecording = (toast, options = {}) => {
     return performStopRecording();
   };
 
-  const cancelRecording = async () => {
+  const cancelRecording = useCallback(async () => {
     if (audioManagerRef.current) {
       const state = audioManagerRef.current.getState();
       if (state.isStreaming) {
@@ -273,14 +274,46 @@ export const useAudioRecording = (toast, options = {}) => {
       return audioManagerRef.current.cancelRecording();
     }
     return false;
-  };
+  }, []);
 
-  const cancelProcessing = () => {
+  const cancelProcessing = useCallback(() => {
     if (audioManagerRef.current) {
       return audioManagerRef.current.cancelProcessing();
     }
     return false;
-  };
+  }, []);
+
+  useEffect(() => {
+    void window.electronAPI?.setDictationCancelEnabled?.(isDictationActive);
+
+    return () => {
+      if (isDictationActive) {
+        void window.electronAPI?.setDictationCancelEnabled?.(false);
+      }
+    };
+  }, [isDictationActive]);
+
+  useEffect(() => {
+    const disposeCancel = window.electronAPI.onCancelDictation?.(() => {
+      const currentState = audioManagerRef.current?.getState();
+      if (!currentState) {
+        return;
+      }
+
+      if (currentState.isRecording || currentState.isStreaming) {
+        void cancelRecording();
+        return;
+      }
+
+      if (currentState.isProcessing) {
+        cancelProcessing();
+      }
+    });
+
+    return () => {
+      disposeCancel?.();
+    };
+  }, [cancelProcessing, cancelRecording]);
 
   const toggleListening = async () => {
     if (!isRecording && !isProcessing) {

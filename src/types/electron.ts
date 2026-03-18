@@ -256,6 +256,8 @@ declare global {
       onToggleDictation: (callback: () => void) => () => void;
       onStartDictation?: (callback: () => void) => () => void;
       onStopDictation?: (callback: () => void) => () => void;
+      onCancelDictation?: (callback: (data?: { source?: string }) => void) => () => void;
+      setDictationCancelEnabled?: (enabled: boolean) => Promise<{ success: boolean }>;
 
       // STT config
       getSttConfig?: () => Promise<{

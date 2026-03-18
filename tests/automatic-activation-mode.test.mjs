@@ -86,6 +86,34 @@ test("automatic activation enters hold mode after the threshold and stops on rel
   });
 });
 
+test("automatic activation can be hard-cancelled without firing tap or hold-stop callbacks", () => {
+  const { AUTOMATIC_ACTIVATION_THRESHOLD_MS, createAutomaticActivationSession } =
+    loadAutomaticActivationModule();
+  const timers = createFakeTimerController();
+  const events = [];
+
+  const session = createAutomaticActivationSession({
+    thresholdMs: AUTOMATIC_ACTIVATION_THRESHOLD_MS,
+    schedule: (callback) => timers.schedule(callback),
+    cancel: (id) => timers.cancel(id),
+    onShow: () => events.push("show"),
+    onTap: () => events.push("tap"),
+    onHoldStart: () => events.push("hold-start"),
+    onHoldStop: () => events.push("hold-stop"),
+  });
+
+  session.keyDown();
+  timers.flushAll();
+  const outcome = session.cancel();
+
+  assert.equal(outcome, "hold");
+  assert.deepEqual(events, ["show", "hold-start"]);
+  assert.deepEqual(session.getState(), {
+    active: false,
+    holdStarted: false,
+  });
+});
+
 test("automatic activation falls back to tap when key release cannot be detected", () => {
   const { getAutomaticActivationSupport } = loadAutomaticActivationModule();
 
