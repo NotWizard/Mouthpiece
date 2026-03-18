@@ -45,7 +45,7 @@ import { SettingsRow } from "./ui/SettingsSection";
 import { cn } from "./lib/utils";
 import { UI_LANGUAGE_OPTIONS } from "../locales/localeManifest";
 import { CURRENT_CACHE_DIRNAME } from "../config/productIdentity";
-import modelCachePaths from "../utils/modelCachePaths";
+import { getModelCachePathHint } from "../utils/modelCachePathHint";
 
 export type SettingsSectionType =
   | "general"
@@ -583,8 +583,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
 
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
-  const { getModelCachePathHint } = modelCachePaths;
-
   const [currentVersion, setCurrentVersion] = useState<string>("");
   const [isRemovingModels, setIsRemovingModels] = useState(false);
   const cachePathHint = getModelCachePathHint({

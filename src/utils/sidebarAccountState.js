@@ -13,7 +13,7 @@ function normalizeIdentityValue(value) {
  * Hide the sidebar account footer entirely when the app is signed out.
  * @param {SidebarAccountState} state
  */
-function shouldShowSidebarAccountSection({ isSignedIn = false, userName, userEmail } = {}) {
+export function shouldShowSidebarAccountSection({ isSignedIn = false, userName, userEmail } = {}) {
   if (!isSignedIn) {
     return false;
   }
@@ -21,6 +21,6 @@ function shouldShowSidebarAccountSection({ isSignedIn = false, userName, userEma
   return Boolean(normalizeIdentityValue(userName) || normalizeIdentityValue(userEmail));
 }
 
-module.exports = {
+export default {
   shouldShowSidebarAccountSection,
 };
