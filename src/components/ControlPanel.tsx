@@ -57,10 +57,6 @@ export default function ControlPanel() {
   } = useDialogs();
 
   useEffect(() => {
-    loadTranscriptions();
-  }, []);
-
-  useEffect(() => {
     if (platform === "darwin" || gpuBannerDismissed) return;
     const detect = async () => {
       const results = { cuda: false, vulkan: false };
@@ -84,7 +80,7 @@ export default function ControlPanel() {
     detect();
   }, [useLocalWhisper, localTranscriptionProvider, useReasoningModel, gpuBannerDismissed]);
 
-  const loadTranscriptions = async () => {
+  const loadTranscriptions = useCallback(async () => {
     try {
       setIsLoading(true);
       await initializeTranscriptions();
@@ -96,7 +92,11 @@ export default function ControlPanel() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [showAlertDialog, t]);
+
+  useEffect(() => {
+    void loadTranscriptions();
+  }, [loadTranscriptions]);
 
   const copyToClipboard = useCallback(
     async (text: string) => {

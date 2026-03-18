@@ -63,6 +63,7 @@ export interface ThemeSettings {
 
 function useSettingsInternal() {
   const store = useSettingsStore();
+  const setCustomDictionary = store.setCustomDictionary;
 
   // One-time initialization: sync API keys, dictation key, UI language,
   // and dictionary from the main process / SQLite.
@@ -84,11 +85,11 @@ function useSettingsInternal() {
     if (typeof window === "undefined" || !window.electronAPI?.onDictionaryUpdated) return;
     const unsubscribe = window.electronAPI.onDictionaryUpdated((words: string[]) => {
       if (Array.isArray(words)) {
-        store.setCustomDictionary(words);
+        setCustomDictionary(words);
       }
     });
     return unsubscribe;
-  }, [store.setCustomDictionary]);
+  }, [setCustomDictionary]);
 
   // Auto-learn corrections from user edits in external apps
   const [autoLearnCorrections, setAutoLearnCorrectionsRaw] = useLocalStorage(

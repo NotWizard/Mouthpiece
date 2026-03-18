@@ -215,7 +215,7 @@ export const usePermissions = (
         alert(message);
       }
     }
-  }, [showAlertDialog, t]);
+  }, [setMicPermissionGranted, showAlertDialog, t]);
 
   const checkPasteToolsAvailability = useCallback(async (): Promise<PasteToolsResult | null> => {
     setIsCheckingPasteTools(true);

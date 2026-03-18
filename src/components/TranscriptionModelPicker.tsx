@@ -303,7 +303,7 @@ export default function TranscriptionModelPicker({
     if (selectedLocalProvider !== internalLocalProvider) {
       setInternalLocalProvider(selectedLocalProvider);
     }
-  }, [selectedLocalProvider]);
+  }, [internalLocalProvider, selectedLocalProvider]);
   const isLoadingRef = useRef(false);
   const isLoadingParakeetRef = useRef(false);
   const loadLocalModelsRef = useRef<(() => Promise<void>) | null>(null);

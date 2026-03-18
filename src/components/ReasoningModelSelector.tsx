@@ -34,6 +34,8 @@ type CloudModelOption = {
   invertInDark?: boolean;
 };
 
+const cloudProviderIds = ["openai", "anthropic", "gemini", "groq", "bailian", "custom"];
+
 interface ReasoningModelSelectorProps {
   reasoningModel: string;
   setReasoningModel: (model: string) => void;
@@ -506,7 +508,6 @@ export default function ReasoningModelSelector({
     return customModelOptions;
   }, [isCustomBaseDirty, customModelOptions]);
 
-  const cloudProviderIds = ["openai", "anthropic", "gemini", "groq", "bailian", "custom"];
   const cloudProviders = cloudProviderIds.map((id) => ({
     id,
     name:

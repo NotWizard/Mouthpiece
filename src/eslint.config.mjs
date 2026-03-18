@@ -70,4 +70,10 @@ export default [
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
     },
   },
+  {
+    files: ["main.jsx", "components/ui/Toast.tsx"],
+    rules: {
+      "react-refresh/only-export-components": "off",
+    },
+  },
 ];

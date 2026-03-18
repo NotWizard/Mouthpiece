@@ -573,6 +573,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
       : `~/.cache/${LEGACY_CACHE_DIRNAME}`;
 
   const whisperHook = useWhisper();
+  const checkWhisperInstallation = whisperHook.checkWhisperInstallation;
   const permissionsHook = usePermissions(showAlertDialog);
   useClipboard(showAlertDialog);
 
@@ -685,7 +686,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
       }
 
       if (mounted) {
-        whisperHook.checkWhisperInstallation();
+        checkWhisperInstallation();
       }
     }, 100);
 
@@ -693,7 +694,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
       mounted = false;
       clearTimeout(timer);
     };
-  }, [whisperHook.checkWhisperInstallation]);
+  }, [checkWhisperInstallation]);
 
   useEffect(() => {
     const checkHotkeyMode = async () => {

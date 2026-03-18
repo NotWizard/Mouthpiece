@@ -313,18 +313,3 @@ const Toast: React.FC<
     </div>
   );
 };
-
-export const toast = {
-  success: (message: string) => ({
-    title: message,
-    variant: "success" as const,
-  }),
-  error: (message: string) => ({
-    title: message,
-    variant: "destructive" as const,
-  }),
-  info: (message: string) => ({
-    title: message,
-    variant: "default" as const,
-  }),
-};

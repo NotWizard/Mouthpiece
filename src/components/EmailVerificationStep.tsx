@@ -51,7 +51,7 @@ export default function EmailVerificationStep({ email, onVerified }: EmailVerifi
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [email, verified, onVerified]);
+  }, [email, onVerified, t, verified]);
 
   const handleResend = useCallback(async () => {
     if (resendCooldown > 0 || isResending || !MOUTHPIECE_API_URL) return;
