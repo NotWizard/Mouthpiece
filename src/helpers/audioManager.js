@@ -1049,7 +1049,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const cloudTranscriptionMode = s.cloudTranscriptionMode;
       const isSignedIn = s.isSignedIn;
 
-      const isMouthpieceCloudMode = !useLocalWhisper && (cloudTranscriptionMode === "mouthpiece" || cloudTranscriptionMode === "openwhispr");
+      const isMouthpieceCloudMode =
+        !useLocalWhisper &&
+        (cloudTranscriptionMode === "mouthpiece" || cloudTranscriptionMode === "openwhispr");
       const useCloud = isMouthpieceCloudMode && isSignedIn;
       logger.debug(
         "Transcription routing",
@@ -1994,7 +1996,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const opts = {};
     if (language) opts.language = language;
     const reasoningMode = settings.cloudReasoningMode || "mouthpiece";
-    if (settings.useReasoningModel && !this.skipReasoning && (reasoningMode === "mouthpiece" || reasoningMode === "openwhispr")) {
+    if (
+      settings.useReasoningModel &&
+      !this.skipReasoning &&
+      (reasoningMode === "mouthpiece" || reasoningMode === "openwhispr")
+    ) {
       opts.sendLogs = "false";
     }
 
@@ -2463,9 +2469,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
               : provider === "custom"
                 ? "custom"
                 : "openai";
-        const source = (await this.isReasoningAvailable())
-          ? `${sourceBase}-reasoned`
-          : sourceBase;
+        const source = (await this.isReasoningAvailable()) ? `${sourceBase}-reasoned` : sourceBase;
         logger.debug(
           "Transcription successful",
           {
@@ -2785,7 +2789,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   shouldUseStreaming(isSignedInOverride) {
     const s = getSettings();
     const isSignedIn = isSignedInOverride ?? s.isSignedIn;
-    if (s.useLocalWhisper || (s.cloudTranscriptionMode !== "mouthpiece" && s.cloudTranscriptionMode !== "openwhispr") || !isSignedIn) {
+    if (
+      s.useLocalWhisper ||
+      (s.cloudTranscriptionMode !== "mouthpiece" && s.cloudTranscriptionMode !== "openwhispr") ||
+      !isSignedIn
+    ) {
       return false;
     }
 

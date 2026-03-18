@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Exposed Alibaba Bailian as a dedicated cloud transcription provider in Settings, with its own API key and model selection instead of routing DashScope through the generic custom provider
 - Clarified the custom transcription provider as the generic OpenAI-compatible endpoint path and automatically migrate legacy `custom` + DashScope transcription settings to the explicit Bailian provider on startup
 
+## [1.1.1] - 2026-03-18
+
+### Added
+
+- Restored automatic app update checks on startup with a 12-hour background polling interval
+- Added a control panel sidebar update action that appears after a new version finishes downloading in the background
+
+### Changed
+
+- Update installation now waits for explicit user confirmation before restarting the app
+- Release publishing is now aligned with the current `NotWizard/Mouthpiece` repository so packaged builds and update metadata ship from the same source
+
 ## [1.0.0] - 2026-03-17
 
 ### Changed

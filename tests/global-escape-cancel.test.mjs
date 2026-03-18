@@ -43,7 +43,10 @@ test("main process registers a temporary global Escape shortcut that dispatches 
     ipcHandlersSource,
     /ipcMain\.handle\("set-dictation-cancel-enabled",\s*\(event,\s*enabled\)\s*=>\s*\{\s*this\.windowManager\.setDictationCancelEnabled\(Boolean\(enabled\)\);/
   );
-  assert.match(windowManagerSource, /globalShortcut\.register\("Escape",\s*\(\)\s*=>\s*this\.requestDictationCancel\("escape"\)\)/);
+  assert.match(
+    windowManagerSource,
+    /globalShortcut\.register\("Escape",\s*\(\)\s*=>\s*this\.requestDictationCancel\("escape"\)\s*\)/s
+  );
   assert.match(windowManagerSource, /globalShortcut\.unregister\("Escape"\)/);
   assert.match(windowManagerSource, /this\.mainWindow\.webContents\.send\("cancel-dictation",\s*\{\s*source\s*\}\)/);
 });

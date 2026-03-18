@@ -16,9 +16,17 @@ export interface ContextClassification {
 }
 
 const APP_CONTEXT_RULES: Array<{ context: ReasoningContext; re: RegExp; signal: string }> = [
-  { context: "code", re: /(code|cursor|vscode|visual studio|terminal|powershell|iterm|xcode)/i, signal: "app:code" },
+  {
+    context: "code",
+    re: /(code|cursor|vscode|visual studio|terminal|powershell|iterm|xcode)/i,
+    signal: "app:code",
+  },
   { context: "email", re: /(mail|gmail|outlook|spark|thunderbird)/i, signal: "app:email" },
-  { context: "chat", re: /(slack|discord|teams|wechat|telegram|whatsapp|message)/i, signal: "app:chat" },
+  {
+    context: "chat",
+    re: /(slack|discord|teams|wechat|telegram|whatsapp|message)/i,
+    signal: "app:chat",
+  },
   { context: "document", re: /(notion|docs|word|pages|onenote|obsidian)/i, signal: "app:document" },
 ];
 
@@ -108,7 +116,8 @@ export async function getTargetAppInfo(): Promise<TargetAppInfo> {
   const fallback: TargetAppInfo = {
     appName: null,
     processId: null,
-    platform: typeof window !== "undefined" ? window.electronAPI?.getPlatform?.() || "unknown" : "unknown",
+    platform:
+      typeof window !== "undefined" ? window.electronAPI?.getPlatform?.() || "unknown" : "unknown",
     source: "renderer-fallback",
     capturedAt: null,
   };
@@ -126,7 +135,8 @@ export async function getTargetAppInfo(): Promise<TargetAppInfo> {
     return {
       appName: typeof info.appName === "string" && info.appName.trim() ? info.appName.trim() : null,
       processId: Number.isInteger(info.processId) ? info.processId : null,
-      platform: typeof info.platform === "string" && info.platform ? info.platform : fallback.platform,
+      platform:
+        typeof info.platform === "string" && info.platform ? info.platform : fallback.platform,
       source: info.source === "main-process" ? "main-process" : "renderer-fallback",
       capturedAt: typeof info.capturedAt === "string" && info.capturedAt ? info.capturedAt : null,
     };

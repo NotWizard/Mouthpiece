@@ -206,9 +206,7 @@ export default function SearchableModelSelect({
                           </p>
                         )}
                       </div>
-                      {isSelected && (
-                        <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                      )}
+                      {isSelected && <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
                     </button>
                   );
                 })}

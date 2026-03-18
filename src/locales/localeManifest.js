@@ -41,9 +41,4 @@ function normalizeUiLanguage(language) {
   return SUPPORTED_UI_LANGUAGES.includes(base) ? base : DEFAULT_UI_LANGUAGE;
 }
 
-export {
-  SUPPORTED_UI_LANGUAGES,
-  DEFAULT_UI_LANGUAGE,
-  UI_LANGUAGE_OPTIONS,
-  normalizeUiLanguage,
-};
+export { SUPPORTED_UI_LANGUAGES, DEFAULT_UI_LANGUAGE, UI_LANGUAGE_OPTIONS, normalizeUiLanguage };

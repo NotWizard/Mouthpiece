@@ -68,14 +68,7 @@ function LoadingSpinner() {
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="rgba(100,100,100,0.3)"
-          strokeWidth="2"
-          fill="none"
-        />
+        <circle cx="12" cy="12" r="10" stroke="rgba(100,100,100,0.3)" strokeWidth="2" fill="none" />
         <path
           d="M12 2C6.477 2 2 6.477 2 12c0 1.656.336 3.232.94 4.66"
           stroke="rgba(80,80,80,0.9)"
@@ -199,7 +192,9 @@ export default function DictationCapsule({
   const layout = getDictationCapsuleLayout({ stage: visualState.stage });
   const glowColor = isRecording ? "rgba(255, 132, 132, 0.48)" : "rgba(244, 166, 89, 0.26)";
   const borderColor =
-    isRecording || isProcessing || isTranscribing ? "rgba(255, 157, 157, 0.72)" : "rgba(201, 201, 201, 0.92)";
+    isRecording || isProcessing || isTranscribing
+      ? "rgba(255, 157, 157, 0.72)"
+      : "rgba(201, 201, 201, 0.92)";
   const recordingLayerVisible = visualState.stage !== "transcribing";
   const morphLayerVisible = visualState.stage !== "recording";
   const compactLayerVisible = visualState.stage !== "recording";

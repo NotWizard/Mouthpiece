@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect, useRef, useCallback } from "react";
+import React, { Suspense, useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Zap } from "lucide-react";
@@ -17,6 +17,7 @@ import ControlPanelSidebar, { type ControlPanelView } from "./ControlPanelSideba
 import WindowControls from "./WindowControls";
 import { getCachedPlatform } from "../utils/platform";
 import HistoryView from "./HistoryView";
+import type { AppUpdateStatus } from "../types/electron";
 
 const platform = getCachedPlatform();
 
@@ -35,6 +36,7 @@ export default function ControlPanel() {
   const [showReferrals, setShowReferrals] = useState(false);
   const [showCloudMigrationBanner, setShowCloudMigrationBanner] = useState(false);
   const [activeView, setActiveView] = useState<ControlPanelView>("home");
+  const [updateStatus, setUpdateStatus] = useState<AppUpdateStatus | null>(null);
   const [gpuAccelAvailable, setGpuAccelAvailable] = useState<{ cuda: boolean; vulkan: boolean }>({
     cuda: false,
     vulkan: false,
@@ -98,6 +100,31 @@ export default function ControlPanel() {
     void loadTranscriptions();
   }, [loadTranscriptions]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    const loadUpdateStatus = async () => {
+      try {
+        const status = await window.electronAPI?.getUpdateStatus?.();
+        if (mounted && status) {
+          setUpdateStatus(status);
+        }
+      } catch {}
+    };
+
+    void loadUpdateStatus();
+    const unsubscribe = window.electronAPI?.onUpdateStatusChanged?.((status) => {
+      if (mounted) {
+        setUpdateStatus(status);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      unsubscribe?.();
+    };
+  }, []);
+
   const copyToClipboard = useCallback(
     async (text: string) => {
       try {
@@ -148,6 +175,40 @@ export default function ControlPanel() {
     [showConfirmDialog, showAlertDialog, t]
   );
 
+  const handleInstallUpdate = useCallback(() => {
+    if (updateStatus?.status === "installing") {
+      return;
+    }
+
+    showConfirmDialog({
+      title: t("controlPanel.update.installTitle"),
+      description: t("controlPanel.update.installDescription"),
+      confirmText: t("controlPanel.update.installButton"),
+      cancelText: t("common.cancel"),
+      onConfirm: async () => {
+        const result = await window.electronAPI?.installUpdate?.();
+        if (!result?.success) {
+          showAlertDialog({
+            title: t("controlPanel.update.couldNotInstallTitle"),
+            description: result?.error || t("controlPanel.update.couldNotInstallDescription"),
+          });
+        }
+      },
+    });
+  }, [showConfirmDialog, showAlertDialog, t, updateStatus?.status]);
+
+  const updateAction =
+    updateStatus?.status === "downloaded" || updateStatus?.status === "installing"
+      ? {
+          label:
+            updateStatus.status === "installing"
+              ? t("controlPanel.update.installing")
+              : t("controlPanel.update.availableButton"),
+          disabled: updateStatus.status === "installing",
+          onClick: handleInstallUpdate,
+        }
+      : undefined;
+
   return (
     <div className="h-screen bg-background flex flex-col">
       <ConfirmDialog
@@ -183,6 +244,7 @@ export default function ControlPanel() {
           userImage={user?.image}
           isSignedIn={isSignedIn}
           authLoaded={authLoaded}
+          updateAction={updateAction}
         />
         <main className="flex-1 flex flex-col overflow-hidden">
           <div

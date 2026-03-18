@@ -112,6 +112,7 @@ class IPCHandlers {
     this.clipboardManager = managers.clipboardManager;
     this.whisperManager = managers.whisperManager;
     this.parakeetManager = managers.parakeetManager;
+    this.updateManager = managers.updateManager;
     this.windowManager = managers.windowManager;
     this.windowsKeyManager = managers.windowsKeyManager;
     this.textEditMonitor = managers.textEditMonitor;
@@ -130,6 +131,12 @@ class IPCHandlers {
     if (this.whisperManager?.serverManager) {
       this.whisperManager.serverManager.on("cuda-fallback", () => {
         this.broadcastToWindows("cuda-fallback-notification", {});
+      });
+    }
+
+    if (this.updateManager?.on) {
+      this.updateManager.on("status-changed", (status) => {
+        this.broadcastToWindows("update-status-changed", status);
       });
     }
   }
@@ -920,9 +927,7 @@ class IPCHandlers {
         }
 
         if (process.platform === "win32" && this.windowsKeyManager) {
-          debugLogger.log(
-            `[IPC] Exiting hotkey capture mode, hotkey="${effectiveHotkey}"`
-          );
+          debugLogger.log(`[IPC] Exiting hotkey capture mode, hotkey="${effectiveHotkey}"`);
           const needsListener = effectiveHotkey && !isGlobeLikeHotkey(effectiveHotkey);
           if (needsListener) {
             debugLogger.log(`[IPC] Restarting Windows key listener for hotkey: ${effectiveHotkey}`);
@@ -2184,6 +2189,26 @@ class IPCHandlers {
 
     ipcMain.handle("get-app-version", async () => {
       return { version: app.getVersion() };
+    });
+
+    ipcMain.handle("get-update-status", async () => {
+      return (
+        this.updateManager?.getStatus?.() || {
+          status: "unsupported",
+          supported: false,
+          checkingEnabled: false,
+          updateInfo: null,
+          error: null,
+          progressPercent: null,
+        }
+      );
+    });
+
+    ipcMain.handle("install-update", async () => {
+      if (!this.updateManager?.installUpdate) {
+        return { success: false, error: "Updater is not available." };
+      }
+      return this.updateManager.installUpdate();
     });
 
     const fetchStreamingToken = async (event) => {

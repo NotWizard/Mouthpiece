@@ -242,7 +242,8 @@ declare global {
   var __mouthpieceSettingsContext: React.Context<SettingsValue | null> | undefined;
 }
 
-const SettingsContext = globalThis.__mouthpieceSettingsContext ?? createContext<SettingsValue | null>(null);
+const SettingsContext =
+  globalThis.__mouthpieceSettingsContext ?? createContext<SettingsValue | null>(null);
 
 if (!globalThis.__mouthpieceSettingsContext) {
   globalThis.__mouthpieceSettingsContext = SettingsContext;

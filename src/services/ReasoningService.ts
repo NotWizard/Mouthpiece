@@ -31,8 +31,7 @@ class ReasoningService extends BaseReasoningService {
     config: ReasoningConfig
   ): string {
     const basePrompt =
-      config.systemPrompt ||
-      this.getSystemPrompt(agentName, text, config.contextClassification);
+      config.systemPrompt || this.getSystemPrompt(agentName, text, config.contextClassification);
     const strictMode = config.strictMode ?? config.contextClassification?.strictMode ?? false;
 
     if (!strictMode) {
@@ -58,7 +57,9 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
     const tokens: string[] = [];
 
     for (const segment of segments) {
-      if (/^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+$/u.test(segment)) {
+      if (
+        /^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+$/u.test(segment)
+      ) {
         tokens.push(...Array.from(segment));
         continue;
       }
@@ -137,7 +138,10 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
       .replace(/([\u4e00-\u9fff])\s*(?:嗯+|呃+|额+|啊+|唉+|诶+|欸+)\s*([\u4e00-\u9fff])/g, "$1$2")
       .replace(/\b(?:um+|uh+|er+|ah+|hmm+|mm+|you\s+know|basically)\b/gi, "")
       .replace(/([我你他她它这那])(?:\s*[，,、]?\s*\1)+/g, "$1")
-      .replace(/([\u4e00-\u9fff])\s*((?:是|就|在|会|要|的|了))(?:\s*[，,、]?\s*\2)+\s*([\u4e00-\u9fff])/g, "$1$2$3")
+      .replace(
+        /([\u4e00-\u9fff])\s*((?:是|就|在|会|要|的|了))(?:\s*[，,、]?\s*\2)+\s*([\u4e00-\u9fff])/g,
+        "$1$2$3"
+      )
       .replace(
         /(^|[\s，,、。！？,.!?;:])((?:这个|那个|就是|然后|是|就|那|这|我|你|他|她|它|的|了|在|要|会|都|也|还))(?:\s*[，,、]?\s*\2)+/g,
         "$1$2"
@@ -332,7 +336,9 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
       return [{ url: base, type }];
     }
 
-    const preference = options.ignoreStoredPreference ? undefined : this.getStoredOpenAiPreference(base);
+    const preference = options.ignoreStoredPreference
+      ? undefined
+      : this.getStoredOpenAiPreference(base);
     if (preference === "chat") {
       return [{ url: buildApiUrl(base, "/chat/completions"), type: "chat" }];
     }
@@ -713,8 +719,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
         model,
         processingTimeMs: processingTime,
         resultLength: guardedResult.length,
-        resultPreview:
-          guardedResult.substring(0, 100) + (guardedResult.length > 100 ? "..." : ""),
+        resultPreview: guardedResult.substring(0, 100) + (guardedResult.length > 100 ? "..." : ""),
       });
 
       return guardedResult;
@@ -817,10 +822,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
 
         for (const { url: endpoint, type } of endpointCandidates) {
           const controller = new AbortController();
-          const endpointTimeoutMs =
-            isCustomProvider && type === "responses"
-              ? 8000
-              : 30000;
+          const endpointTimeoutMs = isCustomProvider && type === "responses" ? 8000 : 30000;
           const timeoutId = setTimeout(() => controller.abort(), endpointTimeoutMs);
           try {
             const requestBody: any = { model };

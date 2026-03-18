@@ -179,6 +179,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   resizeMainWindow: (sizeKey) => ipcRenderer.invoke("resize-main-window", sizeKey),
 
   getAppVersion: () => ipcRenderer.invoke("get-app-version"),
+  getUpdateStatus: () => ipcRenderer.invoke("get-update-status"),
+  installUpdate: () => ipcRenderer.invoke("install-update"),
+  onUpdateStatusChanged: registerListener(
+    "update-status-changed",
+    (callback) => (_event, data) => callback(data)
+  ),
 
   // Audio event listeners
   onNoAudioDetected: registerListener("no-audio-detected"),

@@ -270,6 +270,7 @@ const WhisperManager = require("./src/helpers/whisper");
 const ParakeetManager = require("./src/helpers/parakeet");
 const TrayManager = require("./src/helpers/tray");
 const IPCHandlers = require("./src/helpers/ipcHandlers");
+const UpdateManager = require("./src/helpers/updateManager");
 const GlobeKeyManager = require("./src/helpers/globeKeyManager");
 const DevServerManager = require("./src/helpers/devServerManager");
 const WindowsKeyManager = require("./src/helpers/windowsKeyManager");
@@ -288,6 +289,7 @@ let clipboardManager = null;
 let whisperManager = null;
 let parakeetManager = null;
 let trayManager = null;
+let updateManager = null;
 let globeKeyManager = null;
 let windowsKeyManager = null;
 let textEditMonitor = null;
@@ -366,6 +368,12 @@ function initializeCoreManagers() {
     whisperCudaManager = new WhisperCudaManager();
   }
   parakeetManager = new ParakeetManager();
+  updateManager = new UpdateManager({
+    platform: process.platform,
+    isPackaged: app.isPackaged,
+    env: process.env,
+    logger: debugLogger,
+  });
   windowsKeyManager = new WindowsKeyManager();
   textEditMonitor = new TextEditMonitor();
   windowManager.textEditMonitor = textEditMonitor;
@@ -377,6 +385,7 @@ function initializeCoreManagers() {
     clipboardManager,
     whisperManager,
     parakeetManager,
+    updateManager,
     windowManager,
     windowsKeyManager,
     textEditMonitor,
@@ -661,6 +670,7 @@ async function startApp() {
   trayManager.setWindowManager(windowManager);
   trayManager.setCreateControlPanelCallback(() => windowManager.createControlPanelWindow());
   await trayManager.createTray();
+  updateManager.start();
 
   if (process.platform === "darwin") {
     const { isGlobeLikeHotkey } = require("./src/helpers/hotkeyManager");
@@ -1011,6 +1021,9 @@ if (gotSingleInstanceLock) {
     }
     if (ipcHandlers) {
       ipcHandlers._cleanupTextEditMonitor();
+    }
+    if (updateManager) {
+      updateManager.dispose();
     }
     if (textEditMonitor) {
       textEditMonitor.stopMonitoring();

@@ -114,11 +114,17 @@ class WindowManager {
       return true;
     }
 
-    const registered = globalShortcut.register("Escape", () => this.requestDictationCancel("escape"));
+    const registered = globalShortcut.register("Escape", () =>
+      this.requestDictationCancel("escape")
+    );
     this.dictationCancelShortcutRegistered = registered;
 
     if (!registered) {
-      debugLogger.warn("Failed to register dictation cancel shortcut", { accelerator: "Escape" }, "hotkey");
+      debugLogger.warn(
+        "Failed to register dictation cancel shortcut",
+        { accelerator: "Escape" },
+        "hotkey"
+      );
     }
 
     return registered;

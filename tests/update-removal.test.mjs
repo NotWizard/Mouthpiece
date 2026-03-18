@@ -7,47 +7,48 @@ async function readRepoFile(relativePath) {
   return fs.readFile(path.resolve(process.cwd(), relativePath), "utf8");
 }
 
-test("main process and preload no longer expose updater wiring", async () => {
+test("main process and preload expose updater wiring", async () => {
   const [mainSource, preloadSource, ipcSource] = await Promise.all([
     readRepoFile("main.js"),
     readRepoFile("preload.js"),
     readRepoFile("src/helpers/ipcHandlers.js"),
   ]);
 
-  assert.doesNotMatch(mainSource, /UpdateManager/);
-  assert.doesNotMatch(mainSource, /checkForUpdatesOnStartup/);
-  assert.doesNotMatch(preloadSource, /checkForUpdates/);
-  assert.doesNotMatch(preloadSource, /downloadUpdate/);
-  assert.doesNotMatch(preloadSource, /installUpdate/);
-  assert.doesNotMatch(preloadSource, /getUpdateStatus/);
-  assert.doesNotMatch(preloadSource, /getUpdateInfo/);
-  assert.doesNotMatch(preloadSource, /onUpdateAvailable/);
-  assert.doesNotMatch(ipcSource, /this\.updateManager/);
-  assert.doesNotMatch(ipcSource, /check-for-updates/);
-  assert.doesNotMatch(ipcSource, /download-update/);
-  assert.doesNotMatch(ipcSource, /install-update/);
-  assert.doesNotMatch(ipcSource, /get-update-status/);
-  assert.doesNotMatch(ipcSource, /get-update-info/);
+  assert.match(mainSource, /const UpdateManager = require\("\.\/src\/helpers\/updateManager"\);/);
+  assert.match(mainSource, /let updateManager = null;/);
+  assert.match(mainSource, /updateManager = new UpdateManager\(/);
+  assert.match(mainSource, /updateManager\.start\(\);/);
+
+  assert.match(preloadSource, /getUpdateStatus: \(\) => ipcRenderer\.invoke\("get-update-status"\)/);
+  assert.match(preloadSource, /installUpdate: \(\) => ipcRenderer\.invoke\("install-update"\)/);
+  assert.match(
+    preloadSource,
+    /onUpdateStatusChanged:\s*registerListener\(\s*"update-status-changed"/
+  );
+
+  assert.match(ipcSource, /ipcMain\.handle\("get-update-status"/);
+  assert.match(ipcSource, /ipcMain\.handle\("install-update"/);
+  assert.match(ipcSource, /broadcastToWindows\("update-status-changed"/);
 });
 
-test("renderer no longer offers update actions", async () => {
-  const [controlPanelSource, settingsPageSource, packageJson, builderConfig] = await Promise.all([
+test("renderer control panel shows a confirmed install action for downloaded updates", async () => {
+  const [controlPanelSource, sidebarSource, packageJson] = await Promise.all([
     readRepoFile("src/components/ControlPanel.tsx"),
-    readRepoFile("src/components/SettingsPage.tsx"),
+    readRepoFile("src/components/ControlPanelSidebar.tsx"),
     readRepoFile("package.json"),
-    readRepoFile("electron-builder.json"),
   ]);
 
-  assert.doesNotMatch(controlPanelSource, /useUpdater/);
-  assert.doesNotMatch(controlPanelSource, /handleUpdateClick/);
-  assert.doesNotMatch(controlPanelSource, /updateAction=/);
+  assert.match(controlPanelSource, /window\.electronAPI\?\.getUpdateStatus\?\.\(\)/);
+  assert.match(controlPanelSource, /window\.electronAPI\?\.onUpdateStatusChanged\?\.\(/);
+  assert.match(controlPanelSource, /window\.electronAPI\?\.installUpdate\?\.\(\)/);
+  assert.match(
+    controlPanelSource,
+    /showConfirmDialog\(\{[\s\S]*title: t\("controlPanel\.update\.installTitle"\)[\s\S]*description: t\("controlPanel\.update\.installDescription"\)[\s\S]*onConfirm: async \(\) =>/
+  );
+  assert.match(sidebarSource, /updateAction\?: \{/);
+  assert.match(sidebarSource, /t\("controlPanel\.update\.availableButton"\)/);
 
-  assert.doesNotMatch(settingsPageSource, /useUpdater/);
-  assert.doesNotMatch(settingsPageSource, /settingsPage\.general\.updates/);
-  assert.match(settingsPageSource, /getAppVersion/);
-
-  assert.doesNotMatch(packageJson, /"electron-updater"/);
-  assert.doesNotMatch(builderConfig, /src\/updater\.js/);
+  assert.match(packageJson, /"electron-updater"/);
 });
 
 test("privacy settings no longer expose usage analytics sharing", async () => {

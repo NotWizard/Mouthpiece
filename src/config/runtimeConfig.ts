@@ -9,7 +9,10 @@ type RuntimeConfig = {
 
 const env = (typeof import.meta !== "undefined" && (import.meta as any).env) || {};
 
-const readBooleanFlag = (value: unknown): boolean => String(value || "").trim().toLowerCase() === "true";
+const readBooleanFlag = (value: unknown): boolean =>
+  String(value || "")
+    .trim()
+    .toLowerCase() === "true";
 
 const readRendererRuntimeConfig = (): RuntimeConfig => {
   const preloadConfig =

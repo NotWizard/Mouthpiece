@@ -69,7 +69,10 @@ function readStringArray(key: string, fallback: string[]): string[] {
 const INITIAL_CLOUD_TRANSCRIPTION_SETTINGS = normalizeCloudTranscriptionProviderSettings({
   cloudTranscriptionProvider: readString("cloudTranscriptionProvider", "openai"),
   cloudTranscriptionModel: readString("cloudTranscriptionModel", "gpt-4o-mini-transcribe"),
-  cloudTranscriptionBaseUrl: readString("cloudTranscriptionBaseUrl", API_ENDPOINTS.TRANSCRIPTION_BASE),
+  cloudTranscriptionBaseUrl: readString(
+    "cloudTranscriptionBaseUrl",
+    API_ENDPOINTS.TRANSCRIPTION_BASE
+  ),
   customTranscriptionApiKey: readString("customTranscriptionApiKey", ""),
   bailianApiKey: readString("bailianApiKey", ""),
 });
@@ -227,7 +230,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   cloudTranscriptionModel:
     INITIAL_CLOUD_TRANSCRIPTION_SETTINGS.cloudTranscriptionModel || "gpt-4o-mini-transcribe",
   cloudTranscriptionBaseUrl:
-    INITIAL_CLOUD_TRANSCRIPTION_SETTINGS.cloudTranscriptionBaseUrl || API_ENDPOINTS.TRANSCRIPTION_BASE,
+    INITIAL_CLOUD_TRANSCRIPTION_SETTINGS.cloudTranscriptionBaseUrl ||
+    API_ENDPOINTS.TRANSCRIPTION_BASE,
   cloudTranscriptionMode: normalizeCloudMode(
     readString(
       "cloudTranscriptionMode",

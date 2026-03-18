@@ -2,6 +2,7 @@ import React from "react";
 import {
   Home,
   BookOpen,
+  Download,
   Gift,
   HelpCircle,
   UserCircle,
@@ -37,6 +38,11 @@ interface ControlPanelSidebarProps {
   userImage?: string | null;
   isSignedIn?: boolean;
   authLoaded?: boolean;
+  updateAction?: {
+    label: string;
+    disabled?: boolean;
+    onClick: () => void;
+  };
 }
 
 export default function ControlPanelSidebar({
@@ -48,6 +54,7 @@ export default function ControlPanelSidebar({
   userImage,
   isSignedIn,
   authLoaded,
+  updateAction,
 }: ControlPanelSidebarProps) {
   const { t } = useTranslation();
 
@@ -120,6 +127,23 @@ export default function ControlPanelSidebar({
       <div className="flex-1" />
 
       <div className="px-2 pb-2 space-y-0.5">
+        {updateAction && (
+          <button
+            onClick={updateAction.onClick}
+            disabled={updateAction.disabled}
+            aria-label={t("controlPanel.update.availableButton")}
+            className={cn(
+              "group flex items-center gap-2.5 w-full h-8 px-2.5 rounded-md text-left outline-none transition-colors duration-150",
+              "focus-visible:ring-1 focus-visible:ring-primary/30",
+              "bg-primary/8 text-primary hover:bg-primary/12 dark:bg-primary/12 dark:hover:bg-primary/16",
+              updateAction.disabled && "opacity-70"
+            )}
+          >
+            <Download size={15} className="shrink-0" />
+            <span className="text-xs font-medium truncate">{updateAction.label}</span>
+          </button>
+        )}
+
         {isSignedIn && onOpenReferrals && (
           <button
             onClick={onOpenReferrals}

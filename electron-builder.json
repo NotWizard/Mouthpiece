@@ -196,9 +196,9 @@
   },
   "publish": {
     "provider": "github",
-    "owner": "le-soleil-se-couche",
+    "owner": "NotWizard",
     "repo": "Mouthpiece",
     "private": false,
-    "releaseType": "draft"
+    "releaseType": "release"
   }
 }

@@ -642,10 +642,9 @@ class TextEditMonitor extends EventEmitter {
       if (binaryPath) return { command: binaryPath, args: [] };
 
       // Fallback for dev machines without compiled monitor binary.
-      const encodedScript = Buffer.from(
-        WINDOWS_TEXT_MONITOR_FALLBACK_SCRIPT,
-        "utf16le"
-      ).toString("base64");
+      const encodedScript = Buffer.from(WINDOWS_TEXT_MONITOR_FALLBACK_SCRIPT, "utf16le").toString(
+        "base64"
+      );
       return {
         command: "powershell.exe",
         args: [

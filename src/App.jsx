@@ -231,7 +231,14 @@ export default function App() {
 
     document.addEventListener("keydown", handleKeyPress);
     return () => document.removeEventListener("keydown", handleKeyPress);
-  }, [isCommandMenuOpen, isRecording, isTranscribing, isProcessing, cancelRecording, cancelProcessing]);
+  }, [
+    isCommandMenuOpen,
+    isRecording,
+    isTranscribing,
+    isProcessing,
+    cancelRecording,
+    cancelProcessing,
+  ]);
 
   const hotkeyLabel = formatHotkeyLabel(hotkey);
   const secondaryLabel = isRecording
@@ -263,9 +270,7 @@ export default function App() {
             {shouldRenderCapsule && isHovered && (
               <button
                 aria-label={
-                  isRecording
-                    ? t("app.buttons.cancelRecording")
-                    : t("app.buttons.cancelProcessing")
+                  isRecording ? t("app.buttons.cancelRecording") : t("app.buttons.cancelProcessing")
                 }
                 onClick={(event) => {
                   event.stopPropagation();

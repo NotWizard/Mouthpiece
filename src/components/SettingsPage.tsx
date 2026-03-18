@@ -168,7 +168,9 @@ function TranscriptionSection({
   toast,
 }: TranscriptionSectionProps) {
   const { t } = useTranslation();
-  const mouthpieceSelected = (cloudTranscriptionMode === "mouthpiece" || cloudTranscriptionMode === "openwhispr") && !useLocalWhisper;
+  const mouthpieceSelected =
+    (cloudTranscriptionMode === "mouthpiece" || cloudTranscriptionMode === "openwhispr") &&
+    !useLocalWhisper;
   const mouthpieceLocked = !cloudAuthAvailable || !isSignedIn;
   const isCloudMode = mouthpieceSelected && !mouthpieceLocked;
   const isCustomMode = cloudTranscriptionMode === "byok" || useLocalWhisper;
@@ -1167,9 +1169,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
                   <SettingsPanelRow>
                     <SettingsRow
                       label={t("settingsPage.permissions.resetAccessibility.label")}
-                      description={t(
-                        "settingsPage.permissions.resetAccessibility.rowDescription"
-                      )}
+                      description={t("settingsPage.permissions.resetAccessibility.rowDescription")}
                     >
                       <Button
                         onClick={resetAccessibilityPermissions}

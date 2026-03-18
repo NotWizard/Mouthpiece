@@ -71,6 +71,28 @@ export interface AppVersionResult {
   version: string;
 }
 
+export interface AppUpdateInfo {
+  version: string | null;
+  releaseName: string | null;
+  releaseNotes: unknown;
+}
+
+export interface AppUpdateStatus {
+  status:
+    | "idle"
+    | "checking"
+    | "downloading"
+    | "downloaded"
+    | "installing"
+    | "error"
+    | "unsupported";
+  supported: boolean;
+  checkingEnabled: boolean;
+  updateInfo: AppUpdateInfo | null;
+  error: string | null;
+  progressPercent: number | null;
+}
+
 export interface WhisperDownloadProgressData {
   type: "progress" | "installing" | "complete" | "error";
   model: string;
@@ -470,6 +492,9 @@ declare global {
       cleanupApp: () => Promise<{ success: boolean; message: string }>;
 
       getAppVersion: () => Promise<AppVersionResult>;
+      getUpdateStatus?: () => Promise<AppUpdateStatus>;
+      installUpdate?: () => Promise<{ success: boolean; error?: string }>;
+      onUpdateStatusChanged?: (callback: (status: AppUpdateStatus) => void) => () => void;
 
       openExternal: (url: string) => Promise<{ success: boolean; error?: string }>;
 
