@@ -1,5 +1,6 @@
 import * as React from "react";
 import { X, Copy, Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "../lib/utils";
 
 export interface ToastProps {
@@ -198,10 +199,12 @@ const Toast: React.FC<
   onPauseTimer,
   onResumeTimer,
 }) => {
+  const { t } = useTranslation();
   const config = variantConfig[variant];
   const pausedAtRef = React.useRef<number | null>(null);
   const [copied, setCopied] = React.useState(false);
   const isDestructive = variant === "destructive";
+  const hasDetail = Boolean(title && description);
 
   const handleMouseEnter = () => {
     pausedAtRef.current = Date.now();
@@ -235,7 +238,7 @@ const Toast: React.FC<
     <div
       className={cn(
         "group toast-surface pointer-events-auto relative flex w-75 overflow-hidden",
-        "rounded-[5px]",
+        isDestructive ? "w-[26rem] max-w-[calc(100vw-1.5rem)] rounded-[12px]" : "rounded-[5px]",
         "transition-[opacity,transform] duration-200 ease-out",
         isExiting
           ? "opacity-0 translate-x-2 scale-[0.98]"
@@ -246,34 +249,55 @@ const Toast: React.FC<
     >
       <div className={cn("w-0.5 shrink-0", config.accentClass)} />
 
-      <div className="flex items-start gap-2 flex-1 min-w-0 px-2.5 py-2 pr-7">
-        <div className="flex-1 min-w-0">
+      <div
+        className={cn(
+          "flex items-start gap-2 flex-1 min-w-0",
+          isDestructive ? "px-3.5 py-3.5 pr-14" : "px-2.5 py-2 pr-7"
+        )}
+      >
+        <div className={cn("flex-1 min-w-0", isDestructive && hasDetail ? "space-y-2.5" : "")}>
           {message && (
-            <div className="text-xs font-medium leading-tight text-white/90">{message}</div>
+            <div
+              className={cn(
+                isDestructive
+                  ? "pr-10 text-[13px] font-semibold leading-tight tracking-[-0.01em] text-white/92"
+                  : "text-xs font-medium leading-tight text-white/90"
+              )}
+            >
+              {message}
+            </div>
           )}
           {detail &&
             (isDestructive ? (
               <div
                 className={cn(
-                  "text-xs leading-snug mt-1 px-1.5 py-1 rounded-[3px] font-mono",
-                  "bg-white/4 border border-white/6",
-                  "text-red-300/80"
+                  "overflow-hidden rounded-[10px] border border-red-400/14 bg-red-500/[0.06]",
+                  "shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_10px_24px_-16px_rgba(0,0,0,0.55)]"
                 )}
               >
-                <div className="flex items-start justify-between gap-1.5">
-                  <span className="select-all wrap-break-word min-w-0">{detail}</span>
+                <div className="flex items-center justify-between gap-3 border-b border-white/6 px-3 py-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-red-100/58">
+                    {t("developerSection.whatGetsLogged.items.errorDetails")}
+                  </span>
                   <button
                     onClick={handleCopyError}
                     className={cn(
-                      "shrink-0 p-0.5 rounded-xs mt-px",
-                      "text-white/30 hover:text-white/70",
-                      "hover:bg-white/6",
+                      "shrink-0 rounded-[7px] border border-white/7 bg-white/3 p-1.5",
+                      "text-white/42 hover:border-white/12 hover:bg-white/6 hover:text-white/72",
                       "transition-colors duration-150"
                     )}
-                    aria-label="Copy error"
+                    aria-label={t("referral.inviteLink.copy")}
                   >
                     {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
                   </button>
+                </div>
+                <div
+                  className={cn(
+                    "max-h-[220px] overflow-y-auto px-3 py-2.5",
+                    "font-mono text-[13px] leading-6 text-red-100/82 whitespace-pre-wrap break-all"
+                  )}
+                >
+                  <span className="select-text">{detail}</span>
                 </div>
               </div>
             ) : (
@@ -288,15 +312,17 @@ const Toast: React.FC<
         <button
           onClick={onClose}
           className={cn(
-            "absolute right-1 top-1 p-1 rounded-[3px]",
-            "text-white/0 group-hover:text-white/50 hover:!text-white/80",
-            "hover:bg-white/6",
+            "absolute right-2 top-2 z-10 pointer-events-auto p-1.5 rounded-[8px]",
+            isDestructive
+              ? "border border-white/7 bg-black/20 text-white/58 hover:border-white/12 hover:bg-white/6 hover:text-white/84"
+              : "text-white/0 group-hover:text-white/50 hover:!text-white/80 hover:bg-white/6",
             "transition-colors duration-150",
             "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/20"
           )}
+          aria-label={t("common.close")}
         >
           <X className="size-3" />
-          <span className="sr-only">Close</span>
+          <span className="sr-only">{t("common.close")}</span>
         </button>
       )}
 
