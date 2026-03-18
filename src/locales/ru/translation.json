@@ -10,10 +10,6 @@
     }
   },
   "tray": {
-    "toggleDictation": {
-      "show": "Показать панель диктовки",
-      "hide": "Скрыть панель диктовки"
-    },
     "openControlPanel": "Открыть панель управления",
     "quit": "Закрыть Mouthpiece",
     "tooltip": "Mouthpiece — голосовая диктовка"

@@ -10,10 +10,6 @@
     }
   },
   "tray": {
-    "toggleDictation": {
-      "show": "ディクテーションパネルを表示",
-      "hide": "ディクテーションパネルを非表示"
-    },
     "openControlPanel": "コントロールパネルを開く",
     "quit": "Mouthpiece を終了",
     "tooltip": "Mouthpiece - 音声ディクテーション"

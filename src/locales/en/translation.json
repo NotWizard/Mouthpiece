@@ -10,10 +10,6 @@
     }
   },
   "tray": {
-    "toggleDictation": {
-      "show": "Show Dictation Panel",
-      "hide": "Hide Dictation Panel"
-    },
     "openControlPanel": "Open Control Panel",
     "quit": "Quit Mouthpiece",
     "tooltip": "Mouthpiece - Voice Dictation"

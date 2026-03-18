@@ -657,7 +657,7 @@ async function startApp() {
     debugLogger.debug("Windows paste tool status", nircmdStatus);
   }
 
-  trayManager.setWindows(windowManager.mainWindow, windowManager.controlPanelWindow);
+  trayManager.setWindows(windowManager.controlPanelWindow);
   trayManager.setWindowManager(windowManager);
   trayManager.setCreateControlPanelCallback(() => windowManager.createControlPanelWindow());
   await trayManager.createTray();
