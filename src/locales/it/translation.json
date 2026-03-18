@@ -274,7 +274,12 @@
       "whisperModelDescription": "Modello",
       "parakeetModelDescription": "Modello NVIDIA Parakeet"
     },
-    "whisperModels": "Modelli Whisper"
+    "whisperModels": "Modelli Whisper",
+    "deepgram": {
+      "apiKeyHelp": "Enter your Deepgram API key. Realtime mode connects directly to Deepgram's streaming API.",
+      "realtimeLabel": "Realtime streaming",
+      "realtimeDescription": "Show live partial text while you speak and finalize the transcript from the stream. Turn this off to use standard non-streaming transcription."
+    }
   },
   "hooks": {
     "audioRecording": {
@@ -1082,7 +1087,11 @@
         "groq_whisper_large_v3_turbo": "Velocità 216x in tempo reale",
         "groq_whisper_large_v3": "Modello Large v3, veloce e preciso",
         "mistral_voxtral_mini_latest": "Trascrizione multilingue veloce",
-        "bailian_qwen3_asr_flash": "Trascrizione DashScope veloce per flussi di lavoro in cinese"
+        "bailian_qwen3_asr_flash": "Trascrizione DashScope veloce per flussi di lavoro in cinese",
+        "deepgram_nova_3": "Latest Deepgram general-purpose model for batch and realtime transcription",
+        "deepgram_nova_3_medical": "Nova-3 tuned for medical vocabulary and dictation",
+        "deepgram_nova_2_meeting": "Optimized for multi-speaker meetings on a single microphone",
+        "deepgram_nova_2_phonecall": "Optimized for low-bandwidth phone audio"
       },
       "cloud": {
         "openai_gpt_5_2": "Ultimo modello di punta per il ragionamento",

@@ -11,6 +11,7 @@ import ApiKeyInput from "./ui/ApiKeyInput";
 import { ConfirmDialog } from "./ui/dialog";
 import { useDialogs } from "../hooks/useDialogs";
 import { useModelDownload, type DownloadProgress } from "../hooks/useModelDownload";
+import { Toggle } from "./ui/toggle";
 import {
   getTranscriptionProviders,
   TranscriptionProviderData,
@@ -193,12 +194,16 @@ interface TranscriptionModelPickerProps {
   onModeChange: (useLocal: boolean) => void;
   openaiApiKey: string;
   setOpenaiApiKey: (key: string) => void;
+  deepgramApiKey?: string;
+  setDeepgramApiKey?: (key: string) => void;
   groqApiKey: string;
   setGroqApiKey: (key: string) => void;
   mistralApiKey: string;
   setMistralApiKey: (key: string) => void;
   bailianApiKey?: string;
   setBailianApiKey?: (key: string) => void;
+  deepgramStreamingEnabled?: boolean;
+  setDeepgramStreamingEnabled?: (enabled: boolean) => void;
   customTranscriptionApiKey?: string;
   setCustomTranscriptionApiKey?: (key: string) => void;
   cloudTranscriptionBaseUrl?: string;
@@ -209,6 +214,7 @@ interface TranscriptionModelPickerProps {
 
 const CLOUD_PROVIDER_TABS = [
   { id: "openai", name: "OpenAI" },
+  { id: "deepgram", name: "Deepgram" },
   { id: "groq", name: "Groq", recommended: true },
   { id: "mistral", name: "Mistral" },
   { id: "bailian", name: "Alibaba Bailian" },
@@ -271,12 +277,16 @@ export default function TranscriptionModelPicker({
   onModeChange,
   openaiApiKey,
   setOpenaiApiKey,
+  deepgramApiKey = "",
+  setDeepgramApiKey = () => {},
   groqApiKey,
   setGroqApiKey,
   mistralApiKey,
   setMistralApiKey,
   bailianApiKey = "",
   setBailianApiKey,
+  deepgramStreamingEnabled = false,
+  setDeepgramStreamingEnabled = () => {},
   customTranscriptionApiKey = "",
   setCustomTranscriptionApiKey,
   cloudTranscriptionBaseUrl = "",
@@ -868,6 +878,57 @@ export default function TranscriptionModelPicker({
                     onChange={(e) => onCloudModelSelect(e.target.value)}
                     placeholder="whisper-1"
                     className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+            ) : selectedCloudProvider === "deepgram" ? (
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-foreground">
+                      {t("common.apiKey")}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={createExternalLinkHandler("https://console.deepgram.com/project/keys")}
+                      className="text-xs text-primary/70 hover:text-primary transition-colors cursor-pointer"
+                    >
+                      {t("transcription.getKey")}
+                    </button>
+                  </div>
+                  <ApiKeyInput
+                    apiKey={deepgramApiKey}
+                    setApiKey={setDeepgramApiKey}
+                    label=""
+                    helpText={t("transcription.deepgram.apiKeyHelp")}
+                    saveMode="immediate"
+                  />
+                </div>
+
+                <div className="rounded-md border border-border/60 bg-muted/25 px-3 py-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-foreground">
+                        {t("transcription.deepgram.realtimeLabel")}
+                      </p>
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        {t("transcription.deepgram.realtimeDescription")}
+                      </p>
+                    </div>
+                    <Toggle
+                      checked={deepgramStreamingEnabled}
+                      onChange={setDeepgramStreamingEnabled}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">{t("common.model")}</label>
+                  <ModelCardList
+                    models={cloudModelOptions}
+                    selectedModel={selectedCloudModel}
+                    onModelSelect={onCloudModelSelect}
+                    colorScheme="purple"
                   />
                 </div>
               </div>

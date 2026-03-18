@@ -205,6 +205,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Anthropic API
   getAnthropicKey: () => ipcRenderer.invoke("get-anthropic-key"),
   saveAnthropicKey: (key) => ipcRenderer.invoke("save-anthropic-key", key),
+  getDeepgramKey: () => ipcRenderer.invoke("get-deepgram-key"),
+  saveDeepgramKey: (key) => ipcRenderer.invoke("save-deepgram-key", key),
   getUiLanguage: () => ipcRenderer.invoke("get-ui-language"),
   saveUiLanguage: (language) => ipcRenderer.invoke("save-ui-language", language),
   setUiLanguage: (language) => ipcRenderer.invoke("set-ui-language", language),

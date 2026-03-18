@@ -118,12 +118,16 @@ interface TranscriptionSectionProps {
   setParakeetModel: (model: string) => void;
   openaiApiKey: string;
   setOpenaiApiKey: (key: string) => void;
+  deepgramApiKey: string;
+  setDeepgramApiKey: (key: string) => void;
   groqApiKey: string;
   setGroqApiKey: (key: string) => void;
   mistralApiKey: string;
   setMistralApiKey: (key: string) => void;
   bailianApiKey: string;
   setBailianApiKey: (key: string) => void;
+  deepgramStreamingEnabled: boolean;
+  setDeepgramStreamingEnabled: (enabled: boolean) => void;
   customTranscriptionApiKey: string;
   setCustomTranscriptionApiKey: (key: string) => void;
   cloudTranscriptionBaseUrl?: string;
@@ -156,12 +160,16 @@ function TranscriptionSection({
   setParakeetModel,
   openaiApiKey,
   setOpenaiApiKey,
+  deepgramApiKey,
+  setDeepgramApiKey,
   groqApiKey,
   setGroqApiKey,
   mistralApiKey,
   setMistralApiKey,
   bailianApiKey,
   setBailianApiKey,
+  deepgramStreamingEnabled,
+  setDeepgramStreamingEnabled,
   customTranscriptionApiKey,
   setCustomTranscriptionApiKey,
   cloudTranscriptionBaseUrl,
@@ -283,12 +291,16 @@ function TranscriptionSection({
           }}
           openaiApiKey={openaiApiKey}
           setOpenaiApiKey={setOpenaiApiKey}
+          deepgramApiKey={deepgramApiKey}
+          setDeepgramApiKey={setDeepgramApiKey}
           groqApiKey={groqApiKey}
           setGroqApiKey={setGroqApiKey}
           mistralApiKey={mistralApiKey}
           setMistralApiKey={setMistralApiKey}
           bailianApiKey={bailianApiKey}
           setBailianApiKey={setBailianApiKey}
+          deepgramStreamingEnabled={deepgramStreamingEnabled}
+          setDeepgramStreamingEnabled={setDeepgramStreamingEnabled}
           customTranscriptionApiKey={customTranscriptionApiKey}
           setCustomTranscriptionApiKey={setCustomTranscriptionApiKey}
           cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}
@@ -518,6 +530,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     bailianReasoningEnableThinking,
     customReasoningEnableThinking,
     openaiApiKey,
+    deepgramApiKey,
     anthropicApiKey,
     geminiApiKey,
     groqApiKey,
@@ -543,6 +556,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     setBailianReasoningEnableThinking,
     setCustomReasoningEnableThinking,
     setOpenaiApiKey,
+    setDeepgramApiKey,
     setAnthropicApiKey,
     setGeminiApiKey,
     setGroqApiKey,
@@ -552,6 +566,8 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     setCustomTranscriptionApiKey,
     customReasoningApiKey,
     setCustomReasoningApiKey,
+    deepgramStreamingEnabled,
+    setDeepgramStreamingEnabled,
     setDictationKey,
     autoLearnCorrections,
     setAutoLearnCorrections,
@@ -999,12 +1015,16 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
             setParakeetModel={setParakeetModel}
             openaiApiKey={openaiApiKey}
             setOpenaiApiKey={setOpenaiApiKey}
+            deepgramApiKey={deepgramApiKey}
+            setDeepgramApiKey={setDeepgramApiKey}
             groqApiKey={groqApiKey}
             setGroqApiKey={setGroqApiKey}
             mistralApiKey={mistralApiKey}
             setMistralApiKey={setMistralApiKey}
             bailianApiKey={bailianApiKey}
             setBailianApiKey={setBailianApiKey}
+            deepgramStreamingEnabled={deepgramStreamingEnabled}
+            setDeepgramStreamingEnabled={setDeepgramStreamingEnabled}
             customTranscriptionApiKey={customTranscriptionApiKey}
             setCustomTranscriptionApiKey={setCustomTranscriptionApiKey}
             cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}

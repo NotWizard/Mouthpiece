@@ -74,6 +74,7 @@ export const API_ENDPOINTS = {
   OPENAI: buildApiUrl(DEFAULT_OPENAI_BASE, "/responses"),
   OPENAI_MODELS: buildApiUrl(DEFAULT_OPENAI_BASE, "/models"),
   DASHSCOPE_BASE: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  DEEPGRAM_BASE: "https://api.deepgram.com/v1",
   ANTHROPIC: "https://api.anthropic.com/v1/messages",
   GEMINI: "https://generativelanguage.googleapis.com/v1beta",
   GROQ_BASE: "https://api.groq.com/openai/v1",

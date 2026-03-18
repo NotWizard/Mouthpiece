@@ -313,6 +313,8 @@ declare global {
       createProductionEnvFile: (key: string) => Promise<void>;
       getAnthropicKey: () => Promise<string | null>;
       saveAnthropicKey: (key: string) => Promise<void>;
+      getDeepgramKey?: () => Promise<string | null>;
+      saveDeepgramKey?: (key: string) => Promise<void>;
       getUiLanguage: () => Promise<string>;
       saveUiLanguage: (language: string) => Promise<{ success: boolean; language: string }>;
       setUiLanguage: (language: string) => Promise<{ success: boolean; language: string }>;

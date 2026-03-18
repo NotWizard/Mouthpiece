@@ -148,6 +148,37 @@
       ]
     },
     {
+      "id": "deepgram",
+      "name": "Deepgram",
+      "baseUrl": "https://api.deepgram.com/v1",
+      "models": [
+        {
+          "id": "nova-3",
+          "name": "Nova-3",
+          "description": "Latest Deepgram general-purpose model for batch and realtime transcription",
+          "descriptionKey": "models.descriptions.transcription.deepgram_nova_3"
+        },
+        {
+          "id": "nova-3-medical",
+          "name": "Nova-3 Medical",
+          "description": "Nova-3 tuned for medical vocabulary and dictation",
+          "descriptionKey": "models.descriptions.transcription.deepgram_nova_3_medical"
+        },
+        {
+          "id": "nova-2-meeting",
+          "name": "Nova-2 Meeting",
+          "description": "Optimized for multi-speaker meetings on a single microphone",
+          "descriptionKey": "models.descriptions.transcription.deepgram_nova_2_meeting"
+        },
+        {
+          "id": "nova-2-phonecall",
+          "name": "Nova-2 Phonecall",
+          "description": "Optimized for low-bandwidth phone audio",
+          "descriptionKey": "models.descriptions.transcription.deepgram_nova_2_phonecall"
+        }
+      ]
+    },
+    {
       "id": "mistral",
       "name": "Mistral",
       "baseUrl": "https://api.mistral.ai/v1",

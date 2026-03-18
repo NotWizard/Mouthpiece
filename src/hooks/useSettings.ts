@@ -20,6 +20,7 @@ export interface TranscriptionSettings {
   cloudTranscriptionMode: string;
   customDictionary: string[];
   assemblyAiStreaming: boolean;
+  deepgramStreamingEnabled: boolean;
 }
 
 export interface ReasoningSettings {
@@ -45,6 +46,7 @@ export interface MicrophoneSettings {
 export interface ApiKeySettings {
   openaiApiKey: string;
   anthropicApiKey: string;
+  deepgramApiKey: string;
   geminiApiKey: string;
   groqApiKey: string;
   mistralApiKey: string;
@@ -173,13 +175,16 @@ function useSettingsInternal() {
     customReasoningEnableThinking: store.customReasoningEnableThinking,
     customDictionary: store.customDictionary,
     assemblyAiStreaming: store.assemblyAiStreaming,
+    deepgramStreamingEnabled: store.deepgramStreamingEnabled,
     setAssemblyAiStreaming: store.setAssemblyAiStreaming,
+    setDeepgramStreamingEnabled: store.setDeepgramStreamingEnabled,
     useReasoningModel: store.useReasoningModel,
     voiceAssistantEnabled: store.voiceAssistantEnabled,
     reasoningModel: store.reasoningModel,
     reasoningProvider: store.reasoningProvider,
     openaiApiKey: store.openaiApiKey,
     anthropicApiKey: store.anthropicApiKey,
+    deepgramApiKey: store.deepgramApiKey,
     geminiApiKey: store.geminiApiKey,
     groqApiKey: store.groqApiKey,
     mistralApiKey: store.mistralApiKey,
@@ -210,6 +215,7 @@ function useSettingsInternal() {
     setReasoningProvider: store.setReasoningProvider,
     setOpenaiApiKey: store.setOpenaiApiKey,
     setAnthropicApiKey: store.setAnthropicApiKey,
+    setDeepgramApiKey: store.setDeepgramApiKey,
     setGeminiApiKey: store.setGeminiApiKey,
     setGroqApiKey: store.setGroqApiKey,
     setMistralApiKey: store.setMistralApiKey,

@@ -82,6 +82,7 @@ const BOOLEAN_SETTINGS = new Set([
   "allowOpenAIFallback",
   "allowLocalFallback",
   "assemblyAiStreaming",
+  "deepgramStreamingEnabled",
   "useReasoningModel",
   "voiceAssistantEnabled",
   "bailianReasoningEnableThinking",
@@ -136,6 +137,7 @@ export interface SettingsState
   setCustomReasoningEnableThinking: (value: boolean) => void;
   setCustomDictionary: (words: string[]) => void;
   setAssemblyAiStreaming: (value: boolean) => void;
+  setDeepgramStreamingEnabled: (value: boolean) => void;
   setUseReasoningModel: (value: boolean) => void;
   setVoiceAssistantEnabled: (value: boolean) => void;
   setReasoningModel: (value: string) => void;
@@ -144,6 +146,7 @@ export interface SettingsState
 
   setOpenaiApiKey: (key: string) => void;
   setAnthropicApiKey: (key: string) => void;
+  setDeepgramApiKey: (key: string) => void;
   setGeminiApiKey: (key: string) => void;
   setGroqApiKey: (key: string) => void;
   setMistralApiKey: (key: string) => void;
@@ -196,7 +199,14 @@ function debouncedPersistToEnv() {
 }
 
 function invalidateApiKeyCaches(
-  provider?: "openai" | "anthropic" | "gemini" | "groq" | "mistral" | "custom" | "bailian"
+  provider?:
+    | "openai"
+    | "anthropic"
+    | "gemini"
+    | "groq"
+    | "mistral"
+    | "custom"
+    | "bailian"
 ) {
   if (provider) {
     if (_ReasoningService) {
@@ -244,6 +254,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   customReasoningEnableThinking: readBoolean("customReasoningEnableThinking", false),
   customDictionary: readStringArray("customDictionary", []),
   assemblyAiStreaming: readBoolean("assemblyAiStreaming", true),
+  deepgramStreamingEnabled: readBoolean("deepgramStreamingEnabled", false),
 
   useReasoningModel: readBoolean("useReasoningModel", true),
   voiceAssistantEnabled: readBoolean("voiceAssistantEnabled", false),
@@ -252,6 +263,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
   openaiApiKey: readString("openaiApiKey", ""),
   anthropicApiKey: readString("anthropicApiKey", ""),
+  deepgramApiKey: readString("deepgramApiKey", ""),
   geminiApiKey: readString("geminiApiKey", ""),
   groqApiKey: readString("groqApiKey", ""),
   mistralApiKey: readString("mistralApiKey", ""),
@@ -293,6 +305,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setBailianReasoningEnableThinking: createBooleanSetter("bailianReasoningEnableThinking"),
   setCustomReasoningEnableThinking: createBooleanSetter("customReasoningEnableThinking"),
   setAssemblyAiStreaming: createBooleanSetter("assemblyAiStreaming"),
+  setDeepgramStreamingEnabled: createBooleanSetter("deepgramStreamingEnabled"),
   setUseReasoningModel: createBooleanSetter("useReasoningModel"),
   setVoiceAssistantEnabled: createBooleanSetter("voiceAssistantEnabled"),
   setReasoningModel: createStringSetter("reasoningModel"),
@@ -337,6 +350,12 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     set({ anthropicApiKey: key });
     window.electronAPI?.saveAnthropicKey?.(key);
     invalidateApiKeyCaches("anthropic");
+  },
+  setDeepgramApiKey: (key: string) => {
+    if (isBrowser) localStorage.setItem("deepgramApiKey", key);
+    set({ deepgramApiKey: key });
+    window.electronAPI?.saveDeepgramKey?.(key);
+    invalidateApiKeyCaches();
   },
   setGeminiApiKey: (key: string) => {
     if (isBrowser) localStorage.setItem("geminiApiKey", key);
@@ -427,6 +446,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     if (settings.customDictionary !== undefined) s.setCustomDictionary(settings.customDictionary);
     if (settings.assemblyAiStreaming !== undefined)
       s.setAssemblyAiStreaming(settings.assemblyAiStreaming);
+    if (settings.deepgramStreamingEnabled !== undefined)
+      s.setDeepgramStreamingEnabled(settings.deepgramStreamingEnabled);
   },
 
   updateReasoningSettings: (settings: Partial<ReasoningSettings>) => {
@@ -452,6 +473,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const s = useSettingsStore.getState();
     if (keys.openaiApiKey !== undefined) s.setOpenaiApiKey(keys.openaiApiKey);
     if (keys.anthropicApiKey !== undefined) s.setAnthropicApiKey(keys.anthropicApiKey);
+    if (keys.deepgramApiKey !== undefined) s.setDeepgramApiKey(keys.deepgramApiKey);
     if (keys.geminiApiKey !== undefined) s.setGeminiApiKey(keys.geminiApiKey);
     if (keys.groqApiKey !== undefined) s.setGroqApiKey(keys.groqApiKey);
     if (keys.mistralApiKey !== undefined) s.setMistralApiKey(keys.mistralApiKey);
@@ -517,6 +539,10 @@ export async function initializeSettings(): Promise<void> {
       if (!state.anthropicApiKey) {
         const envKey = await window.electronAPI.getAnthropicKey?.();
         if (envKey) createStringSetter("anthropicApiKey")(envKey);
+      }
+      if (!state.deepgramApiKey) {
+        const envKey = await window.electronAPI.getDeepgramKey?.();
+        if (envKey) createStringSetter("deepgramApiKey")(envKey);
       }
       if (!state.geminiApiKey) {
         const envKey = await window.electronAPI.getGeminiKey?.();
@@ -585,6 +611,7 @@ export async function initializeSettings(): Promise<void> {
     const hasExplicitCloudMode = Boolean(localStorage.getItem("cloudTranscriptionMode"));
     const hasEnvOrStoredByokKey = hasAnyByokKey([
       useSettingsStore.getState().openaiApiKey,
+      useSettingsStore.getState().deepgramApiKey,
       useSettingsStore.getState().bailianApiKey,
       useSettingsStore.getState().groqApiKey,
       useSettingsStore.getState().mistralApiKey,

@@ -6,6 +6,7 @@ const { normalizeUiLanguage } = require("./i18nMain");
 
 const PERSISTED_KEYS = [
   "OPENAI_API_KEY",
+  "DEEPGRAM_API_KEY",
   "ANTHROPIC_API_KEY",
   "GEMINI_API_KEY",
   "GROQ_API_KEY",
@@ -78,6 +79,14 @@ class EnvironmentManager {
 
   saveAnthropicKey(key) {
     return this._saveKey("ANTHROPIC_API_KEY", key);
+  }
+
+  getDeepgramKey() {
+    return this._getKey("DEEPGRAM_API_KEY");
+  }
+
+  saveDeepgramKey(key) {
+    return this._saveKey("DEEPGRAM_API_KEY", key);
   }
 
   getGeminiKey() {

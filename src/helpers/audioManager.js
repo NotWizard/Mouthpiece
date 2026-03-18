@@ -532,8 +532,11 @@ const applyDictionaryCanonicalization = (text, entries) => {
 };
 
 const QWEN_ASR_MODEL_RE = /^qwen[\w.-]*asr/i;
+const DEEPGRAM_TRANSCRIPTION_MODEL_RE = /^(nova-3(?:-[\w]+)?|nova-2(?:-[\w]+)?)$/i;
 
 const isQwenAsrModel = (model) => QWEN_ASR_MODEL_RE.test((model || "").trim());
+const isDeepgramTranscriptionModel = (model) =>
+  DEEPGRAM_TRANSCRIPTION_MODEL_RE.test((model || "").trim());
 
 const resolveCustomChatCompletionsEndpoint = (endpoint) => {
   const trimmed = (endpoint || "").trim().replace(/\/+$/, "");
@@ -809,6 +812,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   getStreamingProvider() {
+    if (this.isByokDeepgramStreamingEnabled()) {
+      return STREAMING_PROVIDERS.deepgram;
+    }
     const providerName = this.sttConfig?.streamingProvider || "deepgram";
     return STREAMING_PROVIDERS[providerName] || STREAMING_PROVIDERS.deepgram;
   }
@@ -1334,6 +1340,15 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       if (!apiKey) {
         apiKey = null;
       }
+    } else if (provider === "deepgram") {
+      apiKey = s.deepgramApiKey;
+      if (!apiKey || !apiKey.trim()) {
+        apiKey = await window.electronAPI.getDeepgramKey?.();
+      }
+      apiKey = apiKey?.trim() || "";
+      if (!apiKey) {
+        throw new Error("Deepgram API key not found. Please set your API key in the Control Panel.");
+      }
     } else if (provider === "bailian") {
       apiKey = s.bailianApiKey;
       if (!apiKey || !apiKey.trim()) {
@@ -1811,6 +1826,52 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     return normalized.startsWith("gpt-4o-mini-transcribe");
   }
 
+  isByokDeepgramStreamingEnabled() {
+    const s = getSettings();
+    return (
+      !s.useLocalWhisper &&
+      s.cloudTranscriptionMode === "byok" &&
+      s.cloudTranscriptionProvider === "deepgram" &&
+      s.deepgramStreamingEnabled
+    );
+  }
+
+  isMouthpieceCloudStreamingEnabled(isSignedInOverride) {
+    const s = getSettings();
+    const isSignedIn = isSignedInOverride ?? s.isSignedIn;
+    return (
+      !s.useLocalWhisper &&
+      (s.cloudTranscriptionMode === "mouthpiece" || s.cloudTranscriptionMode === "openwhispr") &&
+      !!isSignedIn
+    );
+  }
+
+  getStreamingRequestOptions() {
+    const preferredLang = getSettings().preferredLanguage;
+    const options = {
+      sampleRate: 16000,
+      language: preferredLang && preferredLang !== "auto" ? preferredLang : undefined,
+      keyterms: this.getKeyterms(),
+    };
+
+    if (this.isByokDeepgramStreamingEnabled()) {
+      return {
+        ...options,
+        authMode: "apiKey",
+        model: this.getTranscriptionModel(),
+      };
+    }
+
+    return options;
+  }
+
+  async runStreamingAction(action, isSignedInOverride) {
+    if (this.isByokDeepgramStreamingEnabled()) {
+      return action();
+    }
+    return withSessionRefresh(action);
+  }
+
   async fetchWithTimeout(endpoint, fetchOptions, timeoutMs) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -2138,6 +2199,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
       const model = this.getTranscriptionModel();
       const provider = apiSettings.cloudTranscriptionProvider || "openai";
+      const isDeepgramProvider = provider === "deepgram";
 
       logger.debug(
         "Transcription request starting",
@@ -2197,9 +2259,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const isCustomEndpoint =
         isCustomProvider ||
         isBailianProvider ||
+        isDeepgramProvider ||
         (!endpoint.includes("api.openai.com") &&
           !endpoint.includes("api.groq.com") &&
-          !endpoint.includes("api.mistral.ai"));
+          !endpoint.includes("api.mistral.ai") &&
+          !endpoint.includes("api.deepgram.com"));
       const requestTimeoutMs = isCustomProvider
         ? NETWORK_TIMEOUTS.CUSTOM_TRANSCRIPTION_REQUEST_MS
         : NETWORK_TIMEOUTS.TRANSCRIPTION_REQUEST_MS;
@@ -2261,13 +2325,60 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       // Build headers - only include Authorization if we have an API key
       const headers = {};
       if (apiKey) {
-        headers.Authorization = `Bearer ${apiKey}`;
+        headers.Authorization = provider === "deepgram" ? `Token ${apiKey}` : `Bearer ${apiKey}`;
       }
 
       let requestEndpoint = endpoint;
       let response;
 
-      if (isQwenAsr) {
+      if (isDeepgramProvider) {
+        const params = new URLSearchParams({
+          model,
+          punctuate: "true",
+          smart_format: "true",
+        });
+
+        if (language) {
+          params.set("language", language);
+        }
+
+        const keyterms = this.getKeyterms();
+        if (Array.isArray(keyterms) && keyterms.length > 0) {
+          const parameterName = model.startsWith("nova-3") ? "keyterm" : "keywords";
+          for (const term of keyterms) {
+            if (term) {
+              params.append(parameterName, term);
+            }
+          }
+        }
+
+        requestEndpoint = `${endpoint}?${params.toString()}`;
+
+        logger.debug(
+          "STT request details",
+          {
+            endpoint: requestEndpoint,
+            method: "POST",
+            hasAuthHeader: !!apiKey,
+            payloadType: "deepgram-binary-audio",
+            contentType: mimeType,
+          },
+          "transcription"
+        );
+
+        response = await this.fetchWithTimeout(
+          requestEndpoint,
+          {
+            method: "POST",
+            headers: {
+              ...headers,
+              "Content-Type": mimeType,
+            },
+            body: optimizedAudio,
+          },
+          requestTimeoutMs
+        );
+      } else if (isQwenAsr) {
         requestEndpoint = resolveCustomChatCompletionsEndpoint(endpoint);
 
         const audioBuffer = await optimizedAudio.arrayBuffer();
@@ -2433,7 +2544,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         }
       }
 
-      const transcribedText = isQwenAsr ? extractChatCompletionText(result) : result?.text;
+      const transcribedText = isQwenAsr
+        ? extractChatCompletionText(result)
+        : isDeepgramProvider
+          ? result?.results?.channels?.[0]?.alternatives?.[0]?.transcript
+          : result?.text;
 
       logger.debug(
         "Parsed transcription result",
@@ -2462,7 +2577,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
 
         const sourceBase =
-          provider === "bailian"
+          provider === "deepgram"
+            ? "deepgram"
+            : provider === "bailian"
             ? "bailian"
             : provider === "groq"
               ? "groq"
@@ -2569,12 +2686,17 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         return trimmedModel;
       }
 
+      if (provider === "deepgram" && isDeepgramTranscriptionModel(trimmedModel)) {
+        return trimmedModel;
+      }
+
       // Validate model matches provider to handle settings migration
       if (trimmedModel) {
         const isGroqModel = trimmedModel.startsWith("whisper-large-v3");
         const isOpenAIModel = trimmedModel.startsWith("gpt-4o") || trimmedModel === "whisper-1";
         const isMistralModel = trimmedModel.startsWith("voxtral-");
         const isBailianModel = isQwenAsrModel(trimmedModel);
+        const isDeepgramModel = isDeepgramTranscriptionModel(trimmedModel);
 
         if (provider === "groq" && isGroqModel) {
           return trimmedModel;
@@ -2588,11 +2710,15 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         if (provider === "bailian" && isBailianModel) {
           return trimmedModel;
         }
+        if (provider === "deepgram" && isDeepgramModel) {
+          return trimmedModel;
+        }
         // Model doesn't match provider - fall through to default
       }
 
       // Return provider-appropriate default
       if (provider === "groq") return "whisper-large-v3-turbo";
+      if (provider === "deepgram") return "nova-3";
       if (provider === "mistral") return "voxtral-mini-latest";
       if (provider === "bailian") return "qwen3-asr-flash";
       return "gpt-4o-mini-transcribe";
@@ -2680,6 +2806,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       let base;
       if (currentProvider === "groq") {
         base = API_ENDPOINTS.GROQ_BASE;
+      } else if (currentProvider === "deepgram") {
+        base = API_ENDPOINTS.DEEPGRAM_BASE;
       } else if (currentProvider === "mistral") {
         base = API_ENDPOINTS.MISTRAL_BASE;
       } else if (currentProvider === "bailian") {
@@ -2716,6 +2844,18 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           "transcription"
         );
         return cacheResult(normalizedBase);
+      }
+
+      if (currentProvider === "deepgram") {
+        const endpoint = /\/listen$/i.test(normalizedBase)
+          ? normalizedBase
+          : buildApiUrl(normalizedBase, "/listen");
+        logger.debug(
+          "STT endpoint: using Deepgram listen endpoint",
+          { base: normalizedBase, endpoint },
+          "transcription"
+        );
+        return cacheResult(endpoint);
       }
 
       let endpoint;
@@ -2787,13 +2927,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   shouldUseStreaming(isSignedInOverride) {
-    const s = getSettings();
-    const isSignedIn = isSignedInOverride ?? s.isSignedIn;
-    if (
-      s.useLocalWhisper ||
-      (s.cloudTranscriptionMode !== "mouthpiece" && s.cloudTranscriptionMode !== "openwhispr") ||
-      !isSignedIn
-    ) {
+    if (this.isByokDeepgramStreamingEnabled()) {
+      return true;
+    }
+
+    if (!this.isMouthpieceCloudStreamingEnabled(isSignedInOverride)) {
       return false;
     }
 
@@ -2814,15 +2952,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
     try {
       const provider = this.getStreamingProvider();
+      const streamingRequestOptions = this.getStreamingRequestOptions();
       const [, wsResult] = await Promise.all([
         this.cacheMicrophoneDeviceId(),
-        withSessionRefresh(async () => {
-          const warmupLang = getSettings().preferredLanguage;
-          const res = await provider.warmup({
-            sampleRate: 16000,
-            language: warmupLang && warmupLang !== "auto" ? warmupLang : undefined,
-            keyterms: this.getKeyterms(),
-          });
+        this.runStreamingAction(async () => {
+          const res = await provider.warmup(streamingRequestOptions);
           // Throw error to trigger retry if AUTH_EXPIRED
           if (!res.success && res.code) {
             const err = new Error(res.error || "Warmup failed");
@@ -2830,7 +2964,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             throw err;
           }
           return res;
-        }),
+        }, isSignedInOverride),
       ]);
 
       if (wsResult.success) {
@@ -3032,13 +3166,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
       // 4. Connect WebSocket — audio is already flowing from the pipeline above,
       //    so Deepgram receives data immediately (no idle timeout).
-      const result = await withSessionRefresh(async () => {
-        const preferredLang = getSettings().preferredLanguage;
-        const res = await provider.start({
-          sampleRate: 16000,
-          language: preferredLang && preferredLang !== "auto" ? preferredLang : undefined,
-          keyterms: this.getKeyterms(),
-        });
+      const result = await this.runStreamingAction(async () => {
+        const res = await provider.start(this.getStreamingRequestOptions());
 
         if (!res.success) {
           if (res.code === "NO_API") {
@@ -3244,6 +3373,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     );
 
     const stSettings = getSettings();
+    const isByokDeepgramStreaming = this.isByokDeepgramStreamingEnabled();
     const streamingSttModel = stopResult?.model || "nova-3";
     const streamingSttProcessingMs = Math.round(tTerminate - t0);
     const streamingAudioBytesSent = stopResult?.audioBytesSent || 0;
@@ -3251,7 +3381,28 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const streamingSttWordCount = finalText ? finalText.split(/\s+/).filter(Boolean).length : 0;
 
     let usedCloudReasoning = false;
-    if (stSettings.useReasoningModel && finalText && !this.skipReasoning) {
+    let usedGenericStreamingProcessing = false;
+    if (isByokDeepgramStreaming && finalText) {
+      const reasoningStart = performance.now();
+      try {
+        const processedText = await this.processTranscription(finalText, "deepgram-streaming");
+        if (processedText) {
+          finalText = processedText;
+          usedGenericStreamingProcessing = true;
+        }
+        logger.info(
+          "Deepgram BYOK streaming post-processing complete",
+          { durationMs: Math.round(performance.now() - reasoningStart) },
+          "streaming"
+        );
+      } catch (reasonError) {
+        logger.error(
+          "Deepgram BYOK streaming post-processing failed, using raw text",
+          { error: reasonError.message },
+          "streaming"
+        );
+      }
+    } else if (stSettings.useReasoningModel && finalText && !this.skipReasoning) {
       const reasoningStart = performance.now();
       const agentName = localStorage.getItem("agentName") || "";
       const cloudReasoningMode = stSettings.cloudReasoningMode || "openwhispr";
@@ -3355,9 +3506,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         "streaming"
       );
       try {
-        const batchResult = await this.processWithMouthpieceCloud(fallbackBlob, {
-          durationSeconds,
-        });
+        const batchResult = isByokDeepgramStreaming
+          ? await this.processWithOpenAIAPI(fallbackBlob, {
+              durationSeconds,
+            })
+          : await this.processWithMouthpieceCloud(fallbackBlob, {
+              durationSeconds,
+            });
         if (batchResult?.text) {
           finalText = batchResult.text;
           usedBatchFallback = true;
@@ -3373,10 +3528,12 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     }
 
     if (finalText) {
-      finalText = this.applyDictionaryNormalization(
-        this.basicDictationCleanup(finalText),
-        "streaming-final"
-      );
+      if (!usedGenericStreamingProcessing) {
+        finalText = this.applyDictionaryNormalization(
+          this.basicDictationCleanup(finalText),
+          "streaming-final"
+        );
+      }
 
       if (shouldStopBeforeCompletion("before-completion-delivery")) {
         return true;
@@ -3390,7 +3547,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         source: `${this.sttConfig?.streamingProvider || "deepgram"}-streaming`,
       });
 
-      if (!usedBatchFallback) {
+      if (!usedBatchFallback && !isByokDeepgramStreaming) {
         (async () => {
           try {
             await withSessionRefresh(async () => {

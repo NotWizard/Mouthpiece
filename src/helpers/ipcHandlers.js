@@ -1203,6 +1203,14 @@ class IPCHandlers {
       return this.environmentManager.saveAnthropicKey(key);
     });
 
+    ipcMain.handle("get-deepgram-key", async () => {
+      return this.environmentManager.getDeepgramKey();
+    });
+
+    ipcMain.handle("save-deepgram-key", async (event, key) => {
+      return this.environmentManager.saveDeepgramKey(key);
+    });
+
     ipcMain.handle("get-ui-language", async () => {
       return this.environmentManager.getUiLanguage();
     });
@@ -2480,10 +2488,26 @@ class IPCHandlers {
       return token;
     };
 
+    const resolveDeepgramStreamingCredentials = async (event, options = {}) => {
+      const authMode = options.authMode === "apiKey" ? "apiKey" : "token";
+
+      if (authMode === "apiKey") {
+        const apiKey = this.environmentManager.getDeepgramKey();
+        if (!apiKey) {
+          throw new Error("Deepgram API key not configured");
+        }
+        return { token: apiKey, authMode };
+      }
+
+      const token = await fetchDeepgramStreamingToken(event);
+      return { token, authMode };
+    };
+
     ipcMain.handle("deepgram-streaming-warmup", async (event, options = {}) => {
       try {
+        const authMode = options.authMode === "apiKey" ? "apiKey" : "token";
         const apiUrl = getApiUrl();
-        if (!apiUrl) {
+        if (authMode !== "apiKey" && !apiUrl) {
           return { success: false, error: "API not configured", code: "NO_API" };
         }
 
@@ -2496,23 +2520,31 @@ class IPCHandlers {
           this.deepgramStreaming = new DeepgramStreaming();
         }
 
-        this.deepgramStreaming.setTokenRefreshFn(async () => {
-          if (!deepgramTokenWindowId) throw new Error("No window reference");
-          return fetchDeepgramStreamingTokenFromWindow(deepgramTokenWindowId);
-        });
+        if (authMode === "apiKey") {
+          this.deepgramStreaming.setTokenRefreshFn(null);
+        } else {
+          this.deepgramStreaming.setTokenRefreshFn(async () => {
+            if (!deepgramTokenWindowId) throw new Error("No window reference");
+            return fetchDeepgramStreamingTokenFromWindow(deepgramTokenWindowId);
+          });
+        }
 
         if (this.deepgramStreaming.hasWarmConnection()) {
           debugLogger.debug("Deepgram connection already warm", {}, "streaming");
           return { success: true, alreadyWarm: true };
         }
 
-        let token = this.deepgramStreaming.getCachedToken();
+        let token =
+          this.deepgramStreaming.cachedAuthMode === authMode
+            ? this.deepgramStreaming.getCachedToken()
+            : null;
         if (!token) {
-          debugLogger.debug("Fetching new Deepgram streaming token for warmup", {}, "streaming");
-          token = await fetchDeepgramStreamingToken(event);
+          debugLogger.debug("Fetching Deepgram streaming credentials for warmup", { authMode }, "streaming");
+          ({ token } = await resolveDeepgramStreamingCredentials(event, options));
         }
 
-        await this.deepgramStreaming.warmup({ ...options, token });
+        this.deepgramStreaming.cacheToken(token, authMode);
+        await this.deepgramStreaming.warmup({ ...options, token, authMode });
         debugLogger.debug("Deepgram connection warmed up", {}, "streaming");
 
         return { success: true };
@@ -2539,8 +2571,9 @@ class IPCHandlers {
 
       deepgramStreamingStartInProgress = true;
       try {
+        const authMode = options.authMode === "apiKey" ? "apiKey" : "token";
         const apiUrl = getApiUrl();
-        if (!apiUrl) {
+        if (authMode !== "apiKey" && !apiUrl) {
           return { success: false, error: "API not configured", code: "NO_API" };
         }
 
@@ -2553,10 +2586,14 @@ class IPCHandlers {
           this.deepgramStreaming = new DeepgramStreaming();
         }
 
-        this.deepgramStreaming.setTokenRefreshFn(async () => {
-          if (!deepgramTokenWindowId) throw new Error("No window reference");
-          return fetchDeepgramStreamingTokenFromWindow(deepgramTokenWindowId);
-        });
+        if (authMode === "apiKey") {
+          this.deepgramStreaming.setTokenRefreshFn(null);
+        } else {
+          this.deepgramStreaming.setTokenRefreshFn(async () => {
+            if (!deepgramTokenWindowId) throw new Error("No window reference");
+            return fetchDeepgramStreamingTokenFromWindow(deepgramTokenWindowId);
+          });
+        }
 
         if (this.deepgramStreaming.isConnected) {
           debugLogger.debug("Deepgram cleaning up stale connection before start", {}, "streaming");
@@ -2566,11 +2603,14 @@ class IPCHandlers {
         const hasWarm = this.deepgramStreaming.hasWarmConnection();
         debugLogger.debug("Deepgram streaming start", { hasWarmConnection: hasWarm }, "streaming");
 
-        let token = this.deepgramStreaming.getCachedToken();
+        let token =
+          this.deepgramStreaming.cachedAuthMode === authMode
+            ? this.deepgramStreaming.getCachedToken()
+            : null;
         if (!token) {
-          debugLogger.debug("Fetching Deepgram streaming token from API", {}, "streaming");
-          token = await fetchDeepgramStreamingToken(event);
-          this.deepgramStreaming.cacheToken(token);
+          debugLogger.debug("Fetching Deepgram streaming credentials", { authMode }, "streaming");
+          ({ token } = await resolveDeepgramStreamingCredentials(event, options));
+          this.deepgramStreaming.cacheToken(token, authMode);
         } else {
           debugLogger.debug("Using cached Deepgram streaming token", {}, "streaming");
         }
@@ -2599,7 +2639,7 @@ class IPCHandlers {
           }
         };
 
-        await this.deepgramStreaming.connect({ ...options, token });
+        await this.deepgramStreaming.connect({ ...options, token, authMode });
         debugLogger.debug("Deepgram streaming started", {}, "streaming");
 
         return {

@@ -84,6 +84,7 @@ class DeepgramStreaming {
     this.finalSegments = [];
     this.closeResolve = null;
     this.cachedToken = null;
+    this.cachedAuthMode = "token";
     this.tokenFetchedAt = null;
     this.warmConnection = null;
     this.warmConnectionReady = false;
@@ -111,12 +112,24 @@ class DeepgramStreaming {
     this.tokenRefreshFn = fn;
   }
 
+  buildAuthorizationHeader(token, authMode = "token") {
+    if (authMode === "apiKey") {
+      return { Authorization: `Token ${token}` };
+    }
+    return { Authorization: `Bearer ${token}` };
+  }
+
   buildWebSocketUrl(options) {
     const sampleRate = options.sampleRate || SAMPLE_RATE;
     const lang = options.language && options.language !== "auto" ? options.language : null;
     const baseLang = lang ? lang.split("-")[0].toLowerCase() : null;
-    const useNova3 = !lang || NOVA3_LANGUAGES.has(lang) || NOVA3_LANGUAGES.has(baseLang);
-    const model = useNova3 ? "nova-3" : "nova-2";
+    const requestedModel = options.model;
+    const useRequestedModel = typeof requestedModel === "string" && requestedModel.trim() !== "";
+    const useNova3 =
+      useRequestedModel && requestedModel.startsWith("nova-3")
+        ? true
+        : !lang || NOVA3_LANGUAGES.has(lang) || NOVA3_LANGUAGES.has(baseLang);
+    const model = useRequestedModel ? requestedModel : useNova3 ? "nova-3" : "nova-2";
     this.currentModel = model;
 
     if (!useNova3) {
@@ -144,14 +157,16 @@ class DeepgramStreaming {
     return `wss://api.deepgram.com/v1/listen?${params.toString()}`;
   }
 
-  cacheToken(token) {
+  cacheToken(token, authMode = "token") {
     this.cachedToken = token;
+    this.cachedAuthMode = authMode;
     this.tokenFetchedAt = Date.now();
     debugLogger.debug("Deepgram token cached", { expiresIn: TOKEN_EXPIRY_MS });
   }
 
   isTokenValid() {
     if (!this.cachedToken || !this.tokenFetchedAt) return false;
+    if (this.cachedAuthMode === "apiKey") return true;
     const age = Date.now() - this.tokenFetchedAt;
     return age < TOKEN_EXPIRY_MS - TOKEN_REFRESH_BUFFER_MS;
   }
@@ -257,7 +272,7 @@ class DeepgramStreaming {
       }, WEBSOCKET_TIMEOUT_MS);
 
       this.warmConnection = new WebSocket(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: this.buildAuthorizationHeader(token, options.authMode),
       });
 
       this.warmConnection.on("open", () => {
@@ -365,6 +380,9 @@ class DeepgramStreaming {
   }
 
   scheduleProactiveRefresh() {
+    if (this.cachedAuthMode === "apiKey") {
+      return;
+    }
     clearTimeout(this.proactiveRefreshTimer);
     const refreshDelay = TOKEN_EXPIRY_MS - TOKEN_REFRESH_BUFFER_MS * 2;
     this.proactiveRefreshTimer = setTimeout(async () => {
@@ -591,7 +609,7 @@ class DeepgramStreaming {
       }, WEBSOCKET_TIMEOUT_MS);
 
       this.ws = new WebSocket(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: this.buildAuthorizationHeader(token, options.authMode),
       });
 
       this.ws.on("open", () => {
@@ -851,6 +869,7 @@ class DeepgramStreaming {
     clearTimeout(this.proactiveRefreshTimer);
     this.proactiveRefreshTimer = null;
     this.cachedToken = null;
+    this.cachedAuthMode = "token";
     this.tokenFetchedAt = null;
     this.warmConnectionOptions = null;
     this.finalSegments = [];
