@@ -13,6 +13,7 @@ import { withSessionRefresh } from "../lib/neonAuth";
 import { getBaseLanguageCode, validateLanguageForModel } from "../utils/languageSupport";
 import { classifyContext, getTargetAppInfo } from "../utils/contextClassifier";
 import { normalizeAudioLevel } from "../utils/dictationWaveform.mjs";
+import { getReasoningAvailabilityCacheKey } from "../utils/reasoningAvailabilityCacheKey.mjs";
 import {
   getSettings,
   getEffectiveReasoningModel,
@@ -618,6 +619,8 @@ class AudioManager {
     this._onApiKeyChanged = () => {
       this.cachedApiKey = null;
       this.cachedApiKeyProvider = null;
+      this.reasoningAvailabilityCache = { value: false, expiresAt: 0 };
+      this.cachedReasoningAvailabilityKey = null;
     };
     window.addEventListener("api-key-changed", this._onApiKeyChanged);
     this.cachedTranscriptionEndpoint = null;
@@ -625,7 +628,7 @@ class AudioManager {
     this.cachedEndpointBaseUrl = null;
     this.recordingStartTime = null;
     this.reasoningAvailabilityCache = { value: false, expiresAt: 0 };
-    this.cachedReasoningPreference = null;
+    this.cachedReasoningAvailabilityKey = null;
     this.isStreaming = false;
     this.streamingAudioContext = null;
     this.streamingSource = null;
@@ -1619,12 +1622,14 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       return false;
     }
 
-    const useReasoning = getSettings().useReasoningModel;
+    const settings = getSettings();
+    const useReasoning = settings.useReasoningModel;
+    const cacheKey = getReasoningAvailabilityCacheKey(settings);
     const now = Date.now();
     const cacheValid =
       this.reasoningAvailabilityCache &&
       now < this.reasoningAvailabilityCache.expiresAt &&
-      this.cachedReasoningPreference === useReasoning;
+      this.cachedReasoningAvailabilityKey === cacheKey;
 
     if (cacheValid) {
       return this.reasoningAvailabilityCache.value;
@@ -1639,7 +1644,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         value: false,
         expiresAt: now + REASONING_CACHE_TTL,
       };
-      this.cachedReasoningPreference = useReasoning;
+      this.cachedReasoningAvailabilityKey = cacheKey;
       return false;
     }
 
@@ -1648,7 +1653,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         value: true,
         expiresAt: now + REASONING_CACHE_TTL,
       };
-      this.cachedReasoningPreference = useReasoning;
+      this.cachedReasoningAvailabilityKey = cacheKey;
       return true;
     }
 
@@ -1665,7 +1670,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         value: isAvailable,
         expiresAt: now + REASONING_CACHE_TTL,
       };
-      this.cachedReasoningPreference = useReasoning;
+      this.cachedReasoningAvailabilityKey = cacheKey;
 
       return isAvailable;
     } catch (error) {
@@ -1678,7 +1683,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         value: false,
         expiresAt: now + REASONING_CACHE_TTL,
       };
-      this.cachedReasoningPreference = useReasoning;
+      this.cachedReasoningAvailabilityKey = cacheKey;
       return false;
     }
   }
