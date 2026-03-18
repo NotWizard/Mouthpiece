@@ -431,17 +431,39 @@ export default function ReasoningModelSelector({
         }
 
         const modelsUrl = buildApiUrl(normalizedBase, "/models");
-        const response = await fetch(modelsUrl, { method: "GET", headers });
+        const response = window.electronAPI?.processCloudReasoningRequest
+          ? await window.electronAPI.processCloudReasoningRequest({
+              endpoint: modelsUrl,
+              method: "GET",
+              headers,
+              timeoutMs: 15000,
+            })
+          : await fetch(modelsUrl, { method: "GET", headers }).then(async (res) => {
+              const text = await res.text();
+              return {
+                ok: res.ok,
+                status: res.status,
+                statusText: res.statusText,
+                text,
+                json: (() => {
+                  try {
+                    return text ? JSON.parse(text) : null;
+                  } catch {
+                    return null;
+                  }
+                })(),
+              };
+            });
 
         if (!response.ok) {
-          const errorText = await response.text().catch(() => "");
+          const errorText = response.text || "";
           const summary = errorText
             ? `${response.status} ${errorText.slice(0, 200)}`
             : `${response.status} ${response.statusText}`;
           throw new Error(summary.trim());
         }
 
-        const payload = await response.json().catch(() => ({}));
+        const payload = response.json || {};
         const rawModels = Array.isArray(payload?.data)
           ? payload.data
           : Array.isArray(payload?.models)

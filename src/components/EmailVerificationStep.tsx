@@ -10,6 +10,46 @@ interface EmailVerificationStepProps {
   onVerified: () => void;
 }
 
+async function runtimeApiRequest(request: {
+  path: string;
+  method?: string;
+  includeCookies?: boolean;
+  query?: Record<string, string>;
+}) {
+  if (window.electronAPI?.proxyRuntimeApiRequest) {
+    return window.electronAPI.proxyRuntimeApiRequest({
+      target: "api",
+      path: request.path,
+      method: request.method,
+      includeCookies: request.includeCookies,
+      query: request.query,
+    });
+  }
+
+  const url = new URL(`${MOUTHPIECE_API_URL}${request.path}`);
+  for (const [key, value] of Object.entries(request.query || {})) {
+    url.searchParams.set(key, value);
+  }
+  const response = await fetch(url.toString(), {
+    method: request.method,
+    credentials: request.includeCookies ? "include" : undefined,
+  });
+  const text = await response.text();
+  return {
+    ok: response.ok,
+    status: response.status,
+    statusText: response.statusText,
+    text,
+    json: (() => {
+      try {
+        return text ? JSON.parse(text) : null;
+      } catch {
+        return null;
+      }
+    })(),
+  };
+}
+
 export default function EmailVerificationStep({ email, onVerified }: EmailVerificationStepProps) {
   const { t } = useTranslation();
   const [resendCooldown, setResendCooldown] = useState(60);
@@ -27,13 +67,15 @@ export default function EmailVerificationStep({ email, onVerified }: EmailVerifi
   useEffect(() => {
     if (!MOUTHPIECE_API_URL || verified) return;
 
-    const url = `${MOUTHPIECE_API_URL}/api/auth/verification-status?email=${encodeURIComponent(email)}`;
-
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch(url, { credentials: "include" });
+        const res = await runtimeApiRequest({
+          path: "/api/auth/verification-status",
+          includeCookies: true,
+          query: { email },
+        });
         if (res.ok) {
-          const data = await res.json();
+          const data = res.json || {};
           if (data.verified) {
             setVerified(true);
             if (pollRef.current) clearInterval(pollRef.current);
@@ -58,14 +100,15 @@ export default function EmailVerificationStep({ email, onVerified }: EmailVerifi
     setIsResending(true);
     setError(null);
     try {
-      const res = await fetch(`${MOUTHPIECE_API_URL}/api/auth/send-verification-email`, {
+      const res = await runtimeApiRequest({
+        path: "/api/auth/send-verification-email",
         method: "POST",
-        credentials: "include",
+        includeCookies: true,
       });
       if (res.ok) {
         setResendCooldown(60);
       } else {
-        const data = await res.json();
+        const data = res.json || {};
         setError(data.error || t("emailVerification.errors.resendFailed"));
       }
     } catch {

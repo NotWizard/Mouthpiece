@@ -308,11 +308,41 @@ declare global {
       onTranscriptionsCleared?: (callback: (payload: { cleared: number }) => void) => () => void;
 
       // API key management
+      proxyRuntimeApiRequest?: (request: {
+        target?: "api" | "auth" | "absolute";
+        endpoint?: string;
+        path?: string;
+        method?: string;
+        headers?: Record<string, string>;
+        body?: string;
+        query?: Record<string, string | number | boolean | null | undefined>;
+        includeCookies?: boolean;
+        timeoutMs?: number;
+      }) => Promise<{
+        ok: boolean;
+        status: number;
+        statusText: string;
+        text: string;
+        json: any | null;
+      }>;
       getOpenAIKey: () => Promise<string>;
       saveOpenAIKey: (key: string) => Promise<{ success: boolean }>;
       createProductionEnvFile: (key: string) => Promise<void>;
       getAnthropicKey: () => Promise<string | null>;
       saveAnthropicKey: (key: string) => Promise<void>;
+      processCloudReasoningRequest?: (request: {
+        endpoint: string;
+        method?: string;
+        headers?: Record<string, string>;
+        body?: string;
+        timeoutMs?: number;
+      }) => Promise<{
+        ok: boolean;
+        status: number;
+        statusText: string;
+        text: string;
+        json: any | null;
+      }>;
       getUiLanguage: () => Promise<string>;
       saveUiLanguage: (language: string) => Promise<{ success: boolean; language: string }>;
       setUiLanguage: (language: string) => Promise<{ success: boolean; language: string }>;

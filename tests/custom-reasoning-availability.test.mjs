@@ -265,6 +265,81 @@ test("custom reasoning ignores stored chat endpoint preference and still probes 
   }
 });
 
+test("custom reasoning prefers the main-process request proxy over renderer fetch when available", async () => {
+  const requests = [];
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error("renderer fetch should not run when IPC proxy is available");
+  };
+
+  const { service, cleanup } = await loadReasoningService({
+    storage: {
+      customReasoningApiKey: "sk-test-custom",
+      preferredLanguage: "zh-CN",
+      customUnifiedPrompt: JSON.stringify("PROMPT::{{agentName}}::CUSTOM"),
+    },
+    electronAPI: {
+      getCustomReasoningKey: async () => "sk-test-custom",
+      processCloudReasoningRequest: async (request) => {
+        requests.push(request);
+        return {
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          text: JSON.stringify({
+            output: [
+              {
+                type: "message",
+                content: [{ type: "output_text", text: "我在上海没有亲戚朋友。" }],
+              },
+            ],
+            usage: { total_tokens: 9 },
+          }),
+          json: {
+            output: [
+              {
+                type: "message",
+                content: [{ type: "output_text", text: "我在上海没有亲戚朋友。" }],
+              },
+            ],
+            usage: { total_tokens: 9 },
+          },
+        };
+      },
+    },
+  });
+
+  try {
+    const result = await service.processText("嗯，我上海没亲戚朋友。", "qwen3.5-flash", "AI", {
+      contextClassification: {
+        context: "general",
+        intent: "cleanup",
+        confidence: 0.9,
+        strictMode: true,
+        strictOverlapThreshold: 0.72,
+        signals: [],
+        targetApp: {
+          appName: "Notes",
+          processId: 1,
+          platform: "darwin",
+          source: "renderer-fallback",
+          capturedAt: null,
+        },
+      },
+      strictMode: true,
+      strictOverlapThreshold: 0.86,
+    });
+
+    assert.equal(result, "我在上海没有亲戚朋友。");
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].endpoint, "https://dashscope.aliyuncs.com/compatible-mode/v1/responses");
+    assert.equal(requests[0].method, "POST");
+  } finally {
+    globalThis.fetch = previousFetch;
+    cleanup();
+  }
+});
+
 test("custom reasoning falls back to chat completions when responses times out", async () => {
   const requests = [];
   const previousFetch = globalThis.fetch;

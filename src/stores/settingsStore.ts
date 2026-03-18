@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { API_ENDPOINTS } from "../config/constants";
 import { RUNTIME_CONFIG } from "../config/runtimeConfig";
 import i18n, { normalizeUiLanguage } from "../i18n";
-import { hasAnyByokKey, hasStoredByokKey } from "../utils/byokDetection";
+import { hasAnyByokKey } from "../utils/byokDetection";
 import { ensureAgentNameInDictionary } from "../utils/agentName";
 import { normalizeCloudTranscriptionProviderSettings } from "../utils/transcriptionProviderConfig.mjs";
 import logger from "../utils/logger";
@@ -66,6 +66,75 @@ function readStringArray(key: string, fallback: string[]): string[] {
   }
 }
 
+const SECRET_SETTING_KEYS = [
+  "openaiApiKey",
+  "anthropicApiKey",
+  "geminiApiKey",
+  "groqApiKey",
+  "mistralApiKey",
+  "bailianApiKey",
+  "customTranscriptionApiKey",
+  "customReasoningApiKey",
+] as const;
+
+type SecretSettingKey = (typeof SECRET_SETTING_KEYS)[number];
+type ApiKeyCacheProvider =
+  | "openai"
+  | "anthropic"
+  | "gemini"
+  | "groq"
+  | "mistral"
+  | "custom"
+  | "bailian";
+
+const SECRET_SETTING_CACHE_PROVIDERS: Record<SecretSettingKey, ApiKeyCacheProvider | undefined> = {
+  openaiApiKey: "openai",
+  anthropicApiKey: "anthropic",
+  geminiApiKey: "gemini",
+  groqApiKey: "groq",
+  mistralApiKey: "mistral",
+  bailianApiKey: "bailian",
+  customTranscriptionApiKey: undefined,
+  customReasoningApiKey: "custom",
+};
+
+function isSecretSettingKey(key: string): key is SecretSettingKey {
+  return SECRET_SETTING_KEYS.includes(key as SecretSettingKey);
+}
+
+function readLegacySecretSettings(): Record<SecretSettingKey, string> {
+  if (!isBrowser) {
+    return {
+      openaiApiKey: "",
+      anthropicApiKey: "",
+      geminiApiKey: "",
+      groqApiKey: "",
+      mistralApiKey: "",
+      bailianApiKey: "",
+      customTranscriptionApiKey: "",
+      customReasoningApiKey: "",
+    };
+  }
+
+  return {
+    openaiApiKey: localStorage.getItem("openaiApiKey") ?? "",
+    anthropicApiKey: localStorage.getItem("anthropicApiKey") ?? "",
+    geminiApiKey: localStorage.getItem("geminiApiKey") ?? "",
+    groqApiKey: localStorage.getItem("groqApiKey") ?? "",
+    mistralApiKey: localStorage.getItem("mistralApiKey") ?? "",
+    bailianApiKey: localStorage.getItem("bailianApiKey") ?? "",
+    customTranscriptionApiKey: localStorage.getItem("customTranscriptionApiKey") ?? "",
+    customReasoningApiKey: localStorage.getItem("customReasoningApiKey") ?? "",
+  };
+}
+
+function clearLegacySecretSettings(keys: readonly SecretSettingKey[] = SECRET_SETTING_KEYS): void {
+  if (!isBrowser) return;
+  for (const key of keys) {
+    localStorage.removeItem(key);
+  }
+}
+
 const INITIAL_CLOUD_TRANSCRIPTION_SETTINGS = normalizeCloudTranscriptionProviderSettings({
   cloudTranscriptionProvider: readString("cloudTranscriptionProvider", "openai"),
   cloudTranscriptionModel: readString("cloudTranscriptionModel", "gpt-4o-mini-transcribe"),
@@ -73,8 +142,8 @@ const INITIAL_CLOUD_TRANSCRIPTION_SETTINGS = normalizeCloudTranscriptionProvider
     "cloudTranscriptionBaseUrl",
     API_ENDPOINTS.TRANSCRIPTION_BASE
   ),
-  customTranscriptionApiKey: readString("customTranscriptionApiKey", ""),
-  bailianApiKey: readString("bailianApiKey", ""),
+  customTranscriptionApiKey: "",
+  bailianApiKey: "",
 });
 
 const BOOLEAN_SETTINGS = new Set([
@@ -196,7 +265,8 @@ function debouncedPersistToEnv() {
 }
 
 function invalidateApiKeyCaches(
-  provider?: "openai" | "anthropic" | "gemini" | "groq" | "mistral" | "custom" | "bailian"
+  provider?: ApiKeyCacheProvider,
+  options: { persistToEnv?: boolean } = {}
 ) {
   if (provider) {
     if (_ReasoningService) {
@@ -211,7 +281,95 @@ function invalidateApiKeyCaches(
     }
   }
   if (isBrowser) window.dispatchEvent(new Event("api-key-changed"));
-  debouncedPersistToEnv();
+  if (options.persistToEnv !== false) {
+    debouncedPersistToEnv();
+  }
+}
+
+function setSecretState(key: SecretSettingKey, value: string): void {
+  useSettingsStore.setState({ [key]: value } as Pick<SettingsState, SecretSettingKey>);
+}
+
+async function persistSecretSetting(key: SecretSettingKey, value: string): Promise<void> {
+  if (!isBrowser || !window.electronAPI) return;
+
+  switch (key) {
+    case "openaiApiKey":
+      await window.electronAPI.saveOpenAIKey?.(value);
+      return;
+    case "anthropicApiKey":
+      await window.electronAPI.saveAnthropicKey?.(value);
+      return;
+    case "geminiApiKey":
+      await window.electronAPI.saveGeminiKey?.(value);
+      return;
+    case "groqApiKey":
+      await window.electronAPI.saveGroqKey?.(value);
+      return;
+    case "mistralApiKey":
+      await window.electronAPI.saveMistralKey?.(value);
+      return;
+    case "bailianApiKey":
+      await window.electronAPI.saveBailianKey?.(value);
+      return;
+    case "customTranscriptionApiKey":
+      await window.electronAPI.saveCustomTranscriptionKey?.(value);
+      return;
+    case "customReasoningApiKey":
+      await window.electronAPI.saveCustomReasoningKey?.(value);
+      return;
+  }
+}
+
+async function readPersistedSecretSetting(key: SecretSettingKey): Promise<string> {
+  if (!isBrowser || !window.electronAPI) return "";
+
+  switch (key) {
+    case "openaiApiKey":
+      return (await window.electronAPI.getOpenAIKey?.()) || "";
+    case "anthropicApiKey":
+      return (await window.electronAPI.getAnthropicKey?.()) || "";
+    case "geminiApiKey":
+      return (await window.electronAPI.getGeminiKey?.()) || "";
+    case "groqApiKey":
+      return (await window.electronAPI.getGroqKey?.()) || "";
+    case "mistralApiKey":
+      return (await window.electronAPI.getMistralKey?.()) || "";
+    case "bailianApiKey":
+      return (await window.electronAPI.getBailianKey?.()) || "";
+    case "customTranscriptionApiKey":
+      return (await window.electronAPI.getCustomTranscriptionKey?.()) || "";
+    case "customReasoningApiKey":
+      return (await window.electronAPI.getCustomReasoningKey?.()) || "";
+  }
+}
+
+async function applySecretSetting(
+  key: SecretSettingKey,
+  value: string,
+  options: { persistToMain?: boolean; persistToEnv?: boolean } = {}
+): Promise<void> {
+  setSecretState(key, value);
+
+  if (options.persistToMain !== false) {
+    await persistSecretSetting(key, value);
+  }
+
+  invalidateApiKeyCaches(SECRET_SETTING_CACHE_PROVIDERS[key], {
+    persistToEnv: options.persistToEnv,
+  });
+}
+
+function createSecretSetter(key: SecretSettingKey) {
+  return (value: string) => {
+    void applySecretSetting(key, value).catch((err) => {
+      logger.warn(
+        "Failed to persist API key to main process",
+        { key, error: (err as Error).message },
+        "settings"
+      );
+    });
+  };
 }
 
 export const useSettingsStore = create<SettingsState>()((set, get) => ({
@@ -232,12 +390,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   cloudTranscriptionBaseUrl:
     INITIAL_CLOUD_TRANSCRIPTION_SETTINGS.cloudTranscriptionBaseUrl ||
     API_ENDPOINTS.TRANSCRIPTION_BASE,
-  cloudTranscriptionMode: normalizeCloudMode(
-    readString(
-      "cloudTranscriptionMode",
-      hasStoredByokKey() || !CLOUD_AUTH_AVAILABLE ? "byok" : "byok"
-    )
-  ),
+  cloudTranscriptionMode: normalizeCloudMode(readString("cloudTranscriptionMode", "byok")),
   cloudReasoningMode: normalizeCloudMode(readString("cloudReasoningMode", "byok")),
   cloudReasoningBaseUrl: readString("cloudReasoningBaseUrl", API_ENDPOINTS.OPENAI_BASE),
   bailianReasoningEnableThinking: readBoolean("bailianReasoningEnableThinking", false),
@@ -250,14 +403,14 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   reasoningModel: readString("reasoningModel", ""),
   reasoningProvider: readString("reasoningProvider", "openai"),
 
-  openaiApiKey: readString("openaiApiKey", ""),
-  anthropicApiKey: readString("anthropicApiKey", ""),
-  geminiApiKey: readString("geminiApiKey", ""),
-  groqApiKey: readString("groqApiKey", ""),
-  mistralApiKey: readString("mistralApiKey", ""),
+  openaiApiKey: "",
+  anthropicApiKey: "",
+  geminiApiKey: "",
+  groqApiKey: "",
+  mistralApiKey: "",
   bailianApiKey: INITIAL_CLOUD_TRANSCRIPTION_SETTINGS.bailianApiKey,
-  customTranscriptionApiKey: readString("customTranscriptionApiKey", ""),
-  customReasoningApiKey: readString("customReasoningApiKey", ""),
+  customTranscriptionApiKey: "",
+  customReasoningApiKey: "",
 
   dictationKey: readString("dictationKey", ""),
 
@@ -326,54 +479,14 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     }
   },
 
-  setOpenaiApiKey: (key: string) => {
-    if (isBrowser) localStorage.setItem("openaiApiKey", key);
-    set({ openaiApiKey: key });
-    window.electronAPI?.saveOpenAIKey?.(key);
-    invalidateApiKeyCaches("openai");
-  },
-  setAnthropicApiKey: (key: string) => {
-    if (isBrowser) localStorage.setItem("anthropicApiKey", key);
-    set({ anthropicApiKey: key });
-    window.electronAPI?.saveAnthropicKey?.(key);
-    invalidateApiKeyCaches("anthropic");
-  },
-  setGeminiApiKey: (key: string) => {
-    if (isBrowser) localStorage.setItem("geminiApiKey", key);
-    set({ geminiApiKey: key });
-    window.electronAPI?.saveGeminiKey?.(key);
-    invalidateApiKeyCaches("gemini");
-  },
-  setGroqApiKey: (key: string) => {
-    if (isBrowser) localStorage.setItem("groqApiKey", key);
-    set({ groqApiKey: key });
-    window.electronAPI?.saveGroqKey?.(key);
-    invalidateApiKeyCaches("groq");
-  },
-  setMistralApiKey: (key: string) => {
-    if (isBrowser) localStorage.setItem("mistralApiKey", key);
-    set({ mistralApiKey: key });
-    window.electronAPI?.saveMistralKey?.(key);
-    invalidateApiKeyCaches("mistral");
-  },
-  setBailianApiKey: (key: string) => {
-    if (isBrowser) localStorage.setItem("bailianApiKey", key);
-    set({ bailianApiKey: key });
-    window.electronAPI?.saveBailianKey?.(key);
-    invalidateApiKeyCaches("bailian");
-  },
-  setCustomTranscriptionApiKey: (key: string) => {
-    if (isBrowser) localStorage.setItem("customTranscriptionApiKey", key);
-    set({ customTranscriptionApiKey: key });
-    window.electronAPI?.saveCustomTranscriptionKey?.(key);
-    invalidateApiKeyCaches();
-  },
-  setCustomReasoningApiKey: (key: string) => {
-    if (isBrowser) localStorage.setItem("customReasoningApiKey", key);
-    set({ customReasoningApiKey: key });
-    window.electronAPI?.saveCustomReasoningKey?.(key);
-    invalidateApiKeyCaches("custom");
-  },
+  setOpenaiApiKey: createSecretSetter("openaiApiKey"),
+  setAnthropicApiKey: createSecretSetter("anthropicApiKey"),
+  setGeminiApiKey: createSecretSetter("geminiApiKey"),
+  setGroqApiKey: createSecretSetter("groqApiKey"),
+  setMistralApiKey: createSecretSetter("mistralApiKey"),
+  setBailianApiKey: createSecretSetter("bailianApiKey"),
+  setCustomTranscriptionApiKey: createSecretSetter("customTranscriptionApiKey"),
+  setCustomReasoningApiKey: createSecretSetter("customReasoningApiKey"),
 
   setDictationKey: (key: string) => {
     if (isBrowser) localStorage.setItem("dictationKey", key);
@@ -507,47 +620,52 @@ export async function initializeSettings(): Promise<void> {
 
   const state = useSettingsStore.getState();
 
-  // Sync API keys from main process (if localStorage is empty, read from .env via IPC)
+  // Migrate legacy renderer-stored secrets into the main process and
+  // then sync the canonical values back into renderer memory state.
   if (window.electronAPI) {
-    try {
-      if (!state.openaiApiKey) {
-        const envKey = await window.electronAPI.getOpenAIKey?.();
-        if (envKey) createStringSetter("openaiApiKey")(envKey);
+    const legacyApiKeys = readLegacySecretSettings();
+    const migratedLegacyKeys: SecretSettingKey[] = [];
+
+    const syncSecretSetting = async (key: SecretSettingKey) => {
+      const currentValue = (useSettingsStore.getState()[key] || "").trim();
+      const legacyValue = (legacyApiKeys[key] || "").trim();
+
+      if (currentValue) {
+        if (legacyValue) {
+          migratedLegacyKeys.push(key);
+        }
+        return;
       }
-      if (!state.anthropicApiKey) {
-        const envKey = await window.electronAPI.getAnthropicKey?.();
-        if (envKey) createStringSetter("anthropicApiKey")(envKey);
+
+      if (legacyValue) {
+        await applySecretSetting(key, legacyValue);
+        migratedLegacyKeys.push(key);
+        return;
       }
-      if (!state.geminiApiKey) {
-        const envKey = await window.electronAPI.getGeminiKey?.();
-        if (envKey) createStringSetter("geminiApiKey")(envKey);
+
+      const persistedValue = (await readPersistedSecretSetting(key)).trim();
+      if (persistedValue) {
+        await applySecretSetting(key, persistedValue, {
+          persistToMain: false,
+          persistToEnv: false,
+        });
       }
-      if (!state.groqApiKey) {
-        const envKey = await window.electronAPI.getGroqKey?.();
-        if (envKey) createStringSetter("groqApiKey")(envKey);
+    };
+
+    for (const key of SECRET_SETTING_KEYS) {
+      try {
+        await syncSecretSetting(key);
+      } catch (err) {
+        logger.warn(
+          "Failed to sync API key on startup",
+          { key, error: (err as Error).message },
+          "settings"
+        );
       }
-      if (!state.mistralApiKey) {
-        const envKey = await window.electronAPI.getMistralKey?.();
-        if (envKey) createStringSetter("mistralApiKey")(envKey);
-      }
-      if (!state.bailianApiKey) {
-        const envKey = await window.electronAPI.getBailianKey?.();
-        if (envKey) createStringSetter("bailianApiKey")(envKey);
-      }
-      if (!state.customTranscriptionApiKey) {
-        const envKey = await window.electronAPI.getCustomTranscriptionKey?.();
-        if (envKey) createStringSetter("customTranscriptionApiKey")(envKey);
-      }
-      if (!state.customReasoningApiKey) {
-        const envKey = await window.electronAPI.getCustomReasoningKey?.();
-        if (envKey) createStringSetter("customReasoningApiKey")(envKey);
-      }
-    } catch (err) {
-      logger.warn(
-        "Failed to sync API keys on startup",
-        { error: (err as Error).message },
-        "settings"
-      );
+    }
+
+    if (migratedLegacyKeys.length > 0) {
+      clearLegacySecretSettings(migratedLegacyKeys);
     }
 
     const refreshedState = useSettingsStore.getState();
@@ -674,6 +792,7 @@ export async function initializeSettings(): Promise<void> {
     if (!event.key || event.storageArea !== localStorage || event.newValue === null) return;
 
     const { key, newValue } = event;
+    if (isSecretSettingKey(key)) return;
     const state = useSettingsStore.getState();
     if (!(key in state) || typeof (state as unknown as Record<string, unknown>)[key] === "function")
       return;

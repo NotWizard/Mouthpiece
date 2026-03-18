@@ -47,6 +47,45 @@ const GoogleIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+async function runtimeApiRequest(request: {
+  path: string;
+  method?: string;
+  body?: string;
+  includeCookies?: boolean;
+}) {
+  if (window.electronAPI?.proxyRuntimeApiRequest) {
+    return window.electronAPI.proxyRuntimeApiRequest({
+      target: "api",
+      path: request.path,
+      method: request.method,
+      headers: { "Content-Type": "application/json" },
+      body: request.body,
+      includeCookies: request.includeCookies,
+    });
+  }
+
+  const response = await fetch(`${MOUTHPIECE_API_URL}${request.path}`, {
+    method: request.method,
+    headers: { "Content-Type": "application/json" },
+    body: request.body,
+    credentials: request.includeCookies ? "include" : undefined,
+  });
+  const text = await response.text();
+  return {
+    ok: response.ok,
+    status: response.status,
+    statusText: response.statusText,
+    text,
+    json: (() => {
+      try {
+        return text ? JSON.parse(text) : null;
+      } catch {
+        return null;
+      }
+    })(),
+  };
+}
+
 export default function AuthenticationStep({
   onContinueWithoutAccount,
   onAuthComplete,
@@ -100,9 +139,9 @@ export default function AuthenticationStep({
     const initAndComplete = async () => {
       if (MOUTHPIECE_API_URL) {
         try {
-          const res = await fetch(`${MOUTHPIECE_API_URL}/api/auth/init-user`, {
+          const res = await runtimeApiRequest({
+            path: "/api/auth/init-user",
             method: "POST",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               userId: user.id,
               email: user.email,
@@ -177,9 +216,9 @@ export default function AuthenticationStep({
         return;
       }
 
-      const response = await fetch(`${MOUTHPIECE_API_URL}/api/check-user`, {
+      const response = await runtimeApiRequest({
+        path: "/api/check-user",
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim() }),
       });
 
@@ -187,7 +226,7 @@ export default function AuthenticationStep({
         throw new Error(t("auth.errors.failedUserCheck"));
       }
 
-      const data = await response.json().catch(() => ({}));
+      const data = response.json || {};
       setAuthMode(data.exists ? "sign-in" : "sign-up");
     } catch (err) {
       logger.error("Error checking user existence", err, "auth");
@@ -242,9 +281,9 @@ export default function AuthenticationStep({
 
             if (MOUTHPIECE_API_URL) {
               try {
-                await fetch(`${MOUTHPIECE_API_URL}/api/auth/init-user`, {
+                await runtimeApiRequest({
+                  path: "/api/auth/init-user",
                   method: "POST",
-                  headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     userId: result.data?.user?.id,
                     email: email.trim(),
