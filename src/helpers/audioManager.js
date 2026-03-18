@@ -19,11 +19,14 @@ import {
   getEffectiveReasoningModel,
   isCloudReasoningMode,
 } from "../stores/settingsStore";
-import sonioxShared from "./sonioxShared";
+import {
+  SONIOX_ASYNC_MODEL,
+  SONIOX_REALTIME_MODEL,
+  selectSonioxModel,
+} from "./sonioxShared.mjs";
 
 const SHORT_CLIP_DURATION_SECONDS = 2.5;
 const REASONING_CACHE_TTL = 30000; // 30 seconds
-const { SONIOX_ASYNC_MODEL, SONIOX_REALTIME_MODEL, selectSonioxModel } = sonioxShared;
 
 const PLACEHOLDER_KEYS = {
   openai: "your_openai_api_key_here",

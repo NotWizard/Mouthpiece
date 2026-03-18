@@ -29,9 +29,7 @@ import { createExternalLinkHandler } from "../utils/externalLinks";
 import { getCachedPlatform } from "../utils/platform";
 import type { CudaWhisperStatus } from "../types/electron";
 import logger from "../utils/logger";
-import sonioxShared from "../helpers/sonioxShared";
-
-const { selectSonioxModel } = sonioxShared;
+import { selectSonioxModel } from "../helpers/sonioxShared.mjs";
 
 interface LocalModel {
   model: string;

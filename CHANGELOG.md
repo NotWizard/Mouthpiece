@@ -9,10 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > Note: Version numbering restarts at `1.0.0` for this standalone Mouthpiece repository. The `1.5.x` entries below are retained as inherited upstream reference only.
 
+## [1.1.2] - 2026-03-19
+
+### Added
+
+- Added Deepgram as a dedicated cloud transcription provider with a provider-level realtime streaming toggle
+- Added Soniox as a dedicated cloud transcription provider with separate async and realtime transcription paths
+- Added live partial transcript display in the dictation overlay while realtime transcription is active
+
 ### Changed
 
-- Exposed Alibaba Bailian as a dedicated cloud transcription provider in Settings, with its own API key and model selection instead of routing DashScope through the generic custom provider
-- Clarified the custom transcription provider as the generic OpenAI-compatible endpoint path and automatically migrate legacy `custom` + DashScope transcription settings to the explicit Bailian provider on startup
+- Exposed Alibaba Bailian as a dedicated cloud transcription provider in Settings instead of routing DashScope through the generic custom provider
+- Clarified the custom transcription provider as the generic OpenAI-compatible endpoint path and automatically migrate legacy `custom` + DashScope transcription settings on startup
+- Tightened renderer network boundaries and consolidated API key persistence to reduce secret exposure across transcription providers
+- Fixed CommonJS and ESM import compatibility in the main branch packaging path
+
+### Fixed
+
+- Fixed error toast close behavior and refreshed its visual styling
+- Removed the signed-out sidebar hint and unified the model cache directory layout
 
 ## [1.1.1] - 2026-03-18
 

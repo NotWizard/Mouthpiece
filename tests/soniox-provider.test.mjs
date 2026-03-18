@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const repoRoot = "/Users/mac/Downloads/Projects/AICode/Mouthpiece/.worktrees/soniox-provider";
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const read = (relativePath) =>
   fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
