@@ -279,6 +279,12 @@
       "apiKeyHelp": "Enter your Deepgram API key. Realtime mode connects directly to Deepgram's streaming API.",
       "realtimeLabel": "Realtime streaming",
       "realtimeDescription": "Show live partial text while you speak and finalize the transcript from the stream. Turn this off to use standard non-streaming transcription."
+    },
+    "soniox": {
+      "apiKeyHelp": "Used for both Soniox async and realtime transcription.",
+      "realtimeLabel": "Enable realtime transcription",
+      "realtimeEnabledDescription": "Stream live partial text while you speak and finalize the transcript when you stop recording.",
+      "realtimeDisabledDescription": "Upload the recording after you stop and wait for the async batch transcript."
     }
   },
   "hooks": {
@@ -1091,7 +1097,9 @@
         "deepgram_nova_3": "Latest Deepgram general-purpose model for batch and realtime transcription",
         "deepgram_nova_3_medical": "Nova-3 tuned for medical vocabulary and dictation",
         "deepgram_nova_2_meeting": "Optimized for multi-speaker meetings on a single microphone",
-        "deepgram_nova_2_phonecall": "Optimized for low-bandwidth phone audio"
+        "deepgram_nova_2_phonecall": "Optimized for low-bandwidth phone audio",
+        "soniox_stt_async_v4": "Asynchronous batch transcription",
+        "soniox_stt_rt_v4": "Realtime streaming transcription"
       },
       "cloud": {
         "openai_gpt_5_2": "Latest flagship reasoning model",

@@ -124,6 +124,10 @@ interface TranscriptionSectionProps {
   setGroqApiKey: (key: string) => void;
   mistralApiKey: string;
   setMistralApiKey: (key: string) => void;
+  sonioxApiKey: string;
+  setSonioxApiKey: (key: string) => void;
+  sonioxRealtimeEnabled: boolean;
+  setSonioxRealtimeEnabled: (enabled: boolean) => void;
   bailianApiKey: string;
   setBailianApiKey: (key: string) => void;
   deepgramStreamingEnabled: boolean;
@@ -166,6 +170,10 @@ function TranscriptionSection({
   setGroqApiKey,
   mistralApiKey,
   setMistralApiKey,
+  sonioxApiKey,
+  setSonioxApiKey,
+  sonioxRealtimeEnabled,
+  setSonioxRealtimeEnabled,
   bailianApiKey,
   setBailianApiKey,
   deepgramStreamingEnabled,
@@ -297,6 +305,10 @@ function TranscriptionSection({
           setGroqApiKey={setGroqApiKey}
           mistralApiKey={mistralApiKey}
           setMistralApiKey={setMistralApiKey}
+          sonioxApiKey={sonioxApiKey}
+          setSonioxApiKey={setSonioxApiKey}
+          sonioxRealtimeEnabled={sonioxRealtimeEnabled}
+          setSonioxRealtimeEnabled={setSonioxRealtimeEnabled}
           bailianApiKey={bailianApiKey}
           setBailianApiKey={setBailianApiKey}
           deepgramStreamingEnabled={deepgramStreamingEnabled}
@@ -535,6 +547,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     geminiApiKey,
     groqApiKey,
     mistralApiKey,
+    sonioxApiKey,
     bailianApiKey,
     dictationKey,
     preferBuiltInMic,
@@ -561,7 +574,10 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     setGeminiApiKey,
     setGroqApiKey,
     setMistralApiKey,
+    setSonioxApiKey,
     setBailianApiKey,
+    sonioxRealtimeEnabled,
+    setSonioxRealtimeEnabled,
     customTranscriptionApiKey,
     setCustomTranscriptionApiKey,
     customReasoningApiKey,
@@ -1019,6 +1035,10 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
             setGroqApiKey={setGroqApiKey}
             mistralApiKey={mistralApiKey}
             setMistralApiKey={setMistralApiKey}
+            sonioxApiKey={sonioxApiKey}
+            setSonioxApiKey={setSonioxApiKey}
+            sonioxRealtimeEnabled={sonioxRealtimeEnabled}
+            setSonioxRealtimeEnabled={setSonioxRealtimeEnabled}
             bailianApiKey={bailianApiKey}
             setBailianApiKey={setBailianApiKey}
             deepgramStreamingEnabled={deepgramStreamingEnabled}

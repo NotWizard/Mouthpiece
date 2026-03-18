@@ -1497,7 +1497,15 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
   }
 
   clearApiKeyCache(
-    provider?: "openai" | "anthropic" | "gemini" | "groq" | "mistral" | "custom" | "bailian"
+    provider?:
+      | "openai"
+      | "anthropic"
+      | "gemini"
+      | "groq"
+      | "mistral"
+      | "soniox"
+      | "custom"
+      | "bailian"
   ): void {
     if (provider) {
       if (provider !== "custom" && provider !== "bailian") {

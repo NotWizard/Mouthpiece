@@ -279,6 +279,12 @@
       "apiKeyHelp": "输入你的 Deepgram API key。开启实时模式后，会直接连接 Deepgram 的流式转录接口。",
       "realtimeLabel": "实时流式转录",
       "realtimeDescription": "说话时实时显示临时文本，并在流结束后生成最终转录。关闭后使用标准非流式转录。"
+    },
+    "soniox": {
+      "apiKeyHelp": "同时用于 Soniox 的异步转录和实时转录。",
+      "realtimeLabel": "开启实时转录",
+      "realtimeEnabledDescription": "说话时实时流式显示当前文字，并在停止录音后完成最终转录。",
+      "realtimeDisabledDescription": "停止录音后再上传音频，并等待异步批量转录结果。"
     }
   },
   "hooks": {
@@ -1091,7 +1097,9 @@
         "deepgram_nova_3": "Latest Deepgram general-purpose model for batch and realtime transcription",
         "deepgram_nova_3_medical": "Nova-3 tuned for medical vocabulary and dictation",
         "deepgram_nova_2_meeting": "Optimized for multi-speaker meetings on a single microphone",
-        "deepgram_nova_2_phonecall": "Optimized for low-bandwidth phone audio"
+        "deepgram_nova_2_phonecall": "Optimized for low-bandwidth phone audio",
+        "soniox_stt_async_v4": "异步批量转录",
+        "soniox_stt_rt_v4": "实时流式转录"
       },
       "cloud": {
         "openai_gpt_5_2": "最新旗舰推理模型",

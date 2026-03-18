@@ -279,6 +279,12 @@
       "apiKeyHelp": "Enter your Deepgram API key. Realtime mode connects directly to Deepgram's streaming API.",
       "realtimeLabel": "Realtime streaming",
       "realtimeDescription": "Show live partial text while you speak and finalize the transcript from the stream. Turn this off to use standard non-streaming transcription."
+    },
+    "soniox": {
+      "apiKeyHelp": "Soniox の非同期文字起こしとリアルタイム文字起こしの両方に使用します。",
+      "realtimeLabel": "リアルタイム文字起こしを有効にする",
+      "realtimeEnabledDescription": "話している間は部分文字起こしをリアルタイム表示し、録音を止めると最終文字起こしを確定します。",
+      "realtimeDisabledDescription": "録音停止後に音声をアップロードし、非同期のバッチ文字起こし結果を待ちます。"
     }
   },
   "hooks": {
@@ -1091,7 +1097,9 @@
         "deepgram_nova_3": "Latest Deepgram general-purpose model for batch and realtime transcription",
         "deepgram_nova_3_medical": "Nova-3 tuned for medical vocabulary and dictation",
         "deepgram_nova_2_meeting": "Optimized for multi-speaker meetings on a single microphone",
-        "deepgram_nova_2_phonecall": "Optimized for low-bandwidth phone audio"
+        "deepgram_nova_2_phonecall": "Optimized for low-bandwidth phone audio",
+        "soniox_stt_async_v4": "非同期バッチ文字起こし",
+        "soniox_stt_rt_v4": "リアルタイムストリーミング文字起こし"
       },
       "cloud": {
         "openai_gpt_5_2": "最新のフラッグシップ推論モデル",

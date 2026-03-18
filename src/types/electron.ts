@@ -568,6 +568,30 @@ declare global {
         contextBias?: string[];
       }) => Promise<{ text: string }>;
 
+      // Soniox API key management
+      getSonioxKey?: () => Promise<string | null>;
+      saveSonioxKey?: (key: string) => Promise<void>;
+      proxySonioxTranscription?: (data: {
+        audioBuffer: ArrayBuffer;
+        mimeType?: string;
+        fileName?: string;
+        model?: string;
+        language?: string;
+        contextBias?: string[];
+      }) => Promise<{
+        text: string;
+        tokens?: Array<{
+          text: string;
+          start_ms?: number;
+          end_ms?: number;
+          confidence?: number;
+          is_final?: boolean;
+          speaker?: string;
+          language?: string;
+        }>;
+        model?: string;
+      }>;
+
       // Bailian API key management
       getBailianKey?: () => Promise<string | null>;
       saveBailianKey?: (key: string) => Promise<void>;
@@ -705,6 +729,47 @@ declare global {
       onAssemblyAiError?: (callback: (error: string) => void) => () => void;
       onAssemblyAiSessionEnd?: (
         callback: (data: { audioDuration?: number; text?: string }) => void
+      ) => () => void;
+
+      // Soniox Streaming
+      sonioxStreamingWarmup?: (options?: {
+        sampleRate?: number;
+        language?: string;
+        keyterms?: string[];
+      }) => Promise<{
+        success: boolean;
+        alreadyWarm?: boolean;
+        error?: string;
+        code?: string;
+      }>;
+      sonioxStreamingStart?: (options?: {
+        sampleRate?: number;
+        language?: string;
+        keyterms?: string[];
+      }) => Promise<{
+        success: boolean;
+        usedWarmConnection?: boolean;
+        error?: string;
+        code?: string;
+      }>;
+      sonioxStreamingSend?: (audioBuffer: ArrayBuffer) => void;
+      sonioxStreamingFinalize?: () => void;
+      sonioxStreamingStop?: () => Promise<{
+        success: boolean;
+        text?: string;
+        model?: string;
+        audioBytesSent?: number;
+        error?: string;
+      }>;
+      sonioxStreamingStatus?: () => Promise<{
+        isConnected: boolean;
+        sessionId: string | null;
+      }>;
+      onSonioxPartialTranscript?: (callback: (text: string) => void) => () => void;
+      onSonioxFinalTranscript?: (callback: (text: string) => void) => () => void;
+      onSonioxError?: (callback: (error: string) => void) => () => void;
+      onSonioxSessionEnd?: (
+        callback: (data: { text?: string; code?: number; reason?: string }) => void
       ) => () => void;
 
       // Referral stats

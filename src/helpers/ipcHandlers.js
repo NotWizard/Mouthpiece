@@ -9,9 +9,16 @@ const GnomeShortcutManager = require("./gnomeShortcut");
 const AssemblyAiStreaming = require("./assemblyAiStreaming");
 const { i18nMain, changeLanguage } = require("./i18nMain");
 const DeepgramStreaming = require("./deepgramStreaming");
+const SonioxStreaming = require("./sonioxStreaming");
+const { buildSonioxAsyncPayload } = require("./sonioxShared");
 const { shouldRestoreDictationPanelAfterPaste } = require("./pasteUiState");
 
 const MISTRAL_TRANSCRIPTION_URL = "https://api.mistral.ai/v1/audio/transcriptions";
+const SONIOX_API_BASE_URL = "https://api.soniox.com/v1";
+const SONIOX_FILES_URL = `${SONIOX_API_BASE_URL}/files`;
+const SONIOX_TRANSCRIPTIONS_URL = `${SONIOX_API_BASE_URL}/transcriptions`;
+const SONIOX_ASYNC_POLL_INTERVAL_MS = 1000;
+const SONIOX_ASYNC_TIMEOUT_MS = 120000;
 const HTTP_REQUEST_TIMEOUT_MS = 120000;
 const HTTP_TIMEOUT_ERROR_CODE = "REQUEST_TIMEOUT";
 
@@ -154,6 +161,37 @@ function postMultipart(url, body, boundary, headers = {}, timeoutMs = HTTP_REQUE
   });
 }
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function readJsonResponse(response) {
+  const text = await response.text();
+  if (!text) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`Invalid JSON response: ${text.slice(0, 200)}`);
+  }
+}
+
+async function readSonioxResponse(response) {
+  const payload = await readJsonResponse(response).catch(() => ({}));
+  if (response.ok) {
+    return payload;
+  }
+
+  const message =
+    payload?.message ||
+    payload?.error?.message ||
+    `Soniox API Error: ${response.status} ${response.statusText}`;
+  const error = new Error(message);
+  error.status = response.status;
+  error.payload = payload;
+  throw error;
+}
+
 class IPCHandlers {
   constructor(managers) {
     this.environmentManager = managers.environmentManager;
@@ -170,6 +208,7 @@ class IPCHandlers {
     this.sessionId = crypto.randomUUID();
     this.assemblyAiStreaming = null;
     this.deepgramStreaming = null;
+    this.sonioxStreaming = null;
     this._autoLearnEnabled = true; // Default on, synced from renderer
     this._autoLearnDebounceTimer = null;
     this._autoLearnLatestData = null;
@@ -1178,6 +1217,14 @@ class IPCHandlers {
       return this.environmentManager.saveMistralKey(key);
     });
 
+    ipcMain.handle("get-soniox-key", async () => {
+      return this.environmentManager.getSonioxKey();
+    });
+
+    ipcMain.handle("save-soniox-key", async (event, key) => {
+      return this.environmentManager.saveSonioxKey(key);
+    });
+
     ipcMain.handle(
       "proxy-mistral-transcription",
       async (event, { audioBuffer, model, language, contextBias }) => {
@@ -1213,6 +1260,121 @@ class IPCHandlers {
         }
 
         return await response.json();
+      }
+    );
+
+    ipcMain.handle(
+      "proxy-soniox-transcription",
+      async (
+        event,
+        { audioBuffer, mimeType = "audio/webm", fileName = "audio.webm", model, language, contextBias }
+      ) => {
+        const apiKey = this.environmentManager.getSonioxKey();
+        if (!apiKey) {
+          throw new Error("Soniox API key not configured");
+        }
+
+        const headers = {
+          Authorization: `Bearer ${apiKey}`,
+        };
+
+        let uploadedFileId = null;
+        let transcriptionId = null;
+
+        const deleteSonioxResource = async (url) => {
+          if (!url) return;
+          try {
+            await fetch(url, {
+              method: "DELETE",
+              headers,
+            });
+          } catch {
+            // Best effort cleanup only.
+          }
+        };
+
+        try {
+          const uploadForm = new FormData();
+          const audioBlob = new Blob([Buffer.from(audioBuffer)], { type: mimeType });
+          uploadForm.append("file", audioBlob, fileName);
+
+          const uploadResponse = await fetch(SONIOX_FILES_URL, {
+            method: "POST",
+            headers,
+            body: uploadForm,
+          });
+          const uploadData = await readSonioxResponse(uploadResponse);
+          uploadedFileId = uploadData?.id || null;
+          if (!uploadedFileId) {
+            throw new Error("Soniox file upload did not return a file id");
+          }
+
+          const transcriptionPayload = {
+            ...buildSonioxAsyncPayload({
+              model,
+              language,
+              keyterms: contextBias,
+            }),
+            file_id: uploadedFileId,
+          };
+
+          const createResponse = await fetch(SONIOX_TRANSCRIPTIONS_URL, {
+            method: "POST",
+            headers: {
+              ...headers,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(transcriptionPayload),
+          });
+          const createdTranscription = await readSonioxResponse(createResponse);
+          transcriptionId = createdTranscription?.id || null;
+          if (!transcriptionId) {
+            throw new Error("Soniox transcription request did not return an id");
+          }
+
+          const deadline = Date.now() + SONIOX_ASYNC_TIMEOUT_MS;
+          let transcription = createdTranscription;
+
+          while (Date.now() < deadline) {
+            if (transcription?.status === "completed") {
+              break;
+            }
+
+            if (transcription?.status === "error") {
+              throw new Error(transcription?.error_message || "Soniox transcription failed");
+            }
+
+            await sleep(SONIOX_ASYNC_POLL_INTERVAL_MS);
+            const statusResponse = await fetch(
+              `${SONIOX_TRANSCRIPTIONS_URL}/${transcriptionId}`,
+              { headers }
+            );
+            transcription = await readSonioxResponse(statusResponse);
+          }
+
+          if (transcription?.status !== "completed") {
+            throw new Error("Soniox transcription timed out");
+          }
+
+          const transcriptResponse = await fetch(
+            `${SONIOX_TRANSCRIPTIONS_URL}/${transcriptionId}/transcript`,
+            { headers }
+          );
+          const transcript = await readSonioxResponse(transcriptResponse);
+
+          return {
+            text: transcript?.text || "",
+            tokens: Array.isArray(transcript?.tokens) ? transcript.tokens : [],
+            model: transcriptionPayload.model,
+          };
+        } finally {
+          if (transcriptionId) {
+            await deleteSonioxResource(`${SONIOX_TRANSCRIPTIONS_URL}/${transcriptionId}`);
+          }
+          if (uploadedFileId) {
+            await deleteSonioxResource(`${SONIOX_FILES_URL}/${uploadedFileId}`);
+          }
+        }
       }
     );
 
@@ -2542,6 +2704,127 @@ class IPCHandlers {
         return { isConnected: false, sessionId: null };
       }
       return this.assemblyAiStreaming.getStatus();
+    });
+
+    ipcMain.handle("soniox-streaming-warmup", async (_event, options = {}) => {
+      try {
+        const apiKey = this.environmentManager.getSonioxKey();
+        if (!apiKey) {
+          return { success: false, error: "Soniox API key not configured", code: "NO_API_KEY" };
+        }
+
+        if (!this.sonioxStreaming) {
+          this.sonioxStreaming = new SonioxStreaming();
+        }
+
+        if (this.sonioxStreaming.hasWarmConnection()) {
+          return { success: true, alreadyWarm: true };
+        }
+
+        await this.sonioxStreaming.warmup({ ...options, apiKey });
+        return { success: true };
+      } catch (error) {
+        debugLogger.error("Soniox warmup error", { error: error.message }, "streaming");
+        return { success: false, error: error.message };
+      }
+    });
+
+    let sonioxStreamingStartInProgress = false;
+
+    ipcMain.handle("soniox-streaming-start", async (event, options = {}) => {
+      if (sonioxStreamingStartInProgress) {
+        return { success: false, error: "Operation in progress" };
+      }
+
+      sonioxStreamingStartInProgress = true;
+
+      try {
+        const apiKey = this.environmentManager.getSonioxKey();
+        if (!apiKey) {
+          return { success: false, error: "Soniox API key not configured", code: "NO_API_KEY" };
+        }
+
+        const win = BrowserWindow.fromWebContents(event.sender);
+
+        if (!this.sonioxStreaming) {
+          this.sonioxStreaming = new SonioxStreaming();
+        }
+
+        const hasWarm = this.sonioxStreaming.hasWarmConnection();
+
+        this.sonioxStreaming.onPartialTranscript = (text) => {
+          if (win && !win.isDestroyed()) {
+            win.webContents.send("soniox-partial-transcript", text);
+          }
+        };
+
+        this.sonioxStreaming.onFinalTranscript = (text) => {
+          if (win && !win.isDestroyed()) {
+            win.webContents.send("soniox-final-transcript", text);
+          }
+        };
+
+        this.sonioxStreaming.onError = (error) => {
+          if (win && !win.isDestroyed()) {
+            win.webContents.send("soniox-error", error.message);
+          }
+        };
+
+        this.sonioxStreaming.onSessionEnd = (data) => {
+          if (win && !win.isDestroyed()) {
+            win.webContents.send("soniox-session-end", data);
+          }
+        };
+
+        await this.sonioxStreaming.connect({ ...options, apiKey });
+        return { success: true, usedWarmConnection: hasWarm };
+      } catch (error) {
+        debugLogger.error("Soniox streaming start error", { error: error.message }, "streaming");
+        return { success: false, error: error.message };
+      } finally {
+        sonioxStreamingStartInProgress = false;
+      }
+    });
+
+    ipcMain.on("soniox-streaming-send", (_event, audioBuffer) => {
+      try {
+        if (!this.sonioxStreaming) return;
+        const buffer = Buffer.from(audioBuffer);
+        this.sonioxStreaming.sendAudio(buffer);
+      } catch (error) {
+        debugLogger.error("Soniox streaming send error", { error: error.message }, "streaming");
+      }
+    });
+
+    ipcMain.on("soniox-streaming-finalize", () => {
+      this.sonioxStreaming?.finalize();
+    });
+
+    ipcMain.handle("soniox-streaming-stop", async () => {
+      try {
+        let result = { text: "", model: "stt-rt-v4", audioBytesSent: 0 };
+        if (this.sonioxStreaming) {
+          result = await this.sonioxStreaming.disconnect(true);
+          this.sonioxStreaming = null;
+        }
+
+        return {
+          success: true,
+          text: result?.text || "",
+          model: result?.model || "stt-rt-v4",
+          audioBytesSent: result?.audioBytesSent || 0,
+        };
+      } catch (error) {
+        debugLogger.error("Soniox streaming stop error", { error: error.message }, "streaming");
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("soniox-streaming-status", async () => {
+      if (!this.sonioxStreaming) {
+        return { isConnected: false, sessionId: null };
+      }
+      return this.sonioxStreaming.getStatus();
     });
 
     let deepgramTokenWindowId = null;

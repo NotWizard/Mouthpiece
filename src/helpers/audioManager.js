@@ -19,14 +19,17 @@ import {
   getEffectiveReasoningModel,
   isCloudReasoningMode,
 } from "../stores/settingsStore";
+import sonioxShared from "./sonioxShared";
 
 const SHORT_CLIP_DURATION_SECONDS = 2.5;
 const REASONING_CACHE_TTL = 30000; // 30 seconds
+const { SONIOX_ASYNC_MODEL, SONIOX_REALTIME_MODEL, selectSonioxModel } = sonioxShared;
 
 const PLACEHOLDER_KEYS = {
   openai: "your_openai_api_key_here",
   groq: "your_groq_api_key_here",
   mistral: "your_mistral_api_key_here",
+  soniox: "your_soniox_api_key_here",
 };
 
 const isValidApiKey = (key, provider = "openai") => {
@@ -579,6 +582,18 @@ const arrayBufferToBase64 = (buffer) => {
 };
 
 const STREAMING_PROVIDERS = {
+  soniox: {
+    warmup: (opts) => window.electronAPI.sonioxStreamingWarmup(opts),
+    start: (opts) => window.electronAPI.sonioxStreamingStart(opts),
+    send: (buf) => window.electronAPI.sonioxStreamingSend(buf),
+    finalize: () => window.electronAPI.sonioxStreamingFinalize(),
+    stop: () => window.electronAPI.sonioxStreamingStop(),
+    status: () => window.electronAPI.sonioxStreamingStatus(),
+    onPartial: (cb) => window.electronAPI.onSonioxPartialTranscript(cb),
+    onFinal: (cb) => window.electronAPI.onSonioxFinalTranscript(cb),
+    onError: (cb) => window.electronAPI.onSonioxError(cb),
+    onSessionEnd: (cb) => window.electronAPI.onSonioxSessionEnd(cb),
+  },
   deepgram: {
     warmup: (opts) => window.electronAPI.deepgramStreamingWarmup(opts),
     start: (opts) => window.electronAPI.deepgramStreamingStart(opts),
@@ -811,11 +826,22 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     this.sttConfig = config;
   }
 
+  getStreamingProviderName() {
+    if (this.isByokSonioxStreamingEnabled()) {
+      return "soniox";
+    }
+
+    return this.sttConfig?.streamingProvider || "deepgram";
+  }
+
   getStreamingProvider() {
     if (this.isByokDeepgramStreamingEnabled()) {
       return STREAMING_PROVIDERS.deepgram;
     }
-    const providerName = this.sttConfig?.streamingProvider || "deepgram";
+    if (this.isByokSonioxStreamingEnabled()) {
+      return STREAMING_PROVIDERS.soniox;
+    }
+    const providerName = this.getStreamingProviderName();
     return STREAMING_PROVIDERS[providerName] || STREAMING_PROVIDERS.deepgram;
   }
 
@@ -1086,8 +1112,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         activeModel = "mouthpiece-cloud";
         result = await this.processWithMouthpieceCloud(audioBlob, metadata);
       } else {
+        const provider = s.cloudTranscriptionProvider || "openai";
         activeModel = this.getTranscriptionModel();
-        result = await this.processWithOpenAIAPI(audioBlob, metadata);
+        if (provider === "soniox") {
+          result = await this.processWithSonioxAsync(audioBlob, metadata);
+        } else {
+          result = await this.processWithOpenAIAPI(audioBlob, metadata);
+        }
       }
 
       if (!this.isProcessing) {
@@ -1368,6 +1399,14 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       }
       if (!isValidApiKey(apiKey, "mistral")) {
         throw new Error("Mistral API key not found. Please set your API key in the Control Panel.");
+      }
+    } else if (provider === "soniox") {
+      apiKey = s.sonioxApiKey;
+      if (!isValidApiKey(apiKey, "soniox")) {
+        apiKey = await window.electronAPI.getSonioxKey?.();
+      }
+      if (!isValidApiKey(apiKey, "soniox")) {
+        throw new Error("Soniox API key not found. Please set your API key in the Control Panel.");
       }
     } else if (provider === "groq") {
       // Prefer store value (user-entered via UI) over main process (.env)
@@ -1835,6 +1874,16 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     );
   }
 
+  isByokSonioxStreamingEnabled() {
+    const s = getSettings();
+    return (
+      !s.useLocalWhisper &&
+      s.cloudTranscriptionMode === "byok" &&
+      s.cloudTranscriptionProvider === "soniox" &&
+      s.sonioxRealtimeEnabled
+    );
+  }
+
   isMouthpieceCloudStreamingEnabled(isSignedInOverride) {
     const s = getSettings();
     const isSignedIn = isSignedInOverride ?? s.isSignedIn;
@@ -1861,11 +1910,18 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       };
     }
 
+    if (this.isByokSonioxStreamingEnabled()) {
+      return {
+        ...options,
+        model: this.getTranscriptionModel(),
+      };
+    }
+
     return options;
   }
 
   async runStreamingAction(action, isSignedInOverride) {
-    if (this.isByokDeepgramStreamingEnabled()) {
+    if (this.isByokDeepgramStreamingEnabled() || this.isByokSonioxStreamingEnabled()) {
       return action();
     }
     return withSessionRefresh(action);
@@ -2180,6 +2236,64 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
   getKeyterms() {
     return this.getCustomDictionaryArray();
+  }
+
+  async processWithSonioxAsync(audioBlob, metadata = {}) {
+    const timings = {};
+    const apiSettings = getSettings();
+    const language = getBaseLanguageCode(apiSettings.preferredLanguage);
+
+    await this.getAPIKey();
+
+    if (!window.electronAPI?.proxySonioxTranscription) {
+      throw new Error("Soniox transcription proxy is not available");
+    }
+
+    const mimeType = audioBlob.type || "audio/webm";
+    const extension = mimeType.includes("wav")
+      ? "wav"
+      : mimeType.includes("ogg")
+        ? "ogg"
+        : mimeType.includes("mp4")
+          ? "mp4"
+          : mimeType.includes("mpeg")
+            ? "mp3"
+            : "webm";
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const dictionaryPrompt = this.getCustomDictionaryPrompt();
+    const contextBias = dictionaryPrompt
+      ? dictionaryPrompt
+          .split(",")
+          .flatMap((entry) => entry.trim().split(/\s+/))
+          .filter(Boolean)
+          .slice(0, 100)
+      : [];
+
+    const apiCallStart = performance.now();
+    const result = await window.electronAPI.proxySonioxTranscription({
+      audioBuffer: arrayBuffer,
+      mimeType,
+      fileName: `audio.${extension}`,
+      model: selectSonioxModel({
+        requestedModel: apiSettings.cloudTranscriptionModel,
+        realtimeEnabled: false,
+      }),
+      language,
+      contextBias,
+    });
+
+    const sonioxText = result?.text;
+    if (!sonioxText || !sonioxText.trim()) {
+      throw new Error("No text transcribed - Soniox response was empty");
+    }
+
+    timings.transcriptionProcessingDurationMs = Math.round(performance.now() - apiCallStart);
+    const reasoningStart = performance.now();
+    const text = await this.processTranscription(sonioxText, "soniox");
+    timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
+
+    const source = (await this.isReasoningAvailable()) ? "soniox-reasoned" : "soniox";
+    return { success: true, text, source, timings };
   }
 
   async processWithOpenAIAPI(audioBlob, metadata = {}) {
@@ -2680,6 +2794,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         return trimmedModel || "whisper-1";
       }
 
+      if (provider === "soniox") {
+        return selectSonioxModel({
+          requestedModel: trimmedModel,
+          realtimeEnabled: Boolean(s.sonioxRealtimeEnabled),
+        });
+      }
+
       if (provider === "bailian" && isQwenAsrModel(trimmedModel)) {
         return trimmedModel;
       }
@@ -2693,6 +2814,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         const isGroqModel = trimmedModel.startsWith("whisper-large-v3");
         const isOpenAIModel = trimmedModel.startsWith("gpt-4o") || trimmedModel === "whisper-1";
         const isMistralModel = trimmedModel.startsWith("voxtral-");
+        const isSonioxModel =
+          trimmedModel === SONIOX_ASYNC_MODEL || trimmedModel === SONIOX_REALTIME_MODEL;
         const isBailianModel = isQwenAsrModel(trimmedModel);
         const isDeepgramModel = isDeepgramTranscriptionModel(trimmedModel);
 
@@ -2704,6 +2827,12 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         }
         if (provider === "mistral" && isMistralModel) {
           return trimmedModel;
+        }
+        if (provider === "soniox" && isSonioxModel) {
+          return selectSonioxModel({
+            requestedModel: trimmedModel,
+            realtimeEnabled: Boolean(s.sonioxRealtimeEnabled),
+          });
         }
         if (provider === "bailian" && isBailianModel) {
           return trimmedModel;
@@ -2718,6 +2847,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       if (provider === "groq") return "whisper-large-v3-turbo";
       if (provider === "deepgram") return "nova-3";
       if (provider === "mistral") return "voxtral-mini-latest";
+      if (provider === "soniox") {
+        return selectSonioxModel({ realtimeEnabled: Boolean(s.sonioxRealtimeEnabled) });
+      }
       if (provider === "bailian") return "qwen3-asr-flash";
       return "gpt-4o-mini-transcribe";
     } catch (error) {
@@ -2926,6 +3058,10 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
   shouldUseStreaming(isSignedInOverride) {
     if (this.isByokDeepgramStreamingEnabled()) {
+      return true;
+    }
+
+    if (this.isByokSonioxStreamingEnabled()) {
       return true;
     }
 
@@ -3325,6 +3461,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     // 4. Finalize tells the provider to process any buffered audio and send final results.
     //    Wait briefly so the server sends back the finalized transcript before disconnect.
     const provider = this.getStreamingProvider();
+    const streamingProviderName = this.getStreamingProviderName();
     provider.finalize?.();
     await new Promise((resolve) => setTimeout(resolve, 300));
     const tForceEndpoint = performance.now();
@@ -3426,7 +3563,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
               systemPrompt,
               language: stSettings.preferredLanguage || "auto",
               locale: stSettings.uiLanguage || "zh-CN",
-              sttProvider: this.sttConfig?.streamingProvider || "deepgram",
+              sttProvider: streamingProviderName,
               sttModel: streamingSttModel,
               sttProcessingMs: streamingSttProcessingMs,
               sttWordCount: streamingSttWordCount,
@@ -3508,9 +3645,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           ? await this.processWithOpenAIAPI(fallbackBlob, {
               durationSeconds,
             })
-          : await this.processWithMouthpieceCloud(fallbackBlob, {
-              durationSeconds,
-            });
+          : getSettings().cloudTranscriptionProvider === "soniox"
+            ? await this.processWithSonioxAsync(fallbackBlob, {
+                durationSeconds,
+              })
+            : await this.processWithMouthpieceCloud(fallbackBlob, {
+                durationSeconds,
+              });
         if (batchResult?.text) {
           finalText = batchResult.text;
           usedBatchFallback = true;
@@ -3542,10 +3683,10 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       this.onTranscriptionComplete?.({
         success: true,
         text: finalText,
-        source: `${this.sttConfig?.streamingProvider || "deepgram"}-streaming`,
+        source: `${streamingProviderName}-streaming`,
       });
 
-      if (!usedBatchFallback && !isByokDeepgramStreaming) {
+      if (!usedBatchFallback && !isByokDeepgramStreaming && streamingProviderName !== "soniox") {
         (async () => {
           try {
             await withSessionRefresh(async () => {
@@ -3554,7 +3695,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
                 durationSeconds ?? 0,
                 {
                   sendLogs: !usedCloudReasoning,
-                  sttProvider: this.sttConfig?.streamingProvider || "deepgram",
+                  sttProvider: streamingProviderName,
                   sttModel: streamingSttModel,
                   sttProcessingMs: streamingSttProcessingMs,
                   sttLanguage: streamingSttLanguage,

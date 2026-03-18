@@ -192,6 +192,25 @@
       ]
     },
     {
+      "id": "soniox",
+      "name": "Soniox",
+      "baseUrl": "https://api.soniox.com/v1",
+      "models": [
+        {
+          "id": "stt-async-v4",
+          "name": "STT Async v4",
+          "description": "Asynchronous batch transcription",
+          "descriptionKey": "models.descriptions.transcription.soniox_stt_async_v4"
+        },
+        {
+          "id": "stt-rt-v4",
+          "name": "STT Realtime v4",
+          "description": "Realtime streaming transcription",
+          "descriptionKey": "models.descriptions.transcription.soniox_stt_rt_v4"
+        }
+      ]
+    },
+    {
       "id": "bailian",
       "name": "Alibaba Bailian",
       "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",

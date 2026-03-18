@@ -21,6 +21,7 @@ export interface TranscriptionSettings {
   customDictionary: string[];
   assemblyAiStreaming: boolean;
   deepgramStreamingEnabled: boolean;
+  sonioxRealtimeEnabled: boolean;
 }
 
 export interface ReasoningSettings {
@@ -50,6 +51,7 @@ export interface ApiKeySettings {
   geminiApiKey: string;
   groqApiKey: string;
   mistralApiKey: string;
+  sonioxApiKey: string;
   bailianApiKey: string;
   customTranscriptionApiKey: string;
   customReasoningApiKey: string;
@@ -176,8 +178,10 @@ function useSettingsInternal() {
     customDictionary: store.customDictionary,
     assemblyAiStreaming: store.assemblyAiStreaming,
     deepgramStreamingEnabled: store.deepgramStreamingEnabled,
+    sonioxRealtimeEnabled: store.sonioxRealtimeEnabled,
     setAssemblyAiStreaming: store.setAssemblyAiStreaming,
     setDeepgramStreamingEnabled: store.setDeepgramStreamingEnabled,
+    setSonioxRealtimeEnabled: store.setSonioxRealtimeEnabled,
     useReasoningModel: store.useReasoningModel,
     voiceAssistantEnabled: store.voiceAssistantEnabled,
     reasoningModel: store.reasoningModel,
@@ -188,6 +192,7 @@ function useSettingsInternal() {
     geminiApiKey: store.geminiApiKey,
     groqApiKey: store.groqApiKey,
     mistralApiKey: store.mistralApiKey,
+    sonioxApiKey: store.sonioxApiKey,
     bailianApiKey: store.bailianApiKey,
     dictationKey: store.dictationKey,
     theme: store.theme,
@@ -219,6 +224,7 @@ function useSettingsInternal() {
     setGeminiApiKey: store.setGeminiApiKey,
     setGroqApiKey: store.setGroqApiKey,
     setMistralApiKey: store.setMistralApiKey,
+    setSonioxApiKey: store.setSonioxApiKey,
     setBailianApiKey: store.setBailianApiKey,
     customTranscriptionApiKey: store.customTranscriptionApiKey,
     setCustomTranscriptionApiKey: store.setCustomTranscriptionApiKey,

@@ -105,6 +105,7 @@ export default function App() {
     isProcessing,
     isTranscribing,
     audioLevel,
+    partialTranscript,
     toggleListening,
     cancelRecording,
     cancelProcessing,
@@ -241,13 +242,17 @@ export default function App() {
   ]);
 
   const hotkeyLabel = formatHotkeyLabel(hotkey);
-  const secondaryLabel = isRecording
-    ? t("app.mic.recording")
-    : isProcessing
-      ? t("app.mic.processing")
-      : isTranscribing
-        ? t("app.mic.transcribing")
-        : t("app.mic.processing");
+  const liveTranscriptLabel = partialTranscript?.trim();
+  const secondaryLabel =
+    liveTranscriptLabel && (isRecording || capsuleIsBusy)
+      ? liveTranscriptLabel
+      : isRecording
+        ? t("app.mic.recording")
+        : isProcessing
+          ? t("app.mic.processing")
+          : isTranscribing
+            ? t("app.mic.transcribing")
+            : t("app.mic.processing");
 
   return (
     <div className="dictation-window">

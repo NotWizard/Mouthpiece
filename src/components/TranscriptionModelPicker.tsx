@@ -8,10 +8,10 @@ import { ProviderTabs } from "./ui/ProviderTabs";
 import ModelCardList from "./ui/ModelCardList";
 import { DownloadProgressBar } from "./ui/DownloadProgressBar";
 import ApiKeyInput from "./ui/ApiKeyInput";
+import { Toggle } from "./ui/toggle";
 import { ConfirmDialog } from "./ui/dialog";
 import { useDialogs } from "../hooks/useDialogs";
 import { useModelDownload, type DownloadProgress } from "../hooks/useModelDownload";
-import { Toggle } from "./ui/toggle";
 import {
   getTranscriptionProviders,
   TranscriptionProviderData,
@@ -29,6 +29,9 @@ import { createExternalLinkHandler } from "../utils/externalLinks";
 import { getCachedPlatform } from "../utils/platform";
 import type { CudaWhisperStatus } from "../types/electron";
 import logger from "../utils/logger";
+import sonioxShared from "../helpers/sonioxShared";
+
+const { selectSonioxModel } = sonioxShared;
 
 interface LocalModel {
   model: string;
@@ -200,6 +203,10 @@ interface TranscriptionModelPickerProps {
   setGroqApiKey: (key: string) => void;
   mistralApiKey: string;
   setMistralApiKey: (key: string) => void;
+  sonioxApiKey?: string;
+  setSonioxApiKey?: (key: string) => void;
+  sonioxRealtimeEnabled?: boolean;
+  setSonioxRealtimeEnabled?: (enabled: boolean) => void;
   bailianApiKey?: string;
   setBailianApiKey?: (key: string) => void;
   deepgramStreamingEnabled?: boolean;
@@ -217,6 +224,7 @@ const CLOUD_PROVIDER_TABS = [
   { id: "deepgram", name: "Deepgram" },
   { id: "groq", name: "Groq", recommended: true },
   { id: "mistral", name: "Mistral" },
+  { id: "soniox", name: "Soniox" },
   { id: "bailian", name: "Alibaba Bailian" },
   { id: "custom", name: "Custom" },
 ];
@@ -283,6 +291,10 @@ export default function TranscriptionModelPicker({
   setGroqApiKey,
   mistralApiKey,
   setMistralApiKey,
+  sonioxApiKey = "",
+  setSonioxApiKey,
+  sonioxRealtimeEnabled = true,
+  setSonioxRealtimeEnabled,
   bailianApiKey = "",
   setBailianApiKey,
   deepgramStreamingEnabled = false,
@@ -329,6 +341,17 @@ export default function TranscriptionModelPicker({
   const cloudProviderTabs = CLOUD_PROVIDER_TABS.map((provider) =>
     provider.id === "custom" ? { ...provider, name: t("transcription.customProvider") } : provider
   );
+
+  useEffect(() => {
+    if (selectedCloudProvider !== "soniox") return;
+    const nextModel = selectSonioxModel({
+      requestedModel: selectedCloudModel,
+      realtimeEnabled: sonioxRealtimeEnabled,
+    });
+    if (nextModel !== selectedCloudModel) {
+      onCloudModelSelect(nextModel);
+    }
+  }, [onCloudModelSelect, selectedCloudModel, selectedCloudProvider, sonioxRealtimeEnabled]);
 
   useEffect(() => {
     selectedLocalModelRef.current = selectedLocalModel;
@@ -553,14 +576,29 @@ export default function TranscriptionModelPicker({
         return;
       }
 
+      if (providerId === "soniox") {
+        onCloudModelSelect(
+          selectSonioxModel({
+            requestedModel: provider?.models?.[0]?.id,
+            realtimeEnabled: sonioxRealtimeEnabled,
+          })
+        );
+      }
+
       if (provider) {
         setCloudTranscriptionBaseUrl?.(provider.baseUrl);
-        if (provider.models?.length) {
+        if (provider.models?.length && providerId !== "soniox") {
           onCloudModelSelect(provider.models[0].id);
         }
       }
     },
-    [cloudProviders, onCloudProviderSelect, onCloudModelSelect, setCloudTranscriptionBaseUrl]
+    [
+      cloudProviders,
+      onCloudProviderSelect,
+      onCloudModelSelect,
+      setCloudTranscriptionBaseUrl,
+      sonioxRealtimeEnabled,
+    ]
   );
 
   const handleLocalProviderChange = useCallback(
@@ -646,7 +684,19 @@ export default function TranscriptionModelPicker({
 
   const cloudModelOptions = useMemo(() => {
     if (!currentCloudProvider) return [];
-    return currentCloudProvider.models.map((m) => ({
+    const visibleModels =
+      currentCloudProvider.id === "soniox"
+        ? currentCloudProvider.models.filter(
+            (model) =>
+              model.id ===
+              selectSonioxModel({
+                requestedModel: model.id,
+                realtimeEnabled: sonioxRealtimeEnabled,
+              })
+          )
+        : currentCloudProvider.models;
+
+    return visibleModels.map((m) => ({
       value: m.id,
       label: m.name,
       description: m.descriptionKey
@@ -655,7 +705,7 @@ export default function TranscriptionModelPicker({
       icon: getProviderIcon(selectedCloudProvider),
       invertInDark: isMonochromeProvider(selectedCloudProvider),
     }));
-  }, [currentCloudProvider, selectedCloudProvider, t]);
+  }, [currentCloudProvider, selectedCloudProvider, sonioxRealtimeEnabled, t]);
 
   const progressDisplay = useMemo(() => {
     if (!useLocalWhisper) return null;
@@ -961,6 +1011,70 @@ export default function TranscriptionModelPicker({
                   <ModelCardList
                     models={cloudModelOptions}
                     selectedModel={selectedCloudModel}
+                    onModelSelect={onCloudModelSelect}
+                    colorScheme="purple"
+                  />
+                </div>
+              </div>
+            ) : selectedCloudProvider === "soniox" ? (
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-foreground">
+                      {t("common.apiKey")}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={createExternalLinkHandler("https://console.soniox.com")}
+                      className="text-xs text-primary/70 hover:text-primary transition-colors cursor-pointer"
+                    >
+                      {t("transcription.getKey")}
+                    </button>
+                  </div>
+                  <ApiKeyInput
+                    apiKey={sonioxApiKey}
+                    setApiKey={setSonioxApiKey || (() => {})}
+                    label=""
+                    helpText={t("transcription.soniox.apiKeyHelp")}
+                    saveMode="immediate"
+                  />
+                </div>
+
+                <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-xs font-medium text-foreground">
+                        {t("transcription.soniox.realtimeLabel")}
+                      </div>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        {sonioxRealtimeEnabled
+                          ? t("transcription.soniox.realtimeEnabledDescription")
+                          : t("transcription.soniox.realtimeDisabledDescription")}
+                      </p>
+                    </div>
+                    <Toggle
+                      checked={sonioxRealtimeEnabled}
+                      onChange={(checked) => {
+                        setSonioxRealtimeEnabled?.(checked);
+                        onCloudModelSelect(
+                          selectSonioxModel({
+                            requestedModel: selectedCloudModel,
+                            realtimeEnabled: checked,
+                          })
+                        );
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">{t("common.model")}</label>
+                  <ModelCardList
+                    models={cloudModelOptions}
+                    selectedModel={selectSonioxModel({
+                      requestedModel: selectedCloudModel,
+                      realtimeEnabled: sonioxRealtimeEnabled,
+                    })}
                     onModelSelect={onCloudModelSelect}
                     colorScheme="purple"
                   />

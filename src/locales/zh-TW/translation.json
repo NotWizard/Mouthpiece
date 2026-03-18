@@ -279,6 +279,12 @@
       "apiKeyHelp": "輸入你的 Deepgram API key。開啟即時模式後，會直接連線到 Deepgram 的串流轉錄介面。",
       "realtimeLabel": "即時串流轉錄",
       "realtimeDescription": "說話時即時顯示暫時文字，並在串流結束後產生最終轉錄。關閉後改用標準非串流轉錄。"
+    },
+    "soniox": {
+      "apiKeyHelp": "同時用於 Soniox 的非同步轉錄與即時轉錄。",
+      "realtimeLabel": "啟用即時轉錄",
+      "realtimeEnabledDescription": "說話時即時串流顯示目前文字，並在停止錄音後完成最終轉錄。",
+      "realtimeDisabledDescription": "停止錄音後再上傳音訊，並等待非同步批次轉錄結果。"
     }
   },
   "hooks": {
@@ -1091,7 +1097,9 @@
         "deepgram_nova_3": "Latest Deepgram general-purpose model for batch and realtime transcription",
         "deepgram_nova_3_medical": "Nova-3 tuned for medical vocabulary and dictation",
         "deepgram_nova_2_meeting": "Optimized for multi-speaker meetings on a single microphone",
-        "deepgram_nova_2_phonecall": "Optimized for low-bandwidth phone audio"
+        "deepgram_nova_2_phonecall": "Optimized for low-bandwidth phone audio",
+        "soniox_stt_async_v4": "非同步批次轉錄",
+        "soniox_stt_rt_v4": "即時串流轉錄"
       },
       "cloud": {
         "openai_gpt_5_2": "最新旗艦推理模型",

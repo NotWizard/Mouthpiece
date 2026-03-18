@@ -73,6 +73,7 @@ const SECRET_SETTING_KEYS = [
   "geminiApiKey",
   "groqApiKey",
   "mistralApiKey",
+  "sonioxApiKey",
   "bailianApiKey",
   "customTranscriptionApiKey",
   "customReasoningApiKey",
@@ -85,6 +86,7 @@ type ApiKeyCacheProvider =
   | "gemini"
   | "groq"
   | "mistral"
+  | "soniox"
   | "custom"
   | "bailian";
 
@@ -95,6 +97,7 @@ const SECRET_SETTING_CACHE_PROVIDERS: Record<SecretSettingKey, ApiKeyCacheProvid
   geminiApiKey: "gemini",
   groqApiKey: "groq",
   mistralApiKey: "mistral",
+  sonioxApiKey: "soniox",
   bailianApiKey: "bailian",
   customTranscriptionApiKey: undefined,
   customReasoningApiKey: "custom",
@@ -113,6 +116,7 @@ function readLegacySecretSettings(): Record<SecretSettingKey, string> {
       geminiApiKey: "",
       groqApiKey: "",
       mistralApiKey: "",
+      sonioxApiKey: "",
       bailianApiKey: "",
       customTranscriptionApiKey: "",
       customReasoningApiKey: "",
@@ -126,6 +130,7 @@ function readLegacySecretSettings(): Record<SecretSettingKey, string> {
     geminiApiKey: localStorage.getItem("geminiApiKey") ?? "",
     groqApiKey: localStorage.getItem("groqApiKey") ?? "",
     mistralApiKey: localStorage.getItem("mistralApiKey") ?? "",
+    sonioxApiKey: localStorage.getItem("sonioxApiKey") ?? "",
     bailianApiKey: localStorage.getItem("bailianApiKey") ?? "",
     customTranscriptionApiKey: localStorage.getItem("customTranscriptionApiKey") ?? "",
     customReasoningApiKey: localStorage.getItem("customReasoningApiKey") ?? "",
@@ -156,6 +161,7 @@ const BOOLEAN_SETTINGS = new Set([
   "allowLocalFallback",
   "assemblyAiStreaming",
   "deepgramStreamingEnabled",
+  "sonioxRealtimeEnabled",
   "useReasoningModel",
   "voiceAssistantEnabled",
   "bailianReasoningEnableThinking",
@@ -211,6 +217,7 @@ export interface SettingsState
   setCustomDictionary: (words: string[]) => void;
   setAssemblyAiStreaming: (value: boolean) => void;
   setDeepgramStreamingEnabled: (value: boolean) => void;
+  setSonioxRealtimeEnabled: (value: boolean) => void;
   setUseReasoningModel: (value: boolean) => void;
   setVoiceAssistantEnabled: (value: boolean) => void;
   setReasoningModel: (value: string) => void;
@@ -223,6 +230,7 @@ export interface SettingsState
   setGeminiApiKey: (key: string) => void;
   setGroqApiKey: (key: string) => void;
   setMistralApiKey: (key: string) => void;
+  setSonioxApiKey: (key: string) => void;
   setBailianApiKey: (key: string) => void;
   setCustomTranscriptionApiKey: (key: string) => void;
   setCustomReasoningApiKey: (key: string) => void;
@@ -316,6 +324,9 @@ async function persistSecretSetting(key: SecretSettingKey, value: string): Promi
     case "mistralApiKey":
       await window.electronAPI.saveMistralKey?.(value);
       return;
+    case "sonioxApiKey":
+      await window.electronAPI.saveSonioxKey?.(value);
+      return;
     case "bailianApiKey":
       await window.electronAPI.saveBailianKey?.(value);
       return;
@@ -344,6 +355,8 @@ async function readPersistedSecretSetting(key: SecretSettingKey): Promise<string
       return (await window.electronAPI.getGroqKey?.()) || "";
     case "mistralApiKey":
       return (await window.electronAPI.getMistralKey?.()) || "";
+    case "sonioxApiKey":
+      return (await window.electronAPI.getSonioxKey?.()) || "";
     case "bailianApiKey":
       return (await window.electronAPI.getBailianKey?.()) || "";
     case "customTranscriptionApiKey":
@@ -407,6 +420,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   customDictionary: readStringArray("customDictionary", []),
   assemblyAiStreaming: readBoolean("assemblyAiStreaming", true),
   deepgramStreamingEnabled: readBoolean("deepgramStreamingEnabled", false),
+  sonioxRealtimeEnabled: readBoolean("sonioxRealtimeEnabled", true),
 
   useReasoningModel: readBoolean("useReasoningModel", true),
   voiceAssistantEnabled: readBoolean("voiceAssistantEnabled", false),
@@ -419,6 +433,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   geminiApiKey: "",
   groqApiKey: "",
   mistralApiKey: "",
+  sonioxApiKey: "",
   bailianApiKey: INITIAL_CLOUD_TRANSCRIPTION_SETTINGS.bailianApiKey,
   customTranscriptionApiKey: "",
   customReasoningApiKey: "",
@@ -458,6 +473,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setCustomReasoningEnableThinking: createBooleanSetter("customReasoningEnableThinking"),
   setAssemblyAiStreaming: createBooleanSetter("assemblyAiStreaming"),
   setDeepgramStreamingEnabled: createBooleanSetter("deepgramStreamingEnabled"),
+  setSonioxRealtimeEnabled: createBooleanSetter("sonioxRealtimeEnabled"),
   setUseReasoningModel: createBooleanSetter("useReasoningModel"),
   setVoiceAssistantEnabled: createBooleanSetter("voiceAssistantEnabled"),
   setReasoningModel: createStringSetter("reasoningModel"),
@@ -497,6 +513,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setGeminiApiKey: createSecretSetter("geminiApiKey"),
   setGroqApiKey: createSecretSetter("groqApiKey"),
   setMistralApiKey: createSecretSetter("mistralApiKey"),
+  setSonioxApiKey: createSecretSetter("sonioxApiKey"),
   setBailianApiKey: createSecretSetter("bailianApiKey"),
   setCustomTranscriptionApiKey: createSecretSetter("customTranscriptionApiKey"),
   setCustomReasoningApiKey: createSecretSetter("customReasoningApiKey"),
@@ -555,6 +572,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       s.setAssemblyAiStreaming(settings.assemblyAiStreaming);
     if (settings.deepgramStreamingEnabled !== undefined)
       s.setDeepgramStreamingEnabled(settings.deepgramStreamingEnabled);
+    if (settings.sonioxRealtimeEnabled !== undefined)
+      s.setSonioxRealtimeEnabled(settings.sonioxRealtimeEnabled);
   },
 
   updateReasoningSettings: (settings: Partial<ReasoningSettings>) => {
@@ -584,6 +603,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     if (keys.geminiApiKey !== undefined) s.setGeminiApiKey(keys.geminiApiKey);
     if (keys.groqApiKey !== undefined) s.setGroqApiKey(keys.groqApiKey);
     if (keys.mistralApiKey !== undefined) s.setMistralApiKey(keys.mistralApiKey);
+    if (keys.sonioxApiKey !== undefined) s.setSonioxApiKey(keys.sonioxApiKey);
     if (keys.bailianApiKey !== undefined) s.setBailianApiKey(keys.bailianApiKey);
     if (keys.customTranscriptionApiKey !== undefined)
       s.setCustomTranscriptionApiKey(keys.customTranscriptionApiKey);
@@ -722,6 +742,7 @@ export async function initializeSettings(): Promise<void> {
       useSettingsStore.getState().bailianApiKey,
       useSettingsStore.getState().groqApiKey,
       useSettingsStore.getState().mistralApiKey,
+      useSettingsStore.getState().sonioxApiKey,
       useSettingsStore.getState().customTranscriptionApiKey,
     ]);
 

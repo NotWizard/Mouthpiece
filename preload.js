@@ -225,6 +225,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   saveMistralKey: (key) => ipcRenderer.invoke("save-mistral-key", key),
   proxyMistralTranscription: (data) => ipcRenderer.invoke("proxy-mistral-transcription", data),
 
+  // Soniox API
+  getSonioxKey: () => ipcRenderer.invoke("get-soniox-key"),
+  saveSonioxKey: (key) => ipcRenderer.invoke("save-soniox-key", key),
+  proxySonioxTranscription: (data) => ipcRenderer.invoke("proxy-soniox-transcription", data),
+
   // Bailian API
   getBailianKey: () => ipcRenderer.invoke("get-bailian-key"),
   saveBailianKey: (key) => ipcRenderer.invoke("save-bailian-key", key),
@@ -326,6 +331,30 @@ contextBridge.exposeInMainWorld("electronAPI", {
   ),
   onAssemblyAiSessionEnd: registerListener(
     "assemblyai-session-end",
+    (callback) => (_event, data) => callback(data)
+  ),
+
+  // Soniox Streaming
+  sonioxStreamingWarmup: (options) => ipcRenderer.invoke("soniox-streaming-warmup", options),
+  sonioxStreamingStart: (options) => ipcRenderer.invoke("soniox-streaming-start", options),
+  sonioxStreamingSend: (audioBuffer) => ipcRenderer.send("soniox-streaming-send", audioBuffer),
+  sonioxStreamingFinalize: () => ipcRenderer.send("soniox-streaming-finalize"),
+  sonioxStreamingStop: () => ipcRenderer.invoke("soniox-streaming-stop"),
+  sonioxStreamingStatus: () => ipcRenderer.invoke("soniox-streaming-status"),
+  onSonioxPartialTranscript: registerListener(
+    "soniox-partial-transcript",
+    (callback) => (_event, text) => callback(text)
+  ),
+  onSonioxFinalTranscript: registerListener(
+    "soniox-final-transcript",
+    (callback) => (_event, text) => callback(text)
+  ),
+  onSonioxError: registerListener(
+    "soniox-error",
+    (callback) => (_event, error) => callback(error)
+  ),
+  onSonioxSessionEnd: registerListener(
+    "soniox-session-end",
     (callback) => (_event, data) => callback(data)
   ),
 
