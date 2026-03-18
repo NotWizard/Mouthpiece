@@ -25,6 +25,55 @@ function createTimeoutError(timeoutMs) {
   return err;
 }
 
+function parseJsonSafely(value) {
+  if (!value || typeof value !== "string") {
+    return null;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+async function performProxyHttpRequest({
+  endpoint,
+  method = "GET",
+  headers,
+  body,
+  timeoutMs = 30000,
+}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(createTimeoutError(timeoutMs)), timeoutMs);
+
+  try {
+    const response = await fetch(endpoint, {
+      method,
+      headers,
+      body,
+      signal: controller.signal,
+    });
+
+    const text = await response.text();
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      text,
+      json: parseJsonSafely(text),
+    };
+  } catch (error) {
+    if (error?.name === "AbortError" || error?.code === HTTP_TIMEOUT_ERROR_CODE) {
+      throw createTimeoutError(timeoutMs);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 function buildMultipartBody(fileBuffer, fileName, contentType, fields = {}) {
   const boundary = `----Mouthpiece${Date.now()}`;
   const parts = [];
@@ -1300,6 +1349,25 @@ class IPCHandlers {
       }
     });
 
+    ipcMain.handle("process-cloud-reasoning-request", async (event, request = {}) => {
+      const endpoint = typeof request.endpoint === "string" ? request.endpoint.trim() : "";
+      if (!endpoint) {
+        throw new Error("Cloud reasoning request endpoint is required");
+      }
+
+      return performProxyHttpRequest({
+        endpoint,
+        method: typeof request.method === "string" ? request.method.toUpperCase() : "POST",
+        headers:
+          request.headers && typeof request.headers === "object" ? request.headers : undefined,
+        body: request.body,
+        timeoutMs:
+          typeof request.timeoutMs === "number" && request.timeoutMs > 0
+            ? request.timeoutMs
+            : 30000,
+      });
+    });
+
     ipcMain.handle(
       "process-anthropic-reasoning",
       async (event, text, modelId, _agentName, config) => {
@@ -1769,6 +1837,63 @@ class IPCHandlers {
       if (!win) return "";
       return getSessionCookiesFromWindow(win);
     };
+
+    ipcMain.handle("proxy-runtime-api-request", async (event, request = {}) => {
+      const target = typeof request.target === "string" ? request.target : "api";
+      const endpoint =
+        target === "auth"
+          ? getAuthUrl()
+          : target === "api"
+            ? getApiUrl()
+            : typeof request.endpoint === "string"
+              ? request.endpoint.trim()
+              : "";
+
+      if (!endpoint) {
+        throw new Error(
+          target === "auth"
+            ? "Auth URL not configured"
+            : target === "api"
+              ? "Mouthpiece API URL not configured"
+              : "Proxy endpoint is required"
+        );
+      }
+
+      const url = new URL(endpoint);
+      if (typeof request.path === "string" && request.path.trim()) {
+        const normalizedPath = request.path.startsWith("/") ? request.path : `/${request.path}`;
+        url.pathname = normalizedPath;
+      }
+
+      const query =
+        request.query && typeof request.query === "object" ? Object.entries(request.query) : [];
+      for (const [key, value] of query) {
+        if (value === undefined || value === null) continue;
+        url.searchParams.set(key, String(value));
+      }
+
+      const headers =
+        request.headers && typeof request.headers === "object" ? { ...request.headers } : {};
+
+      if (request.includeCookies) {
+        const cookieHeader = await getSessionCookies(event);
+        if (!cookieHeader) {
+          throw new Error("No session cookies available");
+        }
+        headers.Cookie = cookieHeader;
+      }
+
+      return performProxyHttpRequest({
+        endpoint: url.toString(),
+        method: typeof request.method === "string" ? request.method.toUpperCase() : "GET",
+        headers,
+        body: request.body,
+        timeoutMs:
+          typeof request.timeoutMs === "number" && request.timeoutMs > 0
+            ? request.timeoutMs
+            : 30000,
+      });
+    });
 
     ipcMain.handle("cloud-transcribe", async (event, audioBuffer, opts = {}) => {
       try {

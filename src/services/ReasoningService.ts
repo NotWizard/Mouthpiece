@@ -9,6 +9,22 @@ import { withSessionRefresh } from "../lib/neonAuth";
 import { getSettings, isCloudReasoningMode } from "../stores/settingsStore";
 import { DEFAULT_STRICT_OVERLAP_THRESHOLD } from "../utils/contextClassifier";
 
+type CloudReasoningRequest = {
+  endpoint: string;
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
+  timeoutMs?: number;
+};
+
+type CloudReasoningResponse = {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  text: string;
+  json: any | null;
+};
+
 class ReasoningService extends BaseReasoningService {
   private apiKeyCache: SecureCache<string>;
   private openAiEndpointPreference = new Map<string, "responses" | "chat">();
@@ -500,6 +516,57 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
     return apiKey;
   }
 
+  private async performCloudReasoningRequest(
+    request: CloudReasoningRequest
+  ): Promise<CloudReasoningResponse> {
+    const timeoutMs = request.timeoutMs ?? 30000;
+
+    if (typeof window !== "undefined" && window.electronAPI?.processCloudReasoningRequest) {
+      return window.electronAPI.processCloudReasoningRequest({
+        ...request,
+        timeoutMs,
+      });
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(request.endpoint, {
+        method: request.method || "POST",
+        headers: request.headers,
+        body: request.body,
+        signal: controller.signal,
+      });
+
+      const text = await response.text();
+      let json: any | null = null;
+
+      if (text) {
+        try {
+          json = JSON.parse(text);
+        } catch {
+          json = null;
+        }
+      }
+
+      return {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        text,
+        json,
+      };
+    } catch (error) {
+      if ((error as Error).name === "AbortError") {
+        throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)}s`);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
   private async callChatCompletionsApi(
     endpoint: string,
     apiKey: string,
@@ -548,28 +615,21 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
     });
 
     const response = await withRetry(async () => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
       try {
-        const res = await fetch(endpoint, {
+        const res = await this.performCloudReasoningRequest({
+          endpoint,
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify(requestBody),
-          signal: controller.signal,
+          timeoutMs: 30000,
         });
 
         if (!res.ok) {
-          const errorText = await res.text();
-          let errorData: any = { error: res.statusText };
-
-          try {
-            errorData = JSON.parse(errorText);
-          } catch {
-            errorData = { error: errorText || res.statusText };
-          }
+          const errorText = res.text;
+          const errorData: any = res.json || { error: errorText || res.statusText };
 
           logger.logReasoning(`${providerName.toUpperCase()}_API_ERROR_DETAIL`, {
             status: res.status,
@@ -587,7 +647,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
           throw new Error(errorMessage);
         }
 
-        const jsonResponse = await res.json();
+        const jsonResponse = res.json;
 
         logger.logReasoning(`${providerName.toUpperCase()}_RAW_RESPONSE`, {
           hasResponse: !!jsonResponse,
@@ -599,12 +659,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
 
         return jsonResponse;
       } catch (error) {
-        if ((error as Error).name === "AbortError") {
-          throw new Error("Request timed out after 30s");
-        }
         throw error;
-      } finally {
-        clearTimeout(timeoutId);
       }
     }, createApiRetryStrategy());
 
@@ -813,7 +868,6 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
           model,
           textLength: text.length,
           hasApiKey: !!apiKey,
-          apiKeyPreview: apiKey ? `${apiKey.substring(0, 8)}...` : "(none)",
         });
       }
 
@@ -821,9 +875,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
         let lastError: Error | null = null;
 
         for (const { url: endpoint, type } of endpointCandidates) {
-          const controller = new AbortController();
           const endpointTimeoutMs = isCustomProvider && type === "responses" ? 8000 : 30000;
-          const timeoutId = setTimeout(() => controller.abort(), endpointTimeoutMs);
           try {
             const requestBody: any = { model };
 
@@ -842,18 +894,19 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
               }
             }
 
-            const res = await fetch(endpoint, {
+            const res = await this.performCloudReasoningRequest({
+              endpoint,
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${apiKey}`,
               },
               body: JSON.stringify(requestBody),
-              signal: controller.signal,
+              timeoutMs: endpointTimeoutMs,
             });
 
             if (!res.ok) {
-              const errorData = await res.json().catch(() => ({ error: res.statusText }));
+              const errorData = res.json || { error: res.text || res.statusText };
               const errorMessage =
                 errorData.error?.message || errorData.message || `OpenAI API error: ${res.status}`;
 
@@ -878,12 +931,11 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
             if (!isCustomProvider) {
               this.rememberOpenAiPreference(openAiBase, type);
             }
-            return res.json();
+            return res.json;
           } catch (error) {
-            if ((error as Error).name === "AbortError") {
-              const timeoutError = new Error(
-                `Request timed out after ${Math.round(endpointTimeoutMs / 1000)}s`
-              );
+            const errorMessage = (error as Error).message;
+            if (errorMessage === `Request timed out after ${Math.round(endpointTimeoutMs / 1000)}s`) {
+              const timeoutError = new Error(errorMessage);
               lastError = timeoutError;
               if (type === "responses") {
                 logger.logReasoning("OPENAI_ENDPOINT_FALLBACK", {
@@ -903,8 +955,6 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
               continue;
             }
             throw error;
-          } finally {
-            clearTimeout(timeoutId);
           }
         }
 
@@ -1163,35 +1213,29 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
       let response: any;
       try {
         response = await withRetry(async () => {
+          const endpoint = `${API_ENDPOINTS.GEMINI}/models/${model}:generateContent`;
           logger.logReasoning("GEMINI_REQUEST", {
-            endpoint: `${API_ENDPOINTS.GEMINI}/models/${model}:generateContent`,
+            endpoint,
             model,
             hasApiKey: !!apiKey,
             requestBody: JSON.stringify(requestBody).substring(0, 200),
           });
 
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000);
           try {
-            const res = await fetch(`${API_ENDPOINTS.GEMINI}/models/${model}:generateContent`, {
+            const res = await this.performCloudReasoningRequest({
+              endpoint,
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
                 "x-goog-api-key": apiKey,
               },
               body: JSON.stringify(requestBody),
-              signal: controller.signal,
+              timeoutMs: 30000,
             });
 
             if (!res.ok) {
-              const errorText = await res.text();
-              let errorData: any = { error: res.statusText };
-
-              try {
-                errorData = JSON.parse(errorText);
-              } catch {
-                errorData = { error: errorText || res.statusText };
-              }
+              const errorText = res.text;
+              const errorData: any = res.json || { error: errorText || res.statusText };
 
               logger.logReasoning("GEMINI_API_ERROR_DETAIL", {
                 status: res.status,
@@ -1209,7 +1253,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
               throw new Error(errorMessage);
             }
 
-            const jsonResponse = await res.json();
+            const jsonResponse = res.json;
 
             logger.logReasoning("GEMINI_RAW_RESPONSE", {
               hasResponse: !!jsonResponse,
@@ -1221,12 +1265,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
 
             return jsonResponse;
           } catch (error) {
-            if ((error as Error).name === "AbortError") {
-              throw new Error("Request timed out after 30s");
-            }
             throw error;
-          } finally {
-            clearTimeout(timeoutId);
           }
         }, createApiRetryStrategy());
       } catch (fetchError) {

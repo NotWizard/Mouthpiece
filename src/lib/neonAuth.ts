@@ -29,6 +29,15 @@ function getLocalStorageSafe(): Storage | null {
   }
 }
 
+function parseJsonSafe(value: string) {
+  if (!value) return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
 function loadLastSignInTimeFromStorage(): number | null {
   const storage = getLocalStorageSafe();
   if (!storage) return null;
@@ -158,6 +167,24 @@ function getElectronOAuthCallbackURL(): string {
   return RUNTIME_CONFIG.oauthAuthBridgeUrl || "http://127.0.0.1:5199/oauth/callback";
 }
 
+async function proxyRuntimeApiRequest(request: {
+  target?: "api" | "auth" | "absolute";
+  endpoint?: string;
+  path?: string;
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
+  query?: Record<string, string | number | boolean | null | undefined>;
+  includeCookies?: boolean;
+  timeoutMs?: number;
+}) {
+  if (!window.electronAPI?.proxyRuntimeApiRequest) {
+    throw new Error("Runtime API proxy is not available");
+  }
+
+  return window.electronAPI.proxyRuntimeApiRequest(request);
+}
+
 export async function signInWithSocial(provider: SocialProvider): Promise<{ error?: Error }> {
   if (!authClient) {
     return { error: new Error("Auth not configured") };
@@ -169,10 +196,12 @@ export async function signInWithSocial(provider: SocialProvider): Promise<{ erro
     if (isElectron) {
       const callbackURL = getElectronOAuthCallbackURL();
 
-      const response = await fetch(`${NEON_AUTH_URL}/sign-in/social`, {
+      const response = await proxyRuntimeApiRequest({
+        target: "auth",
+        path: "/sign-in/social",
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        includeCookies: true,
         body: JSON.stringify({
           provider,
           callbackURL,
@@ -180,8 +209,7 @@ export async function signInWithSocial(provider: SocialProvider): Promise<{ erro
           disableRedirect: true,
         }),
       });
-
-      const text = await response.text();
+      const text = response.text;
 
       if (!response.ok) {
         logger.error(`Social sign-in failed: ${response.status}`, text.slice(0, 200), "auth");
@@ -217,14 +245,28 @@ export async function requestPasswordReset(email: string): Promise<{ error?: Err
 
   try {
     if (MOUTHPIECE_API_URL) {
-      const res = await fetch(`${MOUTHPIECE_API_URL}/api/auth/forgot-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
-      });
+      const res = window.electronAPI?.proxyRuntimeApiRequest
+        ? await proxyRuntimeApiRequest({
+            target: "api",
+            path: "/api/auth/forgot-password",
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email.trim() }),
+          })
+        : await fetch(`${MOUTHPIECE_API_URL}/api/auth/forgot-password`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email.trim() }),
+          }).then(async (response) => ({
+            ok: response.ok,
+            status: response.status,
+            statusText: response.statusText,
+            text: await response.text(),
+            json: null,
+          }));
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
+        const data = res.json || parseJsonSafe(res.text) || {};
         throw new Error(data.error || "Failed to send reset email");
       }
 

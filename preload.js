@@ -43,6 +43,7 @@ const registerListener = (channel, handlerFactory) => {
 contextBridge.exposeInMainWorld("electronAPI", {
   runtimeConfig,
   getRuntimeConfig: () => ipcRenderer.invoke("get-runtime-config"),
+  proxyRuntimeApiRequest: (request) => ipcRenderer.invoke("proxy-runtime-api-request", request),
   pasteText: (text, options) => ipcRenderer.invoke("paste-text", text, options),
   hideWindow: () => ipcRenderer.invoke("hide-window"),
   showDictationPanel: () => ipcRenderer.invoke("show-dictation-panel"),
@@ -249,6 +250,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Anthropic reasoning
   processAnthropicReasoning: (text, modelId, agentName, config) =>
     ipcRenderer.invoke("process-anthropic-reasoning", text, modelId, agentName, config),
+  processCloudReasoningRequest: (request) =>
+    ipcRenderer.invoke("process-cloud-reasoning-request", request),
 
   // llama.cpp
   llamaCppCheck: () => ipcRenderer.invoke("llama-cpp-check"),

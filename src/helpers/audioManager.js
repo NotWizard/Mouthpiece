@@ -1331,7 +1331,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           provider,
           hasKey: !!apiKey,
           keyLength: apiKey?.length || 0,
-          keyPreview: apiKey ? `${apiKey.substring(0, 8)}...` : "(none)",
         },
         "transcription"
       );
@@ -2317,7 +2316,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           requestTimeoutMs,
           isCustomEndpoint,
           hasApiKey: !!apiKey,
-          apiKeyPreview: apiKey ? `${apiKey.substring(0, 8)}...` : "(none)",
         },
         "transcription"
       );

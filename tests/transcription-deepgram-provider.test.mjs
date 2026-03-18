@@ -29,11 +29,11 @@ test("Deepgram settings are persisted through the store, hook, environment manag
     ]);
 
   assert.match(settingsStoreSource, /deepgramStreamingEnabled: readBoolean\("deepgramStreamingEnabled", false\)/);
-  assert.match(settingsStoreSource, /deepgramApiKey: readString\("deepgramApiKey", ""\)/);
+  assert.match(settingsStoreSource, /deepgramApiKey: ""/);
   assert.match(settingsStoreSource, /setDeepgramStreamingEnabled: createBooleanSetter\("deepgramStreamingEnabled"\)/);
-  assert.match(settingsStoreSource, /setDeepgramApiKey: \(key: string\) => \{/);
-  assert.match(settingsStoreSource, /window\.electronAPI\?\.saveDeepgramKey\?\.\(key\)/);
-  assert.match(settingsStoreSource, /window\.electronAPI\.getDeepgramKey\?\.\(\)/);
+  assert.match(settingsStoreSource, /setDeepgramApiKey: createSecretSetter\("deepgramApiKey"\)/);
+  assert.match(settingsStoreSource, /case "deepgramApiKey":[\s\S]*saveDeepgramKey\?\.\(value\)/);
+  assert.match(settingsStoreSource, /case "deepgramApiKey":[\s\S]*getDeepgramKey\?\.\(\)/);
 
   assert.match(settingsHookSource, /deepgramStreamingEnabled: boolean;/);
   assert.match(settingsHookSource, /deepgramApiKey: string;/);
@@ -85,10 +85,15 @@ test("Deepgram transcription UI exposes provider tab, API key input, and realtim
   );
 });
 
-test("Deepgram API key counts as a stored BYOK credential", async () => {
-  const source = await readRepoFile("src/utils/byokDetection.ts");
+test("Deepgram API key counts as a synced BYOK credential without renderer localStorage persistence", async () => {
+  const settingsStoreSource = await readRepoFile("src/stores/settingsStore.ts");
 
-  assert.match(source, /localStorage\.getItem\("deepgramApiKey"\)/);
+  assert.match(settingsStoreSource, /SECRET_SETTING_KEYS = \[[\s\S]*"deepgramApiKey"/);
+  assert.match(
+    settingsStoreSource,
+    /hasAnyByokKey\(\[[\s\S]*useSettingsStore\.getState\(\)\.deepgramApiKey/
+  );
+  assert.doesNotMatch(settingsStoreSource, /localStorage\.setItem\("deepgramApiKey"/);
 });
 
 test("Deepgram locale keys exist across every supported translation file", async () => {

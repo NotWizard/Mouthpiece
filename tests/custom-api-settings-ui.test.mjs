@@ -98,7 +98,9 @@ test("bailian reasoning provider is exposed as a first-class cloud option with i
     settingsStoreSource,
     /bailianReasoningEnableThinking: readBoolean\("bailianReasoningEnableThinking", false\)/
   );
-  assert.match(settingsStoreSource, /bailianApiKey: readString\("bailianApiKey", ""\)/);
+  assert.match(settingsStoreSource, /bailianApiKey: ""/);
+  assert.match(settingsStoreSource, /setBailianApiKey: createSecretSetter\("bailianApiKey"\)/);
+  assert.doesNotMatch(settingsStoreSource, /readString\("bailianApiKey", ""\)/);
   assert.match(settingsHookSource, /bailianReasoningEnableThinking: boolean;/);
   assert.match(settingsHookSource, /bailianApiKey: string;/);
 });
