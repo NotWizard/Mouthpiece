@@ -1332,6 +1332,17 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       if (!apiKey) {
         apiKey = null;
       }
+    } else if (provider === "bailian") {
+      apiKey = s.bailianApiKey;
+      if (!apiKey || !apiKey.trim()) {
+        apiKey = await window.electronAPI.getBailianKey?.();
+      }
+      apiKey = apiKey?.trim() || "";
+      if (!apiKey) {
+        throw new Error(
+          "Alibaba Bailian API key not found. Please set your API key in the Control Panel."
+        );
+      }
     } else if (provider === "mistral") {
       // Prefer store value (user-entered via UI) over main process (.env)
       // to avoid stale keys in process.env after auth mode transitions
@@ -2175,9 +2186,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const shouldStream = this.shouldStreamTranscription(model, provider);
       const endpoint = this.getTranscriptionEndpoint();
       const isCustomProvider = provider === "custom";
-      const isQwenAsr = isCustomProvider && isQwenAsrModel(model);
+      const isBailianProvider = provider === "bailian";
+      const isQwenAsr = (isCustomProvider || isBailianProvider) && isQwenAsrModel(model);
       const isCustomEndpoint =
         isCustomProvider ||
+        isBailianProvider ||
         (!endpoint.includes("api.openai.com") &&
           !endpoint.includes("api.groq.com") &&
           !endpoint.includes("api.mistral.ai"));
@@ -2442,7 +2455,17 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         const text = await this.processTranscription(transcribedText, "openai");
         timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
 
-        const source = (await this.isReasoningAvailable()) ? "openai-reasoned" : "openai";
+        const sourceBase =
+          provider === "bailian"
+            ? "bailian"
+            : provider === "groq"
+              ? "groq"
+              : provider === "custom"
+                ? "custom"
+                : "openai";
+        const source = (await this.isReasoningAvailable())
+          ? `${sourceBase}-reasoned`
+          : sourceBase;
         logger.debug(
           "Transcription successful",
           {
@@ -2538,11 +2561,16 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         return trimmedModel || "whisper-1";
       }
 
+      if (provider === "bailian" && isQwenAsrModel(trimmedModel)) {
+        return trimmedModel;
+      }
+
       // Validate model matches provider to handle settings migration
       if (trimmedModel) {
         const isGroqModel = trimmedModel.startsWith("whisper-large-v3");
         const isOpenAIModel = trimmedModel.startsWith("gpt-4o") || trimmedModel === "whisper-1";
         const isMistralModel = trimmedModel.startsWith("voxtral-");
+        const isBailianModel = isQwenAsrModel(trimmedModel);
 
         if (provider === "groq" && isGroqModel) {
           return trimmedModel;
@@ -2553,12 +2581,16 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         if (provider === "mistral" && isMistralModel) {
           return trimmedModel;
         }
+        if (provider === "bailian" && isBailianModel) {
+          return trimmedModel;
+        }
         // Model doesn't match provider - fall through to default
       }
 
       // Return provider-appropriate default
       if (provider === "groq") return "whisper-large-v3-turbo";
       if (provider === "mistral") return "voxtral-mini-latest";
+      if (provider === "bailian") return "qwen3-asr-flash";
       return "gpt-4o-mini-transcribe";
     } catch (error) {
       return "gpt-4o-mini-transcribe";
@@ -2646,6 +2678,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         base = API_ENDPOINTS.GROQ_BASE;
       } else if (currentProvider === "mistral") {
         base = API_ENDPOINTS.MISTRAL_BASE;
+      } else if (currentProvider === "bailian") {
+        base = API_ENDPOINTS.DASHSCOPE_BASE;
       } else {
         // OpenAI or other standard providers
         base = API_ENDPOINTS.TRANSCRIPTION_BASE;
@@ -2669,6 +2703,15 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           "transcription"
         );
         return cacheResult(API_ENDPOINTS.TRANSCRIPTION);
+      }
+
+      if (currentProvider === "bailian") {
+        logger.debug(
+          "STT endpoint: using DashScope base for Bailian transcription",
+          { base: normalizedBase },
+          "transcription"
+        );
+        return cacheResult(normalizedBase);
       }
 
       let endpoint;

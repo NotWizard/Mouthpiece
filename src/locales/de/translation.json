@@ -1085,7 +1085,8 @@
         "openai_whisper_1": "Originales Whisper-Modell",
         "groq_whisper_large_v3": "Hochpräzise Spracherkennung",
         "groq_whisper_large_v3_turbo": "216x Echtzeitgeschwindigkeit",
-        "mistral_voxtral_mini_latest": "Schnelle mehrsprachige Transkription"
+        "mistral_voxtral_mini_latest": "Schnelle mehrsprachige Transkription",
+        "bailian_qwen3_asr_flash": "Schnelle DashScope-Transkription für chinesische Workflows"
       },
       "cloud": {
         "openai_gpt_5_2": "Neuestes Flaggschiff-Modell für Reasoning",

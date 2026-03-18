@@ -4,6 +4,7 @@ import { RUNTIME_CONFIG } from "../config/runtimeConfig";
 import i18n, { normalizeUiLanguage } from "../i18n";
 import { hasAnyByokKey, hasStoredByokKey } from "../utils/byokDetection";
 import { ensureAgentNameInDictionary } from "../utils/agentName";
+import { normalizeCloudTranscriptionProviderSettings } from "../utils/transcriptionProviderConfig.mjs";
 import logger from "../utils/logger";
 import type { LocalTranscriptionProvider } from "../types/electron";
 import type {
@@ -64,6 +65,14 @@ function readStringArray(key: string, fallback: string[]): string[] {
     return fallback;
   }
 }
+
+const INITIAL_CLOUD_TRANSCRIPTION_SETTINGS = normalizeCloudTranscriptionProviderSettings({
+  cloudTranscriptionProvider: readString("cloudTranscriptionProvider", "openai"),
+  cloudTranscriptionModel: readString("cloudTranscriptionModel", "gpt-4o-mini-transcribe"),
+  cloudTranscriptionBaseUrl: readString("cloudTranscriptionBaseUrl", API_ENDPOINTS.TRANSCRIPTION_BASE),
+  customTranscriptionApiKey: readString("customTranscriptionApiKey", ""),
+  bailianApiKey: readString("bailianApiKey", ""),
+});
 
 const BOOLEAN_SETTINGS = new Set([
   "useLocalWhisper",
@@ -214,12 +223,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   allowLocalFallback: readBoolean("allowLocalFallback", false),
   fallbackWhisperModel: readString("fallbackWhisperModel", "base"),
   preferredLanguage: readString("preferredLanguage", "auto"),
-  cloudTranscriptionProvider: readString("cloudTranscriptionProvider", "openai"),
-  cloudTranscriptionModel: readString("cloudTranscriptionModel", "gpt-4o-mini-transcribe"),
-  cloudTranscriptionBaseUrl: readString(
-    "cloudTranscriptionBaseUrl",
-    API_ENDPOINTS.TRANSCRIPTION_BASE
-  ),
+  cloudTranscriptionProvider: INITIAL_CLOUD_TRANSCRIPTION_SETTINGS.cloudTranscriptionProvider,
+  cloudTranscriptionModel:
+    INITIAL_CLOUD_TRANSCRIPTION_SETTINGS.cloudTranscriptionModel || "gpt-4o-mini-transcribe",
+  cloudTranscriptionBaseUrl:
+    INITIAL_CLOUD_TRANSCRIPTION_SETTINGS.cloudTranscriptionBaseUrl || API_ENDPOINTS.TRANSCRIPTION_BASE,
   cloudTranscriptionMode: normalizeCloudMode(
     readString(
       "cloudTranscriptionMode",
@@ -243,7 +251,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   geminiApiKey: readString("geminiApiKey", ""),
   groqApiKey: readString("groqApiKey", ""),
   mistralApiKey: readString("mistralApiKey", ""),
-  bailianApiKey: readString("bailianApiKey", ""),
+  bailianApiKey: INITIAL_CLOUD_TRANSCRIPTION_SETTINGS.bailianApiKey,
   customTranscriptionApiKey: readString("customTranscriptionApiKey", ""),
   customReasoningApiKey: readString("customReasoningApiKey", ""),
 
@@ -539,13 +547,44 @@ export async function initializeSettings(): Promise<void> {
     }
 
     const refreshedState = useSettingsStore.getState();
+    const normalizedCloudTranscriptionSettings = normalizeCloudTranscriptionProviderSettings({
+      cloudTranscriptionProvider: refreshedState.cloudTranscriptionProvider,
+      cloudTranscriptionModel: refreshedState.cloudTranscriptionModel,
+      cloudTranscriptionBaseUrl: refreshedState.cloudTranscriptionBaseUrl,
+      customTranscriptionApiKey: refreshedState.customTranscriptionApiKey,
+      bailianApiKey: refreshedState.bailianApiKey,
+    });
+    if (
+      normalizedCloudTranscriptionSettings.cloudTranscriptionProvider !==
+      refreshedState.cloudTranscriptionProvider
+    ) {
+      refreshedState.setCloudTranscriptionProvider(
+        normalizedCloudTranscriptionSettings.cloudTranscriptionProvider
+      );
+    }
+    if (
+      normalizedCloudTranscriptionSettings.cloudTranscriptionModel &&
+      normalizedCloudTranscriptionSettings.cloudTranscriptionModel !==
+        refreshedState.cloudTranscriptionModel
+    ) {
+      refreshedState.setCloudTranscriptionModel(
+        normalizedCloudTranscriptionSettings.cloudTranscriptionModel
+      );
+    }
+    if (
+      normalizedCloudTranscriptionSettings.bailianApiKey &&
+      normalizedCloudTranscriptionSettings.bailianApiKey !== refreshedState.bailianApiKey
+    ) {
+      refreshedState.setBailianApiKey(normalizedCloudTranscriptionSettings.bailianApiKey);
+    }
+
     const hasExplicitCloudMode = Boolean(localStorage.getItem("cloudTranscriptionMode"));
     const hasEnvOrStoredByokKey = hasAnyByokKey([
-      refreshedState.openaiApiKey,
-      refreshedState.bailianApiKey,
-      refreshedState.groqApiKey,
-      refreshedState.mistralApiKey,
-      refreshedState.customTranscriptionApiKey,
+      useSettingsStore.getState().openaiApiKey,
+      useSettingsStore.getState().bailianApiKey,
+      useSettingsStore.getState().groqApiKey,
+      useSettingsStore.getState().mistralApiKey,
+      useSettingsStore.getState().customTranscriptionApiKey,
     ]);
 
     if (!CLOUD_AUTH_AVAILABLE) {

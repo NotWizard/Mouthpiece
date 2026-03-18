@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > Note: Version numbering restarts at `1.0.0` for this standalone Mouthpiece repository. The `1.5.x` entries below are retained as inherited upstream reference only.
 
+### Changed
+
+- Exposed Alibaba Bailian as a dedicated cloud transcription provider in Settings, with its own API key and model selection instead of routing DashScope through the generic custom provider
+- Clarified the custom transcription provider as the generic OpenAI-compatible endpoint path and automatically migrate legacy `custom` + DashScope transcription settings to the explicit Bailian provider on startup
+
 ## [1.0.0] - 2026-03-17
 
 ### Changed

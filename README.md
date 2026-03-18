@@ -51,7 +51,7 @@
 
 4. **发现并接入了两个极快模型链路** — 链接置于最后
    - 面向短文本实时润色/后处理场景，优先低延迟体验。
-   - **ASR**：千问链路（`qwen-3.5-plus` / `qwen3-asr-flash` / DashScope）
+   - **ASR**：阿里云百炼链路（Alibaba Bailian / DashScope compatible mode，默认推荐 `qwen3-asr-flash`）
      - 在中文口语、方言和中文工作流场景通常更稳定，网络路径也较友好。
      - `qwen3-asr-flash-realtime`（2026-02-13 快照）目前实测不可用，暂不推荐。
    - **LLM 润色**：Cerebras `gpt-oss-120b`（high）
@@ -81,7 +81,7 @@
 
 > 以下速度与价格来自公开资料和第三方实测整理，可能随时间变化，请以官方页面为准。
 > 
-- **ASR**：千问链路（`qwen-3.5-plus` / `qwen3-asr-flash` / DashScope）
+- **ASR**：阿里云百炼链路（Alibaba Bailian / DashScope compatible mode，默认推荐 `qwen3-asr-flash`）
   - 在中文口语、方言和中文工作流场景通常更稳定，网络路径也较友好。
   - `qwen3-asr-flash-realtime`（2026-02-13 快照）目前实测不可用，暂不推荐。
 - **LLM 润色**：Cerebras `gpt-oss-120b`（high）
@@ -119,17 +119,22 @@
 
 ### 兼容性说明
 
-- 千问 / DashScope 支持 OpenAI compatible mode。
-- 对支持自定义 OpenAI Base URL 的客户端，通常可直接接入。
+- 阿里云百炼 / DashScope 支持 OpenAI compatible mode。
+- 在 Mouthpiece 的“转录设置”里，Alibaba Bailian 现在是独立的云端转录 provider，可直接单独填写 API Key 并选择转录模型。
+- `Custom` provider 保留给任意 OpenAI-compatible 转录端点，不再承担百炼的隐式入口职责。
+- 旧版通过 `Custom + DashScope Base URL` 保存的转录配置，会在应用启动时自动迁移到显式的 Alibaba Bailian provider。
+- 对支持自定义 OpenAI Base URL 的客户端，通常也可直接接入。
 - 常用 Base URL（北京）：`https://dashscope.aliyuncs.com/compatible-mode/v1`
 
-### 示例环境变量
+### 参考端点与示例环境变量
+
+> Mouthpiece 桌面端优先建议直接在设置页选择 `Alibaba Bailian` provider。下面的环境变量示例主要用于其他兼容客户端、自建脚本，或需要显式声明端点的场景。
 
 ```bash
-# ASR (Qwen / DashScope, OpenAI-compatible)
+# ASR (Alibaba Bailian / DashScope compatible mode)
 DASHSCOPE_API_KEY=your_dashscope_key
 DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-# model: qwen-3.5-plus
+# model: qwen3-asr-flash
 
 # LLM polish (default recommendation)
 OPENAI_API_KEY=your_cerebras_key
@@ -197,7 +202,7 @@ npm run build
 - Cerebras Playground: https://chat.cerebras.ai
 - Cerebras GitHub 示例: https://github.com/Cerebras/inference-examples
 - Artificial Analysis（Cerebras）: https://artificialanalysis.ai/providers/cerebras
-- 大模型服务平台百炼控制台（DashScope）: https://bailian.console.aliyun.com/
+- 阿里云百炼控制台（DashScope compatible mode）: https://bailian.console.aliyun.com/
 
 ---
 

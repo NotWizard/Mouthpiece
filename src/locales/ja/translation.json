@@ -1085,7 +1085,8 @@
         "openai_whisper_1": "オリジナル Whisper モデル",
         "groq_whisper_large_v3_turbo": "リアルタイムの 216 倍速",
         "groq_whisper_large_v3": "Large v3 モデル、高速かつ高精度",
-        "mistral_voxtral_mini_latest": "高速多言語文字起こし"
+        "mistral_voxtral_mini_latest": "高速多言語文字起こし",
+        "bailian_qwen3_asr_flash": "中国語ワークフロー向けの高速 DashScope 文字起こし"
       },
       "cloud": {
         "openai_gpt_5_2": "最新のフラッグシップ推論モデル",

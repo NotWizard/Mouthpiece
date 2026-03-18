@@ -159,6 +159,19 @@
           "descriptionKey": "models.descriptions.transcription.mistral_voxtral_mini_latest"
         }
       ]
+    },
+    {
+      "id": "bailian",
+      "name": "Alibaba Bailian",
+      "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "models": [
+        {
+          "id": "qwen3-asr-flash",
+          "name": "Qwen3 ASR Flash",
+          "description": "Fast DashScope transcription optimized for Chinese workflows",
+          "descriptionKey": "models.descriptions.transcription.bailian_qwen3_asr_flash"
+        }
+      ]
     }
   ],
   "cloudProviders": [

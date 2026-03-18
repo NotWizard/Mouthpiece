@@ -121,6 +121,8 @@ interface TranscriptionSectionProps {
   setGroqApiKey: (key: string) => void;
   mistralApiKey: string;
   setMistralApiKey: (key: string) => void;
+  bailianApiKey: string;
+  setBailianApiKey: (key: string) => void;
   customTranscriptionApiKey: string;
   setCustomTranscriptionApiKey: (key: string) => void;
   cloudTranscriptionBaseUrl?: string;
@@ -157,6 +159,8 @@ function TranscriptionSection({
   setGroqApiKey,
   mistralApiKey,
   setMistralApiKey,
+  bailianApiKey,
+  setBailianApiKey,
   customTranscriptionApiKey,
   setCustomTranscriptionApiKey,
   cloudTranscriptionBaseUrl,
@@ -280,6 +284,8 @@ function TranscriptionSection({
           setGroqApiKey={setGroqApiKey}
           mistralApiKey={mistralApiKey}
           setMistralApiKey={setMistralApiKey}
+          bailianApiKey={bailianApiKey}
+          setBailianApiKey={setBailianApiKey}
           customTranscriptionApiKey={customTranscriptionApiKey}
           setCustomTranscriptionApiKey={setCustomTranscriptionApiKey}
           cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}
@@ -992,6 +998,8 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
             setGroqApiKey={setGroqApiKey}
             mistralApiKey={mistralApiKey}
             setMistralApiKey={setMistralApiKey}
+            bailianApiKey={bailianApiKey}
+            setBailianApiKey={setBailianApiKey}
             customTranscriptionApiKey={customTranscriptionApiKey}
             setCustomTranscriptionApiKey={setCustomTranscriptionApiKey}
             cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}

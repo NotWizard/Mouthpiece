@@ -102,3 +102,28 @@ test("bailian reasoning provider is exposed as a first-class cloud option with i
   assert.match(settingsHookSource, /bailianReasoningEnableThinking: boolean;/);
   assert.match(settingsHookSource, /bailianApiKey: string;/);
 });
+
+test("bailian transcription provider is exposed as a first-class cloud option with its own API key wiring", async () => {
+  const [transcriptionSource, settingsPageSource, settingsHookSource] = await Promise.all([
+    readRepoFile("src/components/TranscriptionModelPicker.tsx"),
+    readRepoFile("src/components/SettingsPage.tsx"),
+    readRepoFile("src/hooks/useSettings.ts"),
+  ]);
+
+  assert.match(
+    transcriptionSource,
+    /const CLOUD_PROVIDER_TABS = \[[\s\S]*\{ id: "bailian", name: "Alibaba Bailian" \}[\s\S]*\];/
+  );
+  assert.match(transcriptionSource, /bailianApiKey\??: string;/);
+  assert.match(transcriptionSource, /setBailianApiKey\??: \(key: string\) => void;/);
+  assert.match(
+    transcriptionSource,
+    /selectedCloudProvider === "bailian"[\s\S]*?<ApiKeyInput[\s\S]*setApiKey=\{setBailianApiKey/
+  );
+  assert.match(
+    settingsPageSource,
+    /<TranscriptionModelPicker[\s\S]*bailianApiKey=\{bailianApiKey\}[\s\S]*setBailianApiKey=\{setBailianApiKey\}/
+  );
+  assert.match(settingsHookSource, /bailianApiKey: string;/);
+  assert.match(settingsHookSource, /setBailianApiKey: store\.setBailianApiKey,/);
+});

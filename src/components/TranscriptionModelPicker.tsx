@@ -197,6 +197,8 @@ interface TranscriptionModelPickerProps {
   setGroqApiKey: (key: string) => void;
   mistralApiKey: string;
   setMistralApiKey: (key: string) => void;
+  bailianApiKey?: string;
+  setBailianApiKey?: (key: string) => void;
   customTranscriptionApiKey?: string;
   setCustomTranscriptionApiKey?: (key: string) => void;
   cloudTranscriptionBaseUrl?: string;
@@ -209,6 +211,7 @@ const CLOUD_PROVIDER_TABS = [
   { id: "openai", name: "OpenAI" },
   { id: "groq", name: "Groq", recommended: true },
   { id: "mistral", name: "Mistral" },
+  { id: "bailian", name: "Alibaba Bailian" },
   { id: "custom", name: "Custom" },
 ];
 
@@ -272,6 +275,8 @@ export default function TranscriptionModelPicker({
   setGroqApiKey,
   mistralApiKey,
   setMistralApiKey,
+  bailianApiKey = "",
+  setBailianApiKey,
   customTranscriptionApiKey = "",
   setCustomTranscriptionApiKey,
   cloudTranscriptionBaseUrl = "",
@@ -591,7 +596,7 @@ export default function TranscriptionModelPicker({
       const providerNormalized = normalizeBaseUrl(provider.baseUrl);
       if (normalizedForProviderMatch === providerNormalized) {
         onCloudProviderSelect(provider.id);
-        onCloudModelSelect("whisper-1");
+        onCloudModelSelect(provider.models?.[0]?.id || "whisper-1");
         break;
       }
     }
@@ -863,6 +868,40 @@ export default function TranscriptionModelPicker({
                     onChange={(e) => onCloudModelSelect(e.target.value)}
                     placeholder="whisper-1"
                     className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+            ) : selectedCloudProvider === "bailian" ? (
+              <div className="space-y-2">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-foreground">
+                      {t("common.apiKey")}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={createExternalLinkHandler("https://bailian.console.aliyun.com/")}
+                      className="text-xs text-primary/70 hover:text-primary transition-colors cursor-pointer"
+                    >
+                      {t("transcription.getKey")}
+                    </button>
+                  </div>
+                  <ApiKeyInput
+                    apiKey={bailianApiKey}
+                    setApiKey={setBailianApiKey || (() => {})}
+                    label=""
+                    helpText={t("reasoning.bailian.apiKeyHelp")}
+                    saveMode="immediate"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">{t("common.model")}</label>
+                  <ModelCardList
+                    models={cloudModelOptions}
+                    selectedModel={selectedCloudModel}
+                    onModelSelect={onCloudModelSelect}
+                    colorScheme="purple"
                   />
                 </div>
               </div>
