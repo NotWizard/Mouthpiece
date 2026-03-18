@@ -7,8 +7,9 @@ import { app } from "electron";
 import { modelRegistry } from "../models/ModelRegistry";
 import { inferenceConfig } from "../config/InferenceConfig";
 import { MODEL_CONSTRAINTS } from "../config/constants";
-import { LEGACY_CACHE_DIRNAME } from "../config/productIdentity";
+import { CURRENT_CACHE_DIRNAME, LEGACY_CACHE_DIRNAME } from "../config/productIdentity";
 import { parseLlamaCppOutput } from "../utils/llamaOutputParser";
+const { resolveModelCacheDir } = require("../utils/modelCachePaths");
 
 // Error types
 export class ModelError extends Error {
@@ -47,7 +48,11 @@ class ModelManager {
 
   private getModelsDir(): string {
     const homeDir = app.getPath("home");
-    return path.join(homeDir, ".cache", LEGACY_CACHE_DIRNAME, "models");
+    return resolveModelCacheDir({
+      homeDir,
+      currentCacheDirName: CURRENT_CACHE_DIRNAME,
+      legacyCacheDirName: LEGACY_CACHE_DIRNAME,
+    }).currentDir;
   }
 
   async ensureModelsDir(): Promise<void> {

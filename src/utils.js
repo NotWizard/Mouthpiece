@@ -3,6 +3,7 @@ const path = require("path");
 const os = require("os");
 const { app } = require("electron");
 const productIdentity = require("./config/productIdentity");
+const { getModelCacheBaseDir } = require("./utils/modelCachePaths");
 
 class AppUtils {
   static cleanup(mainWindow) {
@@ -36,18 +37,18 @@ class AppUtils {
 
     // Local Whisper model deletion
     try {
-      const modelCacheDir = path.join(
-        os.homedir(),
-        ".cache",
-        productIdentity.LEGACY_CACHE_DIRNAME,
-        "whisper-models"
-      );
-      if (fs.existsSync(modelCacheDir)) {
-        fs.rmSync(modelCacheDir, { recursive: true, force: true });
-        console.log("✅ Local Whisper models deleted:", modelCacheDir);
+      const cacheDirs = [
+        getModelCacheBaseDir(os.homedir(), productIdentity.CURRENT_CACHE_DIRNAME),
+        getModelCacheBaseDir(os.homedir(), productIdentity.LEGACY_CACHE_DIRNAME),
+      ];
+      for (const modelCacheDir of cacheDirs) {
+        if (fs.existsSync(modelCacheDir)) {
+          fs.rmSync(modelCacheDir, { recursive: true, force: true });
+          console.log("✅ Local model cache deleted:", modelCacheDir);
+        }
       }
     } catch (error) {
-      console.error("❌ Error deleting Whisper models:", error);
+      console.error("❌ Error deleting model cache:", error);
     }
 
     // Permissions instruction

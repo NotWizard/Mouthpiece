@@ -44,7 +44,8 @@ import logger from "../utils/logger";
 import { SettingsRow } from "./ui/SettingsSection";
 import { cn } from "./lib/utils";
 import { UI_LANGUAGE_OPTIONS } from "../locales/localeManifest";
-import { LEGACY_CACHE_DIRNAME } from "../config/productIdentity";
+import { CURRENT_CACHE_DIRNAME } from "../config/productIdentity";
+import modelCachePaths from "../utils/modelCachePaths";
 
 export type SettingsSectionType =
   | "general"
@@ -566,13 +567,14 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
 
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
+  const { getModelCachePathHint } = modelCachePaths;
 
   const [currentVersion, setCurrentVersion] = useState<string>("");
   const [isRemovingModels, setIsRemovingModels] = useState(false);
-  const cachePathHint =
-    typeof navigator !== "undefined" && /Windows/i.test(navigator.userAgent)
-      ? `%USERPROFILE%\\.cache\\${LEGACY_CACHE_DIRNAME}`
-      : `~/.cache/${LEGACY_CACHE_DIRNAME}`;
+  const cachePathHint = getModelCachePathHint({
+    userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+    cacheDirName: CURRENT_CACHE_DIRNAME,
+  });
 
   const whisperHook = useWhisper();
   const checkWhisperInstallation = whisperHook.checkWhisperInstallation;
