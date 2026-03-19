@@ -180,6 +180,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   resizeMainWindow: (sizeKey) => ipcRenderer.invoke("resize-main-window", sizeKey),
 
   getAppVersion: () => ipcRenderer.invoke("get-app-version"),
+  checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
   getUpdateStatus: () => ipcRenderer.invoke("get-update-status"),
   installUpdate: () => ipcRenderer.invoke("install-update"),
   onUpdateStatusChanged: registerListener(

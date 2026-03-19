@@ -200,6 +200,78 @@ export default function ControlPanel() {
     });
   }, [performInstallUpdate, showConfirmDialog, t, updateStatus?.status]);
 
+  const handleManualCheckForUpdates = useCallback(async () => {
+    try {
+      const status = await window.electronAPI?.checkForUpdates?.();
+
+      if (status) {
+        setUpdateStatus(status);
+      }
+
+      if (!status) {
+        showAlertDialog({
+          title: t("settingsModal.updates.dialogs.checkFailed.title"),
+          description: t("settingsModal.updates.dialogs.checkFailed.description"),
+        });
+        return;
+      }
+
+      if (status.status === "unsupported") {
+        showAlertDialog({
+          title: t("settingsModal.updates.dialogs.checkFailed.title"),
+          description: t("settingsModal.updates.devMode"),
+        });
+        return;
+      }
+
+      if (status.status === "error") {
+        showAlertDialog({
+          title: t("settingsModal.updates.dialogs.checkFailed.title"),
+          description: status.error || t("settingsModal.updates.dialogs.checkFailed.description"),
+        });
+        return;
+      }
+
+      if (status.status === "downloading") {
+        const version = status.updateInfo?.version || status.updateInfo?.releaseName;
+        showAlertDialog({
+          title: t("settingsModal.updates.dialogs.updateAvailable.title"),
+          description: version
+            ? t("settingsModal.updates.dialogs.updateAvailable.description", { version })
+            : t("settingsModal.updates.newVersionAvailable"),
+        });
+        return;
+      }
+
+      if (status.status === "downloaded") {
+        const updateKey =
+          status.updateInfo?.version || status.updateInfo?.releaseName || "downloaded";
+
+        if (promptedDownloadedUpdateRef.current === updateKey || updateStatus?.status === "downloaded") {
+          handleInstallUpdate();
+        }
+        return;
+      }
+
+      if (status.status === "installing" || status.status === "checking") {
+        return;
+      }
+
+      showAlertDialog({
+        title: t("settingsModal.updates.dialogs.noUpdates.title"),
+        description: t("settingsModal.updates.dialogs.noUpdates.description"),
+      });
+    } catch (error) {
+      showAlertDialog({
+        title: t("settingsModal.updates.dialogs.checkFailed.title"),
+        description:
+          error instanceof Error && error.message
+            ? error.message
+            : t("settingsModal.updates.dialogs.checkFailed.description"),
+      });
+    }
+  }, [handleInstallUpdate, showAlertDialog, t, updateStatus?.status]);
+
   useEffect(() => {
     if (updateStatus?.status !== "downloaded") {
       return;
@@ -365,7 +437,12 @@ export default function ControlPanel() {
               activeView === "system") && (
               <div className={SIDEBAR_VIEW_CONTENT_CLASS_NAME}>
                 <Suspense fallback={null}>
-                  <SettingsPage activeSection={activeView} />
+                  <SettingsPage
+                    activeSection={activeView}
+                    updateStatus={updateStatus}
+                    onCheckForUpdates={handleManualCheckForUpdates}
+                    onInstallUpdate={handleInstallUpdate}
+                  />
                 </Suspense>
               </div>
             )}

@@ -2507,6 +2507,24 @@ class IPCHandlers {
       );
     });
 
+    ipcMain.handle("check-for-updates", async () => {
+      if (!this.updateManager?.checkForUpdates) {
+        return (
+          this.updateManager?.getStatus?.() || {
+            status: "unsupported",
+            supported: false,
+            checkingEnabled: false,
+            updateInfo: null,
+            error: null,
+            progressPercent: null,
+          }
+        );
+      }
+
+      await this.updateManager.checkForUpdates();
+      return this.updateManager.getStatus();
+    });
+
     ipcMain.handle("install-update", async () => {
       if (!this.updateManager?.installUpdate) {
         return { success: false, error: "Updater is not available." };

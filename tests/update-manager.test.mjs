@@ -99,3 +99,30 @@ test("unsupported environments do not start updater polling", async () => {
   assert.equal(mockAutoUpdater.checkCount, 0);
   assert.equal(manager.getStatus().status, "unsupported");
 });
+
+test("packaged Linux deb installs are treated as updater-supported", async () => {
+  const UpdateManager = require("../src/helpers/updateManager");
+  const mockAutoUpdater = new MockAutoUpdater();
+  let timerScheduled = false;
+
+  const manager = new UpdateManager({
+    autoUpdater: mockAutoUpdater,
+    platform: "linux",
+    isPackaged: true,
+    env: {},
+    packageType: "deb",
+    setIntervalFn: () => {
+      timerScheduled = true;
+      return 1;
+    },
+    clearIntervalFn: () => {},
+  });
+
+  const result = await manager.start();
+
+  assert.equal(result, true);
+  assert.equal(timerScheduled, true);
+  assert.equal(mockAutoUpdater.checkCount, 1);
+  assert.equal(manager.getStatus().supported, true);
+  assert.equal(manager.getStatus().checkingEnabled, true);
+});

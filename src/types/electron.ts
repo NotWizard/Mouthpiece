@@ -524,6 +524,7 @@ declare global {
       cleanupApp: () => Promise<{ success: boolean; message: string }>;
 
       getAppVersion: () => Promise<AppVersionResult>;
+      checkForUpdates?: () => Promise<AppUpdateStatus>;
       getUpdateStatus?: () => Promise<AppUpdateStatus>;
       installUpdate?: () => Promise<{ success: boolean; error?: string }>;
       onUpdateStatusChanged?: (callback: (status: AppUpdateStatus) => void) => () => void;

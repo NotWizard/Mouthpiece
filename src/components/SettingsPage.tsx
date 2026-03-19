@@ -39,7 +39,7 @@ import DeveloperSection from "./DeveloperSection";
 import LanguageSelector from "./ui/LanguageSelector";
 import { useToast } from "./ui/Toast";
 import { useTheme } from "../hooks/useTheme";
-import type { LocalTranscriptionProvider } from "../types/electron";
+import type { AppUpdateStatus, LocalTranscriptionProvider } from "../types/electron";
 import logger from "../utils/logger";
 import { SettingsRow } from "./ui/SettingsSection";
 import { cn } from "./lib/utils";
@@ -59,6 +59,9 @@ export type SettingsSectionType =
 
 interface SettingsPageProps {
   activeSection?: SettingsSectionType;
+  updateStatus?: AppUpdateStatus | null;
+  onCheckForUpdates?: () => void;
+  onInstallUpdate?: () => void;
 }
 
 function SettingsPanel({
@@ -521,7 +524,12 @@ function AiModelsSection({
   );
 }
 
-export default function SettingsPage({ activeSection = "general" }: SettingsPageProps) {
+export default function SettingsPage({
+  activeSection = "general",
+  updateStatus = null,
+  onCheckForUpdates,
+  onInstallUpdate,
+}: SettingsPageProps) {
   const {
     confirmDialog,
     alertDialog,
@@ -676,6 +684,89 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
 
   const [autoStartEnabled, setAutoStartEnabled] = useState(false);
   const [autoStartLoading, setAutoStartLoading] = useState(true);
+
+  const availableUpdateVersion =
+    updateStatus?.updateInfo?.version || updateStatus?.updateInfo?.releaseName || null;
+
+  const systemUpdateDescription = useMemo(() => {
+    if (!updateStatus) {
+      return t("settingsModal.updates.latestVersion");
+    }
+
+    switch (updateStatus.status) {
+      case "checking":
+        return t("settingsModal.updates.checking");
+      case "downloading":
+        return t("settingsModal.updates.downloading", {
+          progress: updateStatus.progressPercent ?? 0,
+        });
+      case "downloaded":
+        return availableUpdateVersion
+          ? t("settingsModal.updates.dialogs.updateAvailable.description", {
+              version: availableUpdateVersion,
+            })
+          : t("settingsModal.updates.newVersion");
+      case "installing":
+        return t("settingsModal.updates.restarting");
+      case "error":
+        return updateStatus.error || t("settingsModal.updates.dialogs.updateError.description");
+      case "unsupported":
+        return t("settingsModal.updates.devMode");
+      case "idle":
+      default:
+        return t("settingsModal.updates.latestVersion");
+    }
+  }, [availableUpdateVersion, t, updateStatus]);
+
+  const systemUpdateAction = useMemo(() => {
+    if (!updateStatus || updateStatus.status === "idle" || updateStatus.status === "error") {
+      return {
+        label: t("settingsModal.updates.checkForUpdates"),
+        disabled: Boolean(updateStatus?.status === "unsupported"),
+        onClick: onCheckForUpdates,
+      };
+    }
+
+    if (updateStatus.status === "checking") {
+      return {
+        label: t("settingsModal.updates.checking"),
+        disabled: true,
+        onClick: onCheckForUpdates,
+      };
+    }
+
+    if (updateStatus.status === "downloading") {
+      return {
+        label: t("settingsModal.updates.downloading", {
+          progress: updateStatus.progressPercent ?? 0,
+        }),
+        disabled: true,
+        onClick: onCheckForUpdates,
+      };
+    }
+
+    if (updateStatus.status === "downloaded") {
+      return {
+        label: t("settingsModal.updates.installAndRestart"),
+        disabled: false,
+        onClick: onInstallUpdate,
+      };
+    }
+
+    if (updateStatus.status === "installing") {
+      return {
+        label: t("settingsModal.updates.restarting"),
+        disabled: true,
+        onClick: onInstallUpdate,
+      };
+    }
+
+    return {
+      label: t("settingsModal.updates.checkForUpdates"),
+      disabled: true,
+      onClick: onCheckForUpdates,
+    };
+  }, [onCheckForUpdates, onInstallUpdate, t, updateStatus]);
 
   useEffect(() => {
     if (platform === "linux") {
@@ -1255,6 +1346,21 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
                     <span className="text-xs tabular-nums text-muted-foreground font-mono">
                       {currentVersion || t("settingsPage.system.versionPlaceholder")}
                     </span>
+                  </SettingsRow>
+                </SettingsPanelRow>
+                <SettingsPanelRow>
+                  <SettingsRow
+                    label={t("settingsModal.updates.title")}
+                    description={systemUpdateDescription}
+                  >
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={systemUpdateAction.onClick}
+                      disabled={systemUpdateAction.disabled}
+                    >
+                      {systemUpdateAction.label}
+                    </Button>
                   </SettingsRow>
                 </SettingsPanelRow>
               </SettingsPanel>

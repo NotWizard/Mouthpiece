@@ -60,6 +60,23 @@ test("renderer prompts to install once an update finishes downloading", async ()
   );
 });
 
+test("renderer exposes a manual update check entry point in preload, IPC, and settings UI", async () => {
+  const [preloadSource, ipcSource, controlPanelSource, settingsPageSource, typesSource] =
+    await Promise.all([
+      readRepoFile("preload.js"),
+      readRepoFile("src/helpers/ipcHandlers.js"),
+      readRepoFile("src/components/ControlPanel.tsx"),
+      readRepoFile("src/components/SettingsPage.tsx"),
+      readRepoFile("src/types/electron.ts"),
+    ]);
+
+  assert.match(preloadSource, /checkForUpdates: \(\) => ipcRenderer\.invoke\("check-for-updates"\)/);
+  assert.match(ipcSource, /ipcMain\.handle\("check-for-updates"/);
+  assert.match(controlPanelSource, /onCheckForUpdates=\{handleManualCheckForUpdates\}/);
+  assert.match(settingsPageSource, /t\("settingsModal\.updates\.checkForUpdates"\)/);
+  assert.match(typesSource, /checkForUpdates\?: \(\) => Promise<AppUpdateStatus>/);
+});
+
 test("privacy settings no longer expose usage analytics sharing", async () => {
   const [settingsPageSource, settingsHookSource, settingsStoreSource, enTranslations] =
     await Promise.all([

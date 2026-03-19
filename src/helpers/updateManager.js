@@ -1,6 +1,9 @@
+const fs = require("fs");
+const path = require("path");
 const { EventEmitter } = require("events");
 
 const DEFAULT_UPDATE_INTERVAL_MS = 12 * 60 * 60 * 1000;
+const SUPPORTED_LINUX_PACKAGE_TYPES = new Set(["deb", "rpm", "pacman"]);
 
 function getDefaultAutoUpdater() {
   const electronUpdater = require("electron-updater");
@@ -25,6 +28,10 @@ class UpdateManager extends EventEmitter {
     platform = process.platform,
     isPackaged = false,
     env = process.env,
+    packageType = null,
+    resourcesPath = process.resourcesPath,
+    existsSync = fs.existsSync,
+    readFileSync = fs.readFileSync,
     setIntervalFn = setInterval,
     clearIntervalFn = clearInterval,
     intervalMs = DEFAULT_UPDATE_INTERVAL_MS,
@@ -35,6 +42,10 @@ class UpdateManager extends EventEmitter {
     this.platform = platform;
     this.isPackaged = Boolean(isPackaged);
     this.env = env || {};
+    this.packageType = typeof packageType === "string" ? packageType : null;
+    this.resourcesPath = resourcesPath;
+    this.existsSync = existsSync;
+    this.readFileSync = readFileSync;
     this.setIntervalFn = setIntervalFn;
     this.clearIntervalFn = clearIntervalFn;
     this.intervalMs = intervalMs;
@@ -67,10 +78,43 @@ class UpdateManager extends EventEmitter {
     }
 
     if (this.platform === "linux") {
-      return Boolean(this.env.APPIMAGE);
+      return Boolean(this.env.APPIMAGE) || Boolean(this._getLinuxPackageType());
     }
 
     return false;
+  }
+
+  _getLinuxPackageType() {
+    if (this.platform !== "linux") {
+      return null;
+    }
+
+    if (this.packageType) {
+      const normalizedPackageType = this.packageType.trim().toLowerCase();
+      return SUPPORTED_LINUX_PACKAGE_TYPES.has(normalizedPackageType)
+        ? normalizedPackageType
+        : null;
+    }
+
+    if (!this.resourcesPath) {
+      return null;
+    }
+
+    const packageTypePath = path.join(this.resourcesPath, "package-type");
+
+    try {
+      if (!this.existsSync(packageTypePath)) {
+        return null;
+      }
+
+      const fileType = String(this.readFileSync(packageTypePath, "utf8") || "")
+        .trim()
+        .toLowerCase();
+
+      return SUPPORTED_LINUX_PACKAGE_TYPES.has(fileType) ? fileType : null;
+    } catch {
+      return null;
+    }
   }
 
   getStatus() {

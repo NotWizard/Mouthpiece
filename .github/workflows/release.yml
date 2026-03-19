@@ -105,6 +105,13 @@ jobs:
           VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
           VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
 
+      - name: Upload Linux update metadata
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+        run: |
+          test -f dist/latest-linux.yml
+          gh release upload "${{ needs.prepare.outputs.release_tag }}" dist/latest-linux.yml --clobber
+
   build-windows:
     needs: prepare
     runs-on: windows-latest
@@ -310,3 +317,66 @@ jobs:
           security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
           rm -f $RUNNER_TEMP/build_certificate.p12
           rm -f $RUNNER_TEMP/api_key.p8
+
+  finalize-update-metadata:
+    needs:
+      - prepare
+      - build-linux
+      - build-windows
+      - build-macos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.release_tag }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download published update metadata
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+        run: |
+          mkdir -p tmp/release-assets
+          gh release download "${{ needs.prepare.outputs.release_tag }}" \
+            -D tmp/release-assets \
+            -p "latest.yml" \
+            -p "latest-linux.yml" \
+            -p "latest-arm64-mac.yml" \
+            -p "latest-x64-mac.yml"
+
+      - name: Merge mac update metadata
+        run: |
+          node scripts/merge-mac-update-metadata.mjs \
+            --x64 tmp/release-assets/latest-x64-mac.yml \
+            --arm64 tmp/release-assets/latest-arm64-mac.yml \
+            --output tmp/release-assets/latest-mac.yml
+
+      - name: Upload merged mac update metadata
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+        run: |
+          gh release upload "${{ needs.prepare.outputs.release_tag }}" tmp/release-assets/latest-mac.yml --clobber
+
+      - name: Collect release asset manifest
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+        run: |
+          gh release view "${{ needs.prepare.outputs.release_tag }}" --json assets > tmp/release-assets/release.json
+
+      - name: Validate release assets
+        run: |
+          node scripts/validate-release-assets.mjs \
+            --release-json tmp/release-assets/release.json \
+            --latest-windows tmp/release-assets/latest.yml \
+            --latest-linux tmp/release-assets/latest-linux.yml \
+            --latest-mac tmp/release-assets/latest-mac.yml \
+            --latest-arm64 tmp/release-assets/latest-arm64-mac.yml \
+            --latest-x64 tmp/release-assets/latest-x64-mac.yml
