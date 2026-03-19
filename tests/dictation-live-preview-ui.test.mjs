@@ -72,3 +72,26 @@ test("dictation capsule stages the first live transcript with a listening ghost 
   assert.match(source, /showListeningGhost && \(/);
   assert.match(source, /transition-\[opacity,transform,filter\]/);
 });
+
+test("dictation capsule keeps live transcript copy on the same rail without wrapping it in a separate card shell", () => {
+  const source = read("src/components/DictationCapsule.tsx");
+
+  assert.match(source, /<div className="mt-1\.5 px-2\.5 py-1\.5">/);
+  assert.doesNotMatch(
+    source,
+    /mt-1\.5 overflow-hidden rounded-\[14px\] bg-\[rgba\(255,255,255,0\.48\)\] px-2\.5 py-1\.5 shadow-\[inset_0_1px_0_rgba\(255,255,255,0\.6\)\]/
+  );
+});
+
+test("dictation capsule live transcript mask no longer fades out the leading characters on the left edge", () => {
+  const source = read("src/components/DictationCapsule.tsx");
+
+  assert.match(
+    source,
+    /const LIVE_PREVIEW_EDGE_MASK =\s*"linear-gradient\(90deg, black 0px, black calc\(100% - 16px\), transparent 100%\)";/
+  );
+  assert.doesNotMatch(
+    source,
+    /linear-gradient\(90deg, transparent 0px, black 24px, black calc\(100% - 16px\), transparent 100%\)/
+  );
+});

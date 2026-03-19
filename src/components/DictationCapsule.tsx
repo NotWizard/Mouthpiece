@@ -25,7 +25,7 @@ const LIVE_PREVIEW_ENTRANCE_DURATION_MS = 320;
 const LIVE_PREVIEW_GHOST_EXIT_DURATION_MS = 260;
 const LIVE_PREVIEW_SCROLL_DURATION_MS = 240;
 const LIVE_PREVIEW_EDGE_MASK =
-  "linear-gradient(90deg, transparent 0px, black 24px, black calc(100% - 16px), transparent 100%)";
+  "linear-gradient(90deg, black 0px, black calc(100% - 16px), transparent 100%)";
 
 function createSilentSamples() {
   return Array.from({ length: WAVEFORM_DOT_COUNT }, () => 0);
@@ -461,7 +461,7 @@ export default function DictationCapsule({
               </div>
             </div>
 
-            <div className="mt-1.5 overflow-hidden rounded-[14px] bg-[rgba(255,255,255,0.48)] px-2.5 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+            <div className="mt-1.5 px-2.5 py-1.5">
               <div
                 ref={livePreviewViewportRef}
                 className="relative overflow-hidden"
