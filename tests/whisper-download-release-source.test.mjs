@@ -202,6 +202,42 @@ test("Release workflow falls back to GitHub's built-in token for authenticated p
   );
 });
 
+test("Release workflow resolves an explicit release tag for manual dispatch runs", () => {
+  const source = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "release.yml"),
+    "utf8"
+  );
+
+  assert.ok(
+    source.includes("release_tag"),
+    "release.yml should compute a reusable release tag instead of relying on github.ref_name during manual runs"
+  );
+  assert.ok(
+    source.includes('ref: ${{ needs.prepare.outputs.release_tag }}'),
+    "release.yml should check out the requested release tag when the workflow is run manually"
+  );
+  assert.ok(
+    source.includes('gh release upload "${{ needs.prepare.outputs.release_tag }}"'),
+    "release.yml should upload macOS metadata to the resolved release tag instead of the workflow ref name"
+  );
+});
+
+test("Release workflow validates that package.json matches the resolved release version", () => {
+  const source = fs.readFileSync(
+    path.join(repoRoot, ".github", "workflows", "release.yml"),
+    "utf8"
+  );
+
+  assert.ok(
+    source.includes('PACKAGE_VERSION=$(node -p "require(\'./package.json\').version")'),
+    "release.yml should read package.json so the workflow can fail fast on a tag/version mismatch"
+  );
+  assert.ok(
+    source.includes('needs.prepare.outputs.release_version'),
+    "release.yml should compare package.json against the resolved release version"
+  );
+});
+
 test("Text monitor helper release workflows are manual-only", () => {
   const workflows = [
     ".github/workflows/build-linux-text-monitor.yml",
