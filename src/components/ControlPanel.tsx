@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect, useCallback } from "react";
+import React, { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Zap } from "lucide-react";
@@ -44,6 +44,7 @@ export default function ControlPanel() {
   const [gpuBannerDismissed, setGpuBannerDismissed] = useState(
     () => localStorage.getItem("gpuBannerDismissedUnified") === "true"
   );
+  const promptedDownloadedUpdateRef = useRef<string | null>(null);
   const { hotkey } = useHotkey();
   const { toast } = useToast();
   const { useLocalWhisper, localTranscriptionProvider, useReasoningModel } = useSettings();
@@ -175,6 +176,16 @@ export default function ControlPanel() {
     [showConfirmDialog, showAlertDialog, t]
   );
 
+  const performInstallUpdate = useCallback(async () => {
+    const result = await window.electronAPI?.installUpdate?.();
+    if (!result?.success) {
+      showAlertDialog({
+        title: t("controlPanel.update.couldNotInstallTitle"),
+        description: result?.error || t("controlPanel.update.couldNotInstallDescription"),
+      });
+    }
+  }, [showAlertDialog, t]);
+
   const handleInstallUpdate = useCallback(() => {
     if (updateStatus?.status === "installing") {
       return;
@@ -185,17 +196,37 @@ export default function ControlPanel() {
       description: t("controlPanel.update.installDescription"),
       confirmText: t("controlPanel.update.installButton"),
       cancelText: t("common.cancel"),
-      onConfirm: async () => {
-        const result = await window.electronAPI?.installUpdate?.();
-        if (!result?.success) {
-          showAlertDialog({
-            title: t("controlPanel.update.couldNotInstallTitle"),
-            description: result?.error || t("controlPanel.update.couldNotInstallDescription"),
-          });
-        }
-      },
+      onConfirm: performInstallUpdate,
     });
-  }, [showConfirmDialog, showAlertDialog, t, updateStatus?.status]);
+  }, [performInstallUpdate, showConfirmDialog, t, updateStatus?.status]);
+
+  useEffect(() => {
+    if (updateStatus?.status !== "downloaded") {
+      return;
+    }
+
+    const updateKey =
+      updateStatus.updateInfo?.version || updateStatus.updateInfo?.releaseName || "downloaded";
+    if (promptedDownloadedUpdateRef.current === updateKey) {
+      return;
+    }
+
+    promptedDownloadedUpdateRef.current = updateKey;
+    showConfirmDialog({
+      title: t("controlPanel.update.readyTitle"),
+      description: t("controlPanel.update.readyDescription"),
+      confirmText: t("controlPanel.update.installButton"),
+      cancelText: t("common.cancel"),
+      onConfirm: performInstallUpdate,
+    });
+  }, [
+    performInstallUpdate,
+    showConfirmDialog,
+    t,
+    updateStatus?.status,
+    updateStatus?.updateInfo?.releaseName,
+    updateStatus?.updateInfo?.version,
+  ]);
 
   const updateAction =
     updateStatus?.status === "downloaded" || updateStatus?.status === "installing"

@@ -43,12 +43,21 @@ test("renderer control panel shows a confirmed install action for downloaded upd
   assert.match(controlPanelSource, /window\.electronAPI\?\.installUpdate\?\.\(\)/);
   assert.match(
     controlPanelSource,
-    /showConfirmDialog\(\{[\s\S]*title: t\("controlPanel\.update\.installTitle"\)[\s\S]*description: t\("controlPanel\.update\.installDescription"\)[\s\S]*onConfirm: async \(\) =>/
+    /showConfirmDialog\(\{[\s\S]*title: t\("controlPanel\.update\.installTitle"\)[\s\S]*description: t\("controlPanel\.update\.installDescription"\)[\s\S]*confirmText: t\("controlPanel\.update\.installButton"\)/
   );
   assert.match(sidebarSource, /updateAction\?: \{/);
   assert.match(sidebarSource, /t\("controlPanel\.update\.availableButton"\)/);
 
   assert.match(packageJson, /"electron-updater"/);
+});
+
+test("renderer prompts to install once an update finishes downloading", async () => {
+  const controlPanelSource = await readRepoFile("src/components/ControlPanel.tsx");
+
+  assert.match(
+    controlPanelSource,
+    /updateStatus\?\.status !== "downloaded"[\s\S]*promptedDownloadedUpdateRef[\s\S]*showConfirmDialog\(\{[\s\S]*title: t\("controlPanel\.update\.readyTitle"\)[\s\S]*description: t\("controlPanel\.update\.readyDescription"\)[\s\S]*confirmText: t\("controlPanel\.update\.installButton"\)/,
+  );
 });
 
 test("privacy settings no longer expose usage analytics sharing", async () => {
