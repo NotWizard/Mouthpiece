@@ -5,7 +5,7 @@ This directory contains app icons and other assets for Mouthpiece.
 Source artwork lives here as well:
 
 - `Mouthpiece icon.png` - source artwork for the app icon set
-- `Mouthpiece Top Icon.png` - source artwork for the macOS menu bar template icon
+- `mouth-top.jpg` - source artwork for the macOS menu bar template icon
 
 ## Required Icons
 
