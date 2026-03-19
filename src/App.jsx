@@ -243,8 +243,9 @@ export default function App() {
 
   const hotkeyLabel = formatHotkeyLabel(hotkey);
   const liveTranscriptLabel = partialTranscript?.trim();
+  const showTranscriptPreview = Boolean(liveTranscriptLabel) && isRecording;
   const secondaryLabel =
-    liveTranscriptLabel && (isRecording || capsuleIsBusy)
+    liveTranscriptLabel && isRecording
       ? liveTranscriptLabel
       : isRecording
         ? t("app.mic.recording")
@@ -297,6 +298,7 @@ export default function App() {
                 brandLabel="Mouthpiece"
                 secondaryLabel={secondaryLabel}
                 hotkeyLabel={hotkeyLabel}
+                showTranscriptPreview={showTranscriptPreview}
                 audioLevel={audioLevel}
                 isHovered={isHovered}
                 isRecording={isRecording}

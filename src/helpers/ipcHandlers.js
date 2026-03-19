@@ -9,6 +9,7 @@ const GnomeShortcutManager = require("./gnomeShortcut");
 const AssemblyAiStreaming = require("./assemblyAiStreaming");
 const { i18nMain, changeLanguage } = require("./i18nMain");
 const DeepgramStreaming = require("./deepgramStreaming");
+const QwenRealtimeStreaming = require("./qwenRealtimeStreaming");
 const SonioxStreaming = require("./sonioxStreaming");
 const { buildSonioxAsyncPayload } = require("./sonioxShared");
 const { shouldRestoreDictationPanelAfterPaste } = require("./pasteUiState");
@@ -208,6 +209,7 @@ class IPCHandlers {
     this.sessionId = crypto.randomUUID();
     this.assemblyAiStreaming = null;
     this.deepgramStreaming = null;
+    this.bailianRealtimeStreaming = null;
     this.sonioxStreaming = null;
     this._autoLearnEnabled = true; // Default on, synced from renderer
     this._autoLearnDebounceTimer = null;
@@ -2689,11 +2691,11 @@ class IPCHandlers {
       this.assemblyAiStreaming?.forceEndpoint();
     });
 
-    ipcMain.handle("assemblyai-streaming-stop", async () => {
+    ipcMain.handle("assemblyai-streaming-stop", async (_event, graceful = true) => {
       try {
         let result = { text: "" };
         if (this.assemblyAiStreaming) {
-          result = await this.assemblyAiStreaming.disconnect(true);
+          result = await this.assemblyAiStreaming.disconnect(Boolean(graceful));
           this.assemblyAiStreaming.cleanupAll();
           this.assemblyAiStreaming = null;
         }
@@ -2806,11 +2808,11 @@ class IPCHandlers {
       this.sonioxStreaming?.finalize();
     });
 
-    ipcMain.handle("soniox-streaming-stop", async () => {
+    ipcMain.handle("soniox-streaming-stop", async (_event, graceful = true) => {
       try {
         let result = { text: "", model: "stt-rt-v4", audioBytesSent: 0 };
         if (this.sonioxStreaming) {
-          result = await this.sonioxStreaming.disconnect(true);
+          result = await this.sonioxStreaming.disconnect(Boolean(graceful));
           this.sonioxStreaming = null;
         }
 
@@ -2831,6 +2833,139 @@ class IPCHandlers {
         return { isConnected: false, sessionId: null };
       }
       return this.sonioxStreaming.getStatus();
+    });
+
+    ipcMain.handle("bailian-realtime-warmup", async (_event, options = {}) => {
+      try {
+        const apiKey = this.environmentManager.getBailianKey();
+        if (!apiKey) {
+          return {
+            success: false,
+            error: "Alibaba Bailian API key not configured",
+            code: "NO_API_KEY",
+          };
+        }
+
+        if (!this.bailianRealtimeStreaming) {
+          this.bailianRealtimeStreaming = new QwenRealtimeStreaming();
+        }
+
+        if (this.bailianRealtimeStreaming.hasWarmConnection()) {
+          return { success: true, alreadyWarm: true };
+        }
+
+        await this.bailianRealtimeStreaming.warmup({ ...options, apiKey });
+        return { success: true };
+      } catch (error) {
+        debugLogger.error("Bailian realtime warmup error", { error: error.message }, "streaming");
+        return { success: false, error: error.message };
+      }
+    });
+
+    let bailianRealtimeStartInProgress = false;
+
+    ipcMain.handle("bailian-realtime-start", async (event, options = {}) => {
+      if (bailianRealtimeStartInProgress) {
+        return { success: false, error: "Operation in progress" };
+      }
+
+      bailianRealtimeStartInProgress = true;
+
+      try {
+        const apiKey = this.environmentManager.getBailianKey();
+        if (!apiKey) {
+          return {
+            success: false,
+            error: "Alibaba Bailian API key not configured",
+            code: "NO_API_KEY",
+          };
+        }
+
+        const win = BrowserWindow.fromWebContents(event.sender);
+
+        if (!this.bailianRealtimeStreaming) {
+          this.bailianRealtimeStreaming = new QwenRealtimeStreaming();
+        }
+
+        const hasWarm = this.bailianRealtimeStreaming.hasWarmConnection();
+
+        this.bailianRealtimeStreaming.onPartialTranscript = (text) => {
+          if (win && !win.isDestroyed()) {
+            win.webContents.send("bailian-realtime-partial-transcript", text);
+          }
+        };
+
+        this.bailianRealtimeStreaming.onFinalTranscript = (text) => {
+          if (win && !win.isDestroyed()) {
+            win.webContents.send("bailian-realtime-final-transcript", text);
+          }
+        };
+
+        this.bailianRealtimeStreaming.onError = (error) => {
+          if (win && !win.isDestroyed()) {
+            win.webContents.send("bailian-realtime-error", error.message);
+          }
+        };
+
+        this.bailianRealtimeStreaming.onSessionEnd = (data) => {
+          if (win && !win.isDestroyed()) {
+            win.webContents.send("bailian-realtime-session-end", data);
+          }
+        };
+
+        await this.bailianRealtimeStreaming.connect({ ...options, apiKey });
+        return { success: true, usedWarmConnection: hasWarm };
+      } catch (error) {
+        debugLogger.error("Bailian realtime start error", { error: error.message }, "streaming");
+        return { success: false, error: error.message };
+      } finally {
+        bailianRealtimeStartInProgress = false;
+      }
+    });
+
+    ipcMain.on("bailian-realtime-send", (_event, audioBuffer) => {
+      try {
+        if (!this.bailianRealtimeStreaming) return;
+        const buffer = Buffer.from(audioBuffer);
+        this.bailianRealtimeStreaming.sendAudio(buffer);
+      } catch (error) {
+        debugLogger.error("Bailian realtime send error", { error: error.message }, "streaming");
+      }
+    });
+
+    ipcMain.on("bailian-realtime-finalize", () => {
+      this.bailianRealtimeStreaming?.finalize();
+    });
+
+    ipcMain.handle("bailian-realtime-stop", async (_event, graceful = true) => {
+      try {
+        let result = {
+          text: "",
+          model: "qwen3-asr-flash-realtime",
+          audioBytesSent: 0,
+        };
+        if (this.bailianRealtimeStreaming) {
+          result = await this.bailianRealtimeStreaming.disconnect(Boolean(graceful));
+          this.bailianRealtimeStreaming = null;
+        }
+
+        return {
+          success: true,
+          text: result?.text || "",
+          model: result?.model || "qwen3-asr-flash-realtime",
+          audioBytesSent: result?.audioBytesSent || 0,
+        };
+      } catch (error) {
+        debugLogger.error("Bailian realtime stop error", { error: error.message }, "streaming");
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("bailian-realtime-status", async () => {
+      if (!this.bailianRealtimeStreaming) {
+        return { isConnected: false, sessionId: null };
+      }
+      return this.bailianRealtimeStreaming.getStatus();
     });
 
     let deepgramTokenWindowId = null;
@@ -3089,13 +3224,13 @@ class IPCHandlers {
       this.deepgramStreaming?.finalize();
     });
 
-    ipcMain.handle("deepgram-streaming-stop", async () => {
+    ipcMain.handle("deepgram-streaming-stop", async (_event, graceful = true) => {
       try {
         const model = this.deepgramStreaming?.currentModel || "nova-3";
         const audioBytesSent = this.deepgramStreaming?.audioBytesSent || 0;
         let result = { text: "" };
         if (this.deepgramStreaming) {
-          result = await this.deepgramStreaming.disconnect(true);
+          result = await this.deepgramStreaming.disconnect(Boolean(graceful));
         }
 
         return { success: true, text: result?.text || "", model, audioBytesSent };

@@ -28,7 +28,7 @@ test("audio recording hook syncs active dictation state and listens for global c
   assert.match(source, /const disposeCancel = window\.electronAPI\.onCancelDictation\?\.\(\(\) => \{/);
   assert.match(
     source,
-    /if \((?:currentState\.isRecording \|\| currentState\.isStreaming|currentState\.isStreaming \|\| currentState\.isRecording)\)\s*\{\s*(?:void\s+)?cancelRecording\(\);\s*return;\s*\}/s
+    /if \(\s*currentState\.isRecording\s*\|\|\s*currentState\.isStreaming\s*\|\|\s*currentState\.isStreamingStartInProgress\s*\)\s*\{\s*(?:void\s+)?cancelRecording\(\);\s*return;\s*\}/s
   );
   assert.match(source, /if \(currentState\.isProcessing\)\s*\{\s*cancelProcessing\(\);\s*\}/s);
 });

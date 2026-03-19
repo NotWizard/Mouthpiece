@@ -315,7 +315,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   assemblyAiStreamingSend: (audioBuffer) =>
     ipcRenderer.send("assemblyai-streaming-send", audioBuffer),
   assemblyAiStreamingForceEndpoint: () => ipcRenderer.send("assemblyai-streaming-force-endpoint"),
-  assemblyAiStreamingStop: () => ipcRenderer.invoke("assemblyai-streaming-stop"),
+  assemblyAiStreamingStop: (graceful = true) =>
+    ipcRenderer.invoke("assemblyai-streaming-stop", graceful),
   assemblyAiStreamingStatus: () => ipcRenderer.invoke("assemblyai-streaming-status"),
   onAssemblyAiPartialTranscript: registerListener(
     "assemblyai-partial-transcript",
@@ -339,7 +340,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   sonioxStreamingStart: (options) => ipcRenderer.invoke("soniox-streaming-start", options),
   sonioxStreamingSend: (audioBuffer) => ipcRenderer.send("soniox-streaming-send", audioBuffer),
   sonioxStreamingFinalize: () => ipcRenderer.send("soniox-streaming-finalize"),
-  sonioxStreamingStop: () => ipcRenderer.invoke("soniox-streaming-stop"),
+  sonioxStreamingStop: (graceful = true) => ipcRenderer.invoke("soniox-streaming-stop", graceful),
   sonioxStreamingStatus: () => ipcRenderer.invoke("soniox-streaming-status"),
   onSonioxPartialTranscript: registerListener(
     "soniox-partial-transcript",
@@ -358,12 +359,37 @@ contextBridge.exposeInMainWorld("electronAPI", {
     (callback) => (_event, data) => callback(data)
   ),
 
+  // Bailian Realtime Streaming
+  bailianRealtimeWarmup: (options) => ipcRenderer.invoke("bailian-realtime-warmup", options),
+  bailianRealtimeStart: (options) => ipcRenderer.invoke("bailian-realtime-start", options),
+  bailianRealtimeSend: (audioBuffer) => ipcRenderer.send("bailian-realtime-send", audioBuffer),
+  bailianRealtimeFinalize: () => ipcRenderer.send("bailian-realtime-finalize"),
+  bailianRealtimeStop: (graceful = true) => ipcRenderer.invoke("bailian-realtime-stop", graceful),
+  bailianRealtimeStatus: () => ipcRenderer.invoke("bailian-realtime-status"),
+  onBailianRealtimePartialTranscript: registerListener(
+    "bailian-realtime-partial-transcript",
+    (callback) => (_event, text) => callback(text)
+  ),
+  onBailianRealtimeFinalTranscript: registerListener(
+    "bailian-realtime-final-transcript",
+    (callback) => (_event, text) => callback(text)
+  ),
+  onBailianRealtimeError: registerListener(
+    "bailian-realtime-error",
+    (callback) => (_event, error) => callback(error)
+  ),
+  onBailianRealtimeSessionEnd: registerListener(
+    "bailian-realtime-session-end",
+    (callback) => (_event, data) => callback(data)
+  ),
+
   // Deepgram Streaming
   deepgramStreamingWarmup: (options) => ipcRenderer.invoke("deepgram-streaming-warmup", options),
   deepgramStreamingStart: (options) => ipcRenderer.invoke("deepgram-streaming-start", options),
   deepgramStreamingSend: (audioBuffer) => ipcRenderer.send("deepgram-streaming-send", audioBuffer),
   deepgramStreamingFinalize: () => ipcRenderer.send("deepgram-streaming-finalize"),
-  deepgramStreamingStop: () => ipcRenderer.invoke("deepgram-streaming-stop"),
+  deepgramStreamingStop: (graceful = true) =>
+    ipcRenderer.invoke("deepgram-streaming-stop", graceful),
   deepgramStreamingStatus: () => ipcRenderer.invoke("deepgram-streaming-status"),
   onDeepgramPartialTranscript: registerListener(
     "deepgram-partial-transcript",

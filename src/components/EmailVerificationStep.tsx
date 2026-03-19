@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { MOUTHPIECE_API_URL } from "../config/constants";
 import { Button } from "./ui/button";
+import { ErrorNotice } from "./ui/ErrorNotice";
 import { Mail, Loader2, Check, RefreshCw } from "lucide-react";
 import logoIcon from "../assets/icon.png";
 
@@ -167,9 +168,7 @@ export default function EmailVerificationStep({ email, onVerified }: EmailVerifi
       </div>
 
       {error && (
-        <div className="px-2.5 py-1.5 rounded bg-destructive/5 border border-destructive/20 flex items-center gap-1.5">
-          <p className="text-xs text-destructive leading-snug">{error}</p>
-        </div>
+        <ErrorNotice message={error} compact />
       )}
 
       <Button

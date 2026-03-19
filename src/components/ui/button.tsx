@@ -39,12 +39,14 @@ const buttonVariants = cva(
 
         // Destructive — uses design tokens
         destructive: [
-          "relative text-destructive-foreground font-semibold tracking-[0.01em]",
-          "bg-destructive",
-          "border border-destructive/70",
-          "shadow-sm",
-          "hover:bg-destructive/90",
-          "active:bg-destructive/80 active:scale-[0.98]",
+          "relative overflow-hidden text-[#fff8f3] font-semibold tracking-[0.01em]",
+          "bg-[linear-gradient(180deg,rgba(212,98,71,0.98),rgba(165,59,41,0.98))]",
+          "border border-[rgba(130,44,29,0.32)]",
+          "shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_16px_28px_-22px_rgba(165,59,41,0.72)]",
+          "before:absolute before:inset-x-[1px] before:top-[1px] before:h-[46%] before:rounded-[inherit] before:bg-[linear-gradient(180deg,rgba(255,255,255,0.18),transparent)] before:content-['']",
+          "hover:brightness-[1.03] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.24),0_18px_30px_-22px_rgba(165,59,41,0.78)]",
+          "active:brightness-[0.98] active:scale-[0.98]",
+          "dark:border-[rgba(255,174,148,0.18)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_32px_-24px_rgba(0,0,0,0.66)]",
         ].join(" "),
 
         // Outline — refined with subtle glassmorphism

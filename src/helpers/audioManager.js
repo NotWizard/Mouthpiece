@@ -15,6 +15,10 @@ import { classifyContext, getTargetAppInfo } from "../utils/contextClassifier";
 import { normalizeAudioLevel } from "../utils/dictationWaveform.mjs";
 import { getReasoningAvailabilityCacheKey } from "../utils/reasoningAvailabilityCacheKey.mjs";
 import {
+  advanceStreamingSpeechGate,
+  shouldDiscardStreamingTranscript,
+} from "../utils/streamingSpeechGate.mjs";
+import {
   getSettings,
   getEffectiveReasoningModel,
   isCloudReasoningMode,
@@ -586,19 +590,31 @@ const STREAMING_PROVIDERS = {
     start: (opts) => window.electronAPI.sonioxStreamingStart(opts),
     send: (buf) => window.electronAPI.sonioxStreamingSend(buf),
     finalize: () => window.electronAPI.sonioxStreamingFinalize(),
-    stop: () => window.electronAPI.sonioxStreamingStop(),
+    stop: (graceful = true) => window.electronAPI.sonioxStreamingStop(graceful),
     status: () => window.electronAPI.sonioxStreamingStatus(),
     onPartial: (cb) => window.electronAPI.onSonioxPartialTranscript(cb),
     onFinal: (cb) => window.electronAPI.onSonioxFinalTranscript(cb),
     onError: (cb) => window.electronAPI.onSonioxError(cb),
     onSessionEnd: (cb) => window.electronAPI.onSonioxSessionEnd(cb),
   },
+  bailian: {
+    warmup: (opts) => window.electronAPI.bailianRealtimeWarmup(opts),
+    start: (opts) => window.electronAPI.bailianRealtimeStart(opts),
+    send: (buf) => window.electronAPI.bailianRealtimeSend(buf),
+    finalize: () => window.electronAPI.bailianRealtimeFinalize(),
+    stop: (graceful = true) => window.electronAPI.bailianRealtimeStop(graceful),
+    status: () => window.electronAPI.bailianRealtimeStatus(),
+    onPartial: (cb) => window.electronAPI.onBailianRealtimePartialTranscript(cb),
+    onFinal: (cb) => window.electronAPI.onBailianRealtimeFinalTranscript(cb),
+    onError: (cb) => window.electronAPI.onBailianRealtimeError(cb),
+    onSessionEnd: (cb) => window.electronAPI.onBailianRealtimeSessionEnd(cb),
+  },
   deepgram: {
     warmup: (opts) => window.electronAPI.deepgramStreamingWarmup(opts),
     start: (opts) => window.electronAPI.deepgramStreamingStart(opts),
     send: (buf) => window.electronAPI.deepgramStreamingSend(buf),
     finalize: () => window.electronAPI.deepgramStreamingFinalize(),
-    stop: () => window.electronAPI.deepgramStreamingStop(),
+    stop: (graceful = true) => window.electronAPI.deepgramStreamingStop(graceful),
     status: () => window.electronAPI.deepgramStreamingStatus(),
     onPartial: (cb) => window.electronAPI.onDeepgramPartialTranscript(cb),
     onFinal: (cb) => window.electronAPI.onDeepgramFinalTranscript(cb),
@@ -610,7 +626,7 @@ const STREAMING_PROVIDERS = {
     start: (opts) => window.electronAPI.assemblyAiStreamingStart(opts),
     send: (buf) => window.electronAPI.assemblyAiStreamingSend(buf),
     finalize: () => window.electronAPI.assemblyAiStreamingForceEndpoint(),
-    stop: () => window.electronAPI.assemblyAiStreamingStop(),
+    stop: (graceful = true) => window.electronAPI.assemblyAiStreamingStop(graceful),
     status: () => window.electronAPI.assemblyAiStreamingStatus(),
     onPartial: (cb) => window.electronAPI.onAssemblyAiPartialTranscript(cb),
     onFinal: (cb) => window.electronAPI.onAssemblyAiFinalTranscript(cb),
@@ -662,6 +678,7 @@ class AudioManager {
     this.workletBlobUrl = null;
     this.streamingStartInProgress = false;
     this.stopRequestedDuringStreamingStart = false;
+    this.cancelRequestedDuringStreamingStart = false;
     this.streamingFallbackRecorder = null;
     this.streamingFallbackChunks = [];
     this.skipReasoning = false;
@@ -672,6 +689,11 @@ class AudioManager {
     this.inputLevelOwnsContext = false;
     this.inputLevelSource = null;
     this.inputLevelInterval = null;
+    this.currentInputRms = 0;
+    this.streamingSpeechDetected = false;
+    this.streamingSpeechGateDisabled = false;
+    this.streamingSpeechGateState = { activeMs: 0, speechDetected: false };
+    this.streamingHeldPartialText = "";
   }
 
   getWorkletBlobUrl() {
@@ -743,6 +765,47 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     this.onAudioLevel?.(Math.max(0, Math.min(1, Number.isFinite(level) ? level : 0)));
   }
 
+  resetStreamingSpeechGate({ disabled = false } = {}) {
+    this.streamingSpeechGateDisabled = Boolean(disabled);
+    this.streamingSpeechDetected = Boolean(disabled);
+    this.streamingSpeechGateState = {
+      activeMs: 0,
+      speechDetected: Boolean(disabled),
+    };
+    this.streamingHeldPartialText = "";
+  }
+
+  updateStreamingSpeechGate(rms) {
+    if (this.streamingSpeechGateDisabled || this.streamingSpeechDetected) {
+      return this.streamingSpeechDetected;
+    }
+
+    this.streamingSpeechGateState = advanceStreamingSpeechGate(this.streamingSpeechGateState, {
+      rms,
+    });
+
+    if (!this.streamingSpeechGateState.speechDetected) {
+      return false;
+    }
+
+    this.streamingSpeechDetected = true;
+
+    if (this.streamingHeldPartialText) {
+      this.streamingPartialText = this.streamingHeldPartialText;
+      this.onPartialTranscript?.(this.streamingHeldPartialText);
+      this.streamingHeldPartialText = "";
+    }
+
+    return true;
+  }
+
+  sanitizeStreamingPreviewText(text) {
+    return this.applyDictionaryNormalization(
+      this.basicDictationCleanup(typeof text === "string" ? text : ""),
+      "streaming-partial"
+    );
+  }
+
   stopInputLevelMonitoring() {
     if (this.inputLevelInterval) {
       clearInterval(this.inputLevelInterval);
@@ -766,6 +829,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
     this.inputLevelContext = null;
     this.inputLevelOwnsContext = false;
+    this.currentInputRms = 0;
     this.emitAudioLevel(0);
   }
 
@@ -797,8 +861,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         }
 
         const rms = Math.sqrt(sum / dataArray.length);
+        this.currentInputRms = rms;
         if (typeof this._peakRms === "number" && rms > this._peakRms) {
           this._peakRms = rms;
+        }
+
+        if (this.isStreaming || this.streamingStartInProgress) {
+          this.updateStreamingSpeechGate(rms);
         }
 
         this.emitAudioLevel(normalizeAudioLevel(rms));
@@ -826,6 +895,10 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   getStreamingProviderName() {
+    if (this.isByokBailianStreamingEnabled()) {
+      return "bailian";
+    }
+
     if (this.isByokSonioxStreamingEnabled()) {
       return "soniox";
     }
@@ -834,6 +907,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   getStreamingProvider() {
+    if (this.isByokBailianStreamingEnabled()) {
+      return STREAMING_PROVIDERS.bailian;
+    }
     if (this.isByokDeepgramStreamingEnabled()) {
       return STREAMING_PROVIDERS.deepgram;
     }
@@ -1875,6 +1951,16 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     );
   }
 
+  isByokBailianStreamingEnabled() {
+    const s = getSettings();
+    return (
+      !s.useLocalWhisper &&
+      s.cloudTranscriptionMode === "byok" &&
+      s.cloudTranscriptionProvider === "bailian" &&
+      s.bailianRealtimeEnabled
+    );
+  }
+
   isByokSonioxStreamingEnabled() {
     const s = getSettings();
     return (
@@ -1882,6 +1968,14 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       s.cloudTranscriptionMode === "byok" &&
       s.cloudTranscriptionProvider === "soniox" &&
       s.sonioxRealtimeEnabled
+    );
+  }
+
+  isByokStreamingEnabled() {
+    return (
+      this.isByokDeepgramStreamingEnabled() ||
+      this.isByokBailianStreamingEnabled() ||
+      this.isByokSonioxStreamingEnabled()
     );
   }
 
@@ -1911,10 +2005,17 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       };
     }
 
+    if (this.isByokBailianStreamingEnabled()) {
+      return {
+        ...options,
+        model: this.getRealtimeStreamingModel(),
+      };
+    }
+
     if (this.isByokSonioxStreamingEnabled()) {
       return {
         ...options,
-        model: this.getTranscriptionModel(),
+        model: this.getRealtimeStreamingModel(),
       };
     }
 
@@ -1922,7 +2023,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   async runStreamingAction(action, isSignedInOverride) {
-    if (this.isByokDeepgramStreamingEnabled() || this.isByokSonioxStreamingEnabled()) {
+    if (this.isByokStreamingEnabled()) {
       return action();
     }
     return withSessionRefresh(action);
@@ -2784,7 +2885,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     }
   }
 
-  getTranscriptionModel() {
+  getBatchTranscriptionModel() {
     try {
       const s = getSettings();
       const provider = s.cloudTranscriptionProvider || "openai";
@@ -2796,10 +2897,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       }
 
       if (provider === "soniox") {
-        return selectSonioxModel({
-          requestedModel: trimmedModel,
-          realtimeEnabled: Boolean(s.sonioxRealtimeEnabled),
-        });
+        return selectSonioxModel({ requestedModel: trimmedModel, realtimeEnabled: false });
       }
 
       if (provider === "bailian" && isQwenAsrModel(trimmedModel)) {
@@ -2830,10 +2928,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           return trimmedModel;
         }
         if (provider === "soniox" && isSonioxModel) {
-          return selectSonioxModel({
-            requestedModel: trimmedModel,
-            realtimeEnabled: Boolean(s.sonioxRealtimeEnabled),
-          });
+          return selectSonioxModel({ requestedModel: trimmedModel, realtimeEnabled: false });
         }
         if (provider === "bailian" && isBailianModel) {
           return trimmedModel;
@@ -2849,10 +2944,40 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       if (provider === "deepgram") return "nova-3";
       if (provider === "mistral") return "voxtral-mini-latest";
       if (provider === "soniox") {
-        return selectSonioxModel({ realtimeEnabled: Boolean(s.sonioxRealtimeEnabled) });
+        return selectSonioxModel({ realtimeEnabled: false });
       }
       if (provider === "bailian") return "qwen3-asr-flash";
       return "gpt-4o-mini-transcribe";
+    } catch (error) {
+      return "gpt-4o-mini-transcribe";
+    }
+  }
+
+  getRealtimeStreamingModel() {
+    try {
+      const s = getSettings();
+      const provider = s.cloudTranscriptionProvider || "openai";
+      const trimmedModel = (s.cloudTranscriptionModel || "").trim();
+
+      if (provider === "soniox") {
+        return selectSonioxModel({ requestedModel: trimmedModel, realtimeEnabled: true });
+      }
+
+      if (provider === "bailian" && s.bailianRealtimeEnabled) return "qwen3-asr-flash-realtime";
+
+      return this.getBatchTranscriptionModel();
+    } catch (error) {
+      return this.getBatchTranscriptionModel();
+    }
+  }
+
+  getTranscriptionModel() {
+    try {
+      const s = getSettings();
+      if (s.cloudTranscriptionProvider === "soniox" && s.sonioxRealtimeEnabled) {
+        return this.getRealtimeStreamingModel();
+      }
+      return this.getBatchTranscriptionModel();
     } catch (error) {
       return "gpt-4o-mini-transcribe";
     }
@@ -3062,6 +3187,10 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       return true;
     }
 
+    if (this.isByokBailianStreamingEnabled()) {
+      return true;
+    }
+
     if (this.isByokSonioxStreamingEnabled()) {
       return true;
     }
@@ -3182,6 +3311,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       }
 
       this.stopRequestedDuringStreamingStart = false;
+      this.cancelRequestedDuringStreamingStart = false;
 
       const t0 = performance.now();
       const constraints = await this.getAudioConstraints();
@@ -3226,7 +3356,12 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       this.streamingSource = audioContext.createMediaStreamSource(stream);
       this.streamingStream = stream;
       this._peakRms = 0;
+      this.resetStreamingSpeechGate();
       this.startInputLevelMonitoring({ stream, audioContext, sourceNode: this.streamingSource });
+      if (!this.inputLevelAnalyser) {
+        this._peakRms = 1;
+        this.resetStreamingSpeechGate({ disabled: true });
+      }
 
       if (!this.workletModuleLoaded) {
         await audioContext.audioWorklet.addModule(this.getWorkletBlobUrl());
@@ -3253,8 +3388,20 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       this.streamingTextDebounce = null;
 
       const partialCleanup = provider.onPartial((text) => {
-        this.streamingPartialText = text;
-        this.onPartialTranscript?.(text);
+        const cleanedText = this.sanitizeStreamingPreviewText(text);
+        this.streamingPartialText = cleanedText;
+
+        if (!cleanedText) {
+          this.streamingHeldPartialText = "";
+          return;
+        }
+
+        if (!this.streamingSpeechDetected) {
+          this.streamingHeldPartialText = cleanedText;
+          return;
+        }
+
+        this.onPartialTranscript?.(cleanedText);
       });
 
       const finalCleanup = provider.onFinal((text) => {
@@ -3323,6 +3470,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         await this.cleanupStreaming();
         this.onStateChange?.({ isRecording: false, isProcessing: false, isStreaming: false });
         this.streamingStartInProgress = false;
+        this.cancelRequestedDuringStreamingStart = false;
         logger.debug(
           "Streaming API not configured, falling back to regular recording",
           {},
@@ -3346,6 +3494,17 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       );
 
       this.streamingStartInProgress = false;
+      if (this.cancelRequestedDuringStreamingStart) {
+        this.cancelRequestedDuringStreamingStart = false;
+        this.stopRequestedDuringStreamingStart = false;
+        logger.debug(
+          "Applying deferred streaming cancel requested during startup",
+          {},
+          "streaming"
+        );
+        return this.cancelStreamingRecording();
+      }
+
       if (this.stopRequestedDuringStreamingStart) {
         this.stopRequestedDuringStreamingStart = false;
         logger.debug("Applying deferred streaming stop requested during startup", {}, "streaming");
@@ -3355,6 +3514,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     } catch (error) {
       this.streamingStartInProgress = false;
       this.stopRequestedDuringStreamingStart = false;
+      this.cancelRequestedDuringStreamingStart = false;
       logger.error("Failed to start streaming recording", { error: error.message }, "streaming");
 
       let errorTitle = "Streaming Error";
@@ -3386,11 +3546,14 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   async stopStreamingRecording() {
     if (this.streamingStartInProgress) {
       this.stopRequestedDuringStreamingStart = true;
+      this.cancelRequestedDuringStreamingStart = false;
       logger.debug("Streaming stop requested while start is in progress", {}, "streaming");
       return true;
     }
 
     if (!this.isStreaming) return false;
+
+    this.cancelRequestedDuringStreamingStart = false;
 
     const durationSeconds = this.recordingStartTime
       ? (Date.now() - this.recordingStartTime) / 1000
@@ -3410,6 +3573,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     // 1. Update UI immediately
     this.isRecording = false;
     this.recordingStartTime = null;
+    this.isProcessing = true;
     this.onStateChange?.({ isRecording: false, isProcessing: true, isStreaming: false });
 
     // 2. Stop the processor — it flushes its remaining buffer on "stop".
@@ -3489,6 +3653,18 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       );
     }
 
+    if (shouldDiscardStreamingTranscript({
+      speechDetected: this.streamingSpeechDetected,
+      peakRms: this._peakRms,
+    })) {
+      finalText = "";
+      logger.info(
+        "Streaming silence detected, discarding transcript",
+        { peakRms: this._peakRms?.toFixed?.(4) ?? this._peakRms },
+        "streaming"
+      );
+    }
+
     this.cleanupStreamingListeners();
 
     if (shouldStopBeforeCompletion("after-stream-stop")) {
@@ -3510,7 +3686,12 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
     const stSettings = getSettings();
     const isByokDeepgramStreaming = this.isByokDeepgramStreamingEnabled();
-    const streamingSttModel = stopResult?.model || "nova-3";
+    const isByokBailianStreaming = this.isByokBailianStreamingEnabled();
+    const isByokStreaming =
+      isByokDeepgramStreaming ||
+      isByokBailianStreaming ||
+      this.isByokSonioxStreamingEnabled();
+    const streamingSttModel = stopResult?.model || this.getRealtimeStreamingModel();
     const streamingSttProcessingMs = Math.round(tTerminate - t0);
     const streamingAudioBytesSent = stopResult?.audioBytesSent || 0;
     const streamingSttLanguage = getBaseLanguageCode(stSettings.preferredLanguage) || undefined;
@@ -3527,13 +3708,33 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           usedGenericStreamingProcessing = true;
         }
         logger.info(
-          "Deepgram BYOK streaming post-processing complete",
+          "BYOK streaming post-processing complete",
           { durationMs: Math.round(performance.now() - reasoningStart) },
           "streaming"
         );
       } catch (reasonError) {
         logger.error(
-          "Deepgram BYOK streaming post-processing failed, using raw text",
+          "BYOK streaming post-processing failed, using raw text",
+          { error: reasonError.message },
+          "streaming"
+        );
+      }
+    } else if (isByokBailianStreaming && finalText) {
+      const reasoningStart = performance.now();
+      try {
+        const processedText = await this.processTranscription(finalText, "bailian-streaming");
+        if (processedText) {
+          finalText = processedText;
+          usedGenericStreamingProcessing = true;
+        }
+        logger.info(
+          "BYOK streaming post-processing complete",
+          { durationMs: Math.round(performance.now() - reasoningStart) },
+          "streaming"
+        );
+      } catch (reasonError) {
+        logger.error(
+          "BYOK streaming post-processing failed, using raw text",
           { error: reasonError.message },
           "streaming"
         );
@@ -3642,7 +3843,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         "streaming"
       );
       try {
-        const batchResult = isByokDeepgramStreaming
+        const batchResult = isByokDeepgramStreaming || isByokBailianStreaming
           ? await this.processWithOpenAIAPI(fallbackBlob, {
               durationSeconds,
             })
@@ -3687,7 +3888,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         source: `${streamingProviderName}-streaming`,
       });
 
-      if (!usedBatchFallback && !isByokDeepgramStreaming && streamingProviderName !== "soniox") {
+      if (!usedBatchFallback && !isByokStreaming) {
         (async () => {
           try {
             await withSessionRefresh(async () => {
@@ -3733,6 +3934,48 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     if (this.shouldUseStreaming()) {
       this.warmupStreamingConnection().catch((e) => {
         logger.debug("Background re-warm failed", { error: e.message }, "streaming");
+      });
+    }
+
+    return true;
+  }
+
+  async cancelStreamingRecording() {
+    if (this.streamingStartInProgress && !this.isStreaming) {
+      this.stopRequestedDuringStreamingStart = false;
+      this.cancelRequestedDuringStreamingStart = true;
+      logger.debug("Streaming cancel requested while start is in progress", {}, "streaming");
+      return true;
+    }
+
+    if (!this.isStreaming && !this.isRecording && !this.isProcessing) {
+      return false;
+    }
+
+    this.stopRequestedDuringStreamingStart = false;
+    this.cancelRequestedDuringStreamingStart = false;
+    this.recordingStartTime = null;
+    this.isRecording = false;
+    this.isProcessing = false;
+    this.cleanupStreamingListeners();
+    this.isStreaming = false;
+    this.cleanupStreamingAudio();
+    this.onStateChange?.({ isRecording: false, isProcessing: false, isStreaming: false });
+
+    const provider = this.getStreamingProvider();
+    try {
+      await provider.stop(false);
+    } catch (error) {
+      logger.debug("Streaming cancel disconnect error", { error: error.message }, "streaming");
+    }
+
+    if (this.shouldUseStreaming()) {
+      this.warmupStreamingConnection().catch((error) => {
+        logger.debug(
+          "Background re-warm failed after cancel",
+          { error: error.message },
+          "streaming"
+        );
       });
     }
 
@@ -3792,6 +4035,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     this.streamingTextResolve = null;
     clearTimeout(this.streamingTextDebounce);
     this.streamingTextDebounce = null;
+    this.resetStreamingSpeechGate();
   }
 
   async cleanupStreaming() {

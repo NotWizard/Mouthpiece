@@ -280,6 +280,11 @@
       "realtimeLabel": "Realtime streaming",
       "realtimeDescription": "Show live partial text while you speak and finalize the transcript from the stream. Turn this off to use standard non-streaming transcription."
     },
+    "bailian": {
+      "realtimeLabel": "リアルタイム文字起こしを有効にする",
+      "realtimeEnabledDescription": "話している間はライブ文字を表示し、停止時に確定して、Bailian をリアルタイムモデルへ切り替えます。",
+      "realtimeDisabledDescription": "録音停止後に音声をアップロードし、現在の Bailian ASR Flash バッチ文字起こしを使い続けます。"
+    },
     "soniox": {
       "apiKeyHelp": "Soniox の非同期文字起こしとリアルタイム文字起こしの両方に使用します。",
       "realtimeLabel": "リアルタイム文字起こしを有効にする",

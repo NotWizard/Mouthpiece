@@ -98,7 +98,7 @@ export const useAudioRecording = (toast, options = {}) => {
         if (!isRecording) {
           setAudioLevel(0);
         }
-        if (!isStreaming) {
+        if (!isStreaming && !isProcessing) {
           setPartialTranscript("");
         }
       },
@@ -268,8 +268,8 @@ export const useAudioRecording = (toast, options = {}) => {
   const cancelRecording = useCallback(async () => {
     if (audioManagerRef.current) {
       const state = audioManagerRef.current.getState();
-      if (state.isStreaming) {
-        return await audioManagerRef.current.stopStreamingRecording();
+      if (state.isStreaming || state.isStreamingStartInProgress) {
+        return await audioManagerRef.current.cancelStreamingRecording();
       }
       return audioManagerRef.current.cancelRecording();
     }
@@ -300,7 +300,11 @@ export const useAudioRecording = (toast, options = {}) => {
         return;
       }
 
-      if (currentState.isRecording || currentState.isStreaming) {
+      if (
+        currentState.isRecording ||
+        currentState.isStreaming ||
+        currentState.isStreamingStartInProgress
+      ) {
         void cancelRecording();
         return;
       }

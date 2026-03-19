@@ -715,7 +715,7 @@ declare global {
       }>;
       assemblyAiStreamingSend?: (audioBuffer: ArrayBuffer) => void;
       assemblyAiStreamingForceEndpoint?: () => void;
-      assemblyAiStreamingStop?: () => Promise<{
+      assemblyAiStreamingStop?: (graceful?: boolean) => Promise<{
         success: boolean;
         text?: string;
         error?: string;
@@ -754,7 +754,7 @@ declare global {
       }>;
       sonioxStreamingSend?: (audioBuffer: ArrayBuffer) => void;
       sonioxStreamingFinalize?: () => void;
-      sonioxStreamingStop?: () => Promise<{
+      sonioxStreamingStop?: (graceful?: boolean) => Promise<{
         success: boolean;
         text?: string;
         model?: string;
@@ -769,6 +769,47 @@ declare global {
       onSonioxFinalTranscript?: (callback: (text: string) => void) => () => void;
       onSonioxError?: (callback: (error: string) => void) => () => void;
       onSonioxSessionEnd?: (
+        callback: (data: { text?: string; code?: number; reason?: string }) => void
+      ) => () => void;
+
+      // Bailian Realtime Streaming
+      bailianRealtimeWarmup?: (options?: {
+        sampleRate?: number;
+        language?: string;
+        model?: string;
+      }) => Promise<{
+        success: boolean;
+        alreadyWarm?: boolean;
+        error?: string;
+        code?: string;
+      }>;
+      bailianRealtimeStart?: (options?: {
+        sampleRate?: number;
+        language?: string;
+        model?: string;
+      }) => Promise<{
+        success: boolean;
+        usedWarmConnection?: boolean;
+        error?: string;
+        code?: string;
+      }>;
+      bailianRealtimeSend?: (audioBuffer: ArrayBuffer) => void;
+      bailianRealtimeFinalize?: () => void;
+      bailianRealtimeStop?: (graceful?: boolean) => Promise<{
+        success: boolean;
+        text?: string;
+        model?: string;
+        audioBytesSent?: number;
+        error?: string;
+      }>;
+      bailianRealtimeStatus?: () => Promise<{
+        isConnected: boolean;
+        sessionId: string | null;
+      }>;
+      onBailianRealtimePartialTranscript?: (callback: (text: string) => void) => () => void;
+      onBailianRealtimeFinalTranscript?: (callback: (text: string) => void) => () => void;
+      onBailianRealtimeError?: (callback: (error: string) => void) => () => void;
+      onBailianRealtimeSessionEnd?: (
         callback: (data: { text?: string; code?: number; reason?: string }) => void
       ) => () => void;
 
@@ -827,7 +868,7 @@ declare global {
       }>;
       deepgramStreamingSend?: (audioBuffer: ArrayBuffer) => void;
       deepgramStreamingFinalize?: () => void;
-      deepgramStreamingStop?: () => Promise<{
+      deepgramStreamingStop?: (graceful?: boolean) => Promise<{
         success: boolean;
         text?: string;
         error?: string;

@@ -172,8 +172,10 @@ const variantConfig = {
     progressClass: "bg-white/15",
   },
   destructive: {
-    accentClass: "bg-red-400",
-    progressClass: "bg-red-400/30",
+    accentClass:
+      "bg-[linear-gradient(180deg,rgba(251,146,60,0.95),rgba(244,114,182,0.86))]",
+    progressClass:
+      "bg-[linear-gradient(90deg,rgba(249,115,22,0.55),rgba(244,114,182,0.45))]",
   },
   success: {
     accentClass: "bg-emerald-400",
@@ -237,8 +239,10 @@ const Toast: React.FC<
   return (
     <div
       className={cn(
-        "group toast-surface pointer-events-auto relative flex w-75 overflow-hidden",
-        isDestructive ? "w-[26rem] max-w-[calc(100vw-1.5rem)] rounded-[12px]" : "rounded-[5px]",
+        "group pointer-events-auto relative flex w-75 overflow-hidden",
+        isDestructive
+          ? "toast-error-surface w-[26rem] max-w-[calc(100vw-1.5rem)] rounded-[18px]"
+          : "toast-surface rounded-[5px]",
         "transition-[opacity,transform] duration-200 ease-out",
         isExiting
           ? "opacity-0 translate-x-2 scale-[0.98]"
@@ -247,12 +251,12 @@ const Toast: React.FC<
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div className={cn("w-0.5 shrink-0", config.accentClass)} />
+      <div className={cn("relative z-[1] w-0.5 shrink-0", config.accentClass)} />
 
       <div
         className={cn(
-          "flex items-start gap-2 flex-1 min-w-0",
-          isDestructive ? "px-3.5 py-3.5 pr-14" : "px-2.5 py-2 pr-7"
+          "relative z-[1] flex items-start gap-2 flex-1 min-w-0",
+          isDestructive ? "px-4 py-4 pr-14" : "px-2.5 py-2 pr-7"
         )}
       >
         <div className={cn("flex-1 min-w-0", isDestructive && hasDetail ? "space-y-2.5" : "")}>
@@ -260,7 +264,7 @@ const Toast: React.FC<
             <div
               className={cn(
                 isDestructive
-                  ? "pr-10 text-[13px] font-semibold leading-tight tracking-[-0.01em] text-white/92"
+                  ? "pr-10 text-[13px] font-semibold leading-[1.3] tracking-[-0.01em] text-[rgba(72,31,21,0.92)] dark:text-[rgba(255,241,236,0.94)]"
                   : "text-xs font-medium leading-tight text-white/90"
               )}
             >
@@ -271,20 +275,20 @@ const Toast: React.FC<
             (isDestructive ? (
               <div
                 className={cn(
-                  "overflow-hidden rounded-[10px] border border-red-400/14 bg-red-500/[0.06]",
-                  "shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_10px_24px_-16px_rgba(0,0,0,0.55)]"
+                  "toast-error-detail overflow-hidden rounded-[14px]",
+                  "shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_10px_24px_-16px_rgba(91,37,23,0.18)]"
                 )}
               >
-                <div className="flex items-center justify-between gap-3 border-b border-white/6 px-3 py-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-red-100/58">
+                <div className="flex items-center justify-between gap-3 border-b border-[rgba(171,90,70,0.12)] px-3 py-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgba(150,78,60,0.78)] dark:text-[rgba(255,198,178,0.72)]">
                     {t("developerSection.whatGetsLogged.items.errorDetails")}
                   </span>
                   <button
                     onClick={handleCopyError}
                     className={cn(
-                      "shrink-0 rounded-[7px] border border-white/7 bg-white/3 p-1.5",
-                      "text-white/42 hover:border-white/12 hover:bg-white/6 hover:text-white/72",
-                      "transition-colors duration-150"
+                      "shrink-0 rounded-[9px] border border-[rgba(171,90,70,0.14)] bg-white/55 p-1.5",
+                      "text-[rgba(124,58,45,0.6)] hover:border-[rgba(171,90,70,0.22)] hover:bg-white/76 hover:text-[rgba(88,40,29,0.86)]",
+                      "transition-colors duration-150 dark:border-[rgba(255,173,144,0.12)] dark:bg-white/6 dark:text-[rgba(255,214,198,0.62)] dark:hover:bg-white/10 dark:hover:text-[rgba(255,238,230,0.86)]"
                     )}
                     aria-label={t("referral.inviteLink.copy")}
                   >
@@ -294,7 +298,7 @@ const Toast: React.FC<
                 <div
                   className={cn(
                     "max-h-[220px] overflow-y-auto px-3 py-2.5",
-                    "font-mono text-[13px] leading-6 text-red-100/82 whitespace-pre-wrap break-all"
+                    "font-mono text-[13px] leading-6 text-[rgba(90,39,30,0.82)] whitespace-pre-wrap break-all dark:text-[rgba(255,236,230,0.82)]"
                   )}
                 >
                   <span className="select-text">{detail}</span>
@@ -314,7 +318,7 @@ const Toast: React.FC<
           className={cn(
             "absolute right-2 top-2 z-10 pointer-events-auto p-1.5 rounded-[8px]",
             isDestructive
-              ? "border border-white/7 bg-black/20 text-white/58 hover:border-white/12 hover:bg-white/6 hover:text-white/84"
+              ? "border border-[rgba(171,90,70,0.12)] bg-white/58 text-[rgba(116,54,41,0.62)] hover:border-[rgba(171,90,70,0.22)] hover:bg-white/76 hover:text-[rgba(77,34,25,0.88)] dark:border-[rgba(255,173,144,0.12)] dark:bg-white/6 dark:text-[rgba(255,214,198,0.62)] dark:hover:bg-white/10 dark:hover:text-[rgba(255,239,232,0.9)]"
               : "text-white/0 group-hover:text-white/50 hover:!text-white/80 hover:bg-white/6",
             "transition-colors duration-150",
             "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/20"

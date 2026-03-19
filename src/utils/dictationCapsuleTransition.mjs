@@ -9,6 +9,12 @@ const RECORDING_LAYOUT = Object.freeze({
   borderRadiusPx: 22,
 });
 
+const PREVIEW_LAYOUT = Object.freeze({
+  widthPx: DICTATION_CAPSULE_WIDTH_PX,
+  heightPx: 92,
+  borderRadiusPx: 22,
+});
+
 const TRANSCRIBING_LAYOUT = Object.freeze({
   widthPx: 132,
   heightPx: 46,
@@ -24,6 +30,10 @@ export function getDictationCapsuleStage({ isTranscribing, elapsedMs = 0 }) {
 }
 
 export function getDictationCapsuleLayout({ stage }) {
+  if (stage === "preview") {
+    return PREVIEW_LAYOUT;
+  }
+
   return stage === "recording" ? RECORDING_LAYOUT : TRANSCRIBING_LAYOUT;
 }
 

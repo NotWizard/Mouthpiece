@@ -162,6 +162,7 @@ const BOOLEAN_SETTINGS = new Set([
   "assemblyAiStreaming",
   "deepgramStreamingEnabled",
   "sonioxRealtimeEnabled",
+  "bailianRealtimeEnabled",
   "useReasoningModel",
   "voiceAssistantEnabled",
   "bailianReasoningEnableThinking",
@@ -218,6 +219,7 @@ export interface SettingsState
   setAssemblyAiStreaming: (value: boolean) => void;
   setDeepgramStreamingEnabled: (value: boolean) => void;
   setSonioxRealtimeEnabled: (value: boolean) => void;
+  setBailianRealtimeEnabled: (value: boolean) => void;
   setUseReasoningModel: (value: boolean) => void;
   setVoiceAssistantEnabled: (value: boolean) => void;
   setReasoningModel: (value: string) => void;
@@ -424,6 +426,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   assemblyAiStreaming: readBoolean("assemblyAiStreaming", true),
   deepgramStreamingEnabled: readBoolean("deepgramStreamingEnabled", false),
   sonioxRealtimeEnabled: readBoolean("sonioxRealtimeEnabled", true),
+  bailianRealtimeEnabled: readBoolean("bailianRealtimeEnabled", false),
 
   useReasoningModel: readBoolean("useReasoningModel", true),
   voiceAssistantEnabled: readBoolean("voiceAssistantEnabled", false),
@@ -477,6 +480,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setAssemblyAiStreaming: createBooleanSetter("assemblyAiStreaming"),
   setDeepgramStreamingEnabled: createBooleanSetter("deepgramStreamingEnabled"),
   setSonioxRealtimeEnabled: createBooleanSetter("sonioxRealtimeEnabled"),
+  setBailianRealtimeEnabled: createBooleanSetter("bailianRealtimeEnabled"),
   setUseReasoningModel: createBooleanSetter("useReasoningModel"),
   setVoiceAssistantEnabled: createBooleanSetter("voiceAssistantEnabled"),
   setReasoningModel: createStringSetter("reasoningModel"),
@@ -577,6 +581,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       s.setDeepgramStreamingEnabled(settings.deepgramStreamingEnabled);
     if (settings.sonioxRealtimeEnabled !== undefined)
       s.setSonioxRealtimeEnabled(settings.sonioxRealtimeEnabled);
+    if (settings.bailianRealtimeEnabled !== undefined)
+      s.setBailianRealtimeEnabled(settings.bailianRealtimeEnabled);
   },
 
   updateReasoningSettings: (settings: Partial<ReasoningSettings>) => {

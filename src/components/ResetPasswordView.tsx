@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { resetPassword, NEON_AUTH_URL, authClient } from "../lib/neonAuth";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { AlertCircle, ArrowLeft, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Loader2 } from "lucide-react";
+import { ErrorNotice } from "./ui/ErrorNotice";
 
 interface ResetPasswordViewProps {
   token: string;
@@ -137,10 +138,7 @@ export default function ResetPasswordView({ token, onSuccess, onBack }: ResetPas
         </p>
 
         {error && (
-          <div className="px-2.5 py-1.5 rounded bg-destructive/5 border border-destructive/20 flex items-center gap-1.5">
-            <AlertCircle className="w-3 h-3 text-destructive shrink-0" />
-            <p className="text-xs text-destructive leading-snug">{error}</p>
-          </div>
+          <ErrorNotice message={error} compact />
         )}
 
         <Button

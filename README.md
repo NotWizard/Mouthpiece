@@ -53,12 +53,20 @@
    - 面向短文本实时润色/后处理场景，优先低延迟体验。
    - **ASR**：阿里云百炼链路（Alibaba Bailian / DashScope compatible mode，默认推荐 `qwen3-asr-flash`）
      - 在中文口语、方言和中文工作流场景通常更稳定，网络路径也较友好。
-     - `qwen3-asr-flash-realtime`（2026-02-13 快照）目前实测不可用，暂不推荐。
+     - 现已支持在同一个 Bailian provider 内切换批量模式与实时模式：
+       - 批量模式：`qwen3-asr-flash`
+       - 实时模式：`qwen3-asr-flash-realtime`
    - **LLM 润色**：Cerebras `gpt-oss-120b`（high）
 
 5. **智能层做了更严格约束**
    - 为降低“模型回答问题而非转录”的风险，当前对智能层行为进行了较强限制。
    - 这会在一定程度上限制智能词典与语义改写能力，属于“稳定优先”的权衡。
+
+6. **最近补齐了一轮实时转录交互与稳定性优化**
+   - Bailian 实时转录现在会在胶囊内以**单行、连续、平滑滚动**的方式展示实时文字，不再和波纹层打架。
+   - 结束录音后，胶囊会先进入 `处理中...` 状态，再完成最终文本整理。
+   - 新增一层流式语音门控，尽量减少刚开始监听但用户实际上没有说话时出现的伪文本。
+   - 错误 toast、确认弹窗、页面内联报错统一成同一套高质感胶囊式视觉，不再使用生硬的纯红底警报块。
 
 ---
 
@@ -83,7 +91,7 @@
 > 
 - **ASR**：阿里云百炼链路（Alibaba Bailian / DashScope compatible mode，默认推荐 `qwen3-asr-flash`）
   - 在中文口语、方言和中文工作流场景通常更稳定，网络路径也较友好。
-  - `qwen3-asr-flash-realtime`（2026-02-13 快照）目前实测不可用，暂不推荐。
+  - 在 Mouthpiece 中可直接切换到 `qwen3-asr-flash-realtime`，用于边说边显示实时文字。
 - **LLM 润色**：Cerebras `gpt-oss-120b`（high）
 
 
@@ -120,7 +128,8 @@
 ### 兼容性说明
 
 - 阿里云百炼 / DashScope 支持 OpenAI compatible mode。
-- 在 Mouthpiece 的“转录设置”里，Alibaba Bailian 现在是独立的云端转录 provider，可直接单独填写 API Key 并选择转录模型。
+- 在 Mouthpiece 的“转录设置”里，Alibaba Bailian 现在是独立的云端转录 provider，可直接单独填写 API Key，并在同一张 provider 卡片内切换批量/实时转录。
+- 开启 Bailian 实时转录时，应用会走 `qwen3-asr-flash-realtime` 的 WebSocket 流式链路，并在录音过程中显示单行实时文字；关闭时继续使用 `qwen3-asr-flash` 的常规批量转录。
 - `Custom` provider 保留给任意 OpenAI-compatible 转录端点，不再承担百炼的隐式入口职责。
 - 旧版通过 `Custom + DashScope Base URL` 保存的转录配置，会在应用启动时自动迁移到显式的 Alibaba Bailian provider。
 - 对支持自定义 OpenAI Base URL 的客户端，通常也可直接接入。
