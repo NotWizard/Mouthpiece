@@ -1267,7 +1267,14 @@ class IPCHandlers {
       "proxy-soniox-transcription",
       async (
         event,
-        { audioBuffer, mimeType = "audio/webm", fileName = "audio.webm", model, language, contextBias }
+        {
+          audioBuffer,
+          mimeType = "audio/webm",
+          fileName = "audio.webm",
+          model,
+          language,
+          contextBias,
+        }
       ) => {
         const apiKey = this.environmentManager.getSonioxKey();
         if (!apiKey) {
@@ -1345,10 +1352,9 @@ class IPCHandlers {
             }
 
             await sleep(SONIOX_ASYNC_POLL_INTERVAL_MS);
-            const statusResponse = await fetch(
-              `${SONIOX_TRANSCRIPTIONS_URL}/${transcriptionId}`,
-              { headers }
-            );
+            const statusResponse = await fetch(`${SONIOX_TRANSCRIPTIONS_URL}/${transcriptionId}`, {
+              headers,
+            });
             transcription = await readSonioxResponse(statusResponse);
           }
 
@@ -2947,7 +2953,11 @@ class IPCHandlers {
             ? this.deepgramStreaming.getCachedToken()
             : null;
         if (!token) {
-          debugLogger.debug("Fetching Deepgram streaming credentials for warmup", { authMode }, "streaming");
+          debugLogger.debug(
+            "Fetching Deepgram streaming credentials for warmup",
+            { authMode },
+            "streaming"
+          );
           ({ token } = await resolveDeepgramStreamingCredentials(event, options));
         }
 

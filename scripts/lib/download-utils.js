@@ -3,7 +3,8 @@ const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 
-const REQUEST_TIMEOUT = 30000;
+// Large upstream release assets can pause briefly on GitHub-hosted runners.
+const REQUEST_TIMEOUT = 120000;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000;
 const MAX_REDIRECTS = 5;
@@ -56,9 +57,7 @@ function fetchJson(url, redirectCount = 0, useAuthToken = true) {
         // Retry once without auth headers to avoid blocking public downloads.
         if (res.statusCode === 401 && token) {
           console.warn("  GitHub token returned 401; retrying without token...");
-          fetchJson(url, redirectCount, false)
-            .then(resolve)
-            .catch(reject);
+          fetchJson(url, redirectCount, false).then(resolve).catch(reject);
           return;
         }
 

@@ -19,11 +19,7 @@ import {
   getEffectiveReasoningModel,
   isCloudReasoningMode,
 } from "../stores/settingsStore";
-import {
-  SONIOX_ASYNC_MODEL,
-  SONIOX_REALTIME_MODEL,
-  selectSonioxModel,
-} from "./sonioxShared.mjs";
+import { SONIOX_ASYNC_MODEL, SONIOX_REALTIME_MODEL, selectSonioxModel } from "./sonioxShared.mjs";
 
 const SHORT_CLIP_DURATION_SECONDS = 2.5;
 const REASONING_CACHE_TTL = 30000; // 30 seconds
@@ -1380,7 +1376,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       }
       apiKey = apiKey?.trim() || "";
       if (!apiKey) {
-        throw new Error("Deepgram API key not found. Please set your API key in the Control Panel.");
+        throw new Error(
+          "Deepgram API key not found. Please set your API key in the Control Panel."
+        );
       }
     } else if (provider === "bailian") {
       apiKey = s.bailianApiKey;
@@ -2695,12 +2693,12 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           provider === "deepgram"
             ? "deepgram"
             : provider === "bailian"
-            ? "bailian"
-            : provider === "groq"
-              ? "groq"
-              : provider === "custom"
-                ? "custom"
-                : "openai";
+              ? "bailian"
+              : provider === "groq"
+                ? "groq"
+                : provider === "custom"
+                  ? "custom"
+                  : "openai";
         const source = (await this.isReasoningAvailable()) ? `${sourceBase}-reasoned` : sourceBase;
         logger.debug(
           "Transcription successful",

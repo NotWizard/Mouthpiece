@@ -934,7 +934,9 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
             return res.json;
           } catch (error) {
             const errorMessage = (error as Error).message;
-            if (errorMessage === `Request timed out after ${Math.round(endpointTimeoutMs / 1000)}s`) {
+            if (
+              errorMessage === `Request timed out after ${Math.round(endpointTimeoutMs / 1000)}s`
+            ) {
               const timeoutError = new Error(errorMessage);
               lastError = timeoutError;
               if (type === "responses") {

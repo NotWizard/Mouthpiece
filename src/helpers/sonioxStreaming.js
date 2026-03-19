@@ -55,8 +55,8 @@ class SonioxStreaming {
   hasWarmConnection() {
     return Boolean(
       this.warmConnection &&
-        this.warmConnectionReady &&
-        this.warmConnection.readyState === WebSocket.OPEN
+      this.warmConnectionReady &&
+      this.warmConnection.readyState === WebSocket.OPEN
     );
   }
 

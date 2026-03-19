@@ -938,7 +938,9 @@ export default function TranscriptionModelPicker({
                     </label>
                     <button
                       type="button"
-                      onClick={createExternalLinkHandler("https://console.deepgram.com/project/keys")}
+                      onClick={createExternalLinkHandler(
+                        "https://console.deepgram.com/project/keys"
+                      )}
                       className="text-xs text-primary/70 hover:text-primary transition-colors cursor-pointer"
                     >
                       {t("transcription.getKey")}

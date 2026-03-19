@@ -88,11 +88,7 @@ const buildSonioxRealtimeConfig = ({
   return config;
 };
 
-const buildSonioxAsyncPayload = ({
-  model,
-  language,
-  keyterms = [],
-} = {}) => {
+const buildSonioxAsyncPayload = ({ model, language, keyterms = [] } = {}) => {
   const payload = {
     model: selectSonioxModel({ requestedModel: model, realtimeEnabled: false }),
   };
@@ -132,7 +128,10 @@ const accumulateSonioxTokens = (state = createInitialSonioxTranscriptState(), to
       continue;
     }
 
-    const signature = buildTokenSignature(token, nextState.stableTokens.length + unstableTokens.length);
+    const signature = buildTokenSignature(
+      token,
+      nextState.stableTokens.length + unstableTokens.length
+    );
 
     if (token?.is_final) {
       if (!nextState.stableTokenKeys.has(signature)) {

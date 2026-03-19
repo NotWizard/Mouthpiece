@@ -279,7 +279,10 @@ function debouncedPersistToEnv() {
   }, 1000);
 }
 
-function invalidateApiKeyCaches(provider?: ApiKeyCacheProvider, options: { persistToEnv?: boolean } = {}) {
+function invalidateApiKeyCaches(
+  provider?: ApiKeyCacheProvider,
+  options: { persistToEnv?: boolean } = {}
+) {
   if (provider) {
     if (_ReasoningService) {
       _ReasoningService.clearApiKeyCache(provider);

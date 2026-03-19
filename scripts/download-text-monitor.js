@@ -16,7 +16,7 @@ const {
   setExecutable,
 } = require("./lib/download-utils");
 
-const REPO = "le-soleil-se-couche/Mouthpiece";
+const REPO = "NotWizard/Mouthpiece";
 const BIN_DIR = path.join(__dirname, "..", "resources", "bin");
 
 const PLATFORM_CONFIG = {

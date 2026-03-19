@@ -61,7 +61,7 @@ jobs:
       - name: Install Linux build and packaging dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm libx11-dev libxtst-dev libatspi2.0-dev libglib2.0-dev
+          sudo apt-get install -y rpm pkg-config libx11-dev libxtst-dev libatspi2.0-dev libglib2.0-dev
 
       - name: Build Application
         run: npm run build:linux -- --publish never
@@ -82,6 +82,12 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -152,6 +158,8 @@ jobs:
 
   build-macos:
     runs-on: ${{ matrix.runner }}
+    env:
+      APPLE_SIGNING_ENABLED: ${{ github.event_name != 'pull_request' && secrets.APPLE_CERTIFICATE_BASE64 != '' && secrets.APPLE_CERTIFICATE_PASSWORD != '' && secrets.APPLE_API_KEY_BASE64 != '' && secrets.APPLE_API_KEY_ID != '' && secrets.APPLE_API_ISSUER != '' && secrets.APPLE_TEAM_ID != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -205,7 +213,7 @@ jobs:
           restore-keys: macos-${{ matrix.arch }}-electron-
 
       - name: Setup macOS Code Signing
-        if: github.event_name != 'pull_request'
+        if: env.APPLE_SIGNING_ENABLED == 'true'
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -237,7 +245,7 @@ jobs:
           VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
           VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
           VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ github.event_name != 'pull_request' && 'true' || 'false' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.APPLE_SIGNING_ENABLED == 'true' && 'true' || 'false' }}
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
@@ -251,7 +259,7 @@ jobs:
           retention-days: 7
 
       - name: Cleanup Certificates
-        if: always() && github.event_name != 'pull_request'
+        if: always() && env.APPLE_SIGNING_ENABLED == 'true'
         run: |
           security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
           rm -f $RUNNER_TEMP/build_certificate.p12
