@@ -90,7 +90,8 @@ function getConfigureArgs(sourceDir, buildDir, config) {
     "-B",
     buildDir,
     "-DWHISPER_BUILD_SERVER=ON",
-    "-DWHISPER_BUILD_EXAMPLES=OFF",
+    // whisper-server lives under examples/server in upstream whisper.cpp.
+    "-DWHISPER_BUILD_EXAMPLES=ON",
     "-DWHISPER_BUILD_TESTS=OFF",
     "-DWHISPER_SDL2=OFF",
     "-DCMAKE_BUILD_TYPE=Release",
@@ -153,9 +154,13 @@ async function buildWhisperServerFromSource(platformArch, config, version, isFor
     execFileSync("cmake", configureArgs, { stdio: "inherit" });
 
     console.log(`  [server] ${platformArch}: Building whisper-server from source`);
-    execFileSync("cmake", ["--build", buildDir, "--config", "Release", "--parallel"], {
-      stdio: "inherit",
-    });
+    execFileSync(
+      "cmake",
+      ["--build", buildDir, "--config", "Release", "--target", "whisper-server", "--parallel"],
+      {
+        stdio: "inherit",
+      }
+    );
 
     const binaryPath = findBinaryInDir(buildDir, config.binaryName);
     if (binaryPath) {

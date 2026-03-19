@@ -31,6 +31,15 @@ test("whisper download script includes a source-build fallback for CI", () => {
     /buildWhisperServerFromSource|buildFromSource/,
     "download-whisper-cpp.js should be able to build whisper-server from source when prebuilt assets are unavailable"
   );
+  assert.ok(
+    source.includes('"-DWHISPER_BUILD_EXAMPLES=ON"'),
+    "download-whisper-cpp.js should keep upstream examples enabled because whisper-server is defined under examples/server"
+  );
+  assert.match(
+    source,
+    /"--target",\s*"whisper-server"/,
+    "download-whisper-cpp.js should build the whisper-server target explicitly"
+  );
 });
 
 test("windows helper download scripts point at the current Mouthpiece repository", () => {
