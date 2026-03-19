@@ -1,14 +1,22 @@
 const path = require("path");
+const ERROR_SURFACE_LAYOUT = require("../config/errorSurfaceLayout.json");
 
 const isGnomeWayland =
   process.platform === "linux" &&
   process.env.XDG_SESSION_TYPE === "wayland" &&
   /gnome|ubuntu|unity/i.test(process.env.XDG_CURRENT_DESKTOP || "");
 
+const DICTATION_TOAST_WINDOW_WIDTH = Math.max(
+  344,
+  ERROR_SURFACE_LAYOUT.dictationToast.widthPx +
+    ERROR_SURFACE_LAYOUT.dictationToast.rightInsetPx +
+    ERROR_SURFACE_LAYOUT.dictationToast.leftSafeInsetPx
+);
+
 const WINDOW_SIZES = {
   BASE: { width: 344, height: 132 },
   WITH_MENU: { width: 344, height: 320 },
-  WITH_TOAST: { width: 344, height: 520 },
+  WITH_TOAST: { width: DICTATION_TOAST_WINDOW_WIDTH, height: 520 },
   EXPANDED: { width: 344, height: 520 },
 };
 

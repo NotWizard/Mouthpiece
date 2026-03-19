@@ -1,0 +1,12 @@
+{
+  "dictationToast": {
+    "widthPx": 300,
+    "detailMaxHeightPx": 192,
+    "rightInsetPx": 24,
+    "leftSafeInsetPx": 20
+  },
+  "dialogs": {
+    "defaultMaxWidthPx": 408,
+    "destructiveMaxWidthPx": 392
+  }
+}

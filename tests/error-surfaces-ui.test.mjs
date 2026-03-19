@@ -13,6 +13,8 @@ test("dialog primitives expose premium shell variants for destructive flows", as
   assert.match(source, /dialog-premium-shell/);
   assert.match(source, /dialog-premium-shell-destructive/);
   assert.match(source, /type DialogTone = "default" \| "destructive"/);
+  assert.match(source, /ERROR_SURFACE_LAYOUT\.dialogs\.(defaultMaxWidthPx|destructiveMaxWidthPx)/);
+  assert.match(source, /const handleOpenChange = \(nextOpen: boolean\)/);
 });
 
 test("alert destructive variant uses premium shared surfaces instead of legacy red blocks", async () => {

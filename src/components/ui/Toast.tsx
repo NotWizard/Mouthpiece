@@ -1,6 +1,7 @@
 import * as React from "react";
 import { X, Copy, Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import ERROR_SURFACE_LAYOUT from "../../config/errorSurfaceLayout.json";
 import { cn } from "../lib/utils";
 
 export interface ToastProps {
@@ -38,6 +39,7 @@ interface ToastState extends ToastProps {
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = React.useState<ToastState[]>([]);
   const timersRef = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const exitingToastIdsRef = React.useRef<Set<string>>(new Set());
 
   const clearTimer = React.useCallback((id: string) => {
     const timer = timersRef.current[id];
@@ -48,11 +50,31 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const startExitAnimation = React.useCallback((id: string) => {
-    setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, isExiting: true } : t)));
+    if (exitingToastIdsRef.current.has(id)) {
+      return;
+    }
+
+    exitingToastIdsRef.current.add(id);
+    setToasts((prev) => prev.map((toast) => (toast.id === id ? { ...toast, isExiting: true } : toast)));
+
     setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
+      exitingToastIdsRef.current.delete(id);
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
     }, 200);
   }, []);
+
+  const dismissToast = React.useCallback(
+    (toast: ToastState) => {
+      if (exitingToastIdsRef.current.has(toast.id)) {
+        return;
+      }
+
+      clearTimer(toast.id);
+      toast.onClose?.();
+      startExitAnimation(toast.id);
+    },
+    [clearTimer, startExitAnimation]
+  );
 
   const toast = React.useCallback(
     (props: Omit<ToastProps, "id">) => {
@@ -64,30 +86,31 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const duration = props.duration ?? (props.variant === "destructive" ? 6000 : 3500);
       if (duration > 0) {
         const timer = setTimeout(() => {
-          startExitAnimation(id);
+          dismissToast(newToast);
         }, duration);
         timersRef.current[id] = timer;
       }
 
       return id;
     },
-    [startExitAnimation]
+    [dismissToast]
   );
 
   const dismiss = React.useCallback(
     (id?: string) => {
       if (id) {
-        clearTimer(id);
-        startExitAnimation(id);
+        const toast = toasts.find((item) => item.id === id);
+        if (toast) {
+          dismissToast(toast);
+        }
       } else {
         const lastToast = toasts[toasts.length - 1];
         if (lastToast) {
-          clearTimer(lastToast.id);
-          startExitAnimation(lastToast.id);
+          dismissToast(lastToast);
         }
       }
     },
-    [toasts, clearTimer, startExitAnimation]
+    [toasts, dismissToast]
   );
 
   const pauseTimer = React.useCallback(
@@ -152,6 +175,7 @@ const ToastViewport: React.FC<{
         "fixed z-[100] flex flex-col gap-1.5 pointer-events-none",
         isDictationPanel ? "bottom-20 right-6" : "bottom-5 right-5"
       )}
+      style={isDictationPanel ? { right: ERROR_SURFACE_LAYOUT.dictationToast.rightInsetPx } : undefined}
     >
       {toasts.map((toast) => (
         <Toast
@@ -235,19 +259,26 @@ const Toast: React.FC<
 
   const message = title || description;
   const detail = title && description ? description : undefined;
+  const destructiveToastStyle = isDestructive
+    ? {
+        width: ERROR_SURFACE_LAYOUT.dictationToast.widthPx,
+        maxWidth: `calc(100vw - ${ERROR_SURFACE_LAYOUT.dictationToast.leftSafeInsetPx}px)`,
+      }
+    : undefined;
 
   return (
     <div
       className={cn(
         "group pointer-events-auto relative flex w-75 overflow-hidden",
         isDestructive
-          ? "toast-error-surface w-[26rem] max-w-[calc(100vw-1.5rem)] rounded-[18px]"
+          ? "toast-error-surface rounded-[18px]"
           : "toast-surface rounded-[5px]",
         "transition-[opacity,transform] duration-200 ease-out",
         isExiting
           ? "opacity-0 translate-x-2 scale-[0.98]"
           : "opacity-100 translate-x-0 scale-100 animate-in slide-in-from-right-4 fade-in-0 duration-300"
       )}
+      style={destructiveToastStyle}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -256,15 +287,15 @@ const Toast: React.FC<
       <div
         className={cn(
           "relative z-[1] flex items-start gap-2 flex-1 min-w-0",
-          isDestructive ? "px-4 py-4 pr-14" : "px-2.5 py-2 pr-7"
+          isDestructive ? "px-3.5 py-3.5 pr-13" : "px-2.5 py-2 pr-7"
         )}
       >
-        <div className={cn("flex-1 min-w-0", isDestructive && hasDetail ? "space-y-2.5" : "")}>
+        <div className={cn("flex-1 min-w-0", isDestructive && hasDetail ? "space-y-2" : "")}>
           {message && (
             <div
               className={cn(
                 isDestructive
-                  ? "pr-10 text-[13px] font-semibold leading-[1.3] tracking-[-0.01em] text-[rgba(72,31,21,0.92)] dark:text-[rgba(255,241,236,0.94)]"
+                  ? "pr-9 text-[13px] font-semibold leading-[1.35] tracking-[-0.01em] text-[rgba(72,31,21,0.92)] dark:text-[rgba(255,241,236,0.94)]"
                   : "text-xs font-medium leading-tight text-white/90"
               )}
             >
@@ -284,6 +315,7 @@ const Toast: React.FC<
                     {t("developerSection.whatGetsLogged.items.errorDetails")}
                   </span>
                   <button
+                    type="button"
                     onClick={handleCopyError}
                     className={cn(
                       "shrink-0 rounded-[9px] border border-[rgba(171,90,70,0.14)] bg-white/55 p-1.5",
@@ -297,9 +329,10 @@ const Toast: React.FC<
                 </div>
                 <div
                   className={cn(
-                    "max-h-[220px] overflow-y-auto px-3 py-2.5",
+                    "overflow-y-auto px-3 py-2.5",
                     "font-mono text-[13px] leading-6 text-[rgba(90,39,30,0.82)] whitespace-pre-wrap break-all dark:text-[rgba(255,236,230,0.82)]"
                   )}
+                  style={{ maxHeight: ERROR_SURFACE_LAYOUT.dictationToast.detailMaxHeightPx }}
                 >
                   <span className="select-text">{detail}</span>
                 </div>
@@ -314,6 +347,7 @@ const Toast: React.FC<
 
       {onClose && (
         <button
+          type="button"
           onClick={onClose}
           className={cn(
             "absolute right-2 top-2 z-10 pointer-events-auto p-1.5 rounded-[8px]",
