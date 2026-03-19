@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="src/assets/logo.svg" alt="Mouthpiece" width="120" />
+  <img src="src/assets/icon.png" alt="Mouthpiece" width="120" />
 </p>
 
 <h1 align="center">Mouthpiece</h1>
