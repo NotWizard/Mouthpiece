@@ -7,6 +7,7 @@ import type {
   LlamaVulkanDownloadProgress,
 } from "../types/electron";
 import { Button } from "./ui/button";
+import { ErrorNotice } from "./ui/ErrorNotice";
 import { Input } from "./ui/input";
 import { Cloud, Lock, Zap } from "lucide-react";
 import ApiKeyInput from "./ui/ApiKeyInput";
@@ -205,16 +206,20 @@ function GpuStatusBadge() {
   // State 3b: Error
   if (error) {
     return (
-      <div className="flex items-center gap-1.5 mt-2 px-1">
-        <span className="text-xs text-destructive">{error}</span>
-        <button
-          type="button"
-          onClick={() => setError(null)}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-1"
-        >
-          {t("gpu.dismiss")}
-        </button>
-      </div>
+      <ErrorNotice
+        message={error}
+        compact
+        className="mt-2"
+        action={
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            className="rounded-full px-2 py-0.5 text-[11px] font-medium text-[rgba(116,54,41,0.72)] transition-colors hover:text-[rgba(77,34,25,0.92)] dark:text-[rgba(255,214,198,0.74)] dark:hover:text-[rgba(255,239,232,0.94)]"
+          >
+            {t("gpu.dismiss")}
+          </button>
+        }
+      />
     );
   }
 
@@ -905,7 +910,7 @@ export default function ReasoningModelSelector({
                           </p>
                         )}
                         {customModelsError && (
-                          <p className="text-xs text-destructive">{customModelsError}</p>
+                          <ErrorNotice message={customModelsError} compact className="mt-2" />
                         )}
                         {!customModelsLoading &&
                           !customModelsError &&

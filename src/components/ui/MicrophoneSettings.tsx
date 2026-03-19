@@ -4,6 +4,7 @@ import { Toggle } from "./toggle";
 import { SettingsRow } from "./SettingsSection";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
 import { Button } from "./button";
+import { ErrorNotice } from "./ErrorNotice";
 import { RefreshCw, Mic } from "lucide-react";
 import { isBuiltInMicrophone } from "../../utils/audioDeviceUtils";
 
@@ -134,7 +135,7 @@ export const MicrophoneSettings: React.FC<MicrophoneSettingsProps> = ({
           </div>
 
           {error ? (
-            <p className="text-sm text-destructive">{error}</p>
+            <ErrorNotice message={error} compact />
           ) : (
             <Select
               value={selectedMicDeviceId || "default"}

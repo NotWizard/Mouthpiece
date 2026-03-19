@@ -207,6 +207,8 @@ interface TranscriptionModelPickerProps {
   setSonioxRealtimeEnabled?: (enabled: boolean) => void;
   bailianApiKey?: string;
   setBailianApiKey?: (key: string) => void;
+  bailianRealtimeEnabled?: boolean;
+  setBailianRealtimeEnabled?: (enabled: boolean) => void;
   deepgramStreamingEnabled?: boolean;
   setDeepgramStreamingEnabled?: (enabled: boolean) => void;
   customTranscriptionApiKey?: string;
@@ -295,6 +297,8 @@ export default function TranscriptionModelPicker({
   setSonioxRealtimeEnabled,
   bailianApiKey = "",
   setBailianApiKey,
+  bailianRealtimeEnabled = false,
+  setBailianRealtimeEnabled = () => {},
   deepgramStreamingEnabled = false,
   setDeepgramStreamingEnabled = () => {},
   customTranscriptionApiKey = "",
@@ -983,7 +987,7 @@ export default function TranscriptionModelPicker({
                 </div>
               </div>
             ) : selectedCloudProvider === "bailian" ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-medium text-foreground">
@@ -1004,6 +1008,25 @@ export default function TranscriptionModelPicker({
                     helpText={t("reasoning.bailian.apiKeyHelp")}
                     saveMode="immediate"
                   />
+                </div>
+
+                <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-xs font-medium text-foreground">
+                        {t("transcription.bailian.realtimeLabel")}
+                      </div>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        {bailianRealtimeEnabled
+                          ? t("transcription.bailian.realtimeEnabledDescription")
+                          : t("transcription.bailian.realtimeDisabledDescription")}
+                      </p>
+                    </div>
+                    <Toggle
+                      checked={bailianRealtimeEnabled}
+                      onChange={setBailianRealtimeEnabled}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">

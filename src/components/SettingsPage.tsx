@@ -130,6 +130,8 @@ interface TranscriptionSectionProps {
   setSonioxRealtimeEnabled: (enabled: boolean) => void;
   bailianApiKey: string;
   setBailianApiKey: (key: string) => void;
+  bailianRealtimeEnabled: boolean;
+  setBailianRealtimeEnabled: (enabled: boolean) => void;
   deepgramStreamingEnabled: boolean;
   setDeepgramStreamingEnabled: (enabled: boolean) => void;
   customTranscriptionApiKey: string;
@@ -176,6 +178,8 @@ function TranscriptionSection({
   setSonioxRealtimeEnabled,
   bailianApiKey,
   setBailianApiKey,
+  bailianRealtimeEnabled,
+  setBailianRealtimeEnabled,
   deepgramStreamingEnabled,
   setDeepgramStreamingEnabled,
   customTranscriptionApiKey,
@@ -311,6 +315,8 @@ function TranscriptionSection({
           setSonioxRealtimeEnabled={setSonioxRealtimeEnabled}
           bailianApiKey={bailianApiKey}
           setBailianApiKey={setBailianApiKey}
+          bailianRealtimeEnabled={bailianRealtimeEnabled}
+          setBailianRealtimeEnabled={setBailianRealtimeEnabled}
           deepgramStreamingEnabled={deepgramStreamingEnabled}
           setDeepgramStreamingEnabled={setDeepgramStreamingEnabled}
           customTranscriptionApiKey={customTranscriptionApiKey}
@@ -549,6 +555,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     mistralApiKey,
     sonioxApiKey,
     bailianApiKey,
+    bailianRealtimeEnabled,
     dictationKey,
     preferBuiltInMic,
     selectedMicDeviceId,
@@ -578,6 +585,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     setBailianApiKey,
     sonioxRealtimeEnabled,
     setSonioxRealtimeEnabled,
+    setBailianRealtimeEnabled,
     customTranscriptionApiKey,
     setCustomTranscriptionApiKey,
     customReasoningApiKey,
@@ -1041,6 +1049,8 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
             setSonioxRealtimeEnabled={setSonioxRealtimeEnabled}
             bailianApiKey={bailianApiKey}
             setBailianApiKey={setBailianApiKey}
+            bailianRealtimeEnabled={bailianRealtimeEnabled}
+            setBailianRealtimeEnabled={setBailianRealtimeEnabled}
             deepgramStreamingEnabled={deepgramStreamingEnabled}
             setDeepgramStreamingEnabled={setDeepgramStreamingEnabled}
             customTranscriptionApiKey={customTranscriptionApiKey}

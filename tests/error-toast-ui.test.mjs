@@ -20,5 +20,6 @@ test("destructive toast renders error details in a scrollable card-like panel", 
   const source = await readRepoFile("src/components/ui/Toast.tsx");
 
   assert.match(source, /max-h-\[220px\][\s\S]*overflow-y-auto[\s\S]*whitespace-pre-wrap/);
-  assert.match(source, /rounded-\[10px\][\s\S]*border border-red-400\/14[\s\S]*bg-red-500\/\[0\.06\]/);
+  assert.match(source, /toast-error-surface/);
+  assert.match(source, /toast-error-detail/);
 });

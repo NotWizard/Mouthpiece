@@ -22,6 +22,7 @@ export interface TranscriptionSettings {
   assemblyAiStreaming: boolean;
   deepgramStreamingEnabled: boolean;
   sonioxRealtimeEnabled: boolean;
+  bailianRealtimeEnabled: boolean;
 }
 
 export interface ReasoningSettings {
@@ -179,9 +180,11 @@ function useSettingsInternal() {
     assemblyAiStreaming: store.assemblyAiStreaming,
     deepgramStreamingEnabled: store.deepgramStreamingEnabled,
     sonioxRealtimeEnabled: store.sonioxRealtimeEnabled,
+    bailianRealtimeEnabled: store.bailianRealtimeEnabled,
     setAssemblyAiStreaming: store.setAssemblyAiStreaming,
     setDeepgramStreamingEnabled: store.setDeepgramStreamingEnabled,
     setSonioxRealtimeEnabled: store.setSonioxRealtimeEnabled,
+    setBailianRealtimeEnabled: store.setBailianRealtimeEnabled,
     useReasoningModel: store.useReasoningModel,
     voiceAssistantEnabled: store.voiceAssistantEnabled,
     reasoningModel: store.reasoningModel,

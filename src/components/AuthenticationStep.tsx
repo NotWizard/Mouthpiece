@@ -11,7 +11,8 @@ import {
 import { MOUTHPIECE_API_URL, OPENWHISPR_API_URL } from "../config/constants";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { AlertCircle, ArrowRight, Check, Loader2, ChevronLeft } from "lucide-react";
+import { ArrowRight, Check, Loader2, ChevronLeft } from "lucide-react";
+import { ErrorNotice } from "./ui/ErrorNotice";
 import logoIcon from "../assets/icon.png";
 import logger from "../utils/logger";
 import ForgotPasswordView from "./ForgotPasswordView";
@@ -501,10 +502,7 @@ export default function AuthenticationStep({
           )}
 
           {error && (
-            <div className="px-2.5 py-1.5 rounded bg-destructive/5 border border-destructive/20 flex items-center gap-1.5">
-              <AlertCircle className="w-3 h-3 text-destructive shrink-0" />
-              <p className="text-xs text-destructive leading-snug">{error}</p>
-            </div>
+            <ErrorNotice message={error} compact />
           )}
 
           <Button type="submit" disabled={isSubmitting || !password} className="w-full h-9">
@@ -636,10 +634,7 @@ export default function AuthenticationStep({
       </form>
 
       {error && (
-        <div className="px-3 py-2 rounded-md bg-destructive/5 border border-destructive/20 flex items-center gap-2">
-          <AlertCircle className="w-3.5 h-3.5 text-destructive shrink-0" />
-          <p className="text-xs text-destructive">{error}</p>
-        </div>
+        <ErrorNotice message={error} compact />
       )}
 
       <div className="pt-1">
