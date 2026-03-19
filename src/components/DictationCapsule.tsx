@@ -12,6 +12,10 @@ import {
   normalizeLiveTranscriptText,
 } from "../utils/liveTranscriptMotion.mjs";
 import {
+  getLiveTranscriptRevealBase,
+  stepLiveTranscriptReveal,
+} from "../utils/liveTranscriptReveal.mjs";
+import {
   DICTATION_CAPSULE_CONTENT_SWAP_DELAY_MS,
   DICTATION_CAPSULE_MORPH_DURATION_MS,
   getDictationCapsuleLayout,
@@ -24,6 +28,8 @@ const LIVE_PREVIEW_TRAILING_REVEAL_PX = 12;
 const LIVE_PREVIEW_ENTRANCE_DURATION_MS = 320;
 const LIVE_PREVIEW_GHOST_EXIT_DURATION_MS = 260;
 const LIVE_PREVIEW_SCROLL_DURATION_MS = 240;
+const LIVE_PREVIEW_REVEAL_FRAME_MS = 28;
+const LIVE_PREVIEW_REVEAL_MAX_CHARS_PER_FRAME = 1;
 const LIVE_PREVIEW_EDGE_MASK =
   "linear-gradient(90deg, black 0px, black calc(100% - 16px), transparent 100%)";
 
@@ -140,7 +146,7 @@ export default function DictationCapsule({
   onBlur,
 }: DictationCapsuleProps) {
   const helperText = isRecording || isProcessing || isTranscribing ? secondaryLabel : hotkeyLabel;
-  const livePreviewText = normalizeLiveTranscriptText(secondaryLabel, {
+  const livePreviewTargetText = normalizeLiveTranscriptText(secondaryLabel, {
     maxChars: LIVE_PREVIEW_RENDER_MAX_CHARS,
   });
   const [sampleHistory, setSampleHistory] = useState<number[]>(() => createSilentSamples());
@@ -148,6 +154,7 @@ export default function DictationCapsule({
     isTranscribing ? DICTATION_CAPSULE_CONTENT_SWAP_DELAY_MS : 0
   );
   const [livePreviewOffsetPx, setLivePreviewOffsetPx] = useState(0);
+  const [revealedLivePreviewText, setRevealedLivePreviewText] = useState("");
   const [showListeningGhost, setShowListeningGhost] = useState(false);
   const [isTranscriptEntranceActive, setIsTranscriptEntranceActive] = useState(false);
   const [listeningGhostLabel, setListeningGhostLabel] = useState(helperText);
@@ -159,9 +166,10 @@ export default function DictationCapsule({
   const livePreviewMeasureFrameRef = useRef<number | undefined>(undefined);
   const transcriptEntranceFrameRef = useRef<number | undefined>(undefined);
   const transcriptEntranceTimeoutRef = useRef<number | undefined>(undefined);
+  const livePreviewRevealTimeoutRef = useRef<number | undefined>(undefined);
   const listeningGhostLabelRef = useRef(helperText);
   const liveShellActive = isRecording;
-  const liveTrackText = showTranscriptPreview ? livePreviewText : helperText;
+  const liveTrackText = showTranscriptPreview ? revealedLivePreviewText : helperText;
   const listeningGhostText = helperText;
 
   useEffect(() => {
@@ -223,6 +231,60 @@ export default function DictationCapsule({
   }, [listeningGhostText, showTranscriptPreview]);
 
   useEffect(() => {
+    if (livePreviewRevealTimeoutRef.current !== undefined) {
+      window.clearTimeout(livePreviewRevealTimeoutRef.current);
+      livePreviewRevealTimeoutRef.current = undefined;
+    }
+
+    if (!showTranscriptPreview || !livePreviewTargetText) {
+      setRevealedLivePreviewText("");
+      return;
+    }
+
+    setRevealedLivePreviewText((currentText) => {
+      const baseText = getLiveTranscriptRevealBase({
+        renderedText: currentText,
+        targetText: livePreviewTargetText,
+      });
+
+      return currentText === baseText ? currentText : baseText;
+    });
+  }, [livePreviewTargetText, showTranscriptPreview]);
+
+  useEffect(() => {
+    if (livePreviewRevealTimeoutRef.current !== undefined) {
+      window.clearTimeout(livePreviewRevealTimeoutRef.current);
+      livePreviewRevealTimeoutRef.current = undefined;
+    }
+
+    if (!showTranscriptPreview || !livePreviewTargetText) {
+      return;
+    }
+
+    if (revealedLivePreviewText === livePreviewTargetText) {
+      return;
+    }
+
+    livePreviewRevealTimeoutRef.current = window.setTimeout(() => {
+      setRevealedLivePreviewText((currentText) =>
+        stepLiveTranscriptReveal({
+          renderedText: currentText,
+          targetText: livePreviewTargetText,
+          maxCharsPerStep: LIVE_PREVIEW_REVEAL_MAX_CHARS_PER_FRAME,
+        })
+      );
+      livePreviewRevealTimeoutRef.current = undefined;
+    }, LIVE_PREVIEW_REVEAL_FRAME_MS);
+
+    return () => {
+      if (livePreviewRevealTimeoutRef.current !== undefined) {
+        window.clearTimeout(livePreviewRevealTimeoutRef.current);
+        livePreviewRevealTimeoutRef.current = undefined;
+      }
+    };
+  }, [livePreviewTargetText, revealedLivePreviewText, showTranscriptPreview]);
+
+  useEffect(() => {
     const wasShowingTranscriptPreview = wasShowingTranscriptPreviewRef.current;
 
     if (showTranscriptPreview && !wasShowingTranscriptPreview) {
@@ -274,6 +336,10 @@ export default function DictationCapsule({
 
       if (transcriptEntranceTimeoutRef.current !== undefined) {
         window.clearTimeout(transcriptEntranceTimeoutRef.current);
+      }
+
+      if (livePreviewRevealTimeoutRef.current !== undefined) {
+        window.clearTimeout(livePreviewRevealTimeoutRef.current);
       }
     };
   }, []);

@@ -95,3 +95,23 @@ test("dictation capsule live transcript mask no longer fades out the leading cha
     /linear-gradient\(90deg, transparent 0px, black 24px, black calc\(100% - 16px\), transparent 100%\)/
   );
 });
+
+test("dictation capsule progressively reveals incoming partial transcript text instead of snapping full chunks into view", () => {
+  const source = read("src/components/DictationCapsule.tsx");
+
+  assert.match(source, /getLiveTranscriptRevealBase/);
+  assert.match(source, /stepLiveTranscriptReveal/);
+  assert.match(
+    source,
+    /const \[revealedLivePreviewText, setRevealedLivePreviewText\] = useState\(""\);/
+  );
+  assert.match(
+    source,
+    /const liveTrackText = showTranscriptPreview \? revealedLivePreviewText : helperText;/
+  );
+  assert.match(source, /const LIVE_PREVIEW_REVEAL_FRAME_MS = 28;/);
+  assert.match(
+    source,
+    /window\.setTimeout\(\(\) => \{\s*setRevealedLivePreviewText\(\(currentText\) =>\s*stepLiveTranscriptReveal\(/s
+  );
+});
