@@ -73,3 +73,27 @@ test("llama download script skips the GitHub API when the current binary already
     "download-llama-server.js should short-circuit before fetching release metadata when the target binary is already present"
   );
 });
+
+test("macOS workflows pin dedicated runners for x64 and arm64 builds", () => {
+  const workflows = [
+    ".github/workflows/release.yml",
+    ".github/workflows/build-and-notarize.yml",
+  ];
+
+  for (const relativePath of workflows) {
+    const source = fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+
+    assert.ok(
+      source.includes("runner: macos-15-intel"),
+      `${relativePath} should use the Intel macOS runner for x64 packaging`
+    );
+    assert.ok(
+      source.includes("runner: macos-15"),
+      `${relativePath} should use the arm64 macOS runner for Apple Silicon packaging`
+    );
+    assert.ok(
+      !source.includes("build-macos:\n    runs-on: macos-latest"),
+      `${relativePath} should not run both macOS architectures on the same macos-latest runner label`
+    );
+  }
+});
