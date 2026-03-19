@@ -170,6 +170,33 @@ function getEntriesForPlatformArch(platformArch) {
 }
 
 async function main() {
+  const args = parseArgs();
+  fs.mkdirSync(BIN_DIR, { recursive: true });
+
+  if (args.isCurrent) {
+    const entries = getEntriesForPlatformArch(args.platformArch);
+
+    if (entries.length === 0) {
+      console.error(`Unsupported platform/arch: ${args.platformArch}`);
+      process.exitCode = 1;
+      return;
+    }
+
+    const hasAllOutputs = entries.every(([, config]) =>
+      fs.existsSync(path.join(BIN_DIR, config.outputName))
+    );
+
+    if (hasAllOutputs && !args.isForce) {
+      console.log(`\n[llama-server] ${args.platformArch}: already available in ${BIN_DIR}`);
+      console.log("[llama-server] Skipping release fetch because the binary already exists.");
+
+      if (args.shouldCleanup) {
+        cleanupFiles(BIN_DIR, "llama-server", `llama-server-${args.platformArch}`);
+      }
+      return;
+    }
+  }
+
   if (VERSION_OVERRIDE) {
     console.log(`\n[llama-server] Using pinned version: ${VERSION_OVERRIDE}`);
   } else {
@@ -185,10 +212,6 @@ async function main() {
   }
 
   console.log(`\nDownloading llama-server binaries (${release.tag})...\n`);
-
-  fs.mkdirSync(BIN_DIR, { recursive: true });
-
-  const args = parseArgs();
 
   if (args.isCurrent) {
     const entries = getEntriesForPlatformArch(args.platformArch);
