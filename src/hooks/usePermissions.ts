@@ -18,6 +18,7 @@ export interface UsePermissionsReturn {
   openMicPrivacySettings: () => Promise<void>;
   openSoundInputSettings: () => Promise<void>;
   openAccessibilitySettings: () => Promise<void>;
+  resetAccessibilityPermissions: () => Promise<void>;
   setMicPermissionGranted: (granted: boolean) => void;
   setAccessibilityPermissionGranted: (granted: boolean) => void;
 }
@@ -171,6 +172,50 @@ export const usePermissions = (
     [openSystemSettings]
   );
 
+  const syncAccessibilityPermission = useCallback(async (): Promise<boolean> => {
+    if (getPlatform() !== "darwin") {
+      return true;
+    }
+
+    try {
+      const granted = await window.electronAPI?.checkAccessibilityPermission?.({
+        promptOnFailure: false,
+        bypassCache: true,
+      });
+      setAccessibilityPermissionGranted(Boolean(granted));
+      return Boolean(granted);
+    } catch (error) {
+      console.error("Failed to refresh accessibility permission:", error);
+      return false;
+    }
+  }, [setAccessibilityPermissionGranted]);
+
+  const resetAccessibilityPermissions = useCallback(async () => {
+    if (getPlatform() !== "darwin") {
+      return;
+    }
+
+    try {
+      const result = await window.electronAPI?.resetAccessibilityPermissions?.();
+      if (result && !result.success) {
+        showAlertDialog?.({
+          title: t("settingsPage.permissions.resetAccessibility.title"),
+          description:
+            result.error || t("settingsPage.permissions.resetAccessibility.description"),
+        });
+        return;
+      }
+
+      setAccessibilityPermissionGranted(false);
+    } catch (error) {
+      console.error("Failed to reset accessibility permission:", error);
+      showAlertDialog?.({
+        title: t("settingsPage.permissions.resetAccessibility.title"),
+        description: t("settingsPage.permissions.resetAccessibility.description"),
+      });
+    }
+  }, [setAccessibilityPermissionGranted, showAlertDialog, t]);
+
   const requestMicPermission = useCallback(async () => {
     if (!navigator?.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
       const message = t("hooks.permissions.micUnavailable");
@@ -246,16 +291,27 @@ export const usePermissions = (
     checkPasteToolsAvailability();
   }, [checkPasteToolsAvailability]);
 
-  // On macOS, re-validate accessibility permission on mount to override stale
-  // localStorage values (e.g. after app update changes the code signature).
   useEffect(() => {
     if (getPlatform() !== "darwin") return;
-    window.electronAPI?.checkAccessibilityPermission?.().then((granted) => {
-      if (!granted) {
-        setAccessibilityPermissionGranted(false);
+
+    void syncAccessibilityPermission();
+
+    const refreshAccessibilityPermission = () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
       }
-    });
-  }, [setAccessibilityPermissionGranted]);
+
+      void syncAccessibilityPermission();
+    };
+
+    window.addEventListener("focus", refreshAccessibilityPermission);
+    document.addEventListener("visibilitychange", refreshAccessibilityPermission);
+
+    return () => {
+      window.removeEventListener("focus", refreshAccessibilityPermission);
+      document.removeEventListener("visibilitychange", refreshAccessibilityPermission);
+    };
+  }, [syncAccessibilityPermission]);
 
   const testAccessibilityPermission = useCallback(async () => {
     const platform = getPlatform();
@@ -273,6 +329,7 @@ export const usePermissions = (
         setAccessibilityPermissionGranted(true);
       } catch (err) {
         console.error("Accessibility permission test failed:", err);
+        setAccessibilityPermissionGranted(false);
         if (showAlertDialog) {
           showAlertDialog({
             title: t("hooks.permissions.titles.accessibilityNeeded"),
@@ -366,6 +423,7 @@ export const usePermissions = (
     openMicPrivacySettings,
     openSoundInputSettings,
     openAccessibilitySettings,
+    resetAccessibilityPermissions,
     setMicPermissionGranted,
     setAccessibilityPermissionGranted,
   };

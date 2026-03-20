@@ -850,7 +850,7 @@ export default function SettingsPage({
       title: t("settingsPage.permissions.resetAccessibility.title"),
       description: message,
       onConfirm: () => {
-        permissionsHook.openAccessibilitySettings();
+        void permissionsHook.resetAccessibilityPermissions();
       },
     });
   };

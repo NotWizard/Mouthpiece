@@ -31,6 +31,7 @@ import {
   getActivationStepIndex,
   getOnboardingMaxStep,
   getOnboardingStepKeys,
+  resolveOnboardingHotkeyDraft,
 } from "../utils/onboardingFlow.mjs";
 
 interface OnboardingFlowProps {
@@ -71,6 +72,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   const autoRegisterInFlightRef = useRef(false);
   const hotkeyStepInitializedRef = useRef(false);
+  const hasUserEditedHotkeyRef = useRef(false);
 
   const { registerHotkey, isRegistering: isHotkeyRegistering } = useHotkeyRegistration({
     onSuccess: (registeredHotkey) => {
@@ -118,6 +120,19 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   }, []);
 
   const activationStepIndex = getActivationStepIndex();
+
+  useEffect(() => {
+    const syncedHotkey = resolveOnboardingHotkeyDraft({
+      draftHotkey: hotkey,
+      settingsHotkey: dictationKey,
+      hasUserEdited: hasUserEditedHotkeyRef.current,
+      fallbackHotkey: getDefaultHotkey(),
+    });
+
+    if (syncedHotkey !== hotkey) {
+      setHotkey(syncedHotkey);
+    }
+  }, [dictationKey, hotkey]);
 
   useEffect(() => {
     if (currentStep !== activationStepIndex) {
@@ -358,6 +373,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             onChange={async (newHotkey) => {
               const success = await registerHotkey(newHotkey);
               if (success) {
+                hasUserEditedHotkeyRef.current = true;
                 setHotkey(newHotkey);
               }
             }}

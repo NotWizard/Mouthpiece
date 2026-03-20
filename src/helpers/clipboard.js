@@ -4,6 +4,7 @@ const { killProcess } = require("../utils/process");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
+const { buildMacOSAccessibilityResetCommand } = require("./accessibilityRepair");
 const debugLogger = require("./debugLogger");
 
 const CACHE_TTL_MS = 30000;
@@ -1784,11 +1785,14 @@ class ClipboardManager {
     throw err;
   }
 
-  async checkAccessibilityPermissions() {
+  async checkAccessibilityPermissions({
+    promptOnFailure = true,
+    bypassCache = false,
+  } = {}) {
     if (process.platform !== "darwin") return true;
 
     const now = Date.now();
-    if (now < this.accessibilityCache.expiresAt && this.accessibilityCache.value !== null) {
+    if (!bypassCache && now < this.accessibilityCache.expiresAt && this.accessibilityCache.value !== null) {
       return this.accessibilityCache.value;
     }
 
@@ -1798,11 +1802,40 @@ class ClipboardManager {
       expiresAt: Date.now() + ACCESSIBILITY_CHECK_TTL_MS,
     };
 
-    if (!allowed) {
+    if (!allowed && promptOnFailure) {
       this.showAccessibilityDialog("not allowed assistive access");
     }
 
     return allowed;
+  }
+
+  async resetAccessibilityPermissions() {
+    if (process.platform !== "darwin") {
+      return {
+        success: false,
+        error: "Accessibility reset is only available on macOS.",
+      };
+    }
+
+    this.accessibilityCache = { value: null, expiresAt: 0 };
+
+    const { command, args } = buildMacOSAccessibilityResetCommand();
+    const result = spawnSync(command, args, { encoding: "utf8" });
+
+    if (result.error) {
+      return { success: false, error: result.error.message };
+    }
+
+    if (result.status !== 0) {
+      const error = (result.stderr || result.stdout || "").trim();
+      return {
+        success: false,
+        error: error || `tccutil exited with code ${result.status ?? "unknown"}`,
+      };
+    }
+
+    this.openSystemSettings();
+    return { success: true };
   }
 
   showAccessibilityDialog(testError) {
@@ -1903,7 +1936,7 @@ Would you like to open System Settings now?`;
       return;
     }
     if (process.platform !== "darwin") return;
-    this.checkAccessibilityPermissions().catch(() => {});
+    this.checkAccessibilityPermissions({ promptOnFailure: false }).catch(() => {});
     this.resolveFastPasteBinary();
   }
 

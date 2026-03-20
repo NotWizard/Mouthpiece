@@ -358,7 +358,11 @@ declare global {
       }) => Promise<void>;
 
       // Clipboard operations
-      checkAccessibilityPermission: () => Promise<boolean>;
+      checkAccessibilityPermission: (options?: {
+        promptOnFailure?: boolean;
+        bypassCache?: boolean;
+      }) => Promise<boolean>;
+      resetAccessibilityPermissions?: () => Promise<{ success: boolean; error?: string }>;
       readClipboard: () => Promise<string>;
       writeClipboard: (text: string) => Promise<{ success: boolean }>;
       checkPasteTools: () => Promise<PasteToolsResult>;

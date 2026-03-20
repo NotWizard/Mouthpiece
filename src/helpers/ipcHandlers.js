@@ -591,8 +591,12 @@ class IPCHandlers {
       return result;
     });
 
-    ipcMain.handle("check-accessibility-permission", async () => {
-      return this.clipboardManager.checkAccessibilityPermissions();
+    ipcMain.handle("check-accessibility-permission", async (event, options) => {
+      return this.clipboardManager.checkAccessibilityPermissions(options);
+    });
+
+    ipcMain.handle("reset-accessibility-permissions", async () => {
+      return this.clipboardManager.resetAccessibilityPermissions();
     });
 
     ipcMain.handle("read-clipboard", async (event) => {
