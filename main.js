@@ -5,6 +5,7 @@ const http = require("http");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 const { createAutomaticActivationSession } = require("./src/helpers/automaticActivation");
 const productIdentity = require("./src/config/productIdentity");
+const { resolveUserDataPath } = require("./src/helpers/userDataPathResolver");
 
 const VALID_CHANNELS = new Set(productIdentity.VALID_APP_CHANNELS);
 const DEFAULT_AUTH_BRIDGE_PORT = 5199;
@@ -50,97 +51,14 @@ const APP_CHANNEL = resolveAppChannel();
 process.env.MOUTHPIECE_CHANNEL = APP_CHANNEL;
 process.env.OPENWHISPR_CHANNEL = APP_CHANNEL;
 
-function buildUserDataDirName(baseName, channel) {
-  return channel === "production" ? baseName : `${baseName}-${channel}`;
-}
-
-function safeStatSize(filePath) {
-  try {
-    return fs.statSync(filePath).size || 0;
-  } catch {
-    return 0;
-  }
-}
-
-function getUserDataStateScore(dirPath) {
-  // Prefer directories that already contain user settings/history.
-  return (
-    (safeStatSize(path.join(dirPath, ".env")) > 0 ? 8 : 0) +
-    (safeStatSize(path.join(dirPath, "transcriptions-dev.db-wal")) > 1024 ? 5 : 0) +
-    (safeStatSize(path.join(dirPath, "transcriptions.db-wal")) > 1024 ? 5 : 0) +
-    (safeStatSize(path.join(dirPath, "transcriptions-dev.db")) > 4096 ? 3 : 0) +
-    (safeStatSize(path.join(dirPath, "transcriptions.db")) > 4096 ? 3 : 0) +
-    (safeStatSize(path.join(dirPath, "Preferences")) > 64 ? 1 : 0)
-  );
-}
-
-function resolveUserDataPath() {
-  const override = (
-    process.env.MOUTHPIECE_USER_DATA_DIR ||
-    process.env.OPENWHISPR_USER_DATA_DIR ||
-    ""
-  ).trim();
-  if (override) {
-    return { selectedPath: override, reason: "env-override" };
-  }
-
-  const appDataRoot = app.getPath("appData");
-  const candidateNames = [CURRENT_USER_DATA_BASENAME, ...LEGACY_USER_DATA_BASENAMES];
-  const candidates = candidateNames.map((baseName) => {
-    const dirPath = path.join(appDataRoot, buildUserDataDirName(baseName, APP_CHANNEL));
-    return {
-      baseName,
-      dirPath,
-      exists: fs.existsSync(dirPath),
-      isCurrent: baseName === CURRENT_USER_DATA_BASENAME,
-    };
-  });
-
-  const currentCandidate = candidates.find((candidate) => candidate.isCurrent);
-  const existingCandidates = candidates.filter((candidate) => candidate.exists);
-
-  if (existingCandidates.length === 0) {
-    return { selectedPath: currentCandidate.dirPath, reason: "fresh-current" };
-  }
-
-  const rankedCandidates = existingCandidates
-    .map((candidate) => ({
-      ...candidate,
-      score: getUserDataStateScore(candidate.dirPath),
-    }))
-    .sort((a, b) => {
-      if (a.score !== b.score) {
-        return b.score - a.score;
-      }
-
-      if (a.isCurrent !== b.isCurrent) {
-        return a.isCurrent ? -1 : 1;
-      }
-
-      return candidateNames.indexOf(a.baseName) - candidateNames.indexOf(b.baseName);
-    });
-
-  const selectedCandidate = rankedCandidates[0];
-
-  if (existingCandidates.length === 1) {
-    return {
-      selectedPath: selectedCandidate.dirPath,
-      reason: selectedCandidate.isCurrent
-        ? "current-only"
-        : `legacy-only:${selectedCandidate.baseName}`,
-    };
-  }
-
-  return {
-    selectedPath: selectedCandidate.dirPath,
-    reason: selectedCandidate.isCurrent
-      ? "current-higher-or-equal-score"
-      : `legacy-higher-score:${selectedCandidate.baseName}`,
-  };
-}
-
 function configureChannelUserDataPath() {
-  const { selectedPath, reason } = resolveUserDataPath();
+  const { selectedPath, reason } = resolveUserDataPath({
+    override: process.env.MOUTHPIECE_USER_DATA_DIR || process.env.OPENWHISPR_USER_DATA_DIR,
+    appDataRoot: app.getPath("appData"),
+    currentUserDataBaseName: CURRENT_USER_DATA_BASENAME,
+    legacyUserDataBaseNames: LEGACY_USER_DATA_BASENAMES,
+    channel: APP_CHANNEL,
+  });
   app.setPath("userData", selectedPath);
   process.env.OPENWHISPR_USER_DATA_DIR = selectedPath;
   console.log("[startup] userData path resolved", {

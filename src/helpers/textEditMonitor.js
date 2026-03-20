@@ -2,6 +2,7 @@ const { spawn, execFile } = require("child_process");
 const path = require("path");
 const EventEmitter = require("events");
 const fs = require("fs");
+const { resolveMacOSAccessibilityMode } = require("./macOSAccessibilityMode");
 const debugLogger = require("./debugLogger");
 
 const POLL_INTERVAL_MS = 500;
@@ -167,6 +168,7 @@ class TextEditMonitor extends EventEmitter {
     this.lastTargetPid = null;
     this.lastTargetAppName = null;
     this.lastTargetCapturedAt = null;
+    this._macOSNativeFallbackState = null;
   }
 
   /**
@@ -265,7 +267,8 @@ class TextEditMonitor extends EventEmitter {
     this.currentOriginalText = originalText;
 
     if (process.platform === "darwin") {
-      const resolved = this.resolveBinary();
+      const { useNativeTextMonitor } = resolveMacOSAccessibilityMode();
+      const resolved = useNativeTextMonitor ? this.resolveBinary() : null;
       if (resolved) {
         this._startMacOSNative(originalText, timeoutMs, options.targetPid, resolved);
         return;
@@ -352,6 +355,7 @@ class TextEditMonitor extends EventEmitter {
     }
     this._lastValue = null;
     this._stdoutBuffer = "";
+    this._macOSNativeFallbackState = null;
     if (this.process) {
       try {
         this.process.kill();
@@ -415,8 +419,51 @@ class TextEditMonitor extends EventEmitter {
 
     if (line === "NO_ELEMENT" || line === "NO_VALUE") {
       debugLogger.debug("[TextEditMonitor] No target element", { status: line });
+      if (this._macOSNativeFallbackState && !this._macOSNativeFallbackState.hasFallenBack) {
+        this._fallbackMacOSNativeToPolling(`status:${line}`);
+        return;
+      }
       this.stopMonitoring();
     }
+  }
+
+  _fallbackMacOSNativeToPolling(reason) {
+    const fallbackState = this._macOSNativeFallbackState;
+    if (!fallbackState || this.currentOriginalText === null) {
+      return;
+    }
+
+    if (!fallbackState.targetPid || fallbackState.hasFallenBack) {
+      this.stopMonitoring();
+      return;
+    }
+
+    fallbackState.hasFallenBack = true;
+
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      this.timeout = null;
+    }
+
+    if (this.process) {
+      try {
+        this.process.kill();
+      } catch {
+        // ignore
+      }
+      this.process = null;
+    }
+
+    debugLogger.debug("[TextEditMonitor] macOS native: falling back to polling", {
+      reason,
+      targetPid: fallbackState.targetPid,
+    });
+
+    this._startMacOSPolling(
+      fallbackState.originalText,
+      fallbackState.timeoutMs,
+      fallbackState.targetPid
+    );
   }
 
   /**
@@ -454,6 +501,13 @@ class TextEditMonitor extends EventEmitter {
       targetPid,
       textPreview: originalText.substring(0, 80),
     });
+
+    this._macOSNativeFallbackState = {
+      originalText,
+      timeoutMs,
+      targetPid,
+      hasFallenBack: false,
+    };
 
     await this._enableAccessibility(targetPid);
     if (this.currentOriginalText === null) return;
@@ -499,12 +553,14 @@ class TextEditMonitor extends EventEmitter {
       });
       this.process = null;
       if (this.currentOriginalText === null) return;
-      this._startMacOSPolling(originalText, timeoutMs, targetPid);
+      this._fallbackMacOSNativeToPolling(`process-error:${err.message}`);
     });
 
     this.process.on("exit", (code, signal) => {
       debugLogger.debug("[TextEditMonitor] Process exited", { code, signal });
       this.process = null;
+      if (this.currentOriginalText === null) return;
+      this._fallbackMacOSNativeToPolling(`process-exit:${code ?? "null"}:${signal ?? "none"}`);
     });
 
     this.timeout = setTimeout(() => this.stopMonitoring(), timeoutMs);

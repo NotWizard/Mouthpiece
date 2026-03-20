@@ -5,6 +5,7 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 const { buildMacOSAccessibilityResetCommand } = require("./accessibilityRepair");
+const { resolveMacOSAccessibilityMode } = require("./macOSAccessibilityMode");
 const debugLogger = require("./debugLogger");
 
 const CACHE_TTL_MS = 30000;
@@ -849,8 +850,9 @@ class ClipboardManager {
   }
 
   async pasteMacOS(originalClipboard, options = {}) {
+    const { useNativePasteHelper } = resolveMacOSAccessibilityMode();
     const fastPasteBinary = this.resolveFastPasteBinary();
-    const useFastPaste = !!fastPasteBinary;
+    const useFastPaste = useNativePasteHelper && !!fastPasteBinary;
     const shouldRestoreClipboard = !options?.preserveClipboard;
     const pasteDelay = options.fromStreaming ? (useFastPaste ? 15 : 50) : PASTE_DELAYS.darwin;
 
