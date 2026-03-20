@@ -68,7 +68,8 @@
     "desktop-app"
   ],
   "author": {
-    "name": "Mouthpiece Contributors"
+    "name": "Mouthpiece Contributors",
+    "email": "notwizard@users.noreply.github.com"
   },
   "license": "MIT",
   "devDependencies": {
