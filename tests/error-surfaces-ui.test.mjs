@@ -17,6 +17,19 @@ test("dialog primitives expose premium shell variants for destructive flows", as
   assert.match(source, /const handleOpenChange = \(nextOpen: boolean\)/);
 });
 
+test("shared dialog keeps viewport centering separate from motion classes", async () => {
+  const source = await readRepoFile("src/components/ui/dialog.tsx");
+
+  assert.match(
+    source,
+    /DialogPrimitive\.Content[\s\S]*className=\{cn\(\s*"fixed inset-0 z-50 flex items-center justify-center p-3 pointer-events-none/
+  );
+  assert.match(
+    source,
+    /<div[\s\S]*className=\{cn\(\s*"dialog-premium-shell pointer-events-auto relative grid w-full gap-4 rounded-\[24px\] p-5 sm:p-6"/
+  );
+});
+
 test("alert destructive variant uses premium shared surfaces instead of legacy red blocks", async () => {
   const source = await readRepoFile("src/components/ui/alert.tsx");
 
