@@ -6,23 +6,21 @@
 
 <p align="center">
   开源桌面听写应用（macOS / Windows / Linux）<br/>
-  基于 OpenWhispr 架构，面向中文/英文输入场景做了专项优化
+  基于 OpenWhispr 与 VoiceInk 持续演进，面向中文/英文输入场景做了专项优化
 </p>
 
 ## Project Notice (Public Release)
 
 - This project is an **open-source desktop dictation app** that converts speech to text with local and cloud model options.
 - **Default mode is BYOK (Bring Your Own Key)**: users provide their own API key / endpoint for cloud providers, or use local models.
-- This repository is a **community fork based on OpenWhispr** (roughly **95% inherited architecture / implementation**) and is **not affiliated with Typeless or OpenWhispr official hosted services**.
-
-- **Project status: Maintenance mode / archived release track**. Core features are considered complete, and only minimal follow-up is expected.
+- This repository is a **community fork inspired by and based on both OpenWhispr and VoiceInk**, with respect and thanks to both upstream projects. It is **not affiliated with Typeless, OpenWhispr official hosted services, or VoiceInk official services**.
+- Recent iterations focus on **explicit BYOK provider integrations** (Alibaba Bailian / Deepgram / Soniox), **realtime dictation UX polish**, and **desktop stability / update flow**.
 
 ---
 
 ## 对外说明
 
-
-本项目整体架构约 95% 基于 OpenWhispr（Open Whisper 社区项目）实现，在其基础上针对日常中文/英文输入体验做了增强。
+本项目基于 OpenWhispr（Open Whisper 社区项目）与 VoiceInk 持续演进，并向这两个上游项目致敬；在此基础上针对日常中文/英文输入体验做了增强。
 
 > 当前公开版本的“工程级优化”主要在 **Windows** 平台验证与打磨；macOS/Linux 以基础可用为目标。
 
@@ -30,43 +28,42 @@
 
 - 开源桌面听写工具（非 SaaS）
 - 默认 BYOK 模式，不绑定订阅制
-- 接受 issue；PR 可能会审核合并，但维护频率较低（维护模式）
 
 ---
 
-## 主要增强
+## 重点增强与优化
 
-1. **粘贴回退优化（重点）**
-   - 当系统检测到“当前不可粘贴”时，不再强行输入。
-   - 文本会停留在复制面板/剪贴板，用户可直接 `Ctrl+V` / `Cmd+V` 手动粘贴。
+1. **粘贴回退更稳**
+   - 当系统判断当前环境不适合直接自动粘贴时，不再强行输入。
+   - 文本会保留在复制面板或剪贴板中，用户可以直接 `Ctrl+V` / `Cmd+V` 手动粘贴，减少误输入。
 
-2. **智能词典**
-   - 支持自定义词典、批量导入。
+2. **智能词典能力更完整**
+   - 支持自定义词典、批量导入，并可把词典提示注入转录与后处理链路，提升术语、专有名词和中英文混输场景的命中率。
+   - 批量导入规则也做过针对性优化，实测可直接复制现有词库后快速整理成有效词条。
 
-   - 批量导入规则：文本按空白拆分后，空格长度 `>=2` 即视为有效词条；实测可直接复制 Typeless 词库并一键导入。
-   - 可将词典提示注入到转录/后处理链路，提升术语命中率。
+3. **支持纠错后的持续学习**
+   - 用户手动修正识别结果后，可选择回流到词典，逐步改善后续识别效果。
+   - 这对高频术语、团队内部名词和个人习惯表达尤其有帮助。
 
-3. **纠错自动学习（可选）**
-   - 用户手动修正后，可回流词典，持续优化后续识别效果。
+4. **实时转录交互体验做了一轮重写**
+   - 悬浮录音胶囊更紧凑，录音波形会根据真实麦克风输入动态变化，不再只是装饰动画。
+   - 实时字幕现在支持单行连续滚动展示，录音结束后会自然切换到 `处理中...`，整体观感更顺滑。
+   - 同时补了一层流式语音门控，尽量减少刚开始监听但实际上没有说话时出现的伪文本。
 
-4. **发现并接入了两个极快模型链路** — 链接置于最后
-   - 面向短文本实时润色/后处理场景，优先低延迟体验。
-   - **ASR**：阿里云百炼链路（Alibaba Bailian / DashScope compatible mode，默认推荐 `qwen3-asr-flash`）
-     - 在中文口语、方言和中文工作流场景通常更稳定，网络路径也较友好。
-     - 现已支持在同一个 Bailian provider 内切换批量模式与实时模式：
-       - 批量模式：`qwen3-asr-flash`
-       - 实时模式：`qwen3-asr-flash-realtime`
-   - **LLM 润色**：Cerebras `gpt-oss-120b`（high）
+5. **云端转录 provider 更明确、切换更灵活**
+   - Alibaba Bailian 已升级为独立 provider，不再依赖 `Custom + DashScope Base URL` 这类隐式配置。
+   - 同时新增 Deepgram 与 Soniox 一等公民接入，都有独立入口、独立 API Key 和清晰说明。
+   - Bailian、Deepgram、Soniox 现在都支持更明确的批量 / 实时转录切换，更方便按延迟和稳定性偏好选择。
 
-5. **智能层做了更严格约束**
-   - 为降低“模型回答问题而非转录”的风险，当前对智能层行为进行了较强限制。
-   - 这会在一定程度上限制智能词典与语义改写能力，属于“稳定优先”的权衡。
+6. **自定义端点和智能层设置更顺手**
+   - 自定义转录 / 推理 API Key 支持边输入边保存，减少来回保存确认的操作成本。
+   - 自定义 OpenAI-compatible 推理与 Bailian 推理都增加了 `enable_thinking` 开关，方便在速度与思考链路之间自行取舍。
+   - 同时对智能层做了更严格的约束，尽量降低“模型开始回答问题而不是做转录整理”的风险。
 
-6. **最近补齐了一轮实时转录交互与稳定性优化**
-   - Bailian 实时转录现在会在胶囊内以**单行、连续、平滑滚动**的方式展示实时文字，不再和波纹层打架。
-   - 结束录音后，胶囊会先进入 `处理中...` 状态，再完成最终文本整理。
-   - 新增一层流式语音门控，尽量减少刚开始监听但用户实际上没有说话时出现的伪文本。
-   - 错误 toast、确认弹窗、页面内联报错统一成同一套高质感胶囊式视觉，不再使用生硬的纯红底警报块。
+7. **桌面端稳定性与工程体验继续补强**
+   - 云端推理请求现在优先走 Electron 主进程代理，降低渲染进程直连时的兼容性和网络异常问题。
+   - 旧版通过 DashScope 自定义端点保存的配置会自动迁移到显式的 Alibaba Bailian provider，减少历史配置遗留问题。
+   - 打包版应用补齐了后台静默检查更新与控制面板安装提示，同时移除了公开版里不必要的 usage analytics 遗留开关。
 
 ---
 
@@ -204,6 +201,7 @@ npm run build
 ## Upstream & References
 
 - OpenWhispr 原始仓库: https://github.com/OpenWhispr/openwhispr
+- VoiceInk 原始仓库: https://github.com/le-soleil-se-couche/VoiceInk
 - Cerebras 免费 Key: https://cloud.cerebras.ai
 - Cerebras 快速开始: https://inference-docs.cerebras.ai/quickstart
 - Cerebras 定价: https://www.cerebras.ai/pricing
