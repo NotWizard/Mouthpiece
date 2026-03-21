@@ -64,6 +64,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate ASR replay benchmark summary
+        run: npm run replay:asr -- --output tmp/asr-replay.json
+
+      - name: Verify ASR replay benchmark summary
+        run: npm run verify:asr-benchmarks
+
       - name: Cache native binaries
         uses: actions/cache@v4
         with:
@@ -144,6 +150,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Generate ASR replay benchmark summary
+        run: npm run replay:asr -- --output tmp/asr-replay.json
+
+      - name: Verify ASR replay benchmark summary
+        run: npm run verify:asr-benchmarks
 
       - name: Cache native binaries
         uses: actions/cache@v4
@@ -232,6 +244,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Generate ASR replay benchmark summary
+        run: npm run replay:asr -- --output tmp/asr-replay.json
+
+      - name: Verify ASR replay benchmark summary
+        run: npm run verify:asr-benchmarks
 
       - name: Install ffmpeg-static for target architecture
         if: matrix.arch == 'x64'

@@ -926,6 +926,49 @@
       "tipLabel": "Suggerimento",
       "tipDescription": "Separa più parole con le virgole. Aggiungi frasi di contesto come \"The word is Synty\" per un migliore riconoscimento."
     },
+    "postProcessingStrategy": {
+      "title": "Default Cleanup Style",
+      "description": "Choose how aggressively Mouthpiece should rewrite text when no app-specific rule overrides it.",
+      "options": {
+        "raw_first": {
+          "label": "Raw First",
+          "description": "Keep cleanup minimal and stay extremely close to what was spoken."
+        },
+        "light_polish": {
+          "label": "Light Polish",
+          "description": "Remove obvious fillers and smooth phrasing without changing your voice too much."
+        },
+        "publishable": {
+          "label": "Publishable",
+          "description": "Aim for send-ready writing with stronger punctuation, casing, and sentence cleanup."
+        },
+        "structured_rewrite": {
+          "label": "Structured Rewrite",
+          "description": "Allow the cleanup layer to reorganize structure when that clearly improves the result."
+        }
+      }
+    },
+    "terminology": {
+      "title": "Terminology Controls",
+      "description": "Review learned suggestions and tune how Mouthpiece treats preferred, avoided, and corrected terms.",
+      "glossaryTitle": "Glossary Terms",
+      "glossaryEmpty": "No glossary terms yet. Add company names, product names, or recurring jargon.",
+      "glossaryPlaceholder": "Add glossary terms, separated by commas",
+      "addGlossary": "Add glossary terms",
+      "blacklistTitle": "Avoided Terms",
+      "blacklistEmpty": "No avoided terms yet. Add spellings you want the cleanup layer to avoid.",
+      "blacklistPlaceholder": "Add avoided terms, separated by commas",
+      "addBlacklist": "Add avoided terms",
+      "homophoneTitle": "Homophone Mappings",
+      "homophoneEmpty": "No homophone mappings yet. Use source=target to correct recurring sound-alikes.",
+      "homophonePlaceholder": "Add mapping like mode boat=mouthpiece",
+      "addMapping": "Add homophone mapping",
+      "pendingSuggestionsTitle": "Pending Suggestions",
+      "pendingSuggestionsEmpty": "No pending suggestions right now.",
+      "pendingSuggestionSource": "Source: {{source}}",
+      "approve": "Approve",
+      "reject": "Reject"
+    },
     "general": {
       "appearance": {
         "auto": "Automatico",

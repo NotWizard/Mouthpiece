@@ -9,6 +9,7 @@ import {
   type OutputStrategy,
   type PostProcessingPolicy,
 } from "../utils/postProcessingPolicy";
+import type { TerminologyProfile } from "../utils/terminologyProfile";
 
 export const CLEANUP_PROMPT = promptData.CLEANUP_PROMPT;
 export const FULL_PROMPT = promptData.FULL_PROMPT;
@@ -63,10 +64,31 @@ function getSurfaceInstruction(surfaceMode: InputSurfaceMode): string {
   }
 }
 
-function getContextInstruction(
-  context?: ContextClassification,
-  policy = resolvePostProcessingPolicy()
-): string {
+function getPolicyInstruction(policy = resolvePostProcessingPolicy()): string {
+  const policyHints = [
+    `Surface mode: ${policy.surfaceMode}. ${getSurfaceInstruction(policy.surfaceMode)}`,
+    `Output strategy: ${policy.outputStrategy}. ${getStrategyInstruction(policy.outputStrategy)}`,
+    policy.allowStructuredRewrite
+      ? "Structured rewrite is allowed when it improves the requested result."
+      : "Do not perform broad structural rewrites.",
+  ];
+
+  if (policy.preserveIdentifiers) {
+    policyHints.push(
+      "Preserve identifiers, symbols, casing, filenames, and code-like tokens exactly."
+    );
+  }
+
+  if (policy.preserveFormatting) {
+    policyHints.push(
+      "Preserve visible formatting, list markers, Markdown structure, and intentional line breaks."
+    );
+  }
+
+  return policyHints.join(" ");
+}
+
+function getContextInstruction(context?: ContextClassification): string {
   if (!context) return "";
 
   const contextLabels: Record<ContextClassification["context"], string> = {
@@ -101,11 +123,6 @@ function getContextInstruction(
 
   return [
     `Context hint: ${contextLabels[context.context]}.${appSuffix} ${focusHints[context.context]} ${intentHint}`,
-    `Surface mode: ${policy.surfaceMode}. ${getSurfaceInstruction(policy.surfaceMode)}`,
-    `Output strategy: ${policy.outputStrategy}. ${getStrategyInstruction(policy.outputStrategy)}`,
-    policy.allowStructuredRewrite
-      ? "Structured rewrite is allowed when it improves the requested result."
-      : "Do not perform broad structural rewrites.",
   ].join(" ");
 }
 
@@ -130,6 +147,56 @@ function getDictionaryEnforcementInstruction(uiLanguage?: string): string {
   ].join("\n");
 }
 
+function getTerminologyInstruction(terminologyProfile?: Partial<TerminologyProfile> | null): string {
+  if (!terminologyProfile || typeof terminologyProfile !== "object") {
+    return "";
+  }
+
+  const sections: string[] = [];
+  const hotwords = Array.isArray(terminologyProfile.hotwords) ? terminologyProfile.hotwords : [];
+  const glossaryTerms = Array.isArray(terminologyProfile.glossaryTerms)
+    ? terminologyProfile.glossaryTerms
+    : [];
+  const blacklistedTerms = Array.isArray(terminologyProfile.blacklistedTerms)
+    ? terminologyProfile.blacklistedTerms
+    : [];
+  const homophoneMappings = Array.isArray(terminologyProfile.homophoneMappings)
+    ? terminologyProfile.homophoneMappings
+    : [];
+  const pendingSuggestions = Array.isArray(terminologyProfile.pendingSuggestions)
+    ? terminologyProfile.pendingSuggestions
+    : [];
+
+  const preferredTerms = [...hotwords, ...glossaryTerms].filter(Boolean);
+  if (preferredTerms.length > 0) {
+    sections.push(`Preferred terminology: ${preferredTerms.join(", ")}`);
+  }
+
+  if (blacklistedTerms.length > 0) {
+    sections.push(
+      `Avoid these terms when a better correction is available: ${blacklistedTerms.join(", ")}`
+    );
+  }
+
+  if (homophoneMappings.length > 0) {
+    sections.push(
+      `Homophone normalization candidates: ${homophoneMappings
+        .map((mapping) => `${mapping.source} → ${mapping.target}`)
+        .join(", ")}`
+    );
+  }
+
+  if (pendingSuggestions.length > 0) {
+    sections.push(
+      `Pending terminology suggestions for review: ${pendingSuggestions
+        .map((suggestion) => `${suggestion.sourceTerm} → ${suggestion.term}`)
+        .join(", ")}`
+    );
+  }
+
+  return sections.join("\n");
+}
+
 export function getSystemPrompt(
   agentName: string | null,
   customDictionary?: string[],
@@ -137,7 +204,8 @@ export function getSystemPrompt(
   transcript?: string,
   uiLanguage?: string,
   context?: ContextClassification,
-  postProcessingPolicy?: PostProcessingPolicy
+  postProcessingPolicy?: PostProcessingPolicy,
+  terminologyProfile?: Partial<TerminologyProfile> | null
 ): string {
   const name = agentName?.trim() || "Assistant";
   const prompts = getPromptBundle(uiLanguage);
@@ -171,7 +239,12 @@ export function getSystemPrompt(
     prompt += "\n\n" + langInstruction;
   }
 
-  const contextInstruction = getContextInstruction(context, policy);
+  const policyInstruction = getPolicyInstruction(policy);
+  if (policyInstruction) {
+    prompt += "\n\n" + policyInstruction;
+  }
+
+  const contextInstruction = getContextInstruction(context);
   if (contextInstruction) {
     prompt += "\n\n" + contextInstruction;
   }
@@ -185,6 +258,11 @@ export function getSystemPrompt(
       prompt += `${prompts.dictionarySuffix}${normalizedDictionary.join(", ")}`;
       prompt += `\n\n${getDictionaryEnforcementInstruction(uiLanguage)}`;
     }
+  }
+
+  const terminologyInstruction = getTerminologyInstruction(terminologyProfile);
+  if (terminologyInstruction) {
+    prompt += `\n\n${terminologyInstruction}`;
   }
 
   return prompt;

@@ -13,6 +13,7 @@ const QwenRealtimeStreaming = require("./qwenRealtimeStreaming");
 const SonioxStreaming = require("./sonioxStreaming");
 const { buildSonioxAsyncPayload } = require("./sonioxShared");
 const { shouldRestoreDictationPanelAfterPaste } = require("./pasteUiState");
+const { resolveSensitiveAppPolicy } = require("../config/sensitiveAppPolicy.js");
 
 const MISTRAL_TRANSCRIPTION_URL = "https://api.mistral.ai/v1/audio/transcriptions";
 const SONIOX_API_BASE_URL = "https://api.soniox.com/v1";
@@ -43,6 +44,49 @@ function parseJsonSafely(value) {
   } catch {
     return null;
   }
+}
+
+function normalizeInsertionIntent(value) {
+  switch (value) {
+    case "replace_selection":
+    case "append_after_selection":
+    case "insert":
+      return value;
+    default:
+      return "insert";
+  }
+}
+
+function normalizeInsertionOutcome(mode, success) {
+  if (mode === "copied") return "copied";
+  if (mode === "failed" || success === false) return "failed";
+  if (mode === "replaced") return "replaced";
+  if (mode === "appended") return "appended";
+  return "inserted";
+}
+
+function normalizePasteTargetApp(targetApp, { targetPid } = {}) {
+  if (!targetApp || typeof targetApp !== "object") {
+    return {
+      appName: null,
+      processId: Number.isInteger(targetPid) ? targetPid : null,
+      platform: process.platform,
+      source: "renderer-fallback",
+      capturedAt: null,
+    };
+  }
+
+  return {
+    appName: typeof targetApp.appName === "string" ? targetApp.appName : null,
+    processId: Number.isInteger(targetApp.processId)
+      ? targetApp.processId
+      : Number.isInteger(targetPid)
+        ? targetPid
+        : null,
+    platform: typeof targetApp.platform === "string" ? targetApp.platform : process.platform,
+    source: typeof targetApp.source === "string" ? targetApp.source : "renderer-fallback",
+    capturedAt: typeof targetApp.capturedAt === "string" ? targetApp.capturedAt : null,
+  };
 }
 
 async function performProxyHttpRequest({
@@ -214,6 +258,7 @@ class IPCHandlers {
     this._autoLearnEnabled = true; // Default on, synced from renderer
     this._autoLearnDebounceTimer = null;
     this._autoLearnLatestData = null;
+    this._lastPastePolicyContext = null;
     this._textEditHandler = null;
     this._setupTextEditMonitor();
     this.setupHandlers();
@@ -265,13 +310,15 @@ class IPCHandlers {
       }
 
       const { originalText, newFieldValue } = data;
+      const policyContext = this._lastPastePolicyContext || null;
 
       debugLogger.debug("[AutoLearn] text-edited event", {
         originalPreview: originalText.substring(0, 80),
         newValuePreview: newFieldValue.substring(0, 80),
+        targetApp: policyContext?.targetApp?.appName || "",
       });
 
-      this._autoLearnLatestData = { originalText, newFieldValue };
+      this._autoLearnLatestData = { originalText, newFieldValue, policyContext };
 
       if (this._autoLearnDebounceTimer) {
         clearTimeout(this._autoLearnDebounceTimer);
@@ -294,13 +341,22 @@ class IPCHandlers {
       return;
     }
 
-    const { originalText, newFieldValue } = this._autoLearnLatestData;
+    const { originalText, newFieldValue, policyContext } = this._autoLearnLatestData;
     this._autoLearnLatestData = null;
 
+    if (policyContext?.sensitiveAppDecision?.blocksAutoLearn) {
+      debugLogger.debug("[AutoLearn] Sensitive app policy skipped correction processing", {
+        matchedRuleId: policyContext.sensitiveAppDecision.ruleId,
+        action: policyContext.sensitiveAppDecision.action,
+        appName: policyContext.targetApp?.appName || "",
+      });
+      return;
+    }
+
     try {
-      const { extractCorrections } = require("../utils/correctionLearner");
+      const { extractCorrectionSuggestions } = require("../utils/correctionLearner");
       const currentDict = this._getDictionarySafe();
-      const corrections = extractCorrections(originalText, newFieldValue, currentDict);
+      const corrections = extractCorrectionSuggestions(originalText, newFieldValue, currentDict);
       const normalizeKey = (value) =>
         String(value || "")
           .trim()
@@ -310,11 +366,15 @@ class IPCHandlers {
       const dedupedCorrections = [];
       const dedupedKeys = new Set();
       for (const correction of corrections) {
-        const cleaned = String(correction || "").trim();
+        const cleaned = String(correction?.term || "").trim();
         const key = normalizeKey(cleaned);
-        if (!cleaned || !key) continue;
+        if (!cleaned || !key || !correction?.sourceTerm) continue;
         if (currentKeys.has(key) || dedupedKeys.has(key)) continue;
-        dedupedCorrections.push(cleaned);
+        dedupedCorrections.push({
+          term: cleaned,
+          sourceTerm: String(correction.sourceTerm || "").trim(),
+          source: String(correction.source || "auto_learn_edit").trim() || "auto_learn_edit",
+        });
         dedupedKeys.add(key);
       }
 
@@ -324,16 +384,6 @@ class IPCHandlers {
       });
 
       if (dedupedCorrections.length > 0) {
-        const updatedDict = [...currentDict, ...dedupedCorrections];
-        const saveResult = this.databaseManager.setDictionary(updatedDict);
-
-        if (saveResult?.success === false) {
-          debugLogger.debug("[AutoLearn] Failed to save dictionary", { error: saveResult.error });
-          return;
-        }
-
-        this.broadcastToWindows("dictionary-updated", updatedDict);
-
         // Show the overlay so the toast is visible (it may have been hidden after dictation)
         this.windowManager.showDictationPanel();
         this.broadcastToWindows("corrections-learned", dedupedCorrections);
@@ -534,6 +584,26 @@ class IPCHandlers {
       const targetPid = Number.isInteger(this.textEditMonitor?.lastTargetPid)
         ? this.textEditMonitor.lastTargetPid
         : null;
+      const normalizedOptions = {
+        ...options,
+        intent: normalizeInsertionIntent(options?.intent),
+        replaceSelectionExpected:
+          options?.replaceSelectionExpected === true || options?.intent === "replace_selection",
+        preserveClipboard: options?.preserveClipboard !== false,
+        allowFallbackCopy: options?.allowFallbackCopy !== false,
+        targetApp: normalizePasteTargetApp(options?.targetApp, { targetPid }),
+      };
+      const privacyPreferences = {
+        protectionsEnabled: options?.sensitiveAppProtectionEnabled !== false,
+        allowCloudReasoning: options?.allowSensitiveAppCloudReasoning === true,
+        allowAutoLearn: options?.allowSensitiveAppAutoLearn === true,
+        allowPasteMonitoring: options?.allowSensitiveAppPasteMonitoring === true,
+        allowInjection: options?.sensitiveAppBlockInsertion === false,
+      };
+      const sensitiveAppPolicy = resolveSensitiveAppPolicy({
+        targetApp: normalizedOptions.targetApp,
+        ...privacyPreferences,
+      });
 
       // If the floating dictation panel currently has focus, dismiss it so the
       // paste keystroke lands in the user's target app instead of the overlay.
@@ -550,45 +620,128 @@ class IPCHandlers {
           await new Promise((resolve) => setTimeout(resolve, 80));
         }
       }
-      const result = await this.clipboardManager.pasteText(text, {
-        ...options,
-        webContents: event.sender,
-        targetPid,
-      });
+      const result = sensitiveAppPolicy.blocksInjection
+        ? normalizedOptions.allowFallbackCopy !== false
+          ? await this.clipboardManager.writeClipboard(text, event.sender).then((copyResult) => ({
+              success: !!copyResult?.success,
+              mode: copyResult?.success ? "copied" : "failed",
+              outcomeMode: copyResult?.success ? "copied" : "failed",
+              reason: copyResult?.success
+                ? "sensitive_app_manual_paste_required"
+                : "sensitive_app_injection_blocked",
+              message: copyResult?.success
+                ? "Sensitive app protection copied the text for manual paste instead of injecting it automatically."
+                : "Sensitive app protection blocked automatic insertion in this app.",
+              method: copyResult?.success ? "clipboard_only" : "blocked_by_policy",
+              compatibilityProfileId: "sensitive-app",
+              compatibilityFamily: "sensitive-app",
+              feedbackCode: copyResult?.success
+                ? "manual_paste_required"
+                : "automatic_insertion_blocked",
+              recoveryHint: copyResult?.success
+                ? "manual_paste"
+                : "disable_sensitive_app_blocking_if_you_really_need_auto_insert",
+              manualAction: copyResult?.success ? "paste_manually" : "retry_elsewhere",
+              retryCount: 0,
+            }))
+          : {
+              success: false,
+              mode: "failed",
+              outcomeMode: "failed",
+              reason: "sensitive_app_injection_blocked",
+              message: "Sensitive app protection blocked automatic insertion in this app.",
+              method: "blocked_by_policy",
+              compatibilityProfileId: "sensitive-app",
+              compatibilityFamily: "sensitive-app",
+              feedbackCode: "automatic_insertion_blocked",
+              recoveryHint: "disable_sensitive_app_blocking_if_you_really_need_auto_insert",
+              manualAction: "retry_elsewhere",
+              retryCount: 0,
+            }
+        : await this.clipboardManager.pasteText(text, {
+            ...normalizedOptions,
+            webContents: event.sender,
+            targetPid,
+          });
+      const normalizedResult = {
+        ...result,
+        intent: normalizedOptions.intent,
+        outcomeMode:
+          result?.outcomeMode || normalizeInsertionOutcome(result?.mode, result?.success),
+        monitorMode: result?.monitorMode || "standard",
+        compatibilityProfileId: result?.compatibilityProfileId || "generic",
+        compatibilityFamily: result?.compatibilityFamily || "generic",
+        feedbackCode: result?.feedbackCode || null,
+        recoveryHint: result?.recoveryHint || null,
+        manualAction: result?.manualAction || null,
+        retryCount: Number.isInteger(result?.retryCount) ? result.retryCount : 0,
+        targetApp: normalizedOptions.targetApp,
+        replaceSelectionExpected: normalizedOptions.replaceSelectionExpected,
+        preserveClipboard: normalizedOptions.preserveClipboard,
+        allowFallbackCopy: normalizedOptions.allowFallbackCopy,
+        sensitiveAppPolicy,
+      };
       debugLogger.info(
         "[PASTE_PROTOCOL] paste-text result",
         {
-          mode: result?.mode || "unknown",
-          success: !!result?.success,
-          reason: result?.reason || "",
-          method: result?.method || "",
-          platform: result?.platform || process.platform,
+          mode: normalizedResult?.mode || "unknown",
+          outcomeMode: normalizedResult?.outcomeMode || "unknown",
+          intent: normalizedResult?.intent || "insert",
+          success: !!normalizedResult?.success,
+          reason: normalizedResult?.reason || "",
+          method: normalizedResult?.method || "",
+          platform: normalizedResult?.platform || process.platform,
+          targetApp: normalizedResult?.targetApp?.appName || "",
+          compatibilityProfileId: normalizedResult?.compatibilityProfileId || "generic",
+          feedbackCode: normalizedResult?.feedbackCode || "",
+          retryCount: normalizedResult?.retryCount || 0,
         },
         "clipboard"
       );
 
-      if (shouldRestoreDictationPanelAfterPaste(result, options)) {
+      if (shouldRestoreDictationPanelAfterPaste(normalizedResult, normalizedOptions)) {
         this.windowManager?.showDictationPanel?.();
       }
+
+      this._lastPastePolicyContext = {
+        targetApp: normalizedOptions.targetApp,
+        sensitiveAppDecision: sensitiveAppPolicy,
+        privacyPreferences,
+      };
 
       debugLogger.debug("[AutoLearn] Paste completed", {
         autoLearnEnabled: this._autoLearnEnabled,
         hasMonitor: !!this.textEditMonitor,
         targetPid,
       });
-      if (this.textEditMonitor && this._autoLearnEnabled) {
+      if (
+        this.textEditMonitor &&
+        this._autoLearnEnabled &&
+        !sensitiveAppPolicy.blocksAutoLearn &&
+        !sensitiveAppPolicy.blocksPasteMonitoring
+      ) {
         setTimeout(() => {
           try {
             debugLogger.debug("[AutoLearn] Starting monitoring", {
               textPreview: text.substring(0, 80),
             });
-            this.textEditMonitor.startMonitoring(text, 30000, { targetPid });
+            this.textEditMonitor.startMonitoring(text, 30000, {
+              targetPid,
+              intent: normalizedOptions.intent,
+              monitorMode: normalizedResult.monitorMode,
+            });
           } catch (err) {
             debugLogger.debug("[AutoLearn] Failed to start monitoring", { error: err.message });
           }
         }, 500);
+      } else if (sensitiveAppPolicy.matched) {
+        debugLogger.debug("[AutoLearn] Sensitive app policy skipped monitoring", {
+          matchedRuleId: sensitiveAppPolicy.ruleId,
+          action: sensitiveAppPolicy.action,
+          appName: normalizedOptions.targetApp?.appName || "",
+        });
       }
-      return result;
+      return normalizedResult;
     });
 
     ipcMain.handle("check-accessibility-permission", async () => {

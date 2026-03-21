@@ -57,6 +57,7 @@
     "quality-check": "npm run format:check && npm run typecheck",
     "i18n:check": "node scripts/check-i18n.js",
     "replay:asr": "node scripts/run-asr-replay.mjs",
+    "verify:asr-benchmarks": "node scripts/verify-asr-benchmarks.mjs --input tmp/asr-replay.json",
     "preview": "cd src && vite preview",
     "clean": "node cleanup.js"
   },

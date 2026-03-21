@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
+const { redactLogEntry, redactLogMeta } = require("../utils/logRedaction.js");
 
 const LOG_LEVELS = {
   trace: 10,
@@ -143,7 +144,7 @@ class DebugLogger {
       .map((arg) => {
         if (typeof arg === "object") {
           try {
-            return JSON.stringify(arg, null, 2);
+            return JSON.stringify(redactLogMeta(arg), null, 2);
           } catch (error) {
             return String(arg);
           }
@@ -172,12 +173,19 @@ class DebugLogger {
       this.initializeFileLogging();
     }
 
+    const redactedEntry = redactLogEntry({
+      level: normalized,
+      message,
+      meta,
+      scope,
+      source,
+    });
     const timestamp = new Date().toISOString();
-    const scopeTag = scope ? `[${scope}]` : "";
-    const sourceTag = source ? `[${source}]` : "";
+    const scopeTag = redactedEntry.scope ? `[${redactedEntry.scope}]` : "";
+    const sourceTag = redactedEntry.source ? `[${redactedEntry.source}]` : "";
     const levelTag = `[${normalized.toUpperCase()}]`;
-    const baseLine = `[${timestamp}] ${levelTag}${scopeTag}${sourceTag} ${message}`;
-    const metaText = this.formatMeta(meta);
+    const baseLine = `[${timestamp}] ${levelTag}${scopeTag}${sourceTag} ${redactedEntry.message}`;
+    const metaText = this.formatMeta(redactedEntry.meta);
     const logLine = metaText ? `${baseLine} ${metaText}\n` : `${baseLine}\n`;
 
     const consoleFn =
@@ -187,10 +195,13 @@ class DebugLogger {
           ? console.warn
           : console.log;
 
-    if (meta !== undefined) {
-      consoleFn(`${levelTag}${scopeTag}${sourceTag} ${message}`, meta);
+    if (redactedEntry.meta !== undefined) {
+      consoleFn(
+        `${levelTag}${scopeTag}${sourceTag} ${redactedEntry.message}`,
+        redactedEntry.meta
+      );
     } else {
-      consoleFn(`${levelTag}${scopeTag}${sourceTag} ${message}`);
+      consoleFn(`${levelTag}${scopeTag}${sourceTag} ${redactedEntry.message}`);
     }
 
     if (this.logStream) {

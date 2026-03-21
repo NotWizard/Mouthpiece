@@ -56,3 +56,35 @@ test("accessibility permission probe suppresses dictation panel restore", async 
     /pasteText\(\s*t\("hooks\.permissions\.accessibilityTestText"\)\s*,\s*\{[\s\S]*suppressDictationPanelRestore:\s*true[\s\S]*\}\s*\)/
   );
 });
+
+test("clipboard flow routes paste execution through the insertion planner", async () => {
+  const source = await fs.readFile(
+    path.resolve(process.cwd(), "src/helpers/clipboard.js"),
+    "utf8"
+  );
+
+  assert.match(source, /createInsertionPlan/);
+  assert.match(source, /(const|let) insertionPlan = createInsertionPlan\(/);
+});
+
+test("paste IPC passes planner-derived monitor metadata into text monitoring", async () => {
+  const source = await fs.readFile(
+    path.resolve(process.cwd(), "src/helpers/ipcHandlers.js"),
+    "utf8"
+  );
+
+  assert.match(source, /monitorMode:\s*normalizedResult\.monitorMode/);
+  assert.match(source, /intent:\s*normalizedOptions\.intent/);
+});
+
+test("save transcription IPC still returns the database result payload", async () => {
+  const source = await fs.readFile(
+    path.resolve(process.cwd(), "src/helpers/ipcHandlers.js"),
+    "utf8"
+  );
+
+  assert.match(
+    source,
+    /ipcMain\.handle\("db-save-transcription",[\s\S]*const result = this\.databaseManager\.saveTranscription\(text\);[\s\S]*return result;/
+  );
+});

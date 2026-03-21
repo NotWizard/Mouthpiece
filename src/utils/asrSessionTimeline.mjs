@@ -44,6 +44,17 @@ function createEmptyMetrics() {
   };
 }
 
+function createEmptyInsertion() {
+  return {
+    intent: null,
+    outcomeMode: null,
+    replaceSelectionExpected: false,
+    preserveClipboard: true,
+    allowFallbackCopy: true,
+    targetApp: null,
+  };
+}
+
 function normalizeNowInput(now) {
   if (typeof now === "function") {
     return normalizeNowInput(now());
@@ -86,6 +97,70 @@ function updateDerivedMetrics(timeline, event) {
       0,
       event.relativeMs - timeline.metrics.pasteStartedLatencyMs
     );
+  }
+}
+
+function cloneTargetApp(targetApp) {
+  if (!targetApp || typeof targetApp !== "object") {
+    return null;
+  }
+
+  return {
+    appName: typeof targetApp.appName === "string" ? targetApp.appName : null,
+    processId: Number.isInteger(targetApp.processId) ? targetApp.processId : null,
+    platform: typeof targetApp.platform === "string" ? targetApp.platform : null,
+    source: typeof targetApp.source === "string" ? targetApp.source : null,
+    capturedAt: typeof targetApp.capturedAt === "string" ? targetApp.capturedAt : null,
+  };
+}
+
+function deriveOutcomeMode(data = {}) {
+  if (typeof data.outcomeMode === "string") {
+    return data.outcomeMode;
+  }
+
+  switch (data.mode) {
+    case "copied":
+      return "copied";
+    case "failed":
+      return "failed";
+    case "replaced":
+      return "replaced";
+    case "appended":
+      return "appended";
+    default:
+      return null;
+  }
+}
+
+function updateDerivedInsertion(timeline, event) {
+  if (event.type === "paste_started") {
+    if (typeof event.data.intent === "string") {
+      timeline.insertion.intent = event.data.intent;
+    }
+
+    if (typeof event.data.replaceSelectionExpected === "boolean") {
+      timeline.insertion.replaceSelectionExpected = event.data.replaceSelectionExpected;
+    }
+
+    if (typeof event.data.preserveClipboard === "boolean") {
+      timeline.insertion.preserveClipboard = event.data.preserveClipboard;
+    }
+
+    if (typeof event.data.allowFallbackCopy === "boolean") {
+      timeline.insertion.allowFallbackCopy = event.data.allowFallbackCopy;
+    }
+
+    if (event.data.targetApp) {
+      timeline.insertion.targetApp = cloneTargetApp(event.data.targetApp);
+    }
+  }
+
+  if (event.type === "paste_finished" || event.type === "inserted") {
+    const outcomeMode = deriveOutcomeMode(event.data);
+    if (outcomeMode) {
+      timeline.insertion.outcomeMode = outcomeMode;
+    }
   }
 }
 
@@ -140,6 +215,7 @@ export function createAsrSessionTimeline({
       permissionRequired: false,
       errorSeen: false,
     },
+    insertion: createEmptyInsertion(),
     metrics: createEmptyMetrics(),
     events: [],
   };
@@ -184,6 +260,7 @@ export function markAsrSessionEvent(timeline, eventType, data = {}, atMs = undef
   timeline.events.push(event);
   updateDerivedFlags(timeline, eventType);
   updateDerivedMetrics(timeline, event);
+  updateDerivedInsertion(timeline, event);
 
   if (eventType === "cancelled") {
     timeline.status = "cancelled";
@@ -209,6 +286,10 @@ export function summarizeAsrSessionTimeline(timeline) {
     completedAtMs: timeline.completedAtMs,
     lastEventType: getLastEventType(timeline),
     flags: { ...timeline.flags },
+    insertion: {
+      ...timeline.insertion,
+      targetApp: cloneTargetApp(timeline.insertion.targetApp),
+    },
     metrics: { ...timeline.metrics },
     events: timeline.events.map((event) => ({
       ...event,

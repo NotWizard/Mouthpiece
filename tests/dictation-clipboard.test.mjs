@@ -10,9 +10,15 @@ async function readRepoFile(relativePath) {
 test("dictation paste requests preserve the final transcription in the clipboard", async () => {
   const source = await readRepoFile("src/hooks/useAudioRecording.js");
 
+  assert.match(source, /buildInsertionRequest/);
+  assert.match(source, /window\.electronAPI\?\.getTargetAppInfo\?\.\(\)/);
   assert.match(
     source,
-    /audioManagerRef\.current\.safePaste\(\s*result\.text,\s*isStreaming\s*\?\s*\{\s*fromStreaming:\s*true,\s*preserveClipboard:\s*true\s*\}\s*:\s*\{\s*preserveClipboard:\s*true\s*\}\s*\)/
+    /const insertionRequest = buildInsertionRequest\(\{[\s\S]*fromStreaming:\s*isStreaming,[\s\S]*preserveClipboard:\s*true,[\s\S]*allowFallbackCopy:\s*true,[\s\S]*targetApp,[\s\S]*\}\)/
+  );
+  assert.match(
+    source,
+    /audioManagerRef\.current\.safePaste\(\s*result\.text,\s*\{[\s\S]*\.\.\.insertionRequest,[\s\S]*sensitiveAppProtectionEnabled:[\s\S]*sensitiveAppBlockInsertion:[\s\S]*\}\s*\)/
   );
 });
 

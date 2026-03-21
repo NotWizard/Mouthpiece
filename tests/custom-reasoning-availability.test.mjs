@@ -500,6 +500,74 @@ test("custom reasoning honors explicit post-processing policy overrides in the s
   }
 });
 
+test("custom reasoning preserves explicit policy overrides even when context classification is absent", async () => {
+  const requests = [];
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options = {}) => {
+    const body = options.body ? JSON.parse(options.body) : null;
+    requests.push({
+      url: String(url),
+      body,
+      headers: options.headers || {},
+    });
+
+    if (String(url).endsWith("/responses")) {
+      return new Response(JSON.stringify({ error: { message: "not supported" } }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(
+      JSON.stringify({
+        choices: [{ message: { content: "Keep README formatting intact" } }],
+        usage: { total_tokens: 42 },
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  };
+
+  const { service, cleanup } = await loadReasoningService({
+    storage: {
+      customReasoningApiKey: "sk-test-custom",
+      preferredLanguage: "en",
+      customUnifiedPrompt: JSON.stringify("PROMPT::{{agentName}}::CUSTOM"),
+    },
+    electronAPI: {
+      getCustomReasoningKey: async () => "sk-test-custom",
+    },
+  });
+
+  try {
+    const result = await service.processText("keep readme formatting intact", "qwen3.5-flash", "AI", {
+      postProcessingPolicy: {
+        surfaceMode: "markdown",
+        outputStrategy: "light_polish",
+        allowStructuredRewrite: false,
+        preserveIdentifiers: false,
+        preserveFormatting: true,
+      },
+      strictMode: true,
+      strictOverlapThreshold: 0.86,
+    });
+
+    assert.equal(result, "Keep README formatting intact");
+    assert.equal(requests.length, 2);
+    assert.match(requests[1].body.messages[0].content, /Surface mode: markdown\./);
+    assert.match(
+      requests[1].body.messages[0].content,
+      /Preserve visible formatting, list markers, Markdown structure, and intentional line breaks\./
+    );
+    assert.doesNotMatch(requests[1].body.messages[0].content, /Context hint:/);
+  } finally {
+    globalThis.fetch = previousFetch;
+    cleanup();
+  }
+});
+
 test("custom reasoning can explicitly enable thinking for chat completions", async () => {
   const requests = [];
   const previousFetch = globalThis.fetch;
@@ -570,6 +638,77 @@ test("custom reasoning can explicitly enable thinking for chat completions", asy
       "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
     );
     assert.equal(requests[1].body.enable_thinking, true);
+  } finally {
+    globalThis.fetch = previousFetch;
+    cleanup();
+  }
+});
+
+test("custom reasoning honors explicit post-processing policy even without context classification", async () => {
+  const requests = [];
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options = {}) => {
+    const body = options.body ? JSON.parse(options.body) : null;
+    requests.push({
+      url: String(url),
+      body,
+      headers: options.headers || {},
+    });
+
+    if (String(url).endsWith("/responses")) {
+      return new Response(JSON.stringify({ error: { message: "not supported" } }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(
+      JSON.stringify({
+        choices: [{ message: { content: "keep userIdValue exactly" } }],
+        usage: { total_tokens: 42 },
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  };
+
+  const { service, cleanup } = await loadReasoningService({
+    storage: {
+      customReasoningApiKey: "sk-test-custom",
+      preferredLanguage: "en",
+      customUnifiedPrompt: JSON.stringify("PROMPT::{{agentName}}::CUSTOM"),
+    },
+    electronAPI: {
+      getCustomReasoningKey: async () => "sk-test-custom",
+    },
+  });
+
+  try {
+    const result = await service.processText("keep userIdValue exactly", "qwen3.5-flash", "AI", {
+      postProcessingPolicy: {
+        surfaceMode: "ide",
+        outputStrategy: "raw_first",
+        allowStructuredRewrite: false,
+        preserveIdentifiers: true,
+        preserveFormatting: true,
+      },
+    });
+
+    assert.equal(result, "keep userIdValue exactly");
+    assert.equal(requests.length, 2);
+    assert.match(requests[1].body.messages[0].content, /Surface mode: ide\./);
+    assert.match(requests[1].body.messages[0].content, /Output strategy: raw_first\./);
+    assert.match(
+      requests[1].body.messages[0].content,
+      /Preserve identifiers, symbols, casing, filenames, and code-like tokens exactly\./
+    );
+    assert.match(
+      requests[1].body.messages[0].content,
+      /Preserve visible formatting, list markers, Markdown structure, and intentional line breaks\./
+    );
+    assert.doesNotMatch(requests[1].body.messages[0].content, /Context hint:/);
   } finally {
     globalThis.fetch = previousFetch;
     cleanup();

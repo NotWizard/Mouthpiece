@@ -160,6 +160,8 @@ class TextEditMonitor extends EventEmitter {
     super();
     this.process = null;
     this.currentOriginalText = null;
+    this.currentIntent = null;
+    this.currentMonitorMode = null;
     this.timeout = null;
     this._pollInterval = null;
     this._lastValue = null;
@@ -262,7 +264,19 @@ class TextEditMonitor extends EventEmitter {
    */
   startMonitoring(originalText, timeoutMs = 30000, options = {}) {
     this.stopMonitoring();
+    const monitorMode = options.monitorMode || "standard";
     this.currentOriginalText = originalText;
+    this.currentIntent = options.intent || "insert";
+    this.currentMonitorMode = monitorMode;
+
+    if (monitorMode === "disabled") {
+      debugLogger.debug("[TextEditMonitor] Monitoring disabled by insertion plan", {
+        intent: this.currentIntent,
+        monitorMode,
+      });
+      this.currentOriginalText = null;
+      return;
+    }
 
     if (process.platform === "darwin") {
       const resolved = this.resolveBinary();
@@ -361,6 +375,8 @@ class TextEditMonitor extends EventEmitter {
       this.process = null;
     }
     this.currentOriginalText = null;
+    this.currentIntent = null;
+    this.currentMonitorMode = null;
   }
 
   _handleProcessStdoutChunk(chunk) {
@@ -396,6 +412,8 @@ class TextEditMonitor extends EventEmitter {
     this.emit("text-edited", {
       originalText: this.currentOriginalText,
       newFieldValue,
+      intent: this.currentIntent || "insert",
+      monitorMode: this.currentMonitorMode || "standard",
     });
   }
 

@@ -926,6 +926,49 @@
       "tipLabel": "提示",
       "tipDescription": "用逗號分隔多個字詞。新增上下文片語如 \"The word is Synty\" 以獲得更好的辨識效果。"
     },
+    "postProcessingStrategy": {
+      "title": "預設整理風格",
+      "description": "當沒有命中特定應用規則時，選擇 Mouthpiece 預設採用多強的文字整理力度。",
+      "options": {
+        "raw_first": {
+          "label": "原文優先",
+          "description": "盡量少改動，最大程度保留你說出的原話。"
+        },
+        "light_polish": {
+          "label": "輕潤飾",
+          "description": "移除明顯語氣詞並微調句子，但不過度改變原意。"
+        },
+        "publishable": {
+          "label": "可直接送出",
+          "description": "更積極補齊標點、大小寫與句子結構，讓結果更像可直接送出的文字。"
+        },
+        "structured_rewrite": {
+          "label": "結構化重寫",
+          "description": "當明顯更合適時，允許整理層重組結構與表達。"
+        }
+      }
+    },
+    "terminology": {
+      "title": "術語控制",
+      "description": "檢視自動學習建議，並微調 Mouthpiece 對偏好術語、避用詞與糾錯映射的處理方式。",
+      "glossaryTitle": "術語表",
+      "glossaryEmpty": "目前還沒有術語表詞條。可加入公司名、產品名或常用術語。",
+      "glossaryPlaceholder": "新增術語表詞條，多個請用逗號分隔",
+      "addGlossary": "新增術語表詞條",
+      "blacklistTitle": "避用詞",
+      "blacklistEmpty": "目前還沒有避用詞。可加入你不希望整理層使用的拼寫。",
+      "blacklistPlaceholder": "新增避用詞，多個請用逗號分隔",
+      "addBlacklist": "新增避用詞",
+      "homophoneTitle": "同音糾錯映射",
+      "homophoneEmpty": "目前還沒有同音映射。可使用 source=target 記錄常見誤聽。",
+      "homophonePlaceholder": "新增映射，例如 mode boat=mouthpiece",
+      "addMapping": "新增同音映射",
+      "pendingSuggestionsTitle": "待確認建議",
+      "pendingSuggestionsEmpty": "目前沒有待確認建議。",
+      "pendingSuggestionSource": "來源：{{source}}",
+      "approve": "採用",
+      "reject": "忽略"
+    },
     "general": {
       "appearance": {
         "auto": "自動",
