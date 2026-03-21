@@ -39,7 +39,7 @@ class ReasoningService extends BaseReasoningService {
     this.apiKeyCache = new SecureCache();
     this.cacheCleanupStop = this.apiKeyCache.startAutoCleanup();
 
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
       window.addEventListener("api-key-changed", this.handleApiKeyChanged);
       window.addEventListener("beforeunload", () => this.destroy());
     }
@@ -1531,7 +1531,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
   }
 
   destroy(): void {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && typeof window.removeEventListener === "function") {
       window.removeEventListener("api-key-changed", this.handleApiKeyChanged);
     }
     if (this.cacheCleanupStop) {

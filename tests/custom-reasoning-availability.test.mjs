@@ -92,6 +92,19 @@ async function loadReasoningService({
   };
 }
 
+test("custom reasoning cleanup tolerates window mocks without removeEventListener", async () => {
+  const { cleanup } = await loadReasoningService({
+    storage: {
+      customReasoningApiKey: "sk-test-custom",
+    },
+    electronAPI: {
+      getCustomReasoningKey: async () => "sk-test-custom",
+    },
+  });
+
+  assert.doesNotThrow(() => cleanup());
+});
+
 test("custom reasoning provider counts as available when a custom API key is configured", async () => {
   const { service, cleanup } = await loadReasoningService({
     storage: {
