@@ -9,6 +9,11 @@ The technical reference below remains the primary architecture map for the curre
 - Do not assume any previous fork history, remotes, or inherited branch structure still apply.
 - Treat the files currently present in this directory as the canonical starting point for future work.
 
+## Worktree Requirement
+
+- Any feature addition, feature change, or code modification must start from a newly created Git worktree and be implemented inside that worktree.
+- If the current task is already being handled inside an existing Git worktree, continue there and do not create another worktree unless explicitly requested.
+
 ## Git Commit Rules
 
 - Write every Git commit in both Chinese and English.
