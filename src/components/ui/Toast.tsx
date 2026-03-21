@@ -2,6 +2,7 @@ import * as React from "react";
 import { X, Copy, Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import ERROR_SURFACE_LAYOUT from "../../config/errorSurfaceLayout.json";
+import { isToastCloseButtonAlwaysVisible } from "../../utils/toastPresentation.mjs";
 import { cn } from "../lib/utils";
 
 export interface ToastProps {
@@ -233,6 +234,12 @@ const Toast: React.FC<
   const [copied, setCopied] = React.useState(false);
   const isDestructive = variant === "destructive";
   const hasDetail = Boolean(title && description);
+  const closeButtonAlwaysVisible = isToastCloseButtonAlwaysVisible({ variant, duration });
+  const closeButtonClassName = isDestructive
+    ? "border border-[rgba(171,90,70,0.12)] bg-white/58 text-[rgba(116,54,41,0.62)] hover:border-[rgba(171,90,70,0.22)] hover:bg-white/76 hover:text-[rgba(77,34,25,0.88)] dark:border-[rgba(255,173,144,0.12)] dark:bg-white/6 dark:text-[rgba(255,214,198,0.62)] dark:hover:bg-white/10 dark:hover:text-[rgba(255,239,232,0.9)]"
+    : closeButtonAlwaysVisible
+      ? "text-white/55 hover:text-white/85 bg-white/6 hover:bg-white/10"
+      : "text-white/0 group-hover:text-white/50 hover:!text-white/80 hover:bg-white/6";
 
   const handleMouseEnter = () => {
     pausedAtRef.current = Date.now();
@@ -351,9 +358,7 @@ const Toast: React.FC<
           onClick={onClose}
           className={cn(
             "absolute right-2 top-2 z-10 pointer-events-auto p-1.5 rounded-[8px]",
-            isDestructive
-              ? "border border-[rgba(171,90,70,0.12)] bg-white/58 text-[rgba(116,54,41,0.62)] hover:border-[rgba(171,90,70,0.22)] hover:bg-white/76 hover:text-[rgba(77,34,25,0.88)] dark:border-[rgba(255,173,144,0.12)] dark:bg-white/6 dark:text-[rgba(255,214,198,0.62)] dark:hover:bg-white/10 dark:hover:text-[rgba(255,239,232,0.9)]"
-              : "text-white/0 group-hover:text-white/50 hover:!text-white/80 hover:bg-white/6",
+            closeButtonClassName,
             "transition-colors duration-150",
             "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/20"
           )}

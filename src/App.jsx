@@ -13,6 +13,7 @@ import {
   shouldKeepDictationWindowVisible,
   shouldShowDictationCapsule,
 } from "./utils/dictationOverlayState.mjs";
+import { presentOverlayToast } from "./utils/toastPresentation.mjs";
 import { formatHotkeyLabel } from "./utils/hotkeys";
 import "./index.css";
 
@@ -34,6 +35,16 @@ export default function App() {
   const setWindowInteractivity = React.useCallback((shouldCapture) => {
     window.electronAPI?.setMainWindowInteractivity?.(shouldCapture);
   }, []);
+
+  const showDictationOverlayToast = React.useCallback(
+    (options) =>
+      presentOverlayToast({
+        showDictationPanel: window.electronAPI?.showDictationPanel,
+        toast,
+        options,
+      }),
+    [toast]
+  );
 
   useEffect(() => {
     setWindowInteractivity(false);
@@ -111,7 +122,7 @@ export default function App() {
     toggleListening,
     cancelRecording,
     cancelProcessing,
-  } = useAudioRecording(toast, {
+  } = useAudioRecording(showDictationOverlayToast, {
     onToggle: handleDictationToggle,
     dismiss,
   });
