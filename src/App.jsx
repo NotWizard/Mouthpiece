@@ -104,6 +104,7 @@ export default function App() {
     isRecording,
     isProcessing,
     isTranscribing,
+    dictationState,
     audioLevel,
     partialTranscript,
     toggleListening,
@@ -116,11 +117,13 @@ export default function App() {
 
   const capsuleIsBusy = isTranscribing || isProcessing;
   const shouldRenderCapsule = shouldShowDictationCapsule({
+    dictationState,
     isRecording,
     isTranscribing,
     isProcessing,
   });
   const shouldKeepWindowVisible = shouldKeepDictationWindowVisible({
+    dictationState,
     isRecording,
     isTranscribing,
     isProcessing,
@@ -128,6 +131,7 @@ export default function App() {
     toastCount,
   });
   const shouldCaptureWindowInput = shouldCaptureDictationWindowInput({
+    dictationState,
     isRecording,
     isTranscribing,
     isProcessing,

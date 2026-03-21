@@ -694,6 +694,7 @@ class AudioManager {
     this.streamingSpeechGateDisabled = false;
     this.streamingSpeechGateState = { activeMs: 0, speechDetected: false };
     this.streamingHeldPartialText = "";
+    this.activeSession = null;
   }
 
   getWorkletBlobUrl() {
@@ -759,6 +760,42 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     this.onPartialTranscript = onPartialTranscript;
     this.onStreamingCommit = onStreamingCommit;
     this.onAudioLevel = onAudioLevel;
+  }
+
+  beginSession(session) {
+    if (!session || typeof session !== "object") {
+      this.activeSession = null;
+      return null;
+    }
+
+    this.activeSession = { ...session };
+    return this.activeSession;
+  }
+
+  clearActiveSession() {
+    this.activeSession = null;
+  }
+
+  withActiveSessionMeta(meta = {}) {
+    if (!this.activeSession?.sessionId) {
+      return meta;
+    }
+
+    return {
+      sessionId: this.activeSession.sessionId,
+      ...meta,
+    };
+  }
+
+  withActiveSessionResult(result = {}) {
+    if (!this.activeSession?.sessionId) {
+      return result;
+    }
+
+    return {
+      sessionId: this.activeSession?.sessionId,
+      ...result,
+    };
   }
 
   emitAudioLevel(level) {
@@ -1005,12 +1042,12 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         const settings = audioTrack.getSettings();
         logger.info(
           "Recording started with microphone",
-          {
+          this.withActiveSessionMeta({
             label: audioTrack.label,
             deviceId: settings.deviceId?.slice(0, 20) + "...",
             sampleRate: settings.sampleRate,
             channelCount: settings.channelCount,
-          },
+          }),
           "audio"
         );
       }
@@ -1041,11 +1078,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
         logger.info(
           "Recording stopped",
-          {
+          this.withActiveSessionMeta({
             blobSize: audioBlob.size,
             blobType: audioBlob.type,
             chunksCount: this.audioChunks.length,
-          },
+          }),
           "audio"
         );
 
@@ -1135,13 +1172,16 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     if (this._peakRms != null && this._peakRms < SILENCE_THRESHOLD) {
       logger.info(
         "Silence detected, skipping transcription",
-        { peakRms: this._peakRms.toFixed(4), threshold: SILENCE_THRESHOLD },
+        this.withActiveSessionMeta({
+          peakRms: this._peakRms.toFixed(4),
+          threshold: SILENCE_THRESHOLD,
+        }),
         "audio"
       );
       this._peakRms = null;
       this.isProcessing = false;
       this.onStateChange?.({ isRecording: false, isProcessing: false });
-      this.onTranscriptionComplete?.({ success: true, text: "" });
+      this.onTranscriptionComplete?.(this.withActiveSessionResult({ success: true, text: "" }));
       return;
     }
     this._peakRms = null;
@@ -1200,7 +1240,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         return;
       }
 
-      this.onTranscriptionComplete?.(result);
+      this.onTranscriptionComplete?.(this.withActiveSessionResult(result));
 
       const roundTripDurationMs = Math.round(performance.now() - pipelineStart);
 
@@ -1223,16 +1263,16 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       timingData.transcriptionProcessingDurationMs =
         result?.timings?.transcriptionProcessingDurationMs ?? null;
 
-      logger.info("Pipeline timing", timingData, "performance");
+      logger.info("Pipeline timing", this.withActiveSessionMeta(timingData), "performance");
     } catch (error) {
       const errorAtMs = Math.round(performance.now() - pipelineStart);
 
       logger.error(
         "Pipeline failed",
-        {
+        this.withActiveSessionMeta({
           errorAtMs,
           error: error.message,
-        },
+        }),
         "performance"
       );
 
@@ -3145,9 +3185,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     try {
       const result = await window.electronAPI.pasteText(text, options);
       if (result && typeof result === "object") {
-        return result;
+        return {
+          sessionId: this.activeSession?.sessionId,
+          ...result,
+        };
       }
       return {
+        sessionId: this.activeSession?.sessionId,
         success: true,
         mode: "pasted",
       };
@@ -3156,6 +3200,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         error?.message ??
         (typeof error?.toString === "function" ? error.toString() : String(error));
       return {
+        sessionId: this.activeSession?.sessionId,
         success: false,
         mode: "failed",
         message,
@@ -3883,9 +3928,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const tBeforePaste = performance.now();
       const clientTotalMs = Math.round(tBeforePaste - t0);
       this.onTranscriptionComplete?.({
+        sessionId: this.activeSession?.sessionId,
         success: true,
         text: finalText,
         source: `${streamingProviderName}-streaming`,
+        fallbackUsed: usedBatchFallback,
       });
 
       if (!usedBatchFallback && !isByokStreaming) {

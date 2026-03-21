@@ -5,6 +5,52 @@ import logger from "../utils/logger";
 import { playStartCue, playStopCue } from "../utils/dictationCues";
 import { getSettings } from "../stores/settingsStore";
 import { getRecordingErrorTitle } from "../utils/recordingErrors";
+import { resolveAsrFeatureFlags } from "../utils/asrFeatureFlags.mjs";
+import {
+  createAsrSessionTimeline,
+  finalizeAsrSessionTimeline,
+  hasAsrSessionEvent,
+  markAsrSessionEvent,
+  summarizeAsrSessionTimeline,
+} from "../utils/asrSessionTimeline.mjs";
+import { getDictationSessionState } from "../utils/dictationSessionState.mjs";
+
+const STABLE_PARTIAL_SETTLE_MS = 260;
+const SINGLE_OCCURRENCE_SESSION_EVENTS = new Set([
+  "capture_ready",
+  "speech_detected",
+  "first_partial",
+  "first_stable_partial",
+  "final_ready",
+  "paste_started",
+  "paste_finished",
+  "fallback_used",
+  "permission_required",
+  "inserted",
+  "cancelled",
+  "error",
+]);
+
+function isPermissionError(error, title) {
+  if (title === "Microphone Access Denied") {
+    return true;
+  }
+
+  const description = error?.description || "";
+  return /grant microphone permission/i.test(description);
+}
+
+function shouldShowFallbackToast(result) {
+  if (!result) {
+    return false;
+  }
+
+  if (result.fallbackUsed) {
+    return true;
+  }
+
+  return typeof result.source === "string" && result.source.includes("fallback");
+}
 
 export const useAudioRecording = (toast, options = {}) => {
   const { t } = useTranslation();
@@ -15,7 +61,12 @@ export const useAudioRecording = (toast, options = {}) => {
   const [audioLevel, setAudioLevel] = useState(0);
   const [transcript, setTranscript] = useState("");
   const [partialTranscript, setPartialTranscript] = useState("");
+  const [sessionSummary, setSessionSummary] = useState(null);
   const audioManagerRef = useRef(null);
+  const sessionTimelineRef = useRef(null);
+  const stablePartialTimeoutRef = useRef(null);
+  const lastPartialTranscriptRef = useRef("");
+  const featureFlagsRef = useRef(resolveAsrFeatureFlags());
   const startLockRef = useRef(false);
   const stopLockRef = useRef(false);
   const pasteFallbackToastIdRef = useRef(null);
@@ -29,6 +80,95 @@ export const useAudioRecording = (toast, options = {}) => {
     pasteFallbackToastIdRef.current = null;
   }, [dismiss]);
 
+  const clearStablePartialTimer = useCallback(() => {
+    if (stablePartialTimeoutRef.current) {
+      clearTimeout(stablePartialTimeoutRef.current);
+      stablePartialTimeoutRef.current = null;
+    }
+  }, []);
+
+  const trackSessionEvent = useCallback((eventType, data = {}) => {
+    if (!featureFlagsRef.current.sessionTimeline || !sessionTimelineRef.current) {
+      return null;
+    }
+
+    if (
+      SINGLE_OCCURRENCE_SESSION_EVENTS.has(eventType) &&
+      hasAsrSessionEvent(sessionTimelineRef.current, eventType)
+    ) {
+      return summarizeAsrSessionTimeline(sessionTimelineRef.current);
+    }
+
+    const summary = markAsrSessionEvent(sessionTimelineRef.current, eventType, data, performance.now());
+    setSessionSummary(summary);
+    return summary;
+  }, []);
+
+  const finalizeSession = useCallback(
+    (status) => {
+      clearStablePartialTimer();
+
+      if (!featureFlagsRef.current.sessionTimeline || !sessionTimelineRef.current) {
+        audioManagerRef.current?.clearActiveSession?.();
+        return null;
+      }
+
+      const summary = finalizeAsrSessionTimeline(sessionTimelineRef.current, {
+        status,
+        completedAtMs: performance.now(),
+      });
+
+      setSessionSummary(summary);
+      logger.info(
+        "ASR session summary",
+        {
+          sessionId: summary.sessionId,
+          status: summary.status,
+          lastEventType: summary.lastEventType,
+          metrics: summary.metrics,
+          flags: summary.flags,
+        },
+        "dictation-session"
+      );
+      sessionTimelineRef.current = null;
+      audioManagerRef.current?.clearActiveSession?.();
+      return summary;
+    },
+    [clearStablePartialTimer]
+  );
+
+  const beginSession = useCallback(
+    (mode) => {
+      if (!featureFlagsRef.current.sessionTimeline) {
+        return null;
+      }
+
+      clearStablePartialTimer();
+      lastPartialTranscriptRef.current = "";
+      const provider =
+        mode === "streaming" ? audioManagerRef.current?.getStreamingProviderName?.() || null : null;
+      const timeline = createAsrSessionTimeline({
+        mode,
+        context: "dictation",
+        provider,
+        startedAtMs: performance.now(),
+      });
+
+      sessionTimelineRef.current = timeline;
+      const summary = summarizeAsrSessionTimeline(timeline);
+      setSessionSummary(summary);
+      audioManagerRef.current?.beginSession?.({
+        sessionId: timeline.sessionId,
+        mode,
+        context: timeline.context,
+        provider: timeline.provider,
+        startedAtIso: timeline.startedAtIso,
+      });
+      return summary;
+    },
+    [clearStablePartialTimer]
+  );
+
   const performStartRecording = useCallback(async () => {
     if (startLockRef.current) return false;
     startLockRef.current = true;
@@ -38,19 +178,24 @@ export const useAudioRecording = (toast, options = {}) => {
       const currentState = audioManagerRef.current.getState();
       if (currentState.isRecording || currentState.isProcessing) return false;
 
-      const didStart = audioManagerRef.current.shouldUseStreaming()
+      const shouldUseStreaming = audioManagerRef.current.shouldUseStreaming();
+      beginSession(shouldUseStreaming ? "streaming" : "batch");
+
+      const didStart = shouldUseStreaming
         ? await audioManagerRef.current.startStreamingRecording()
         : await audioManagerRef.current.startRecording();
 
       if (didStart) {
         void playStartCue();
+      } else {
+        finalizeSession("cancelled");
       }
 
       return didStart;
     } finally {
       startLockRef.current = false;
     }
-  }, []);
+  }, [beginSession, finalizeSession]);
 
   const performStopRecording = useCallback(async () => {
     if (stopLockRef.current) return false;
@@ -70,7 +215,6 @@ export const useAudioRecording = (toast, options = {}) => {
 
       if (didStop) {
         void playStopCue();
-        // Set transcribing state when recording stops (will show loading capsule)
         setIsTranscribing(true);
       }
 
@@ -84,22 +228,28 @@ export const useAudioRecording = (toast, options = {}) => {
     audioManagerRef.current = new AudioManager();
 
     audioManagerRef.current.setCallbacks({
-      onStateChange: ({ isRecording, isProcessing, isStreaming }) => {
-        setIsRecording(isRecording);
-        setIsProcessing(isProcessing);
-        setIsStreaming(isStreaming ?? false);
-        // Reset transcribing state when processing is done
-        if (!isProcessing && !isRecording) {
+      onStateChange: ({ isRecording: nextIsRecording, isProcessing: nextIsProcessing, isStreaming: nextIsStreaming }) => {
+        setIsRecording(nextIsRecording);
+        setIsProcessing(nextIsProcessing);
+        setIsStreaming(nextIsStreaming ?? false);
+
+        if (nextIsRecording) {
+          clearPasteFallbackToast();
+          trackSessionEvent("capture_ready", {
+            streaming: Boolean(nextIsStreaming),
+          });
+        }
+
+        if (!nextIsProcessing && !nextIsRecording) {
           setIsTranscribing(false);
         }
-        if (isRecording) {
-          clearPasteFallbackToast();
-        }
-        if (!isRecording) {
+        if (!nextIsRecording) {
           setAudioLevel(0);
         }
-        if (!isStreaming && !isProcessing) {
+        if (!nextIsStreaming && !nextIsProcessing) {
           setPartialTranscript("");
+          clearStablePartialTimer();
+          lastPartialTranscriptRef.current = "";
         }
       },
       onAudioLevel: (level) => {
@@ -113,79 +263,143 @@ export const useAudioRecording = (toast, options = {}) => {
           variant: "destructive",
           duration: error.code === "AUTH_EXPIRED" ? 8000 : undefined,
         });
-        // Reset transcribing state on error
         setIsTranscribing(false);
+
+        if (isPermissionError(error, title)) {
+          trackSessionEvent("permission_required", {
+            title,
+            code: error.code,
+          });
+        }
+        trackSessionEvent("error", {
+          title,
+          code: error.code,
+          description: error.description,
+        });
+        finalizeSession("error");
       },
       onPartialTranscript: (text) => {
         setPartialTranscript(text);
-      },
-      onTranscriptionComplete: async (result) => {
-        // Reset transcribing state when transcription is complete
-        setIsTranscribing(false);
-        if (result.success) {
-          const transcribedText = result.text?.trim();
 
-          if (!transcribedText) {
+        const normalizedText = typeof text === "string" ? text.trim() : "";
+        if (!normalizedText) {
+          return;
+        }
+
+        trackSessionEvent("speech_detected", { textLength: normalizedText.length });
+        trackSessionEvent("first_partial", { textLength: normalizedText.length });
+
+        lastPartialTranscriptRef.current = normalizedText;
+        clearStablePartialTimer();
+        stablePartialTimeoutRef.current = setTimeout(() => {
+          if (lastPartialTranscriptRef.current !== normalizedText) {
             return;
           }
+          trackSessionEvent("first_stable_partial", { textLength: normalizedText.length });
+        }, STABLE_PARTIAL_SETTLE_MS);
+      },
+      onTranscriptionComplete: async (result) => {
+        setIsTranscribing(false);
 
-          setTranscript(result.text);
+        if (!result?.success) {
+          trackSessionEvent("error", { code: "TRANSCRIPTION_FAILED" });
+          finalizeSession("error");
+          return;
+        }
 
-          const isStreaming = result.source?.includes("streaming");
-          const pasteStart = performance.now();
-          const pasteResult = await audioManagerRef.current.safePaste(
-            result.text,
-            isStreaming
-              ? { fromStreaming: true, preserveClipboard: true }
-              : { preserveClipboard: true }
-          );
-          const pasteMode = pasteResult?.mode || (pasteResult?.success ? "pasted" : "failed");
+        const transcribedText = result.text?.trim();
+        if (!transcribedText) {
+          finalizeSession("completed");
+          return;
+        }
 
-          if (pasteMode === "copied") {
-            window.electronAPI?.showDictationPanel?.();
-            clearPasteFallbackToast();
-            const stickyId = toast({
-              title: t("hooks.audioRecording.pasteCopied.title"),
-              description: t("hooks.audioRecording.pasteCopied.description"),
-              duration: 0,
-            });
-            pasteFallbackToastIdRef.current = stickyId;
-          } else if (pasteMode === "failed") {
-            clearPasteFallbackToast();
-            window.electronAPI?.showDictationPanel?.();
-            toast({
-              title: t("hooks.clipboard.pasteFailed.title"),
-              description: pasteResult?.message || t("hooks.clipboard.pasteFailed.description"),
-              variant: "destructive",
-              duration: 8000,
-            });
-          }
+        setTranscript(result.text);
 
-          logger.info(
-            "Paste timing",
-            {
-              pasteMs: Math.round(performance.now() - pasteStart),
-              source: result.source,
-              textLength: result.text.length,
-              mode: pasteMode,
-              reason: pasteResult?.reason,
-            },
-            "streaming"
-          );
+        if (shouldShowFallbackToast(result)) {
+          trackSessionEvent("fallback_used", { source: result.source });
+        }
 
-          audioManagerRef.current.saveTranscription(result.text);
+        trackSessionEvent("final_ready", {
+          source: result.source,
+          textLength: transcribedText.length,
+          sessionId: result.sessionId,
+        });
 
-          if (result.source === "openai" && getSettings().useLocalWhisper) {
-            toast({
-              title: t("hooks.audioRecording.fallback.title"),
-              description: t("hooks.audioRecording.fallback.description"),
-              variant: "default",
-            });
-          }
+        const isStreaming = result.source?.includes("streaming");
+        trackSessionEvent("paste_started", {
+          source: result.source,
+          textLength: result.text.length,
+        });
 
-          if (audioManagerRef.current.sttConfig?.dictation?.mode === "streaming") {
-            audioManagerRef.current.warmupStreamingConnection();
-          }
+        const pasteStart = performance.now();
+        const pasteResult = await audioManagerRef.current.safePaste(
+          result.text,
+          isStreaming
+            ? { fromStreaming: true, preserveClipboard: true }
+            : { preserveClipboard: true }
+        );
+        const pasteMode = pasteResult?.mode || (pasteResult?.success ? "pasted" : "failed");
+
+        trackSessionEvent("paste_finished", {
+          mode: pasteMode,
+          success: Boolean(pasteResult?.success),
+          reason: pasteResult?.reason,
+        });
+
+        if (pasteMode === "copied") {
+          window.electronAPI?.showDictationPanel?.();
+          clearPasteFallbackToast();
+          const stickyId = toast({
+            title: t("hooks.audioRecording.pasteCopied.title"),
+            description: t("hooks.audioRecording.pasteCopied.description"),
+            duration: 0,
+          });
+          pasteFallbackToastIdRef.current = stickyId;
+          finalizeSession("completed");
+        } else if (pasteMode === "failed") {
+          clearPasteFallbackToast();
+          window.electronAPI?.showDictationPanel?.();
+          toast({
+            title: t("hooks.clipboard.pasteFailed.title"),
+            description: pasteResult?.message || t("hooks.clipboard.pasteFailed.description"),
+            variant: "destructive",
+            duration: 8000,
+          });
+          trackSessionEvent("error", {
+            code: "PASTE_FAILED",
+            reason: pasteResult?.reason,
+          });
+          finalizeSession("error");
+        } else {
+          trackSessionEvent("inserted", { mode: pasteMode });
+          finalizeSession("inserted");
+        }
+
+        logger.info(
+          "Paste timing",
+          {
+            sessionId: result.sessionId,
+            pasteMs: Math.round(performance.now() - pasteStart),
+            source: result.source,
+            textLength: result.text.length,
+            mode: pasteMode,
+            reason: pasteResult?.reason,
+          },
+          "streaming"
+        );
+
+        audioManagerRef.current.saveTranscription(result.text);
+
+        if (shouldShowFallbackToast(result)) {
+          toast({
+            title: t("hooks.audioRecording.fallback.title"),
+            description: t("hooks.audioRecording.fallback.description"),
+            variant: "default",
+          });
+        }
+
+        if (audioManagerRef.current.sttConfig?.dictation?.mode === "streaming") {
+          audioManagerRef.current.warmupStreamingConnection();
         }
       },
     });
@@ -244,18 +458,29 @@ export const useAudioRecording = (toast, options = {}) => {
 
     const disposeNoAudio = window.electronAPI.onNoAudioDetected?.(handleNoAudioDetected);
 
-    // Cleanup
     return () => {
       clearPasteFallbackToast();
+      clearStablePartialTimer();
       disposeToggle?.();
       disposeStart?.();
       disposeStop?.();
       disposeNoAudio?.();
+      audioManagerRef.current?.clearActiveSession?.();
       if (audioManagerRef.current) {
         audioManagerRef.current.cleanup();
       }
     };
-  }, [toast, onToggle, performStartRecording, performStopRecording, t, clearPasteFallbackToast]);
+  }, [
+    toast,
+    onToggle,
+    performStartRecording,
+    performStopRecording,
+    t,
+    clearPasteFallbackToast,
+    clearStablePartialTimer,
+    trackSessionEvent,
+    finalizeSession,
+  ]);
 
   const startRecording = async () => {
     return performStartRecording();
@@ -268,20 +493,34 @@ export const useAudioRecording = (toast, options = {}) => {
   const cancelRecording = useCallback(async () => {
     if (audioManagerRef.current) {
       const state = audioManagerRef.current.getState();
-      if (state.isStreaming || state.isStreamingStartInProgress) {
-        return await audioManagerRef.current.cancelStreamingRecording();
+      const didCancel =
+        state.isStreaming || state.isStreamingStartInProgress
+          ? await audioManagerRef.current.cancelStreamingRecording()
+          : audioManagerRef.current.cancelRecording();
+
+      if (didCancel) {
+        trackSessionEvent("cancelled", {
+          stage: state.isStreaming || state.isStreamingStartInProgress ? "streaming" : "recording",
+        });
+        finalizeSession("cancelled");
       }
-      return audioManagerRef.current.cancelRecording();
+
+      return didCancel;
     }
     return false;
-  }, []);
+  }, [finalizeSession, trackSessionEvent]);
 
   const cancelProcessing = useCallback(() => {
     if (audioManagerRef.current) {
-      return audioManagerRef.current.cancelProcessing();
+      const didCancel = audioManagerRef.current.cancelProcessing();
+      if (didCancel) {
+        trackSessionEvent("cancelled", { stage: "processing" });
+        finalizeSession("cancelled");
+      }
+      return didCancel;
     }
     return false;
-  }, []);
+  }, [finalizeSession, trackSessionEvent]);
 
   useEffect(() => {
     void window.electronAPI?.setDictationCancelEnabled?.(isDictationActive);
@@ -327,11 +566,20 @@ export const useAudioRecording = (toast, options = {}) => {
     }
   };
 
+  const dictationState = getDictationSessionState({
+    isRecording,
+    isProcessing,
+    isTranscribing,
+    sessionSummary,
+  });
+
   return {
     isRecording,
     isProcessing,
     isTranscribing,
     isStreaming,
+    dictationState,
+    sessionSummary,
     audioLevel,
     transcript,
     partialTranscript,

@@ -37,6 +37,6 @@ test("streaming cancellation suppresses completion delivery after processing has
   );
   assert.match(
     source,
-    /if \(shouldStopBeforeCompletion\("before-completion-delivery"\)\)\s*\{\s*return true;\s*\}[\s\S]*this\.onTranscriptionComplete\?\.\(\{\s*success: true,\s*text: finalText/s
+    /if \(shouldStopBeforeCompletion\("before-completion-delivery"\)\)\s*\{\s*return true;\s*\}[\s\S]*this\.onTranscriptionComplete\?\.\(\{[\s\S]*success: true,\s*text: finalText/s
   );
 });
