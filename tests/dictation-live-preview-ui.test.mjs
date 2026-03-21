@@ -16,6 +16,8 @@ test("dictation overlay passes an explicit live-preview flag into the capsule", 
     /const showTranscriptPreview = Boolean\(liveTranscriptLabel\) && isRecording;/
   );
   assert.match(source, /<DictationCapsule[\s\S]*showTranscriptPreview=\{showTranscriptPreview\}/);
+  assert.match(source, /partialTranscriptSegments,/);
+  assert.match(source, /<DictationCapsule[\s\S]*livePreviewSegments=\{partialTranscriptSegments\}/);
 });
 
 test("dictation capsule keeps the recording shell stable even before the first live transcript arrives", () => {
@@ -96,22 +98,24 @@ test("dictation capsule live transcript mask no longer fades out the leading cha
   );
 });
 
-test("dictation capsule progressively reveals incoming partial transcript text instead of snapping full chunks into view", () => {
+test("dictation capsule renders the incoming partial transcript directly on the live rail instead of buffering it behind a second reveal timer", () => {
   const source = read("src/components/DictationCapsule.tsx");
 
-  assert.match(source, /getLiveTranscriptRevealBase/);
-  assert.match(source, /stepLiveTranscriptReveal/);
-  assert.match(
-    source,
-    /const \[revealedLivePreviewText, setRevealedLivePreviewText\] = useState\(""\);/
-  );
-  assert.match(
-    source,
-    /const liveTrackText = showTranscriptPreview \? revealedLivePreviewText : helperText;/
-  );
-  assert.match(source, /const LIVE_PREVIEW_REVEAL_FRAME_MS = 28;/);
-  assert.match(
-    source,
-    /window\.setTimeout\(\(\) => \{\s*setRevealedLivePreviewText\(\(currentText\) =>\s*stepLiveTranscriptReveal\(/s
-  );
+  assert.doesNotMatch(source, /getLiveTranscriptRevealBase/);
+  assert.doesNotMatch(source, /stepLiveTranscriptReveal/);
+  assert.doesNotMatch(source, /revealedLivePreviewText/);
+  assert.doesNotMatch(source, /livePreviewRevealTimeoutRef/);
+  assert.doesNotMatch(source, /LIVE_PREVIEW_REVEAL_FRAME_MS/);
+  assert.match(source, /const liveTrackText = showTranscriptPreview \? livePreviewTargetText : helperText;/);
+});
+
+test("dictation capsule renders a stable prefix and a live tail on the same measured rail so active speech keeps updating in place", () => {
+  const source = read("src/components/DictationCapsule.tsx");
+
+  assert.match(source, /livePreviewSegments\?:/);
+  assert.match(source, /const livePreviewActiveCharCount =/);
+  assert.match(source, /const livePreviewStableText =/);
+  assert.match(source, /const livePreviewActiveText =/);
+  assert.match(source, /data-live-transcript-role="stable"/);
+  assert.match(source, /data-live-transcript-role="active"/);
 });

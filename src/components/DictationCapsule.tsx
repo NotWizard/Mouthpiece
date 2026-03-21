@@ -12,10 +12,6 @@ import {
   normalizeLiveTranscriptText,
 } from "../utils/liveTranscriptMotion.mjs";
 import {
-  getLiveTranscriptRevealBase,
-  stepLiveTranscriptReveal,
-} from "../utils/liveTranscriptReveal.mjs";
-import {
   DICTATION_CAPSULE_CONTENT_SWAP_DELAY_MS,
   DICTATION_CAPSULE_MORPH_DURATION_MS,
   getDictationCapsuleLayout,
@@ -28,8 +24,6 @@ const LIVE_PREVIEW_TRAILING_REVEAL_PX = 12;
 const LIVE_PREVIEW_ENTRANCE_DURATION_MS = 320;
 const LIVE_PREVIEW_GHOST_EXIT_DURATION_MS = 260;
 const LIVE_PREVIEW_SCROLL_DURATION_MS = 240;
-const LIVE_PREVIEW_REVEAL_FRAME_MS = 28;
-const LIVE_PREVIEW_REVEAL_MAX_CHARS_PER_FRAME = 1;
 const LIVE_PREVIEW_EDGE_MASK =
   "linear-gradient(90deg, black 0px, black calc(100% - 16px), transparent 100%)";
 
@@ -37,11 +31,22 @@ function createSilentSamples() {
   return Array.from({ length: WAVEFORM_DOT_COUNT }, () => 0);
 }
 
+function toCharacters(text: string | null | undefined) {
+  return Array.from(typeof text === "string" ? text : "");
+}
+
 interface DictationCapsuleProps {
   brandLabel: string;
   secondaryLabel: string;
   hotkeyLabel: string;
   showTranscriptPreview: boolean;
+  livePreviewSegments?:
+    | {
+        stableText?: string;
+        activeText?: string;
+        fullText?: string;
+      }
+    | null;
   audioLevel: number;
   isHovered: boolean;
   isRecording: boolean;
@@ -130,6 +135,7 @@ export default function DictationCapsule({
   secondaryLabel,
   hotkeyLabel,
   showTranscriptPreview,
+  livePreviewSegments = null,
   audioLevel,
   isHovered,
   isRecording,
@@ -146,15 +152,32 @@ export default function DictationCapsule({
   onBlur,
 }: DictationCapsuleProps) {
   const helperText = isRecording || isProcessing || isTranscribing ? secondaryLabel : hotkeyLabel;
-  const livePreviewTargetText = normalizeLiveTranscriptText(secondaryLabel, {
-    maxChars: LIVE_PREVIEW_RENDER_MAX_CHARS,
-  });
+  const livePreviewTargetText = normalizeLiveTranscriptText(
+    showTranscriptPreview ? livePreviewSegments?.fullText || secondaryLabel : secondaryLabel,
+    {
+      maxChars: LIVE_PREVIEW_RENDER_MAX_CHARS,
+    }
+  );
+  const livePreviewCharacters = toCharacters(livePreviewTargetText);
+  const livePreviewActiveCharCount = showTranscriptPreview
+    ? Math.min(
+        toCharacters(livePreviewSegments?.activeText || "").length,
+        livePreviewCharacters.length
+      )
+    : 0;
+  const livePreviewStableText = showTranscriptPreview
+    ? livePreviewCharacters
+        .slice(0, livePreviewCharacters.length - livePreviewActiveCharCount)
+        .join("")
+    : "";
+  const livePreviewActiveText = showTranscriptPreview
+    ? livePreviewCharacters.slice(livePreviewCharacters.length - livePreviewActiveCharCount).join("")
+    : "";
   const [sampleHistory, setSampleHistory] = useState<number[]>(() => createSilentSamples());
   const [transitionElapsedMs, setTransitionElapsedMs] = useState(
     isTranscribing ? DICTATION_CAPSULE_CONTENT_SWAP_DELAY_MS : 0
   );
   const [livePreviewOffsetPx, setLivePreviewOffsetPx] = useState(0);
-  const [revealedLivePreviewText, setRevealedLivePreviewText] = useState("");
   const [showListeningGhost, setShowListeningGhost] = useState(false);
   const [isTranscriptEntranceActive, setIsTranscriptEntranceActive] = useState(false);
   const [listeningGhostLabel, setListeningGhostLabel] = useState(helperText);
@@ -166,10 +189,9 @@ export default function DictationCapsule({
   const livePreviewMeasureFrameRef = useRef<number | undefined>(undefined);
   const transcriptEntranceFrameRef = useRef<number | undefined>(undefined);
   const transcriptEntranceTimeoutRef = useRef<number | undefined>(undefined);
-  const livePreviewRevealTimeoutRef = useRef<number | undefined>(undefined);
   const listeningGhostLabelRef = useRef(helperText);
   const liveShellActive = isRecording;
-  const liveTrackText = showTranscriptPreview ? revealedLivePreviewText : helperText;
+  const liveTrackText = showTranscriptPreview ? livePreviewTargetText : helperText;
   const listeningGhostText = helperText;
 
   useEffect(() => {
@@ -231,60 +253,6 @@ export default function DictationCapsule({
   }, [listeningGhostText, showTranscriptPreview]);
 
   useEffect(() => {
-    if (livePreviewRevealTimeoutRef.current !== undefined) {
-      window.clearTimeout(livePreviewRevealTimeoutRef.current);
-      livePreviewRevealTimeoutRef.current = undefined;
-    }
-
-    if (!showTranscriptPreview || !livePreviewTargetText) {
-      setRevealedLivePreviewText("");
-      return;
-    }
-
-    setRevealedLivePreviewText((currentText) => {
-      const baseText = getLiveTranscriptRevealBase({
-        renderedText: currentText,
-        targetText: livePreviewTargetText,
-      });
-
-      return currentText === baseText ? currentText : baseText;
-    });
-  }, [livePreviewTargetText, showTranscriptPreview]);
-
-  useEffect(() => {
-    if (livePreviewRevealTimeoutRef.current !== undefined) {
-      window.clearTimeout(livePreviewRevealTimeoutRef.current);
-      livePreviewRevealTimeoutRef.current = undefined;
-    }
-
-    if (!showTranscriptPreview || !livePreviewTargetText) {
-      return;
-    }
-
-    if (revealedLivePreviewText === livePreviewTargetText) {
-      return;
-    }
-
-    livePreviewRevealTimeoutRef.current = window.setTimeout(() => {
-      setRevealedLivePreviewText((currentText) =>
-        stepLiveTranscriptReveal({
-          renderedText: currentText,
-          targetText: livePreviewTargetText,
-          maxCharsPerStep: LIVE_PREVIEW_REVEAL_MAX_CHARS_PER_FRAME,
-        })
-      );
-      livePreviewRevealTimeoutRef.current = undefined;
-    }, LIVE_PREVIEW_REVEAL_FRAME_MS);
-
-    return () => {
-      if (livePreviewRevealTimeoutRef.current !== undefined) {
-        window.clearTimeout(livePreviewRevealTimeoutRef.current);
-        livePreviewRevealTimeoutRef.current = undefined;
-      }
-    };
-  }, [livePreviewTargetText, revealedLivePreviewText, showTranscriptPreview]);
-
-  useEffect(() => {
     const wasShowingTranscriptPreview = wasShowingTranscriptPreviewRef.current;
 
     if (showTranscriptPreview && !wasShowingTranscriptPreview) {
@@ -336,10 +304,6 @@ export default function DictationCapsule({
 
       if (transcriptEntranceTimeoutRef.current !== undefined) {
         window.clearTimeout(transcriptEntranceTimeoutRef.current);
-      }
-
-      if (livePreviewRevealTimeoutRef.current !== undefined) {
-        window.clearTimeout(livePreviewRevealTimeoutRef.current);
       }
     };
   }, []);
@@ -548,15 +512,29 @@ export default function DictationCapsule({
                   className="transition-[transform,opacity,clip-path,filter] ease-[cubic-bezier(0.19,1,0.22,1)] motion-reduce:transition-none"
                   style={transcriptEntranceStyle}
                 >
-                  <div
-                    ref={livePreviewTextRef}
-                    className="whitespace-nowrap text-[13px] font-medium leading-[1.38] text-[rgba(72,72,72,0.92)] transition-[transform,opacity,color] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
-                    style={livePreviewTextStyle}
-                  >
-                    {liveTrackText}
-                  </div>
+                <div
+                  ref={livePreviewTextRef}
+                  className="whitespace-nowrap text-[13px] font-medium leading-[1.38] text-[rgba(72,72,72,0.92)] transition-[transform,opacity,color] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+                  style={livePreviewTextStyle}
+                >
+                  {showTranscriptPreview ? (
+                    <>
+                      <span data-live-transcript-role="stable">{livePreviewStableText}</span>
+                      {livePreviewActiveText ? (
+                        <span
+                          data-live-transcript-role="active"
+                          className="text-[rgba(72,72,72,0.62)] transition-[color,opacity] duration-100 ease-out"
+                        >
+                          {livePreviewActiveText}
+                        </span>
+                      ) : null}
+                    </>
+                  ) : (
+                    liveTrackText
+                  )}
                 </div>
               </div>
+            </div>
             </div>
 
             <div className="relative mt-auto flex h-3 items-center justify-between gap-[3px] px-0.5">

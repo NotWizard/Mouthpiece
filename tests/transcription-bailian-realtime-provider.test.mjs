@@ -2,9 +2,18 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 async function readRepoFile(relativePath) {
   return fs.readFile(path.resolve(process.cwd(), relativePath), "utf8");
+}
+
+async function loadQwenRealtimeStreaming() {
+  const modulePath = pathToFileURL(
+    path.resolve(process.cwd(), "src/helpers/qwenRealtimeStreaming.js")
+  ).href;
+  const mod = await import(modulePath);
+  return mod.default ?? mod;
 }
 
 test("Bailian realtime toggle is persisted through the settings store and hook", async () => {
@@ -144,6 +153,7 @@ test("main-process bridge exposes Bailian realtime IPC and dedicated realtime he
   assert.match(preloadSource, /onBailianRealtimePartialTranscript/);
   assert.match(preloadSource, /onBailianRealtimeFinalTranscript/);
   assert.match(preloadSource, /onBailianRealtimeError/);
+  assert.match(preloadSource, /onBailianRealtimeSpeechStarted/);
   assert.match(preloadSource, /onBailianRealtimeSessionEnd/);
 
   assert.match(ipcHandlersSource, /const QwenRealtimeStreaming = require\("\.\/qwenRealtimeStreaming"\);/);
@@ -164,6 +174,7 @@ test("main-process bridge exposes Bailian realtime IPC and dedicated realtime he
   assert.match(electronTypes, /onBailianRealtimePartialTranscript/);
   assert.match(electronTypes, /onBailianRealtimeFinalTranscript/);
   assert.match(electronTypes, /onBailianRealtimeError/);
+  assert.match(electronTypes, /onBailianRealtimeSpeechStarted/);
   assert.match(electronTypes, /onBailianRealtimeSessionEnd/);
 
   assert.match(
@@ -174,8 +185,194 @@ test("main-process bridge exposes Bailian realtime IPC and dedicated realtime he
   assert.match(realtimeHelperSource, /"session\.update"/);
   assert.match(realtimeHelperSource, /"input_audio_buffer\.append"/);
   assert.match(realtimeHelperSource, /"input_audio_buffer\.commit"/);
+  assert.match(realtimeHelperSource, /input_audio_buffer\.speech_started/);
   assert.match(realtimeHelperSource, /"session\.finish"/);
   assert.match(realtimeHelperSource, /conversation\.item\.input_audio_transcription\.text/);
   assert.match(realtimeHelperSource, /conversation\.item\.input_audio_transcription\.completed/);
   assert.match(realtimeHelperSource, /text.*stash|stash.*text/);
+});
+
+test("Bailian realtime helper surfaces server speech-start events before partial text is finalized", async () => {
+  const QwenRealtimeStreaming = await loadQwenRealtimeStreaming();
+  const streaming = new QwenRealtimeStreaming();
+  const speechStarts = [];
+
+  streaming.onSpeechStarted = (data) => speechStarts.push(data);
+  streaming.handleMessage(
+    JSON.stringify({
+      type: "input_audio_buffer.speech_started",
+      item_id: "turn-1",
+      audio_start_ms: 120,
+    })
+  );
+
+  assert.deepEqual(speechStarts, [
+    {
+      itemId: "turn-1",
+      audioStartMs: 120,
+    },
+  ]);
+});
+
+test("Bailian realtime session config keeps server VAD enabled for live partial transcripts", async () => {
+  const QwenRealtimeStreaming = await loadQwenRealtimeStreaming();
+  const streaming = new QwenRealtimeStreaming();
+
+  const event = streaming.buildSessionUpdateEvent({
+    apiKey: "test-key",
+    language: "zh",
+  });
+
+  assert.equal(event.type, "session.update");
+  assert.deepEqual(event.session.turn_detection, {
+    type: "server_vad",
+    threshold: 0,
+    silence_duration_ms: 400,
+  });
+});
+
+test("Bailian realtime finalize does not send manual commit events while VAD mode is enabled", async () => {
+  const QwenRealtimeStreaming = await loadQwenRealtimeStreaming();
+  const streaming = new QwenRealtimeStreaming();
+  const sentEvents = [];
+
+  streaming.ws = {
+    readyState: 1,
+    send(payload) {
+      sentEvents.push(JSON.parse(payload));
+    },
+  };
+  streaming.sessionConfigured = true;
+
+  const didFinalize = streaming.finalize();
+
+  assert.equal(didFinalize, false);
+  assert.deepEqual(sentEvents, []);
+});
+
+test("Bailian realtime keeps contiguous Chinese transcript segments compact across VAD turns", async () => {
+  const QwenRealtimeStreaming = await loadQwenRealtimeStreaming();
+  const streaming = new QwenRealtimeStreaming();
+  const partials = [];
+  const finals = [];
+
+  streaming.currentLanguage = "zh";
+  streaming.onPartialTranscript = (payload) => partials.push(payload);
+  streaming.onFinalTranscript = (text) => finals.push(text);
+
+  streaming.handleMessage(
+    JSON.stringify({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "turn-1",
+      transcript: "你好",
+    })
+  );
+  streaming.handleMessage(
+    JSON.stringify({
+      type: "conversation.item.input_audio_transcription.text",
+      text: "世界",
+      stash: "",
+    })
+  );
+  streaming.handleMessage(
+    JSON.stringify({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "turn-2",
+      transcript: "世界",
+    })
+  );
+
+  assert.equal(partials.at(-1)?.fullText, "你好世界");
+  assert.equal(finals.at(-1), "你好世界");
+});
+
+test("Bailian realtime preserves the provider text and stash split for direct live preview rendering", async () => {
+  const QwenRealtimeStreaming = await loadQwenRealtimeStreaming();
+  const streaming = new QwenRealtimeStreaming();
+  const partials = [];
+
+  streaming.currentLanguage = "zh";
+  streaming.accumulatedText = "你好";
+  streaming.onPartialTranscript = (payload) => partials.push(payload);
+
+  streaming.handleMessage(
+    JSON.stringify({
+      type: "conversation.item.input_audio_transcription.text",
+      item_id: "turn-2",
+      language: "zh",
+      text: "世界",
+      stash: "和平",
+    })
+  );
+
+  assert.deepEqual(partials.at(-1), {
+    stableText: "你好世界",
+    activeText: "和平",
+    fullText: "你好世界和平",
+    itemId: "turn-2",
+    language: "zh",
+  });
+});
+
+test("Bailian realtime graceful disconnect flushes in-flight live text via session.finish", async () => {
+  const QwenRealtimeStreaming = await loadQwenRealtimeStreaming();
+  const streaming = new QwenRealtimeStreaming();
+  const sentEvents = [];
+
+  streaming.ws = {
+    readyState: 1,
+    send(payload) {
+      const event = JSON.parse(payload);
+      sentEvents.push(event);
+
+      if (event.type === "session.finish") {
+        queueMicrotask(() => {
+          streaming.handleMessage(JSON.stringify({ type: "session.finished" }));
+        });
+      }
+    },
+    removeAllListeners() {},
+    close() {},
+    terminate() {},
+  };
+  streaming.sessionConfigured = true;
+  streaming.liveText = "你好";
+
+  const result = await streaming.disconnect(true);
+
+  assert.equal(sentEvents.some((event) => event.type === "session.finish"), true);
+  assert.equal(sentEvents.some((event) => event.type === "input_audio_buffer.commit"), false);
+  assert.equal(result.text, "你好");
+});
+
+test("Bailian realtime disconnect keeps completed and in-flight Chinese segments together", async () => {
+  const QwenRealtimeStreaming = await loadQwenRealtimeStreaming();
+  const streaming = new QwenRealtimeStreaming();
+  const sentEvents = [];
+
+  streaming.currentLanguage = "zh";
+  streaming.ws = {
+    readyState: 1,
+    send(payload) {
+      const event = JSON.parse(payload);
+      sentEvents.push(event);
+
+      if (event.type === "session.finish") {
+        queueMicrotask(() => {
+          streaming.handleMessage(JSON.stringify({ type: "session.finished" }));
+        });
+      }
+    },
+    removeAllListeners() {},
+    close() {},
+    terminate() {},
+  };
+  streaming.sessionConfigured = true;
+  streaming.accumulatedText = "你好";
+  streaming.liveText = "世界";
+
+  const result = await streaming.disconnect(true);
+
+  assert.equal(sentEvents.some((event) => event.type === "session.finish"), true);
+  assert.equal(result.text, "你好世界");
 });

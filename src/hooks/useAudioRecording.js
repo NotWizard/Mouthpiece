@@ -36,6 +36,11 @@ const SINGLE_OCCURRENCE_SESSION_EVENTS = new Set([
   "cancelled",
   "error",
 ]);
+const EMPTY_LIVE_TRANSCRIPT_SEGMENTS = Object.freeze({
+  stableText: "",
+  activeText: "",
+  fullText: "",
+});
 
 function isPermissionError(error, title) {
   if (title === "Microphone Access Denied") {
@@ -58,6 +63,46 @@ function shouldShowFallbackToast(result) {
   return typeof result.source === "string" && result.source.includes("fallback");
 }
 
+function buildLiveTranscriptSegments(state) {
+  const nextState =
+    state && typeof state === "object"
+      ? { ...createLiveTranscriptStabilizerState(), ...state }
+      : createLiveTranscriptStabilizerState();
+  const stableText = `${nextState.frozenText || ""}${nextState.semiStableText || ""}`;
+  const activeText = nextState.activeText || "";
+  const fullText = nextState.displayText || stableText + activeText;
+
+  if (!stableText && !activeText && !fullText) {
+    return EMPTY_LIVE_TRANSCRIPT_SEGMENTS;
+  }
+
+  return {
+    stableText,
+    activeText,
+    fullText,
+  };
+}
+
+function normalizeProviderLiveTranscriptSegments(text) {
+  if (!(text && typeof text === "object" && typeof text.fullText === "string")) {
+    return null;
+  }
+
+  const stableText = typeof text.stableText === "string" ? text.stableText : "";
+  const activeText = typeof text.activeText === "string" ? text.activeText : "";
+  const fullText = typeof text.fullText === "string" ? text.fullText : `${stableText}${activeText}`;
+
+  if (!stableText && !activeText && !fullText) {
+    return EMPTY_LIVE_TRANSCRIPT_SEGMENTS;
+  }
+
+  return {
+    stableText,
+    activeText,
+    fullText,
+  };
+}
+
 export const useAudioRecording = (toast, options = {}) => {
   const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
@@ -67,6 +112,9 @@ export const useAudioRecording = (toast, options = {}) => {
   const [audioLevel, setAudioLevel] = useState(0);
   const [transcript, setTranscript] = useState("");
   const [partialTranscript, setPartialTranscript] = useState("");
+  const [partialTranscriptSegments, setPartialTranscriptSegments] = useState(
+    EMPTY_LIVE_TRANSCRIPT_SEGMENTS
+  );
   const [sessionSummary, setSessionSummary] = useState(null);
   const audioManagerRef = useRef(null);
   const sessionTimelineRef = useRef(null);
@@ -102,6 +150,7 @@ export const useAudioRecording = (toast, options = {}) => {
 
       if (clearPreview) {
         setPartialTranscript("");
+        setPartialTranscriptSegments(EMPTY_LIVE_TRANSCRIPT_SEGMENTS);
       }
     },
     [clearStablePartialTimer]
@@ -306,6 +355,49 @@ export const useAudioRecording = (toast, options = {}) => {
         finalizeSession("error");
       },
       onPartialTranscript: (text) => {
+        const directSegments = normalizeProviderLiveTranscriptSegments(text);
+
+        if (directSegments) {
+          partialStabilizerRef.current = {
+            rawText: directSegments.fullText,
+            frozenText: directSegments.stableText,
+            semiStableText: "",
+            activeText: directSegments.activeText,
+            displayText: directSegments.fullText,
+          };
+          setPartialTranscript(directSegments.fullText);
+          setPartialTranscriptSegments({
+            stableText: text.stableText || "",
+            activeText: text.activeText || "",
+            fullText: text.fullText || "",
+          });
+
+          const normalizedText =
+            typeof directSegments.fullText === "string" ? directSegments.fullText.trim() : "";
+          if (!normalizedText) {
+            lastPartialTranscriptRef.current = "";
+            clearStablePartialTimer();
+            return;
+          }
+
+          trackSessionEvent("speech_detected", { textLength: normalizedText.length });
+          trackSessionEvent("first_partial", { textLength: normalizedText.length });
+
+          if (directSegments.stableText) {
+            trackSessionEvent("first_stable_partial", { textLength: normalizedText.length });
+          }
+
+          lastPartialTranscriptRef.current = normalizedText;
+          clearStablePartialTimer();
+          stablePartialTimeoutRef.current = setTimeout(() => {
+            if (lastPartialTranscriptRef.current !== normalizedText) {
+              return;
+            }
+            trackSessionEvent("first_stable_partial", { textLength: normalizedText.length });
+          }, STABLE_PARTIAL_SETTLE_MS);
+          return;
+        }
+
         const nextPartialState = advanceLiveTranscriptStabilizer(
           partialStabilizerRef.current,
           text,
@@ -315,6 +407,7 @@ export const useAudioRecording = (toast, options = {}) => {
         );
         partialStabilizerRef.current = nextPartialState;
         setPartialTranscript(nextPartialState.displayText);
+        setPartialTranscriptSegments(buildLiveTranscriptSegments(nextPartialState));
 
         const normalizedText =
           typeof nextPartialState.displayText === "string"
@@ -352,6 +445,7 @@ export const useAudioRecording = (toast, options = {}) => {
           committedText
         );
         setPartialTranscript(partialStabilizerRef.current.displayText);
+        setPartialTranscriptSegments(buildLiveTranscriptSegments(partialStabilizerRef.current));
       },
       onTranscriptionComplete: async (result) => {
         setIsTranscribing(false);
@@ -671,6 +765,7 @@ export const useAudioRecording = (toast, options = {}) => {
     audioLevel,
     transcript,
     partialTranscript,
+    partialTranscriptSegments,
     startRecording,
     stopRecording,
     cancelRecording,

@@ -107,6 +107,7 @@ export default function App() {
     dictationState,
     audioLevel,
     partialTranscript,
+    partialTranscriptSegments,
     toggleListening,
     cancelRecording,
     cancelProcessing,
@@ -246,7 +247,8 @@ export default function App() {
   ]);
 
   const hotkeyLabel = formatHotkeyLabel(hotkey);
-  const liveTranscriptLabel = partialTranscript?.trim();
+  const liveTranscriptLabel =
+    partialTranscriptSegments?.fullText?.trim() || partialTranscript?.trim();
   const showTranscriptPreview = Boolean(liveTranscriptLabel) && isRecording;
   const secondaryLabel =
     liveTranscriptLabel && isRecording
@@ -303,6 +305,7 @@ export default function App() {
                 secondaryLabel={secondaryLabel}
                 hotkeyLabel={hotkeyLabel}
                 showTranscriptPreview={showTranscriptPreview}
+                livePreviewSegments={partialTranscriptSegments}
                 audioLevel={audioLevel}
                 isHovered={isHovered}
                 isRecording={isRecording}

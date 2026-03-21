@@ -3082,6 +3082,12 @@ class IPCHandlers {
           }
         };
 
+        this.bailianRealtimeStreaming.onSpeechStarted = (data) => {
+          if (win && !win.isDestroyed()) {
+            win.webContents.send("bailian-realtime-speech-started", data);
+          }
+        };
+
         this.bailianRealtimeStreaming.onSessionEnd = (data) => {
           if (win && !win.isDestroyed()) {
             win.webContents.send("bailian-realtime-session-end", data);

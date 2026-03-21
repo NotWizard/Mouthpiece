@@ -20,6 +20,38 @@ test("useAudioRecording stabilizes partial transcript text before sending it to 
   assert.match(source, /partialStabilizerRef\.current = commitLiveTranscriptStabilizer\(/);
 });
 
+test("useAudioRecording exposes structured live transcript segments so the capsule can distinguish the stable prefix from the active tail", async () => {
+  const source = await readRepoFile("src/hooks/useAudioRecording.js");
+
+  assert.match(source, /function buildLiveTranscriptSegments/);
+  assert.match(source, /const \[partialTranscriptSegments, setPartialTranscriptSegments\] = useState\(/);
+  assert.match(source, /setPartialTranscriptSegments\(buildLiveTranscriptSegments\(nextPartialState\)\);/);
+  assert.match(
+    source,
+    /setPartialTranscriptSegments\(buildLiveTranscriptSegments\(partialStabilizerRef\.current\)\);/
+  );
+  assert.match(source, /partialTranscriptSegments,/);
+});
+
+test("useAudioRecording can accept provider-native live transcript segments without running them back through the generic stabilizer", async () => {
+  const hookSource = await readRepoFile("src/hooks/useAudioRecording.js");
+  const managerSource = await readRepoFile("src/helpers/audioManager.js");
+
+  assert.match(hookSource, /function normalizeProviderLiveTranscriptSegments\(text\)/);
+  assert.match(hookSource, /typeof text\.fullText === "string"/);
+  assert.match(hookSource, /setPartialTranscriptSegments\(\{\s*stableText:\s*text\.stableText \|\| ""/s);
+  assert.match(managerSource, /const isStructuredBailianPayload =[\s\S]*streamingProviderName === "bailian"[\s\S]*typeof partialPayload === "object"/);
+});
+
+test("audio manager resolves the streaming provider name before wiring the partial transcript callback", async () => {
+  const managerSource = await readRepoFile("src/helpers/audioManager.js");
+
+  assert.match(
+    managerSource,
+    /const provider = this\.getStreamingProvider\(\);\s+const streamingProviderName = this\.getStreamingProviderName\(\);[\s\S]*const partialCleanup = provider\.onPartial\(/s
+  );
+});
+
 test("stabilized partials can promote the dictation session into the partial-stable state", async () => {
   const source = await readRepoFile("src/hooks/useAudioRecording.js");
 
