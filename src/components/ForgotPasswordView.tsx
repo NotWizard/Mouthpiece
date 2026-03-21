@@ -133,9 +133,7 @@ export default function ForgotPasswordView({
           autoFocus
         />
 
-        {error && (
-          <ErrorNotice message={error} compact />
-        )}
+        {error && <ErrorNotice message={error} compact />}
 
         <Button type="submit" disabled={isSubmitting || !email.trim()} className="w-full h-9">
           {isSubmitting ? (

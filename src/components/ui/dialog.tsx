@@ -59,7 +59,9 @@ const DialogOverlay = React.forwardRef<
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
-interface DialogContentProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
+interface DialogContentProps extends React.ComponentPropsWithoutRef<
+  typeof DialogPrimitive.Content
+> {
   variant?: DialogTone;
   hideClose?: boolean;
 }
@@ -204,7 +206,9 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <div className="space-y-2">
             <DialogTitle className={dialogToneTextClasses[variant]}>{title}</DialogTitle>
             {description && (
-              <DialogDescription className={variant === "destructive" ? dialogToneTextClasses[variant] : undefined}>
+              <DialogDescription
+                className={variant === "destructive" ? dialogToneTextClasses[variant] : undefined}
+              >
                 {description}
               </DialogDescription>
             )}
@@ -268,7 +272,9 @@ const AlertDialog: React.FC<AlertDialogProps> = ({
           <div className="space-y-2">
             <DialogTitle className={dialogToneTextClasses[variant]}>{title}</DialogTitle>
             {description && (
-              <DialogDescription className={variant === "destructive" ? dialogToneTextClasses[variant] : undefined}>
+              <DialogDescription
+                className={variant === "destructive" ? dialogToneTextClasses[variant] : undefined}
+              >
                 {description}
               </DialogDescription>
             )}

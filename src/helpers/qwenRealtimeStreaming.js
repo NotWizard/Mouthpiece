@@ -41,7 +41,9 @@ class QwenRealtimeStreaming {
   }
 
   createEventId(prefix = "event") {
-    return crypto.randomUUID?.() || `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    return (
+      crypto.randomUUID?.() || `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+    );
   }
 
   normalizeOptions(options = {}) {
@@ -50,7 +52,9 @@ class QwenRealtimeStreaming {
       model: options.model || QWEN_REALTIME_MODEL,
       sampleRate: options.sampleRate || SAMPLE_RATE,
       language:
-        typeof options.language === "string" && options.language.trim() && options.language !== "auto"
+        typeof options.language === "string" &&
+        options.language.trim() &&
+        options.language !== "auto"
           ? options.language.trim()
           : undefined,
     };
@@ -70,8 +74,8 @@ class QwenRealtimeStreaming {
   hasWarmConnection() {
     return Boolean(
       this.warmConnection &&
-        this.warmConnectionReady &&
-        this.warmConnection.readyState === WebSocket.OPEN
+      this.warmConnectionReady &&
+      this.warmConnection.readyState === WebSocket.OPEN
     );
   }
 

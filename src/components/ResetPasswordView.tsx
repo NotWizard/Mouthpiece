@@ -137,9 +137,7 @@ export default function ResetPasswordView({ token, onSuccess, onBack }: ResetPas
           {t("resetPassword.passwordMinLength")}
         </p>
 
-        {error && (
-          <ErrorNotice message={error} compact />
-        )}
+        {error && <ErrorNotice message={error} compact />}
 
         <Button
           type="submit"

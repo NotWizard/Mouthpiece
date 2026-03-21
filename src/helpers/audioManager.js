@@ -1703,7 +1703,10 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     });
   }
 
-  shouldBlockCloudReasoning(sensitiveAppPolicy, cloudReasoningMode = getSettings().cloudReasoningMode) {
+  shouldBlockCloudReasoning(
+    sensitiveAppPolicy,
+    cloudReasoningMode = getSettings().cloudReasoningMode
+  ) {
     if (!sensitiveAppPolicy?.blocksCloudReasoning) {
       return false;
     }
@@ -3762,10 +3765,12 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       );
     }
 
-    if (shouldDiscardStreamingTranscript({
-      speechDetectedEver: this.streamingSpeechEverDetected,
-      peakRms: this._peakRms,
-    })) {
+    if (
+      shouldDiscardStreamingTranscript({
+        speechDetectedEver: this.streamingSpeechEverDetected,
+        peakRms: this._peakRms,
+      })
+    ) {
       finalText = "";
       logger.info(
         "Streaming silence detected, discarding transcript",
@@ -3797,9 +3802,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const isByokDeepgramStreaming = this.isByokDeepgramStreamingEnabled();
     const isByokBailianStreaming = this.isByokBailianStreamingEnabled();
     const isByokStreaming =
-      isByokDeepgramStreaming ||
-      isByokBailianStreaming ||
-      this.isByokSonioxStreamingEnabled();
+      isByokDeepgramStreaming || isByokBailianStreaming || this.isByokSonioxStreamingEnabled();
     const streamingSttModel = stopResult?.model || this.getRealtimeStreamingModel();
     const streamingSttProcessingMs = Math.round(tTerminate - t0);
     const streamingAudioBytesSent = stopResult?.audioBytesSent || 0;
@@ -3961,17 +3964,18 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         "streaming"
       );
       try {
-        const batchResult = isByokDeepgramStreaming || isByokBailianStreaming
-          ? await this.processWithOpenAIAPI(fallbackBlob, {
-              durationSeconds,
-            })
-          : getSettings().cloudTranscriptionProvider === "soniox"
-            ? await this.processWithSonioxAsync(fallbackBlob, {
+        const batchResult =
+          isByokDeepgramStreaming || isByokBailianStreaming
+            ? await this.processWithOpenAIAPI(fallbackBlob, {
                 durationSeconds,
               })
-            : await this.processWithMouthpieceCloud(fallbackBlob, {
-                durationSeconds,
-              });
+            : getSettings().cloudTranscriptionProvider === "soniox"
+              ? await this.processWithSonioxAsync(fallbackBlob, {
+                  durationSeconds,
+                })
+              : await this.processWithMouthpieceCloud(fallbackBlob, {
+                  durationSeconds,
+                });
         if (batchResult?.text) {
           finalText = batchResult.text;
           usedBatchFallback = true;

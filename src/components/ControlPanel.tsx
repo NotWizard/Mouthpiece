@@ -247,7 +247,10 @@ export default function ControlPanel() {
         const updateKey =
           status.updateInfo?.version || status.updateInfo?.releaseName || "downloaded";
 
-        if (promptedDownloadedUpdateRef.current === updateKey || updateStatus?.status === "downloaded") {
+        if (
+          promptedDownloadedUpdateRef.current === updateKey ||
+          updateStatus?.status === "downloaded"
+        ) {
           handleInstallUpdate();
         }
         return;

@@ -147,7 +147,9 @@ function getDictionaryEnforcementInstruction(uiLanguage?: string): string {
   ].join("\n");
 }
 
-function getTerminologyInstruction(terminologyProfile?: Partial<TerminologyProfile> | null): string {
+function getTerminologyInstruction(
+  terminologyProfile?: Partial<TerminologyProfile> | null
+): string {
   if (!terminologyProfile || typeof terminologyProfile !== "object") {
     return "";
   }

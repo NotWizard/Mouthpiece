@@ -55,7 +55,9 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     exitingToastIdsRef.current.add(id);
-    setToasts((prev) => prev.map((toast) => (toast.id === id ? { ...toast, isExiting: true } : toast)));
+    setToasts((prev) =>
+      prev.map((toast) => (toast.id === id ? { ...toast, isExiting: true } : toast))
+    );
 
     setTimeout(() => {
       exitingToastIdsRef.current.delete(id);
@@ -175,7 +177,9 @@ const ToastViewport: React.FC<{
         "fixed z-[100] flex flex-col gap-1.5 pointer-events-none",
         isDictationPanel ? "bottom-20 right-6" : "bottom-5 right-5"
       )}
-      style={isDictationPanel ? { right: ERROR_SURFACE_LAYOUT.dictationToast.rightInsetPx } : undefined}
+      style={
+        isDictationPanel ? { right: ERROR_SURFACE_LAYOUT.dictationToast.rightInsetPx } : undefined
+      }
     >
       {toasts.map((toast) => (
         <Toast
@@ -196,10 +200,8 @@ const variantConfig = {
     progressClass: "bg-white/15",
   },
   destructive: {
-    accentClass:
-      "bg-[linear-gradient(180deg,rgba(251,146,60,0.95),rgba(244,114,182,0.86))]",
-    progressClass:
-      "bg-[linear-gradient(90deg,rgba(249,115,22,0.55),rgba(244,114,182,0.45))]",
+    accentClass: "bg-[linear-gradient(180deg,rgba(251,146,60,0.95),rgba(244,114,182,0.86))]",
+    progressClass: "bg-[linear-gradient(90deg,rgba(249,115,22,0.55),rgba(244,114,182,0.45))]",
   },
   success: {
     accentClass: "bg-emerald-400",
@@ -270,9 +272,7 @@ const Toast: React.FC<
     <div
       className={cn(
         "group pointer-events-auto relative flex w-75 overflow-hidden",
-        isDestructive
-          ? "toast-error-surface rounded-[18px]"
-          : "toast-surface rounded-[5px]",
+        isDestructive ? "toast-error-surface rounded-[18px]" : "toast-surface rounded-[5px]",
         "transition-[opacity,transform] duration-200 ease-out",
         isExiting
           ? "opacity-0 translate-x-2 scale-[0.98]"

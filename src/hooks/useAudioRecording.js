@@ -119,7 +119,12 @@ export const useAudioRecording = (toast, options = {}) => {
       return summarizeAsrSessionTimeline(sessionTimelineRef.current);
     }
 
-    const summary = markAsrSessionEvent(sessionTimelineRef.current, eventType, data, performance.now());
+    const summary = markAsrSessionEvent(
+      sessionTimelineRef.current,
+      eventType,
+      data,
+      performance.now()
+    );
     setSessionSummary(summary);
     return summary;
   }, []);
@@ -248,7 +253,11 @@ export const useAudioRecording = (toast, options = {}) => {
     audioManagerRef.current.setAsrFeatureFlags?.(featureFlagsRef.current);
 
     audioManagerRef.current.setCallbacks({
-      onStateChange: ({ isRecording: nextIsRecording, isProcessing: nextIsProcessing, isStreaming: nextIsStreaming }) => {
+      onStateChange: ({
+        isRecording: nextIsRecording,
+        isProcessing: nextIsProcessing,
+        isStreaming: nextIsStreaming,
+      }) => {
         setIsRecording(nextIsRecording);
         setIsProcessing(nextIsProcessing);
         setIsStreaming(nextIsStreaming ?? false);

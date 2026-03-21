@@ -45,7 +45,9 @@ export function normalizeInsertionOutcomeMode(value?: string | null): InsertionO
   }
 }
 
-function normalizeTargetApp(targetApp?: InsertionTargetAppLike | null): InsertionTargetAppLike | null {
+function normalizeTargetApp(
+  targetApp?: InsertionTargetAppLike | null
+): InsertionTargetAppLike | null {
   if (!targetApp || typeof targetApp !== "object") {
     return null;
   }
@@ -59,7 +61,9 @@ function normalizeTargetApp(targetApp?: InsertionTargetAppLike | null): Insertio
   };
 }
 
-export function normalizeInsertionRequest(request: Partial<InsertionRequest> = {}): InsertionRequest {
+export function normalizeInsertionRequest(
+  request: Partial<InsertionRequest> = {}
+): InsertionRequest {
   const intent = normalizeInsertionIntent(request.intent);
 
   return {

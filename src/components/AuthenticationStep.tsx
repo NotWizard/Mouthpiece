@@ -501,9 +501,7 @@ export default function AuthenticationStep({
             </button>
           )}
 
-          {error && (
-            <ErrorNotice message={error} compact />
-          )}
+          {error && <ErrorNotice message={error} compact />}
 
           <Button type="submit" disabled={isSubmitting || !password} className="w-full h-9">
             {isSubmitting ? (
@@ -633,9 +631,7 @@ export default function AuthenticationStep({
         </Button>
       </form>
 
-      {error && (
-        <ErrorNotice message={error} compact />
-      )}
+      {error && <ErrorNotice message={error} compact />}
 
       <div className="pt-1">
         <button

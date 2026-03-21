@@ -420,7 +420,9 @@ export default function DictationCapsule({
   });
   const recordingLayout = getDictationCapsuleLayout({ stage: "recording" });
   const previewLayout = getDictationCapsuleLayout({ stage: "preview" });
-  const layout = liveShellActive ? previewLayout : getDictationCapsuleLayout({ stage: visualState.stage });
+  const layout = liveShellActive
+    ? previewLayout
+    : getDictationCapsuleLayout({ stage: visualState.stage });
   const glowColor = isRecording ? "rgba(255, 132, 132, 0.48)" : "rgba(244, 166, 89, 0.26)";
   const borderColor =
     isRecording || isProcessing || isTranscribing

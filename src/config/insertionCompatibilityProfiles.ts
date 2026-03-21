@@ -130,7 +130,8 @@ const COMPATIBILITY_PROFILES: InsertionCompatibilityProfile[] = [
       manualAction: "paste_with_terminal_shortcut",
     },
     expectedInsertionMode: "manual_review",
-    knownGap: "Unverified paste automation is intentionally downgraded to avoid accidental command execution.",
+    knownGap:
+      "Unverified paste automation is intentionally downgraded to avoid accidental command execution.",
   },
   {
     id: "generic",
