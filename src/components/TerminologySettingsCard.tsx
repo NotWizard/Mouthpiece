@@ -23,13 +23,7 @@ function parseCommaSeparatedTerms(value: string): string[] {
     .filter(Boolean);
 }
 
-function Chip({
-  label,
-  onRemove,
-}: {
-  label: string;
-  onRemove?: () => void;
-}) {
+function Chip({ label, onRemove }: { label: string; onRemove?: () => void }) {
   return (
     <span className="inline-flex items-center gap-1 rounded-[5px] border border-border/60 bg-background/70 px-2 py-1 text-xs text-foreground/80">
       {label}

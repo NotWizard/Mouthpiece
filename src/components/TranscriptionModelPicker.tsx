@@ -1022,10 +1022,7 @@ export default function TranscriptionModelPicker({
                           : t("transcription.bailian.realtimeDisabledDescription")}
                       </p>
                     </div>
-                    <Toggle
-                      checked={bailianRealtimeEnabled}
-                      onChange={setBailianRealtimeEnabled}
-                    />
+                    <Toggle checked={bailianRealtimeEnabled} onChange={setBailianRealtimeEnabled} />
                   </div>
                 </div>
 

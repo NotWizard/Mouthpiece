@@ -11,18 +11,16 @@ interface ErrorNoticeProps {
   action?: React.ReactNode;
 }
 
-export function ErrorNotice({
-  message,
-  className,
-  compact = false,
-  action,
-}: ErrorNoticeProps) {
+export function ErrorNotice({ message, className, compact = false, action }: ErrorNoticeProps) {
   return (
-    <Alert variant="destructive" className={cn(
+    <Alert
+      variant="destructive"
+      className={cn(
         "inline-error-notice",
         compact ? "px-3 py-2.5 rounded-[16px]" : "px-3.5 py-3 rounded-[18px]",
         className
-      )}>
+      )}
+    >
       <AlertCircle className={cn("shrink-0", compact ? "size-3.5 !top-3" : "size-4 !top-3.5")} />
 
       <div className={cn("flex items-start justify-between gap-3", compact ? "gap-2" : "gap-3.5")}>

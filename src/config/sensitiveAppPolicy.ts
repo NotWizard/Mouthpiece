@@ -69,7 +69,9 @@ const SENSITIVE_APP_RULES: SensitiveAppRule[] = [
   },
 ];
 
-function getActionFromRestrictions(restrictions: SensitiveAppRule["restrictions"]): SensitiveAppAction {
+function getActionFromRestrictions(
+  restrictions: SensitiveAppRule["restrictions"]
+): SensitiveAppAction {
   if (restrictions.injection) return "block_injection";
   if (restrictions.pasteMonitoring) return "block_paste_monitoring";
   if (restrictions.cloudReasoning) return "block_cloud_reasoning";

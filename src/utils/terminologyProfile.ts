@@ -18,7 +18,9 @@ export interface TerminologyProfile {
 }
 
 function normalizeTerm(value: unknown): string {
-  return String(value || "").trim().replace(/\s+/g, " ");
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 function dedupeTerms(values: unknown[] = []): string[] {
@@ -84,7 +86,9 @@ export function createEmptyTerminologyProfile(): TerminologyProfile {
   };
 }
 
-export function normalizeTerminologyProfile(value: Partial<TerminologyProfile> = {}): TerminologyProfile {
+export function normalizeTerminologyProfile(
+  value: Partial<TerminologyProfile> = {}
+): TerminologyProfile {
   return {
     hotwords: dedupeTerms(Array.isArray(value.hotwords) ? value.hotwords : []),
     blacklistedTerms: dedupeTerms(
@@ -100,7 +104,9 @@ export function normalizeTerminologyProfile(value: Partial<TerminologyProfile> =
   };
 }
 
-export function terminologyProfileToDictionary(profile: Partial<TerminologyProfile> = {}): string[] {
+export function terminologyProfileToDictionary(
+  profile: Partial<TerminologyProfile> = {}
+): string[] {
   const normalized = normalizeTerminologyProfile(profile);
   return dedupeTerms([...normalized.hotwords, ...normalized.glossaryTerms]);
 }

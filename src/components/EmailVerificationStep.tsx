@@ -167,9 +167,7 @@ export default function EmailVerificationStep({ email, onVerified }: EmailVerifi
         <p className="text-xs text-muted-foreground/50">{t("emailVerification.waiting")}</p>
       </div>
 
-      {error && (
-        <ErrorNotice message={error} compact />
-      )}
+      {error && <ErrorNotice message={error} compact />}
 
       <Button
         type="button"

@@ -988,13 +988,13 @@ class ClipboardManager {
           platform,
           method,
           mode,
-        reason,
-        clipboardWritten,
-        elapsedMs: Date.now() - startTime,
-        error: message,
-        compatibilityProfileId: compatibilityProfile.id,
-        retryCount,
-      }
+          reason,
+          clipboardWritten,
+          elapsedMs: Date.now() - startTime,
+          error: message,
+          compatibilityProfileId: compatibilityProfile.id,
+          retryCount,
+        }
       );
       return buildPasteResult({
         success: false,

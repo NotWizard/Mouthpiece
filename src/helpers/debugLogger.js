@@ -196,10 +196,7 @@ class DebugLogger {
           : console.log;
 
     if (redactedEntry.meta !== undefined) {
-      consoleFn(
-        `${levelTag}${scopeTag}${sourceTag} ${redactedEntry.message}`,
-        redactedEntry.meta
-      );
+      consoleFn(`${levelTag}${scopeTag}${sourceTag} ${redactedEntry.message}`, redactedEntry.meta);
     } else {
       consoleFn(`${levelTag}${scopeTag}${sourceTag} ${redactedEntry.message}`);
     }

@@ -465,7 +465,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   cloudReasoningBaseUrl: readString("cloudReasoningBaseUrl", API_ENDPOINTS.OPENAI_BASE),
   bailianReasoningEnableThinking: readBoolean("bailianReasoningEnableThinking", false),
   customReasoningEnableThinking: readBoolean("customReasoningEnableThinking", false),
-  defaultOutputStrategy: normalizeOutputStrategy(readString("defaultOutputStrategy", "light_polish")),
+  defaultOutputStrategy: normalizeOutputStrategy(
+    readString("defaultOutputStrategy", "light_polish")
+  ),
   terminologyProfile: INITIAL_TERMINOLOGY_PROFILE,
   customDictionary: INITIAL_CUSTOM_DICTIONARY,
   assemblyAiStreaming: readBoolean("assemblyAiStreaming", true),
@@ -580,7 +582,10 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     });
   },
   addTerminologySuggestions: (suggestions: TerminologySuggestion[]) => {
-    const nextProfile = mergeTerminologySuggestions(useSettingsStore.getState().terminologyProfile, suggestions);
+    const nextProfile = mergeTerminologySuggestions(
+      useSettingsStore.getState().terminologyProfile,
+      suggestions
+    );
     if (isBrowser) {
       localStorage.setItem("terminologyProfile", JSON.stringify(nextProfile));
     }
@@ -592,7 +597,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const nextProfile = normalizeTerminologyProfile({
       ...current,
       hotwords: approved ? [...current.hotwords, approved.term] : current.hotwords,
-      pendingSuggestions: current.pendingSuggestions.filter((suggestion) => suggestion.term !== term),
+      pendingSuggestions: current.pendingSuggestions.filter(
+        (suggestion) => suggestion.term !== term
+      ),
     });
     const dictionary = terminologyProfileToDictionary(nextProfile);
     if (isBrowser) {
