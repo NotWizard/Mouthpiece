@@ -24,7 +24,7 @@ test("dictation capsule keeps the recording shell stable even before the first l
   assert.match(source, /const liveShellActive = isRecording;/);
   assert.match(
     source,
-    /const layout = liveShellActive \? previewLayout : getDictationCapsuleLayout\(\{ stage: visualState\.stage \}\);/
+    /const layout =\s*liveShellActive\s*\?\s*previewLayout\s*:\s*getDictationCapsuleLayout\(\{\s*stage:\s*visualState\.stage\s*\}\);/s
   );
   assert.match(source, /\{liveShellActive && \(/);
 });

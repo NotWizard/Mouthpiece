@@ -29,7 +29,7 @@ test("shared inline error notice replaces bespoke destructive banners in core fl
   const noticeSource = await readRepoFile("src/components/ui/ErrorNotice.tsx");
 
   assert.match(noticeSource, /inline-error-notice/);
-  assert.match(noticeSource, /<Alert variant="destructive"/);
+  assert.match(noticeSource, /<Alert\s+variant="destructive"/);
 
   for (const relativePath of [
     "src/components/AuthenticationStep.tsx",

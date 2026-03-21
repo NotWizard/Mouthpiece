@@ -151,10 +151,10 @@ test("audio manager gates Bailian realtime partials until speech is detected and
   assert.match(source, /this\.streamingHeldPartialText = "";/);
   assert.match(
     source,
-    /if \(!this\.streamingSpeechGateState\.speechDetected\) \{\s*this\.streamingHeldPartialText = cleanedText;\s*return;\s*\}/s
+    /if\s*\(\s*!this\.streamingSpeechGateState\.speechDetected\s*\)\s*\{\s*this\.streamingHeldPartialText = cleanedText;\s*return;\s*\}/s
   );
   assert.match(
     source,
-    /if \(shouldDiscardStreamingTranscript\(\{\s*speechDetectedEver: this\.streamingSpeechEverDetected,\s*peakRms: this\._peakRms,\s*\}\)\) \{\s*finalText = "";/s
+    /if\s*\(\s*shouldDiscardStreamingTranscript\(\{\s*speechDetectedEver:\s*this\.streamingSpeechEverDetected,\s*peakRms:\s*this\._peakRms,\s*\}\s*\)\s*\)\s*\{\s*finalText = "";/s
   );
 });
