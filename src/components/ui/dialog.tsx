@@ -69,7 +69,7 @@ interface DialogContentProps extends React.ComponentPropsWithoutRef<
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
->(({ className, children, variant = "default", hideClose = false, ...props }, ref) => {
+>(({ className, children, variant = "default", hideClose = false, style, ...props }, ref) => {
   const dialogMaxWidthPx =
     variant === "destructive"
       ? ERROR_SURFACE_LAYOUT.dialogs.destructiveMaxWidthPx
@@ -81,27 +81,32 @@ const DialogContent = React.forwardRef<
       <DialogPrimitive.Content
         ref={ref}
         className={cn(
-          "dialog-premium-shell fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-1.5rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-[24px] p-5 sm:w-full sm:p-6",
-          variant === "destructive" && "dialog-premium-shell-destructive",
-          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-[0.985] data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
-          className
+          "fixed inset-0 z-50 flex items-center justify-center p-3 pointer-events-none [&[data-state=closed]>div]:animate-out [&[data-state=closed]>div]:fade-out-0 [&[data-state=closed]>div]:zoom-out-95 [&[data-state=closed]>div]:slide-out-to-left-1/2 [&[data-state=closed]>div]:slide-out-to-top-[48%] [&[data-state=open]>div]:animate-in [&[data-state=open]>div]:fade-in-0 [&[data-state=open]>div]:zoom-in-[0.985] [&[data-state=open]>div]:slide-in-from-left-1/2 [&[data-state=open]>div]:slide-in-from-top-[48%]"
         )}
-        style={{ maxWidth: dialogMaxWidthPx }}
         {...props}
       >
-        <div className="relative z-[1]">{children}</div>
+        <div
+          className={cn(
+            "dialog-premium-shell pointer-events-auto relative grid w-full gap-4 rounded-[24px] p-5 sm:p-6",
+            variant === "destructive" && "dialog-premium-shell-destructive",
+            className
+          )}
+          style={{ maxWidth: dialogMaxWidthPx, ...style }}
+        >
+          <div className="relative z-[1]">{children}</div>
 
-        {!hideClose && (
-          <DialogPrimitive.Close
-            type="button"
-            className={cn(
-              "dialog-premium-close absolute right-3.5 top-3.5 z-[2] rounded-full p-2 transition-[background-color,border-color,color,transform] duration-200 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-ring/25 focus:ring-offset-0 disabled:pointer-events-none"
-            )}
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
-        )}
+          {!hideClose && (
+            <DialogPrimitive.Close
+              type="button"
+              className={cn(
+                "dialog-premium-close absolute right-3.5 top-3.5 z-[2] rounded-full p-2 transition-[background-color,border-color,color,transform] duration-200 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-ring/25 focus:ring-offset-0 disabled:pointer-events-none"
+              )}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
+          )}
+        </div>
       </DialogPrimitive.Content>
     </DialogPortal>
   );

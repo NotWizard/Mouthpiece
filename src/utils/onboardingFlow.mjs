@@ -24,3 +24,24 @@ export function normalizeOnboardingStep(step) {
 export function shouldShowDictationPanelForOnboardingStep(step) {
   return normalizeOnboardingStep(step) >= ACTIVATION_STEP_INDEX;
 }
+
+function normalizeHotkeyValue(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+export function resolveOnboardingHotkeyDraft({
+  draftHotkey = "",
+  settingsHotkey = "",
+  hasUserEdited = false,
+  fallbackHotkey = "",
+} = {}) {
+  const normalizedDraftHotkey = normalizeHotkeyValue(draftHotkey);
+  const normalizedSettingsHotkey = normalizeHotkeyValue(settingsHotkey);
+  const normalizedFallbackHotkey = normalizeHotkeyValue(fallbackHotkey);
+
+  if (!hasUserEdited && normalizedSettingsHotkey) {
+    return normalizedSettingsHotkey;
+  }
+
+  return normalizedDraftHotkey || normalizedSettingsHotkey || normalizedFallbackHotkey;
+}

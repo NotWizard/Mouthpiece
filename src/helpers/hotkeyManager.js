@@ -1,6 +1,7 @@
 const { globalShortcut } = require("electron");
 const debugLogger = require("./debugLogger");
 const GnomeShortcutManager = require("./gnomeShortcut");
+const { getDefaultHotkeyForPlatform, resolvePersistedHotkey } = require("./hotkeyPersistence");
 const { i18nMain } = require("./i18nMain");
 
 // Delay to ensure localStorage is accessible after window load
@@ -58,7 +59,7 @@ const SUGGESTED_HOTKEYS = {
 
 class HotkeyManager {
   constructor() {
-    this.currentHotkey = process.platform === "darwin" ? "GLOBE" : "Control+Super";
+    this.currentHotkey = getDefaultHotkeyForPlatform(process.platform);
     this.isInitialized = false;
     this.isListeningMode = false;
     this.gnomeManager = null;
@@ -305,34 +306,9 @@ class HotkeyManager {
       const gnomeOk = await this.initializeGnomeShortcuts(callback);
 
       if (gnomeOk) {
-        const registerGnomeHotkey = async () => {
-          try {
-            const savedHotkey = await mainWindow.webContents.executeJavaScript(`
-              localStorage.getItem("dictationKey") || ""
-            `);
-            const hotkey = savedHotkey && savedHotkey.trim() !== "" ? savedHotkey : "Control+Super";
-            const gnomeHotkey = GnomeShortcutManager.convertToGnomeFormat(hotkey);
-
-            const success = await this.gnomeManager.registerKeybinding(gnomeHotkey);
-            if (success) {
-              this.currentHotkey = hotkey;
-              debugLogger.log(`[HotkeyManager] GNOME hotkey "${hotkey}" registered successfully`);
-            } else {
-              debugLogger.log("[HotkeyManager] GNOME keybinding failed, falling back to X11");
-              this.useGnome = false;
-              this.loadSavedHotkeyOrDefault(mainWindow, callback);
-            }
-          } catch (err) {
-            debugLogger.log(
-              "[HotkeyManager] GNOME keybinding failed, falling back to X11:",
-              err.message
-            );
-            this.useGnome = false;
-            this.loadSavedHotkeyOrDefault(mainWindow, callback);
-          }
-        };
-
-        setTimeout(registerGnomeHotkey, HOTKEY_REGISTRATION_DELAY_MS);
+        setTimeout(() => {
+          this.loadSavedHotkeyOrDefault(mainWindow, callback);
+        }, HOTKEY_REGISTRATION_DELAY_MS);
         this.isInitialized = true;
         return;
       }
@@ -351,35 +327,25 @@ class HotkeyManager {
 
   async loadSavedHotkeyOrDefault(mainWindow, callback) {
     try {
-      // First check file-based storage (environment variable) - more reliable
-      let savedHotkey = process.env.DICTATION_KEY || "";
-
-      // Fall back to localStorage if env var is empty
-      if (!savedHotkey) {
-        savedHotkey = await mainWindow.webContents.executeJavaScript(`
-          localStorage.getItem("dictationKey") || ""
-        `);
-
-        // If we found a hotkey in localStorage but not in env, migrate it to .env file
-        if (savedHotkey && savedHotkey.trim() !== "") {
-          debugLogger.log(
-            `[HotkeyManager] Migrating hotkey "${savedHotkey}" from localStorage to .env`
-          );
-          await this._persistHotkeyToEnvFile(savedHotkey);
-        }
-      }
-
-      if (savedHotkey && savedHotkey.trim() !== "") {
-        const result = this.setupShortcuts(savedHotkey, callback);
+      const resolvedHotkey = await this._resolveStartupHotkey(mainWindow);
+      if (resolvedHotkey.source !== "default") {
+        const result = await this._registerStartupHotkey(resolvedHotkey.hotkey, callback);
         if (result.success) {
-          debugLogger.log(`[HotkeyManager] Restored saved hotkey: "${savedHotkey}"`);
+          debugLogger.log(`[HotkeyManager] Restored saved hotkey: "${resolvedHotkey.hotkey}"`);
           return;
         }
-        debugLogger.log(`[HotkeyManager] Saved hotkey "${savedHotkey}" failed to register`);
-        this.notifyHotkeyFailure(savedHotkey, result);
+        if (result.gnomeFailed) {
+          debugLogger.log("[HotkeyManager] GNOME keybinding failed, falling back to X11");
+          this.useGnome = false;
+          return this.loadSavedHotkeyOrDefault(mainWindow, callback);
+        }
+        debugLogger.log(
+          `[HotkeyManager] Saved hotkey "${resolvedHotkey.hotkey}" failed to register`
+        );
+        this.notifyHotkeyFailure(resolvedHotkey.hotkey, result);
       }
 
-      const defaultHotkey = process.platform === "darwin" ? "GLOBE" : "Control+Super";
+      const defaultHotkey = getDefaultHotkeyForPlatform(process.platform);
 
       if (defaultHotkey === "GLOBE") {
         this.currentHotkey = "GLOBE";
@@ -388,12 +354,17 @@ class HotkeyManager {
         return;
       }
 
-      const result = this.setupShortcuts(defaultHotkey, callback);
+      const result = await this._registerStartupHotkey(defaultHotkey, callback);
       if (result.success) {
         debugLogger.log(
           `[HotkeyManager] Default hotkey "${defaultHotkey}" registered successfully`
         );
         return;
+      }
+      if (result.gnomeFailed) {
+        debugLogger.log("[HotkeyManager] GNOME default keybinding failed, falling back to X11");
+        this.useGnome = false;
+        return this.loadSavedHotkeyOrDefault(mainWindow, callback);
       }
 
       debugLogger.log(
@@ -402,12 +373,19 @@ class HotkeyManager {
       const fallbackHotkeys = ["F8", "F9", "Control+Shift+Space"];
 
       for (const fallback of fallbackHotkeys) {
-        const fallbackResult = this.setupShortcuts(fallback, callback);
+        const fallbackResult = await this._registerStartupHotkey(fallback, callback);
         if (fallbackResult.success) {
           debugLogger.log(`[HotkeyManager] Fallback hotkey "${fallback}" registered successfully`);
           await this.saveHotkeyToRenderer(fallback);
           this.notifyHotkeyFallback(defaultHotkey, fallback);
           return;
+        }
+        if (fallbackResult.gnomeFailed) {
+          debugLogger.log(
+            `[HotkeyManager] GNOME fallback keybinding "${fallback}" failed, retrying via X11`
+          );
+          this.useGnome = false;
+          return this.loadSavedHotkeyOrDefault(mainWindow, callback);
         }
       }
 
@@ -431,16 +409,14 @@ class HotkeyManager {
   }
 
   async saveHotkeyToRenderer(hotkey) {
-    const escapedHotkey = hotkey.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-
     await this._persistHotkeyToEnvFile(hotkey);
 
     // Also save to localStorage for backwards compatibility
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       try {
-        await this.mainWindow.webContents.executeJavaScript(
-          `localStorage.setItem("dictationKey", "${escapedHotkey}"); true;`
-        );
+        await this._writeRendererHotkey(this.mainWindow, hotkey, {
+          clearLegacyHotkey: true,
+        });
         debugLogger.log(`[HotkeyManager] Saved hotkey "${hotkey}" to localStorage`);
         return true;
       } catch (err) {
@@ -453,6 +429,95 @@ class HotkeyManager {
       );
       return false;
     }
+  }
+
+  async _readRendererHotkeySnapshot(mainWindow) {
+    if (!mainWindow?.webContents) {
+      return {
+        dictationKey: "",
+        hotkey: "",
+      };
+    }
+
+    const snapshot = await mainWindow.webContents.executeJavaScript(`
+      (() => ({
+        dictationKey: localStorage.getItem("dictationKey") || "",
+        hotkey: localStorage.getItem("hotkey") || ""
+      }))()
+    `);
+
+    return {
+      dictationKey: typeof snapshot?.dictationKey === "string" ? snapshot.dictationKey : "",
+      hotkey: typeof snapshot?.hotkey === "string" ? snapshot.hotkey : "",
+    };
+  }
+
+  async _writeRendererHotkey(mainWindow, hotkey, { clearLegacyHotkey = false } = {}) {
+    const escapedHotkey = hotkey.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+
+    return mainWindow.webContents.executeJavaScript(`
+      (() => {
+        localStorage.setItem("dictationKey", "${escapedHotkey}");
+        ${clearLegacyHotkey ? 'localStorage.removeItem("hotkey");' : ""}
+        return true;
+      })()
+    `);
+  }
+
+  async _resolveStartupHotkey(mainWindow) {
+    const rendererHotkeys = await this._readRendererHotkeySnapshot(mainWindow);
+    const resolvedHotkey = resolvePersistedHotkey({
+      envHotkey: process.env.DICTATION_KEY,
+      rendererDictationKey: rendererHotkeys.dictationKey,
+      rendererLegacyHotkey: rendererHotkeys.hotkey,
+      platform: process.platform,
+    });
+
+    if (resolvedHotkey.needsEnvSync) {
+      debugLogger.log(
+        `[HotkeyManager] Migrating hotkey "${resolvedHotkey.hotkey}" into .env from ${resolvedHotkey.source}`
+      );
+      await this._persistHotkeyToEnvFile(resolvedHotkey.hotkey);
+    }
+
+    if (resolvedHotkey.needsRendererSync || resolvedHotkey.needsLegacyCleanup) {
+      await this._writeRendererHotkey(mainWindow, resolvedHotkey.hotkey, {
+        clearLegacyHotkey: resolvedHotkey.needsLegacyCleanup,
+      });
+      debugLogger.log(
+        `[HotkeyManager] Synchronized renderer hotkey state from ${resolvedHotkey.source}`
+      );
+    }
+
+    return resolvedHotkey;
+  }
+
+  async _registerStartupHotkey(hotkey, callback) {
+    if (this.useGnome && this.gnomeManager) {
+      try {
+        const gnomeHotkey = GnomeShortcutManager.convertToGnomeFormat(hotkey);
+        const success = await this.gnomeManager.registerKeybinding(gnomeHotkey);
+        if (success) {
+          this.currentHotkey = hotkey;
+          debugLogger.log(`[HotkeyManager] GNOME hotkey "${hotkey}" registered successfully`);
+          return { success: true, hotkey };
+        }
+        return {
+          success: false,
+          gnomeFailed: true,
+          error: `Failed to register GNOME hotkey "${hotkey}"`,
+        };
+      } catch (error) {
+        debugLogger.log("[HotkeyManager] GNOME startup hotkey registration failed:", error.message);
+        return {
+          success: false,
+          gnomeFailed: true,
+          error: error.message,
+        };
+      }
+    }
+
+    return this.setupShortcuts(hotkey, callback);
   }
 
   notifyHotkeyFallback(originalHotkey, fallbackHotkey) {

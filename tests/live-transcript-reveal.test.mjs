@@ -62,3 +62,23 @@ test("live transcript reveal clears immediately when the target text disappears"
 
   assert.equal(next, "");
 });
+
+test("live transcript reveal snaps forward when a capped preview window slides to newer text", async () => {
+  const mod = await loadRevealModule();
+
+  assert.equal(typeof mod.getLiveTranscriptRevealBase, "function");
+  assert.equal(typeof mod.stepLiveTranscriptReveal, "function");
+
+  const base = mod.getLiveTranscriptRevealBase({
+    renderedText: "abcdefghij",
+    targetText: "bcdefghijk",
+  });
+  const next = mod.stepLiveTranscriptReveal({
+    renderedText: "abcdefghij",
+    targetText: "bcdefghijk",
+    maxCharsPerStep: 1,
+  });
+
+  assert.equal(base, "bcdefghijk");
+  assert.equal(next, "bcdefghijk");
+});

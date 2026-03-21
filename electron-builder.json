@@ -156,6 +156,7 @@
     ]
   },
   "deb": {
+    "maintainer": "Mouthpiece Contributors <notwizard@users.noreply.github.com>",
     "afterRemove": "resources/linux/after-remove.sh",
     "depends": ["ydotool"],
     "fpm": [
