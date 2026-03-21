@@ -2,7 +2,16 @@ import type { TargetAppInfo } from "../types/electron";
 import { hasAgentDirectAddress } from "./agentDirectAddress.mjs";
 export const DEFAULT_STRICT_OVERLAP_THRESHOLD = 0.72;
 
-export type ReasoningContext = "general" | "code" | "email" | "chat" | "document";
+export type ReasoningContext =
+  | "general"
+  | "code"
+  | "email"
+  | "chat"
+  | "document"
+  | "search"
+  | "form"
+  | "markdown"
+  | "ide";
 export type ReasoningIntent = "cleanup" | "instruction";
 
 export interface ContextClassification {
@@ -17,9 +26,9 @@ export interface ContextClassification {
 
 const APP_CONTEXT_RULES: Array<{ context: ReasoningContext; re: RegExp; signal: string }> = [
   {
-    context: "code",
-    re: /(code|cursor|vscode|visual studio|terminal|powershell|iterm|xcode)/i,
-    signal: "app:code",
+    context: "ide",
+    re: /(code|cursor|vscode|visual studio|terminal|powershell|iterm|xcode|intellij|pycharm|webstorm|goland)/i,
+    signal: "app:ide",
   },
   { context: "email", re: /(mail|gmail|outlook|spark|thunderbird)/i, signal: "app:email" },
   {
@@ -27,10 +36,25 @@ const APP_CONTEXT_RULES: Array<{ context: ReasoningContext; re: RegExp; signal: 
     re: /(slack|discord|teams|wechat|telegram|whatsapp|message)/i,
     signal: "app:chat",
   },
+  {
+    context: "search",
+    re: /(raycast|spotlight|alfred|launcher|omnibox|search)/i,
+    signal: "app:search",
+  },
+  {
+    context: "form",
+    re: /(typeform|airtable|survey|form)/i,
+    signal: "app:form",
+  },
   { context: "document", re: /(notion|docs|word|pages|onenote|obsidian)/i, signal: "app:document" },
 ];
 
 const CONTENT_CONTEXT_RULES: Array<{ context: ReasoningContext; re: RegExp; signal: string }> = [
+  {
+    context: "markdown",
+    re: /(^|\n)\s{0,3}(#{1,6}\s+\S+|[-*]\s+\S+|\d+\.\s+\S+)|(\*\*[^*]+\*\*)|(`[^`]+`)|(\[[^\]]+\]\([^)]+\))/i,
+    signal: "text:markdown",
+  },
   {
     context: "code",
     re: /(```|<\/?[a-z][^>]*>|=>|\bfunction\b|\bconst\b|\bclass\b|\bimport\b|\breturn\b)/i,
@@ -45,6 +69,11 @@ const CONTENT_CONTEXT_RULES: Array<{ context: ReasoningContext; re: RegExp; sign
     context: "chat",
     re: /(^|\s)(hey|yo|lol|btw|asap|fyi|ping)\b/i,
     signal: "text:chat",
+  },
+  {
+    context: "form",
+    re: /(^|\n)\s*[A-Za-z][A-Za-z0-9 /'()_-]{1,30}:\s+\S+/,
+    signal: "text:form",
   },
   {
     context: "document",

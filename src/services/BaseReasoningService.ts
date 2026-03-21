@@ -1,6 +1,7 @@
 import { getSystemPrompt } from "../config/prompts";
 import { getSettings } from "../stores/settingsStore";
 import type { ContextClassification } from "../utils/contextClassifier";
+import type { PostProcessingPolicy } from "../utils/postProcessingPolicy";
 
 export interface ReasoningConfig {
   maxTokens?: number;
@@ -8,6 +9,7 @@ export interface ReasoningConfig {
   contextSize?: number;
   systemPrompt?: string;
   contextClassification?: ContextClassification;
+  postProcessingPolicy?: PostProcessingPolicy;
   strictMode?: boolean;
   strictOverlapThreshold?: number;
 }
@@ -30,7 +32,8 @@ export abstract class BaseReasoningService {
   protected getSystemPrompt(
     agentName: string | null,
     transcript?: string,
-    contextClassification?: ContextClassification
+    contextClassification?: ContextClassification,
+    postProcessingPolicy?: PostProcessingPolicy
   ): string {
     const language = this.getPreferredLanguage();
     const uiLanguage = this.getUiLanguage();
@@ -40,7 +43,8 @@ export abstract class BaseReasoningService {
       language,
       transcript,
       uiLanguage,
-      contextClassification
+      contextClassification,
+      postProcessingPolicy
     );
   }
 

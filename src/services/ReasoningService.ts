@@ -47,7 +47,13 @@ class ReasoningService extends BaseReasoningService {
     config: ReasoningConfig
   ): string {
     const basePrompt =
-      config.systemPrompt || this.getSystemPrompt(agentName, text, config.contextClassification);
+      config.systemPrompt ||
+      this.getSystemPrompt(
+        agentName,
+        text,
+        config.contextClassification,
+        config.postProcessingPolicy
+      );
     const strictMode = config.strictMode ?? config.contextClassification?.strictMode ?? false;
 
     if (!strictMode) {
