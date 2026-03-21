@@ -8,6 +8,39 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const DEFAULT_DEV_SERVER_PORT = 5183
+const MARKDOWN_VENDOR_PATTERNS = [
+  '/node_modules/react-markdown/',
+  '/node_modules/remark-',
+  '/node_modules/rehype-',
+  '/node_modules/unified/',
+  '/node_modules/micromark/',
+  '/node_modules/mdast-',
+  '/node_modules/hast-',
+  '/node_modules/unist-',
+  '/node_modules/vfile/',
+]
+const APP_DICTATION_PATTERNS = [
+  '/src/helpers/audioManager.js',
+  '/src/hooks/useAudioRecording.js',
+  '/src/helpers/clipboard.js',
+  '/src/helpers/insertionPlan.js',
+  '/src/helpers/textEditMonitor.js',
+  '/src/utils/asrSessionTimeline.mjs',
+  '/src/utils/streamingSpeechGate.mjs',
+]
+const APP_REASONING_SERVICE_PATTERNS = [
+  '/src/services/ReasoningService.ts',
+  '/src/services/BaseReasoningService.ts',
+]
+const APP_REASONING_POLICY_PATTERNS = [
+  '/src/config/prompts.ts',
+  '/src/utils/contextClassifier.ts',
+  '/src/utils/postProcessingPolicy.ts',
+  '/src/utils/terminologyProfile.ts',
+  '/src/utils/terminologyMigration.ts',
+  '/src/utils/reasoningAvailabilityCacheKey.mjs',
+]
+const APP_MODEL_DATA_PATTERNS = ['/src/models/modelRegistryData.json']
 
 const parseDevServerPort = (rawPort) => {
   const normalizedPort = rawPort || String(DEFAULT_DEV_SERVER_PORT)
@@ -18,6 +51,78 @@ const parseDevServerPort = (rawPort) => {
   }
 
   return parsedPort
+}
+
+const normalizeModuleId = (id) => id.split(path.sep).join('/')
+
+const resolveVendorChunk = (id) => {
+  const normalizedId = normalizeModuleId(id)
+
+  if (!normalizedId.includes('/node_modules/')) {
+    return undefined
+  }
+
+  if (normalizedId.includes('/node_modules/@radix-ui/')) {
+    return 'vendor-radix'
+  }
+
+  if (normalizedId.includes('/node_modules/lucide-react/')) {
+    return 'vendor-icons'
+  }
+
+  if (
+    normalizedId.includes('/node_modules/react/') ||
+    normalizedId.includes('/node_modules/react-dom/') ||
+    normalizedId.includes('/node_modules/scheduler/')
+  ) {
+    return 'vendor-react'
+  }
+
+  if (
+    normalizedId.includes('/node_modules/i18next/') ||
+    normalizedId.includes('/node_modules/react-i18next/')
+  ) {
+    return 'vendor-i18n'
+  }
+
+  if (MARKDOWN_VENDOR_PATTERNS.some((pattern) => normalizedId.includes(pattern))) {
+    return 'vendor-markdown'
+  }
+
+  if (
+    normalizedId.includes('/node_modules/@neondatabase/') ||
+    normalizedId.includes('/node_modules/ws/')
+  ) {
+    return 'vendor-neon'
+  }
+
+  if (normalizedId.includes('/node_modules/zod/')) {
+    return 'vendor-zod'
+  }
+
+  return undefined
+}
+
+const resolveAppChunk = (id) => {
+  const normalizedId = normalizeModuleId(id)
+
+  if (APP_DICTATION_PATTERNS.some((pattern) => normalizedId.includes(pattern))) {
+    return 'app-dictation'
+  }
+
+  if (APP_REASONING_SERVICE_PATTERNS.some((pattern) => normalizedId.includes(pattern))) {
+    return 'app-reasoning-service'
+  }
+
+  if (APP_REASONING_POLICY_PATTERNS.some((pattern) => normalizedId.includes(pattern))) {
+    return 'app-reasoning-policy'
+  }
+
+  if (APP_MODEL_DATA_PATTERNS.some((pattern) => normalizedId.includes(pattern))) {
+    return 'app-model-data'
+  }
+
+  return undefined
 }
 
 // https://vite.dev/config/
@@ -61,6 +166,7 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
+      chunkSizeWarningLimit: 700,
       rollupOptions: {
         external: [
           'electron',
@@ -79,14 +185,18 @@ export default defineConfig(({ mode }) => {
           '@aws-sdk/client-s3'
         ],
         output: {
-          manualChunks: {
-            'vendor-radix': [
-              '@radix-ui/react-dialog',
-              '@radix-ui/react-dropdown-menu',
-              '@radix-ui/react-select',
-              '@radix-ui/react-tabs',
-            ],
-            'vendor-icons': ['lucide-react'],
+          manualChunks: (id) => {
+            const vendorChunk = resolveVendorChunk(id)
+            if (vendorChunk) {
+              return vendorChunk
+            }
+
+            const appChunk = resolveAppChunk(id)
+            if (appChunk) {
+              return appChunk
+            }
+
+            return undefined
           },
         },
       }
