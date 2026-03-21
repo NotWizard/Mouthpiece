@@ -15,6 +15,7 @@ import { classifyContext, getTargetAppInfo } from "../utils/contextClassifier";
 import { normalizeAudioLevel } from "../utils/dictationWaveform.mjs";
 import { getReasoningAvailabilityCacheKey } from "../utils/reasoningAvailabilityCacheKey.mjs";
 import { resolveAsrFeatureFlags } from "../utils/asrFeatureFlags.mjs";
+import { resolvePostProcessingPolicy } from "../utils/postProcessingPolicy";
 import {
   advanceStreamingSpeechGate,
   createStreamingSpeechGateState,
@@ -1678,6 +1679,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
     return {
       contextClassification: contextClassification || undefined,
+      postProcessingPolicy: resolvePostProcessingPolicy({
+        contextClassification,
+      }),
       strictMode: contextClassification?.strictMode ?? true,
       strictOverlapThreshold,
     };
@@ -2311,7 +2315,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             settings.preferredLanguage || "auto",
             processedText,
             settings.uiLanguage || "zh-CN",
-            contextClassification || undefined
+            contextClassification || undefined,
+            reasoningConfig.postProcessingPolicy
           );
           const res = await window.electronAPI.cloudReason(processedText, {
             agentName,
@@ -3814,7 +3819,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
               stSettings.preferredLanguage || "auto",
               finalText,
               stSettings.uiLanguage || "zh-CN",
-              contextClassification || undefined
+              contextClassification || undefined,
+              reasoningConfig.postProcessingPolicy
             );
             const res = await window.electronAPI.cloudReason(finalText, {
               agentName,

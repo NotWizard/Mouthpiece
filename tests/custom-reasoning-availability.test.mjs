@@ -417,6 +417,89 @@ test("custom reasoning falls back to chat completions when responses times out",
   }
 });
 
+test("custom reasoning honors explicit post-processing policy overrides in the system prompt", async () => {
+  const requests = [];
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options = {}) => {
+    const body = options.body ? JSON.parse(options.body) : null;
+    requests.push({
+      url: String(url),
+      body,
+      headers: options.headers || {},
+    });
+
+    if (String(url).endsWith("/responses")) {
+      return new Response(JSON.stringify({ error: { message: "not supported" } }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(
+      JSON.stringify({
+        choices: [{ message: { content: "User ID is userIdValue" } }],
+        usage: { total_tokens: 42 },
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  };
+
+  const { service, cleanup } = await loadReasoningService({
+    storage: {
+      customReasoningApiKey: "sk-test-custom",
+      preferredLanguage: "en",
+      customUnifiedPrompt: JSON.stringify("PROMPT::{{agentName}}::CUSTOM"),
+    },
+    electronAPI: {
+      getCustomReasoningKey: async () => "sk-test-custom",
+    },
+  });
+
+  try {
+    const result = await service.processText("user id is userIdValue", "qwen3.5-flash", "AI", {
+      contextClassification: {
+        context: "general",
+        intent: "cleanup",
+        confidence: 0.9,
+        strictMode: true,
+        strictOverlapThreshold: 0.72,
+        signals: [],
+        targetApp: {
+          appName: "Notes",
+          processId: 1,
+          platform: "darwin",
+          source: "renderer-fallback",
+          capturedAt: null,
+        },
+      },
+      postProcessingPolicy: {
+        surfaceMode: "ide",
+        outputStrategy: "raw_first",
+        allowStructuredRewrite: false,
+        preserveIdentifiers: true,
+        preserveFormatting: false,
+      },
+      strictMode: true,
+      strictOverlapThreshold: 0.86,
+    });
+
+    assert.equal(result, "User ID is userIdValue");
+    assert.equal(requests.length, 2);
+    assert.match(requests[1].body.messages[0].content, /Surface mode: ide\./);
+    assert.match(requests[1].body.messages[0].content, /Output strategy: raw_first\./);
+    assert.match(
+      requests[1].body.messages[0].content,
+      /Treat this like an IDE or technical editor\./
+    );
+  } finally {
+    globalThis.fetch = previousFetch;
+    cleanup();
+  }
+});
+
 test("custom reasoning can explicitly enable thinking for chat completions", async () => {
   const requests = [];
   const previousFetch = globalThis.fetch;
