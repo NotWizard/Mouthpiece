@@ -47,6 +47,30 @@
 - `npm run typecheck`
 - `npm run build:renderer`
 
+### Completed in the Phase 2 and Phase 3 batch
+
+- Replaced the realtime streaming silence gate with a multi-state gate that now models `idle`, `pre_speech`, `speaking`, and `hangover`.
+- Added adaptive noise-floor tracking and short hangover logic so low-energy room tone no longer opens the gate as easily, while short pauses do not instantly collapse speech detection.
+- Wired `audioManager.js` to hold realtime partials until the gate reports active speech and to discard silent-stop transcripts only when speech was never detected during the session.
+- Added `src/utils/liveTranscriptStabilizer.mjs` with frozen, semi-stable, and active rewrite regions plus explicit commit handling for provider-confirmed segments.
+- Wired `useAudioRecording.js` so live partial preview text is stabilized before it reaches the overlay and so frozen-prefix growth can promote the session into the formal `first_stable_partial` state.
+- Kept the new multi-state VAD and incremental stabilizer behind the existing ASR rollout flags, with the current roadmap batch enabling them by default while preserving an opt-out path for later tuning.
+
+### Still intentionally pending from Phase 2 and Phase 3
+
+- Timestamped ring-buffer pre-roll.
+- Device-loss detection and live-session rebuild.
+- Clearer low-volume, no-audio, and audio-health feedback.
+- Minimal diff-aware renderer updates beyond string-level stabilization.
+- Explicit UI presentation for stable-partial and finalizing overlay states.
+
+### Verification after the Phase 2 and Phase 3 batch
+
+- `node --test tests/streaming-silence-gate.test.mjs tests/live-transcript-stabilizer.test.mjs tests/live-transcript-stabilizer-wiring.test.mjs`
+- `node --test tests/*.test.mjs tests/*.test.cjs`
+- `npm run typecheck`
+- `npm run build:renderer`
+
 ## Guiding Principles
 
 - Measure before optimizing.

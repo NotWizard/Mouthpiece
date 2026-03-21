@@ -17,23 +17,97 @@ test("streaming speech gate waits for sustained voice activity before opening", 
   assert.equal(typeof mod.advanceStreamingSpeechGate, "function");
   assert.equal(mod.STREAMING_SILENCE_THRESHOLD, 0.01);
   assert.equal(mod.STREAMING_SPEECH_GATE_MIN_ACTIVE_MS, 160);
+  assert.equal(mod.STREAMING_SPEECH_GATE_HANGOVER_MS, 240);
 
-  let state = { activeMs: 0, speechDetected: false };
+  let state = mod.createStreamingSpeechGateState();
   state = mod.advanceStreamingSpeechGate(state, { rms: 0.011, frameMs: 80 });
-  assert.deepEqual(state, { activeMs: 80, speechDetected: false });
+  assert.equal(state.stage, "pre_speech");
+  assert.equal(state.activeMs, 80);
+  assert.equal(state.speechDetected, false);
 
   state = mod.advanceStreamingSpeechGate(state, { rms: 0.012, frameMs: 80 });
-  assert.deepEqual(state, { activeMs: 160, speechDetected: true });
+  assert.equal(state.stage, "speaking");
+  assert.equal(state.activeMs, 160);
+  assert.equal(state.speechDetected, true);
 });
 
 test("streaming speech gate resets if voice activity drops before the gate fully opens", async () => {
   const mod = await loadGateModule();
 
-  let state = { activeMs: 0, speechDetected: false };
+  let state = mod.createStreamingSpeechGateState();
   state = mod.advanceStreamingSpeechGate(state, { rms: 0.011, frameMs: 80 });
   state = mod.advanceStreamingSpeechGate(state, { rms: 0.002, frameMs: 80 });
 
-  assert.deepEqual(state, { activeMs: 0, speechDetected: false });
+  assert.equal(state.stage, "idle");
+  assert.equal(state.activeMs, 0);
+  assert.equal(state.speechDetected, false);
+});
+
+test("streaming speech gate still opens for steady low-volume speech near the threshold", async () => {
+  const mod = await loadGateModule();
+
+  let state = mod.createStreamingSpeechGateState();
+  state = mod.advanceStreamingSpeechGate(state, { rms: 0.012, frameMs: 80 });
+  state = mod.advanceStreamingSpeechGate(state, { rms: 0.012, frameMs: 80 });
+
+  assert.equal(state.stage, "speaking");
+  assert.equal(state.speechDetected, true);
+});
+
+test("streaming speech gate keeps a short hangover before closing on silence", async () => {
+  const mod = await loadGateModule();
+
+  let state = mod.createStreamingSpeechGateState();
+  state = mod.advanceStreamingSpeechGate(state, { rms: 0.014, frameMs: 80 });
+  state = mod.advanceStreamingSpeechGate(state, { rms: 0.015, frameMs: 80 });
+  assert.equal(state.stage, "speaking");
+
+  state = mod.advanceStreamingSpeechGate(state, { rms: 0.003, frameMs: 80 });
+  assert.equal(state.stage, "hangover");
+  assert.equal(state.speechDetected, true);
+
+  state = mod.advanceStreamingSpeechGate(state, { rms: 0.003, frameMs: 80 });
+  assert.equal(state.stage, "hangover");
+  assert.equal(state.speechDetected, true);
+
+  state = mod.advanceStreamingSpeechGate(state, { rms: 0.003, frameMs: 80 });
+  assert.equal(state.stage, "idle");
+  assert.equal(state.speechDetected, false);
+});
+
+test("streaming speech gate adapts its noise floor before requiring a stronger speech delta", async () => {
+  const mod = await loadGateModule();
+
+  let state = mod.createStreamingSpeechGateState();
+  for (let index = 0; index < 6; index += 1) {
+    state = mod.advanceStreamingSpeechGate(state, {
+      rms: 0.014,
+      frameMs: 80,
+    });
+  }
+
+  assert.equal(state.stage, "idle");
+  assert.equal(state.speechDetected, false);
+  assert.equal(state.noiseFloor > 0.004, true);
+  assert.equal(state.threshold > mod.STREAMING_SILENCE_THRESHOLD, true);
+
+  state = mod.advanceStreamingSpeechGate(state, {
+    rms: 0.015,
+    frameMs: 80,
+  });
+  assert.equal(state.stage, "idle");
+  assert.equal(state.speechDetected, false);
+
+  state = mod.advanceStreamingSpeechGate(state, {
+    rms: 0.028,
+    frameMs: 80,
+  });
+  state = mod.advanceStreamingSpeechGate(state, {
+    rms: 0.029,
+    frameMs: 80,
+  });
+  assert.equal(state.stage, "speaking");
+  assert.equal(state.speechDetected, true);
 });
 
 test("streaming silence discard only drops transcripts when speech was never detected", async () => {
@@ -41,7 +115,7 @@ test("streaming silence discard only drops transcripts when speech was never det
 
   assert.equal(
     mod.shouldDiscardStreamingTranscript({
-      speechDetected: false,
+      speechDetectedEver: false,
       peakRms: 0.006,
     }),
     true
@@ -49,7 +123,7 @@ test("streaming silence discard only drops transcripts when speech was never det
 
   assert.equal(
     mod.shouldDiscardStreamingTranscript({
-      speechDetected: true,
+      speechDetectedEver: true,
       peakRms: 0.006,
     }),
     false
@@ -57,7 +131,7 @@ test("streaming silence discard only drops transcripts when speech was never det
 
   assert.equal(
     mod.shouldDiscardStreamingTranscript({
-      speechDetected: false,
+      speechDetectedEver: false,
       peakRms: 0.021,
     }),
     false
@@ -73,13 +147,14 @@ test("audio manager gates Bailian realtime partials until speech is detected and
   assert.match(source, /advanceStreamingSpeechGate/);
   assert.match(source, /shouldDiscardStreamingTranscript/);
   assert.match(source, /this\.streamingSpeechDetected = false;/);
+  assert.match(source, /this\.streamingSpeechEverDetected = false;/);
   assert.match(source, /this\.streamingHeldPartialText = "";/);
   assert.match(
     source,
-    /if \(!this\.streamingSpeechDetected\) \{\s*this\.streamingHeldPartialText = cleanedText;\s*return;\s*\}/s
+    /if \(!this\.streamingSpeechGateState\.speechDetected\) \{\s*this\.streamingHeldPartialText = cleanedText;\s*return;\s*\}/s
   );
   assert.match(
     source,
-    /if \(shouldDiscardStreamingTranscript\(\{\s*speechDetected: this\.streamingSpeechDetected,\s*peakRms: this\._peakRms,\s*\}\)\) \{\s*finalText = "";/s
+    /if \(shouldDiscardStreamingTranscript\(\{\s*speechDetectedEver: this\.streamingSpeechEverDetected,\s*peakRms: this\._peakRms,\s*\}\)\) \{\s*finalText = "";/s
   );
 });

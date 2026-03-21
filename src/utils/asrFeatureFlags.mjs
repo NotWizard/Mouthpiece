@@ -3,8 +3,8 @@ export const DEFAULT_ASR_FEATURE_FLAGS = Object.freeze({
   replayHarness: true,
   formalDictationState: true,
   unifiedSessionContract: false,
-  multiStateVad: false,
-  incrementalStabilizer: false,
+  multiStateVad: true,
+  incrementalStabilizer: true,
 });
 
 const ENV_FLAG_NAMES = Object.freeze({

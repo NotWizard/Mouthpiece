@@ -80,20 +80,22 @@ test("ASR feature flags resolve stable defaults and honor explicit overrides", a
   assert.equal(defaults.replayHarness, true);
   assert.equal(defaults.formalDictationState, true);
   assert.equal(defaults.unifiedSessionContract, false);
-  assert.equal(defaults.multiStateVad, false);
-  assert.equal(defaults.incrementalStabilizer, false);
+  assert.equal(defaults.multiStateVad, true);
+  assert.equal(defaults.incrementalStabilizer, true);
 
   const overridden = mod.resolveAsrFeatureFlags({
     env: {
-      MOUTHPIECE_ASR_MULTI_STATE_VAD: "1",
+      MOUTHPIECE_ASR_MULTI_STATE_VAD: "0",
       MOUTHPIECE_ASR_UNIFIED_SESSION_CONTRACT: "true",
     },
     overrides: {
       replayHarness: false,
+      incrementalStabilizer: false,
     },
   });
 
-  assert.equal(overridden.multiStateVad, true);
+  assert.equal(overridden.multiStateVad, false);
   assert.equal(overridden.unifiedSessionContract, true);
   assert.equal(overridden.replayHarness, false);
+  assert.equal(overridden.incrementalStabilizer, false);
 });

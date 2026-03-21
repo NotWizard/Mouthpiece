@@ -14,6 +14,11 @@ import {
   summarizeAsrSessionTimeline,
 } from "../utils/asrSessionTimeline.mjs";
 import { getDictationSessionState } from "../utils/dictationSessionState.mjs";
+import {
+  advanceLiveTranscriptStabilizer,
+  commitLiveTranscriptStabilizer,
+  createLiveTranscriptStabilizerState,
+} from "../utils/liveTranscriptStabilizer.mjs";
 
 const STABLE_PARTIAL_SETTLE_MS = 260;
 const SINGLE_OCCURRENCE_SESSION_EVENTS = new Set([
@@ -66,6 +71,7 @@ export const useAudioRecording = (toast, options = {}) => {
   const sessionTimelineRef = useRef(null);
   const stablePartialTimeoutRef = useRef(null);
   const lastPartialTranscriptRef = useRef("");
+  const partialStabilizerRef = useRef(createLiveTranscriptStabilizerState());
   const featureFlagsRef = useRef(resolveAsrFeatureFlags());
   const startLockRef = useRef(false);
   const stopLockRef = useRef(false);
@@ -86,6 +92,19 @@ export const useAudioRecording = (toast, options = {}) => {
       stablePartialTimeoutRef.current = null;
     }
   }, []);
+
+  const resetPartialStabilizer = useCallback(
+    ({ clearPreview = true } = {}) => {
+      partialStabilizerRef.current = createLiveTranscriptStabilizerState();
+      lastPartialTranscriptRef.current = "";
+      clearStablePartialTimer();
+
+      if (clearPreview) {
+        setPartialTranscript("");
+      }
+    },
+    [clearStablePartialTimer]
+  );
 
   const trackSessionEvent = useCallback((eventType, data = {}) => {
     if (!featureFlagsRef.current.sessionTimeline || !sessionTimelineRef.current) {
@@ -143,8 +162,7 @@ export const useAudioRecording = (toast, options = {}) => {
         return null;
       }
 
-      clearStablePartialTimer();
-      lastPartialTranscriptRef.current = "";
+      resetPartialStabilizer();
       const provider =
         mode === "streaming" ? audioManagerRef.current?.getStreamingProviderName?.() || null : null;
       const timeline = createAsrSessionTimeline({
@@ -166,7 +184,7 @@ export const useAudioRecording = (toast, options = {}) => {
       });
       return summary;
     },
-    [clearStablePartialTimer]
+    [resetPartialStabilizer]
   );
 
   const performStartRecording = useCallback(async () => {
@@ -226,6 +244,7 @@ export const useAudioRecording = (toast, options = {}) => {
 
   useEffect(() => {
     audioManagerRef.current = new AudioManager();
+    audioManagerRef.current.setAsrFeatureFlags?.(featureFlagsRef.current);
 
     audioManagerRef.current.setCallbacks({
       onStateChange: ({ isRecording: nextIsRecording, isProcessing: nextIsProcessing, isStreaming: nextIsStreaming }) => {
@@ -247,9 +266,7 @@ export const useAudioRecording = (toast, options = {}) => {
           setAudioLevel(0);
         }
         if (!nextIsStreaming && !nextIsProcessing) {
-          setPartialTranscript("");
-          clearStablePartialTimer();
-          lastPartialTranscriptRef.current = "";
+          resetPartialStabilizer();
         }
       },
       onAudioLevel: (level) => {
@@ -279,15 +296,32 @@ export const useAudioRecording = (toast, options = {}) => {
         finalizeSession("error");
       },
       onPartialTranscript: (text) => {
-        setPartialTranscript(text);
+        const nextPartialState = advanceLiveTranscriptStabilizer(
+          partialStabilizerRef.current,
+          text,
+          featureFlagsRef.current.incrementalStabilizer
+            ? undefined
+            : { unstableTailChars: Number.MAX_SAFE_INTEGER }
+        );
+        partialStabilizerRef.current = nextPartialState;
+        setPartialTranscript(nextPartialState.displayText);
 
-        const normalizedText = typeof text === "string" ? text.trim() : "";
+        const normalizedText =
+          typeof nextPartialState.displayText === "string"
+            ? nextPartialState.displayText.trim()
+            : "";
         if (!normalizedText) {
+          lastPartialTranscriptRef.current = "";
+          clearStablePartialTimer();
           return;
         }
 
         trackSessionEvent("speech_detected", { textLength: normalizedText.length });
         trackSessionEvent("first_partial", { textLength: normalizedText.length });
+
+        if (nextPartialState.frozenText) {
+          trackSessionEvent("first_stable_partial", { textLength: normalizedText.length });
+        }
 
         lastPartialTranscriptRef.current = normalizedText;
         clearStablePartialTimer();
@@ -297,6 +331,17 @@ export const useAudioRecording = (toast, options = {}) => {
           }
           trackSessionEvent("first_stable_partial", { textLength: normalizedText.length });
         }, STABLE_PARTIAL_SETTLE_MS);
+      },
+      onStreamingCommit: (committedText) => {
+        if (!featureFlagsRef.current.incrementalStabilizer) {
+          return;
+        }
+
+        partialStabilizerRef.current = commitLiveTranscriptStabilizer(
+          partialStabilizerRef.current,
+          committedText
+        );
+        setPartialTranscript(partialStabilizerRef.current.displayText);
       },
       onTranscriptionComplete: async (result) => {
         setIsTranscribing(false);
@@ -478,6 +523,7 @@ export const useAudioRecording = (toast, options = {}) => {
     t,
     clearPasteFallbackToast,
     clearStablePartialTimer,
+    resetPartialStabilizer,
     trackSessionEvent,
     finalizeSession,
   ]);
