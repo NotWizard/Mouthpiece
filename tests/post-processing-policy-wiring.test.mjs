@@ -70,7 +70,8 @@ test("audio manager reasoning config includes a resolved post-processing policy"
 
   assert.match(source, /resolvePostProcessingPolicy/);
   assert.match(source, /postProcessingPolicy:\s*resolvePostProcessingPolicy\(/);
-  assert.match(source, /preferredOutputStrategy:\s*getSettings\(\)\.defaultOutputStrategy/);
+  assert.match(source, /contextClassification/);
+  assert.doesNotMatch(source, /preferredOutputStrategy:\s*getSettings\(\)\.defaultOutputStrategy/);
 });
 
 test("reasoning services propagate post-processing policy through prompt generation", async () => {

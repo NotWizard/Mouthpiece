@@ -250,20 +250,10 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
         {activeTab === "current" && (
           <div className="divide-y divide-border/40 dark:divide-border-subtle">
             <div className="px-5 py-4">
-              <div className="space-y-2">
-                {[
-                  {
-                    mode: t("promptStudio.view.modes.cleanup.label"),
-                    desc: t("promptStudio.view.modes.cleanup.description"),
-                  },
-                ].map((item) => (
-                  <div key={item.mode} className="flex items-start gap-3">
-                    <span className="shrink-0 mt-0.5 text-xs font-medium uppercase tracking-wider px-1.5 py-px rounded bg-muted text-muted-foreground">
-                      {item.mode}
-                    </span>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
-                  </div>
-                ))}
+              <div className="flex items-center gap-2">
+                <span className="shrink-0 text-xs font-medium uppercase tracking-wider px-1.5 py-px rounded bg-muted text-muted-foreground">
+                  {t("promptStudio.view.modes.cleanup.label")}
+                </span>
               </div>
             </div>
 

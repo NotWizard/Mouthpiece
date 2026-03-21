@@ -28,7 +28,6 @@ import { useClipboard } from "../hooks/useClipboard";
 
 import PromptStudio from "./ui/PromptStudio";
 import ReasoningModelSelector from "./ReasoningModelSelector";
-import PostProcessingStrategyCard from "./PostProcessingStrategyCard";
 import { HotkeyInput } from "./ui/HotkeyInput";
 import HotkeyGuidanceAccordion from "./ui/HotkeyGuidanceAccordion";
 import { useHotkeyRegistration } from "../hooks/useHotkeyRegistration";
@@ -580,8 +579,6 @@ export default function SettingsPage({
     setCloudTranscriptionBaseUrl,
     setCloudReasoningBaseUrl,
     setUseReasoningModel,
-    defaultOutputStrategy,
-    setDefaultOutputStrategy,
     setReasoningModel,
     setReasoningProvider,
     setBailianReasoningEnableThinking,
@@ -1241,14 +1238,6 @@ export default function SettingsPage({
               showAlertDialog={showAlertDialog}
               toast={toast}
             />
-
-            <div>
-              <PostProcessingStrategyCard
-                value={defaultOutputStrategy}
-                onChange={setDefaultOutputStrategy}
-              />
-            </div>
-
             {/* System Prompt */}
             <div className="border-t border-border/40 pt-6">
               <SectionHeader

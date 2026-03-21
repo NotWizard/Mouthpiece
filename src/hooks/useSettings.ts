@@ -4,7 +4,6 @@ import logger from "../utils/logger";
 import { useLocalStorage } from "./useLocalStorage";
 import type { LocalTranscriptionProvider } from "../types/electron";
 import type { TerminologyProfile, TerminologySuggestion } from "../utils/terminologyProfile";
-import type { OutputStrategy } from "../utils/postProcessingPolicy";
 
 export interface TranscriptionSettings {
   uiLanguage: string;
@@ -37,7 +36,6 @@ export interface ReasoningSettings {
   cloudReasoningMode: string;
   bailianReasoningEnableThinking: boolean;
   customReasoningEnableThinking: boolean;
-  defaultOutputStrategy: OutputStrategy;
 }
 
 export interface HotkeySettings {
@@ -214,7 +212,6 @@ function useSettingsInternal() {
     cloudReasoningMode: store.cloudReasoningMode,
     bailianReasoningEnableThinking: store.bailianReasoningEnableThinking,
     customReasoningEnableThinking: store.customReasoningEnableThinking,
-    defaultOutputStrategy: store.defaultOutputStrategy,
     customDictionary: store.customDictionary,
     terminologyProfile: store.terminologyProfile,
     assemblyAiStreaming: store.assemblyAiStreaming,
@@ -256,7 +253,6 @@ function useSettingsInternal() {
     setCloudReasoningMode: store.setCloudReasoningMode,
     setBailianReasoningEnableThinking: store.setBailianReasoningEnableThinking,
     setCustomReasoningEnableThinking: store.setCustomReasoningEnableThinking,
-    setDefaultOutputStrategy: store.setDefaultOutputStrategy,
     setCustomDictionary: store.setCustomDictionary,
     setTerminologyProfile: store.setTerminologyProfile,
     addTerminologySuggestions: store.addTerminologySuggestions,

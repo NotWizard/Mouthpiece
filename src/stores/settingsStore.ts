@@ -13,7 +13,6 @@ import {
   type TerminologySuggestion,
 } from "../utils/terminologyProfile";
 import { migrateStoredTerminologyProfile } from "../utils/terminologyMigration";
-import { normalizeOutputStrategy, type OutputStrategy } from "../utils/postProcessingPolicy";
 import logger from "../utils/logger";
 import type { LocalTranscriptionProvider } from "../types/electron";
 import type {
@@ -246,7 +245,6 @@ export interface SettingsState
   setCloudReasoningBaseUrl: (value: string) => void;
   setBailianReasoningEnableThinking: (value: boolean) => void;
   setCustomReasoningEnableThinking: (value: boolean) => void;
-  setDefaultOutputStrategy: (value: OutputStrategy) => void;
   setCustomDictionary: (words: string[]) => void;
   setTerminologyProfile: (profile: Partial<TerminologyProfile>) => void;
   addTerminologySuggestions: (suggestions: TerminologySuggestion[]) => void;
@@ -451,9 +449,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   cloudReasoningBaseUrl: readString("cloudReasoningBaseUrl", API_ENDPOINTS.OPENAI_BASE),
   bailianReasoningEnableThinking: readBoolean("bailianReasoningEnableThinking", false),
   customReasoningEnableThinking: readBoolean("customReasoningEnableThinking", false),
-  defaultOutputStrategy: normalizeOutputStrategy(
-    readString("defaultOutputStrategy", "light_polish")
-  ),
   terminologyProfile: INITIAL_TERMINOLOGY_PROFILE,
   customDictionary: INITIAL_CUSTOM_DICTIONARY,
   assemblyAiStreaming: readBoolean("assemblyAiStreaming", true),
@@ -515,11 +510,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setCloudReasoningBaseUrl: createStringSetter("cloudReasoningBaseUrl"),
   setBailianReasoningEnableThinking: createBooleanSetter("bailianReasoningEnableThinking"),
   setCustomReasoningEnableThinking: createBooleanSetter("customReasoningEnableThinking"),
-  setDefaultOutputStrategy: (value: OutputStrategy) => {
-    const normalized = normalizeOutputStrategy(value);
-    if (isBrowser) localStorage.setItem("defaultOutputStrategy", normalized);
-    set({ defaultOutputStrategy: normalized });
-  },
   setAssemblyAiStreaming: createBooleanSetter("assemblyAiStreaming"),
   setDeepgramStreamingEnabled: createBooleanSetter("deepgramStreamingEnabled"),
   setSonioxRealtimeEnabled: createBooleanSetter("sonioxRealtimeEnabled"),
@@ -719,8 +709,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       s.setBailianReasoningEnableThinking(settings.bailianReasoningEnableThinking);
     if (settings.customReasoningEnableThinking !== undefined)
       s.setCustomReasoningEnableThinking(settings.customReasoningEnableThinking);
-    if (settings.defaultOutputStrategy !== undefined)
-      s.setDefaultOutputStrategy(settings.defaultOutputStrategy);
   },
 
   updateApiKeys: (keys: Partial<ApiKeySettings>) => {
