@@ -14,9 +14,12 @@ import { getBaseLanguageCode, validateLanguageForModel } from "../utils/language
 import { classifyContext, getTargetAppInfo } from "../utils/contextClassifier";
 import { normalizeAudioLevel } from "../utils/dictationWaveform.mjs";
 import { getReasoningAvailabilityCacheKey } from "../utils/reasoningAvailabilityCacheKey.mjs";
+import { resolveAsrFeatureFlags } from "../utils/asrFeatureFlags.mjs";
 import {
   advanceStreamingSpeechGate,
+  createStreamingSpeechGateState,
   shouldDiscardStreamingTranscript,
+  STREAMING_SPEECH_GATE_MIN_ACTIVE_MS,
 } from "../utils/streamingSpeechGate.mjs";
 import {
   getSettings,
@@ -691,8 +694,10 @@ class AudioManager {
     this.inputLevelInterval = null;
     this.currentInputRms = 0;
     this.streamingSpeechDetected = false;
+    this.streamingSpeechEverDetected = false;
     this.streamingSpeechGateDisabled = false;
-    this.streamingSpeechGateState = { activeMs: 0, speechDetected: false };
+    this.streamingSpeechGateState = createStreamingSpeechGateState();
+    this.asrFeatureFlags = resolveAsrFeatureFlags();
     this.streamingHeldPartialText = "";
     this.activeSession = null;
   }
@@ -762,6 +767,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     this.onAudioLevel = onAudioLevel;
   }
 
+  setAsrFeatureFlags(flags = {}) {
+    this.asrFeatureFlags = resolveAsrFeatureFlags({ overrides: flags });
+    return this.asrFeatureFlags;
+  }
+
   beginSession(session) {
     if (!session || typeof session !== "object") {
       this.activeSession = null;
@@ -805,35 +815,40 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   resetStreamingSpeechGate({ disabled = false } = {}) {
     this.streamingSpeechGateDisabled = Boolean(disabled);
     this.streamingSpeechDetected = Boolean(disabled);
-    this.streamingSpeechGateState = {
-      activeMs: 0,
-      speechDetected: Boolean(disabled),
-    };
+    this.streamingSpeechEverDetected = Boolean(disabled);
+    this.streamingSpeechGateState = createStreamingSpeechGateState(
+      disabled
+        ? {
+            stage: "speaking",
+            activeMs: STREAMING_SPEECH_GATE_MIN_ACTIVE_MS,
+            speechDetected: true,
+          }
+        : undefined
+    );
     this.streamingHeldPartialText = "";
   }
 
   updateStreamingSpeechGate(rms) {
-    if (this.streamingSpeechGateDisabled || this.streamingSpeechDetected) {
-      return this.streamingSpeechDetected;
+    if (this.streamingSpeechGateDisabled) {
+      return true;
     }
 
     this.streamingSpeechGateState = advanceStreamingSpeechGate(this.streamingSpeechGateState, {
       rms,
     });
+    this.streamingSpeechDetected = Boolean(this.streamingSpeechGateState.speechDetected);
 
-    if (!this.streamingSpeechGateState.speechDetected) {
-      return false;
+    if (this.streamingSpeechGateState.speechDetected) {
+      this.streamingSpeechEverDetected = true;
     }
 
-    this.streamingSpeechDetected = true;
-
-    if (this.streamingHeldPartialText) {
+    if (this.streamingSpeechGateState.speechDetected && this.streamingHeldPartialText) {
       this.streamingPartialText = this.streamingHeldPartialText;
       this.onPartialTranscript?.(this.streamingHeldPartialText);
       this.streamingHeldPartialText = "";
     }
 
-    return true;
+    return this.streamingSpeechGateState.speechDetected;
   }
 
   sanitizeStreamingPreviewText(text) {
@@ -3401,7 +3416,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       this.streamingSource = audioContext.createMediaStreamSource(stream);
       this.streamingStream = stream;
       this._peakRms = 0;
-      this.resetStreamingSpeechGate();
+      this.resetStreamingSpeechGate({ disabled: !this.asrFeatureFlags.multiStateVad });
       this.startInputLevelMonitoring({ stream, audioContext, sourceNode: this.streamingSource });
       if (!this.inputLevelAnalyser) {
         this._peakRms = 1;
@@ -3441,7 +3456,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           return;
         }
 
-        if (!this.streamingSpeechDetected) {
+        if (!this.streamingSpeechGateState.speechDetected) {
           this.streamingHeldPartialText = cleanedText;
           return;
         }
@@ -3450,14 +3465,12 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       });
 
       const finalCleanup = provider.onFinal((text) => {
-        // text = accumulated final text from streaming provider.
-        // Extract just the new segment (delta from previous accumulated final).
-        const prevLen = this.streamingFinalText.length;
+        const didCommittedTextChange = Boolean(text) && text !== this.streamingFinalText;
         this.streamingFinalText = text;
         this.streamingPartialText = "";
-        const newSegment = text.slice(prevLen);
-        if (newSegment) {
-          this.onStreamingCommit?.(newSegment);
+
+        if (didCommittedTextChange) {
+          this.onStreamingCommit?.(text);
         }
       });
 
@@ -3699,7 +3712,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     }
 
     if (shouldDiscardStreamingTranscript({
-      speechDetected: this.streamingSpeechDetected,
+      speechDetectedEver: this.streamingSpeechEverDetected,
       peakRms: this._peakRms,
     })) {
       finalText = "";
