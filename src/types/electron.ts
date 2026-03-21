@@ -1,3 +1,6 @@
+import type { InsertionIntent, InsertionOutcomeMode } from "../utils/insertionIntent";
+import type { TerminologySuggestion } from "../utils/terminologyProfile";
+
 export type LocalTranscriptionProvider = "whisper" | "nvidia";
 
 export interface TranscriptionItem {
@@ -242,6 +245,12 @@ export interface PasteResult {
   reason?: PasteFailureReason;
   method?: string;
   platform?: string;
+  intent?: InsertionIntent;
+  outcomeMode?: InsertionOutcomeMode;
+  targetApp?: TargetAppInfo | null;
+  replaceSelectionExpected?: boolean;
+  preserveClipboard?: boolean;
+  allowFallbackCopy?: boolean;
 }
 
 declare global {
@@ -268,9 +277,15 @@ declare global {
       pasteText: (
         text: string,
         options?: {
+          intent?: InsertionIntent;
           fromStreaming?: boolean;
+          targetApp?: TargetAppInfo | null;
+          replaceSelectionExpected?: boolean;
           suppressDictationPanelRestore?: boolean;
           preserveClipboard?: boolean;
+          allowFallbackCopy?: boolean;
+          sensitiveAppProtectionEnabled?: boolean;
+          sensitiveAppBlockInsertion?: boolean;
         }
       ) => Promise<PasteResult>;
       hideWindow: () => Promise<void>;
@@ -299,7 +314,9 @@ declare global {
       setDictionary: (words: string[]) => Promise<{ success: boolean }>;
       onDictionaryUpdated?: (callback: (words: string[]) => void) => () => void;
       setAutoLearnEnabled?: (enabled: boolean) => void;
-      onCorrectionsLearned?: (callback: (words: string[]) => void) => () => void;
+      onCorrectionsLearned?: (
+        callback: (entries: string[] | TerminologySuggestion[]) => void
+      ) => () => void;
       undoLearnedCorrections?: (words: string[]) => Promise<{ success: boolean }>;
 
       // Database event listeners

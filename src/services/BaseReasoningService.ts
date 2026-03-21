@@ -21,6 +21,10 @@ export abstract class BaseReasoningService {
     return getSettings().customDictionary;
   }
 
+  protected getTerminologyProfile() {
+    return getSettings().terminologyProfile;
+  }
+
   protected getPreferredLanguage(): string {
     return getSettings().preferredLanguage || "auto";
   }
@@ -44,7 +48,8 @@ export abstract class BaseReasoningService {
       transcript,
       uiLanguage,
       contextClassification,
-      postProcessingPolicy
+      postProcessingPolicy,
+      this.getTerminologyProfile()
     );
   }
 

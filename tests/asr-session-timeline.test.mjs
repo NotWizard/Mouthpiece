@@ -21,9 +21,35 @@ test("ASR session timeline records normalized events and computes core latency m
   mod.markAsrSessionEvent(timeline, "first_partial", { textLength: 4 }, 220);
   mod.markAsrSessionEvent(timeline, "first_stable_partial", { textLength: 6 }, 320);
   mod.markAsrSessionEvent(timeline, "final_ready", { textLength: 12 }, 640);
-  mod.markAsrSessionEvent(timeline, "paste_started", { textLength: 12 }, 700);
-  mod.markAsrSessionEvent(timeline, "paste_finished", { mode: "pasted", success: true }, 760);
-  mod.markAsrSessionEvent(timeline, "inserted", { mode: "pasted" }, 765);
+  mod.markAsrSessionEvent(
+    timeline,
+    "paste_started",
+    {
+      textLength: 12,
+      intent: "replace_selection",
+      preserveClipboard: true,
+      allowFallbackCopy: true,
+      targetApp: {
+        appName: "Slack",
+        processId: 551,
+        platform: "darwin",
+        source: "main-process",
+        capturedAt: "2026-03-21T08:00:00.000Z",
+      },
+    },
+    700
+  );
+  mod.markAsrSessionEvent(
+    timeline,
+    "paste_finished",
+    {
+      mode: "pasted",
+      outcomeMode: "replaced",
+      success: true,
+    },
+    760
+  );
+  mod.markAsrSessionEvent(timeline, "inserted", { mode: "pasted", outcomeMode: "replaced" }, 765);
 
   const summary = mod.finalizeAsrSessionTimeline(timeline, {
     status: "inserted",
@@ -46,6 +72,11 @@ test("ASR session timeline records normalized events and computes core latency m
   assert.equal(summary.flags.fallbackUsed, false);
   assert.equal(summary.flags.permissionRequired, false);
   assert.equal(summary.flags.errorSeen, false);
+  assert.equal(summary.insertion.intent, "replace_selection");
+  assert.equal(summary.insertion.outcomeMode, "replaced");
+  assert.equal(summary.insertion.preserveClipboard, true);
+  assert.equal(summary.insertion.allowFallbackCopy, true);
+  assert.equal(summary.insertion.targetApp?.appName, "Slack");
   assert.equal(summary.events.length, 9);
 });
 

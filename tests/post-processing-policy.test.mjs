@@ -117,11 +117,15 @@ test("post-processing policy allows richer polish for email and document instruc
   assert.equal(documentInstructionPolicy.allowStructuredRewrite, true);
 });
 
-test("prompts consume the post-processing policy contract for context shaping", async () => {
+test("prompt contract consumes identifier and formatting preservation policy hints", async () => {
   const source = await readRepoFile("src/config/prompts.ts");
 
-  assert.match(source, /resolvePostProcessingPolicy/);
-  assert.match(source, /surfaceMode/);
-  assert.match(source, /outputStrategy/);
-  assert.match(source, /allowStructuredRewrite/);
+  assert.match(source, /function getPolicyInstruction/);
+  assert.match(source, /policy\.preserveIdentifiers/);
+  assert.match(source, /policy\.preserveFormatting/);
+  assert.match(source, /Preserve identifiers, symbols, casing, filenames, and code-like tokens exactly\./);
+  assert.match(
+    source,
+    /Preserve visible formatting, list markers, Markdown structure, and intentional line breaks\./
+  );
 });

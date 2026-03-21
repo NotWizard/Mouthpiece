@@ -5,6 +5,15 @@ import i18n, { normalizeUiLanguage } from "../i18n";
 import { hasAnyByokKey } from "../utils/byokDetection";
 import { ensureAgentNameInDictionary } from "../utils/agentName";
 import { normalizeCloudTranscriptionProviderSettings } from "../utils/transcriptionProviderConfig.mjs";
+import {
+  mergeTerminologySuggestions,
+  normalizeTerminologyProfile,
+  terminologyProfileToDictionary,
+  type TerminologyProfile,
+  type TerminologySuggestion,
+} from "../utils/terminologyProfile";
+import { migrateStoredTerminologyProfile } from "../utils/terminologyMigration";
+import { normalizeOutputStrategy, type OutputStrategy } from "../utils/postProcessingPolicy";
 import logger from "../utils/logger";
 import type { LocalTranscriptionProvider } from "../types/electron";
 import type {
@@ -61,6 +70,17 @@ function readStringArray(key: string, fallback: string[]): string[] {
   try {
     const parsed = JSON.parse(stored);
     return Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function readJsonValue<T>(key: string, fallback: T): T {
+  if (!isBrowser) return fallback;
+  const stored = localStorage.getItem(key);
+  if (stored === null) return fallback;
+  try {
+    return JSON.parse(stored) as T;
   } catch {
     return fallback;
   }
@@ -155,6 +175,13 @@ const INITIAL_CLOUD_TRANSCRIPTION_SETTINGS = normalizeCloudTranscriptionProvider
   bailianApiKey: "",
 });
 
+const LEGACY_CUSTOM_DICTIONARY = readStringArray("customDictionary", []);
+const INITIAL_TERMINOLOGY_PROFILE = migrateStoredTerminologyProfile(
+  readJsonValue<TerminologyProfile | null>("terminologyProfile", null),
+  LEGACY_CUSTOM_DICTIONARY
+);
+const INITIAL_CUSTOM_DICTIONARY = terminologyProfileToDictionary(INITIAL_TERMINOLOGY_PROFILE);
+
 const BOOLEAN_SETTINGS = new Set([
   "useLocalWhisper",
   "allowOpenAIFallback",
@@ -169,11 +196,17 @@ const BOOLEAN_SETTINGS = new Set([
   "customReasoningEnableThinking",
   "preferBuiltInMic",
   "cloudBackupEnabled",
+  "sensitiveAppProtectionEnabled",
+  "sensitiveAppBlockInsertion",
+  "allowSensitiveAppCloudReasoning",
+  "allowSensitiveAppAutoLearn",
+  "allowSensitiveAppPasteMonitoring",
   "audioCuesEnabled",
   "isSignedIn",
 ]);
 
 const ARRAY_SETTINGS = new Set(["customDictionary"]);
+const JSON_SETTINGS = new Set(["terminologyProfile"]);
 
 const LANGUAGE_MIGRATIONS: Record<string, string> = { zh: "zh-CN" };
 
@@ -215,7 +248,12 @@ export interface SettingsState
   setCloudReasoningBaseUrl: (value: string) => void;
   setBailianReasoningEnableThinking: (value: boolean) => void;
   setCustomReasoningEnableThinking: (value: boolean) => void;
+  setDefaultOutputStrategy: (value: OutputStrategy) => void;
   setCustomDictionary: (words: string[]) => void;
+  setTerminologyProfile: (profile: Partial<TerminologyProfile>) => void;
+  addTerminologySuggestions: (suggestions: TerminologySuggestion[]) => void;
+  approveTerminologySuggestion: (term: string) => void;
+  rejectTerminologySuggestion: (term: string) => void;
   setAssemblyAiStreaming: (value: boolean) => void;
   setDeepgramStreamingEnabled: (value: boolean) => void;
   setSonioxRealtimeEnabled: (value: boolean) => void;
@@ -244,6 +282,11 @@ export interface SettingsState
 
   setTheme: (value: "light" | "dark" | "auto") => void;
   setCloudBackupEnabled: (value: boolean) => void;
+  setSensitiveAppProtectionEnabled: (value: boolean) => void;
+  setSensitiveAppBlockInsertion: (value: boolean) => void;
+  setAllowSensitiveAppCloudReasoning: (value: boolean) => void;
+  setAllowSensitiveAppAutoLearn: (value: boolean) => void;
+  setAllowSensitiveAppPasteMonitoring: (value: boolean) => void;
   setAudioCuesEnabled: (value: boolean) => void;
   setIsSignedIn: (value: boolean) => void;
 
@@ -422,7 +465,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   cloudReasoningBaseUrl: readString("cloudReasoningBaseUrl", API_ENDPOINTS.OPENAI_BASE),
   bailianReasoningEnableThinking: readBoolean("bailianReasoningEnableThinking", false),
   customReasoningEnableThinking: readBoolean("customReasoningEnableThinking", false),
-  customDictionary: readStringArray("customDictionary", []),
+  defaultOutputStrategy: normalizeOutputStrategy(readString("defaultOutputStrategy", "light_polish")),
+  terminologyProfile: INITIAL_TERMINOLOGY_PROFILE,
+  customDictionary: INITIAL_CUSTOM_DICTIONARY,
   assemblyAiStreaming: readBoolean("assemblyAiStreaming", true),
   deepgramStreamingEnabled: readBoolean("deepgramStreamingEnabled", false),
   sonioxRealtimeEnabled: readBoolean("sonioxRealtimeEnabled", true),
@@ -455,6 +500,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     return "auto" as const;
   })(),
   cloudBackupEnabled: readBoolean("cloudBackupEnabled", false),
+  sensitiveAppProtectionEnabled: readBoolean("sensitiveAppProtectionEnabled", true),
+  sensitiveAppBlockInsertion: readBoolean("sensitiveAppBlockInsertion", true),
+  allowSensitiveAppCloudReasoning: readBoolean("allowSensitiveAppCloudReasoning", false),
+  allowSensitiveAppAutoLearn: readBoolean("allowSensitiveAppAutoLearn", false),
+  allowSensitiveAppPasteMonitoring: readBoolean("allowSensitiveAppPasteMonitoring", false),
   audioCuesEnabled: readBoolean("audioCuesEnabled", true),
   isSignedIn: CLOUD_AUTH_AVAILABLE ? readBoolean("isSignedIn", false) : false,
 
@@ -477,6 +527,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setCloudReasoningBaseUrl: createStringSetter("cloudReasoningBaseUrl"),
   setBailianReasoningEnableThinking: createBooleanSetter("bailianReasoningEnableThinking"),
   setCustomReasoningEnableThinking: createBooleanSetter("customReasoningEnableThinking"),
+  setDefaultOutputStrategy: (value: OutputStrategy) => {
+    const normalized = normalizeOutputStrategy(value);
+    if (isBrowser) localStorage.setItem("defaultOutputStrategy", normalized);
+    set({ defaultOutputStrategy: normalized });
+  },
   setAssemblyAiStreaming: createBooleanSetter("assemblyAiStreaming"),
   setDeepgramStreamingEnabled: createBooleanSetter("deepgramStreamingEnabled"),
   setSonioxRealtimeEnabled: createBooleanSetter("sonioxRealtimeEnabled"),
@@ -487,15 +542,77 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setReasoningProvider: createStringSetter("reasoningProvider"),
 
   setCustomDictionary: (words: string[]) => {
-    if (isBrowser) localStorage.setItem("customDictionary", JSON.stringify(words));
-    set({ customDictionary: words });
-    window.electronAPI?.setDictionary(words).catch((err) => {
+    const terminologyProfile = normalizeTerminologyProfile({
+      ...useSettingsStore.getState().terminologyProfile,
+      hotwords: words,
+    });
+    const dictionary = terminologyProfileToDictionary(terminologyProfile);
+    if (isBrowser) {
+      localStorage.setItem("customDictionary", JSON.stringify(dictionary));
+      localStorage.setItem("terminologyProfile", JSON.stringify(terminologyProfile));
+    }
+    set({ customDictionary: dictionary, terminologyProfile });
+    window.electronAPI?.setDictionary(dictionary).catch((err) => {
       logger.warn(
         "Failed to sync dictionary to SQLite",
         { error: (err as Error).message },
         "settings"
       );
     });
+  },
+  setTerminologyProfile: (profile: Partial<TerminologyProfile>) => {
+    const terminologyProfile = normalizeTerminologyProfile({
+      ...useSettingsStore.getState().terminologyProfile,
+      ...profile,
+    });
+    const dictionary = terminologyProfileToDictionary(terminologyProfile);
+    if (isBrowser) {
+      localStorage.setItem("terminologyProfile", JSON.stringify(terminologyProfile));
+      localStorage.setItem("customDictionary", JSON.stringify(dictionary));
+    }
+    set({ terminologyProfile, customDictionary: dictionary });
+    window.electronAPI?.setDictionary(dictionary).catch((err) => {
+      logger.warn(
+        "Failed to sync terminology dictionary to SQLite",
+        { error: (err as Error).message },
+        "settings"
+      );
+    });
+  },
+  addTerminologySuggestions: (suggestions: TerminologySuggestion[]) => {
+    const nextProfile = mergeTerminologySuggestions(useSettingsStore.getState().terminologyProfile, suggestions);
+    if (isBrowser) {
+      localStorage.setItem("terminologyProfile", JSON.stringify(nextProfile));
+    }
+    set({ terminologyProfile: nextProfile });
+  },
+  approveTerminologySuggestion: (term: string) => {
+    const current = useSettingsStore.getState().terminologyProfile;
+    const approved = current.pendingSuggestions.find((suggestion) => suggestion.term === term);
+    const nextProfile = normalizeTerminologyProfile({
+      ...current,
+      hotwords: approved ? [...current.hotwords, approved.term] : current.hotwords,
+      pendingSuggestions: current.pendingSuggestions.filter((suggestion) => suggestion.term !== term),
+    });
+    const dictionary = terminologyProfileToDictionary(nextProfile);
+    if (isBrowser) {
+      localStorage.setItem("terminologyProfile", JSON.stringify(nextProfile));
+      localStorage.setItem("customDictionary", JSON.stringify(dictionary));
+    }
+    set({ terminologyProfile: nextProfile, customDictionary: dictionary });
+    window.electronAPI?.setDictionary(dictionary).catch(() => {});
+  },
+  rejectTerminologySuggestion: (term: string) => {
+    const nextProfile = normalizeTerminologyProfile({
+      ...useSettingsStore.getState().terminologyProfile,
+      pendingSuggestions: useSettingsStore
+        .getState()
+        .terminologyProfile.pendingSuggestions.filter((suggestion) => suggestion.term !== term),
+    });
+    if (isBrowser) {
+      localStorage.setItem("terminologyProfile", JSON.stringify(nextProfile));
+    }
+    set({ terminologyProfile: nextProfile });
   },
 
   setUiLanguage: (language: string) => {
@@ -543,6 +660,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   },
 
   setCloudBackupEnabled: createBooleanSetter("cloudBackupEnabled"),
+  setSensitiveAppProtectionEnabled: createBooleanSetter("sensitiveAppProtectionEnabled"),
+  setSensitiveAppBlockInsertion: createBooleanSetter("sensitiveAppBlockInsertion"),
+  setAllowSensitiveAppCloudReasoning: createBooleanSetter("allowSensitiveAppCloudReasoning"),
+  setAllowSensitiveAppAutoLearn: createBooleanSetter("allowSensitiveAppAutoLearn"),
+  setAllowSensitiveAppPasteMonitoring: createBooleanSetter("allowSensitiveAppPasteMonitoring"),
   setAudioCuesEnabled: createBooleanSetter("audioCuesEnabled"),
 
   setIsSignedIn: (value: boolean) => {
@@ -575,6 +697,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     if (settings.cloudTranscriptionMode !== undefined)
       s.setCloudTranscriptionMode(settings.cloudTranscriptionMode);
     if (settings.customDictionary !== undefined) s.setCustomDictionary(settings.customDictionary);
+    if (settings.terminologyProfile !== undefined)
+      s.setTerminologyProfile(settings.terminologyProfile);
     if (settings.assemblyAiStreaming !== undefined)
       s.setAssemblyAiStreaming(settings.assemblyAiStreaming);
     if (settings.deepgramStreamingEnabled !== undefined)
@@ -602,6 +726,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       s.setBailianReasoningEnableThinking(settings.bailianReasoningEnableThinking);
     if (settings.customReasoningEnableThinking !== undefined)
       s.setCustomReasoningEnableThinking(settings.customReasoningEnableThinking);
+    if (settings.defaultOutputStrategy !== undefined)
+      s.setDefaultOutputStrategy(settings.defaultOutputStrategy);
   },
 
   updateApiKeys: (keys: Partial<ApiKeySettings>) => {
@@ -818,8 +944,16 @@ export async function initializeSettings(): Promise<void> {
         if (dbWords.length === 0 && currentDictionary.length > 0) {
           await window.electronAPI.setDictionary(currentDictionary);
         } else if (dbWords.length > 0 && currentDictionary.length === 0) {
-          if (isBrowser) localStorage.setItem("customDictionary", JSON.stringify(dbWords));
-          useSettingsStore.setState({ customDictionary: dbWords });
+          const terminologyProfile = normalizeTerminologyProfile({
+            ...useSettingsStore.getState().terminologyProfile,
+            hotwords: dbWords,
+          });
+          const dictionary = terminologyProfileToDictionary(terminologyProfile);
+          if (isBrowser) {
+            localStorage.setItem("customDictionary", JSON.stringify(dictionary));
+            localStorage.setItem("terminologyProfile", JSON.stringify(terminologyProfile));
+          }
+          useSettingsStore.setState({ customDictionary: dictionary, terminologyProfile });
         }
       }
     } catch (err) {
@@ -853,8 +987,25 @@ export async function initializeSettings(): Promise<void> {
       } catch {
         value = [];
       }
+    } else if (JSON_SETTINGS.has(key)) {
+      try {
+        value = JSON.parse(newValue);
+      } catch {
+        value = null;
+      }
     } else {
       value = newValue;
+    }
+
+    if (key === "terminologyProfile") {
+      const terminologyProfile = normalizeTerminologyProfile(
+        (value as Partial<TerminologyProfile> | null | undefined) || {}
+      );
+      useSettingsStore.setState({
+        terminologyProfile,
+        customDictionary: terminologyProfileToDictionary(terminologyProfile),
+      });
+      return;
     }
 
     useSettingsStore.setState({ [key]: value });

@@ -3,6 +3,8 @@ import { useSettingsStore, initializeSettings } from "../stores/settingsStore";
 import logger from "../utils/logger";
 import { useLocalStorage } from "./useLocalStorage";
 import type { LocalTranscriptionProvider } from "../types/electron";
+import type { TerminologyProfile, TerminologySuggestion } from "../utils/terminologyProfile";
+import type { OutputStrategy } from "../utils/postProcessingPolicy";
 
 export interface TranscriptionSettings {
   uiLanguage: string;
@@ -23,6 +25,7 @@ export interface TranscriptionSettings {
   deepgramStreamingEnabled: boolean;
   sonioxRealtimeEnabled: boolean;
   bailianRealtimeEnabled: boolean;
+  terminologyProfile: TerminologyProfile;
 }
 
 export interface ReasoningSettings {
@@ -34,6 +37,7 @@ export interface ReasoningSettings {
   cloudReasoningMode: string;
   bailianReasoningEnableThinking: boolean;
   customReasoningEnableThinking: boolean;
+  defaultOutputStrategy: OutputStrategy;
 }
 
 export interface HotkeySettings {
@@ -60,6 +64,11 @@ export interface ApiKeySettings {
 
 export interface PrivacySettings {
   cloudBackupEnabled: boolean;
+  sensitiveAppProtectionEnabled: boolean;
+  sensitiveAppBlockInsertion: boolean;
+  allowSensitiveAppCloudReasoning: boolean;
+  allowSensitiveAppAutoLearn: boolean;
+  allowSensitiveAppPasteMonitoring: boolean;
 }
 
 export interface ThemeSettings {
@@ -69,6 +78,7 @@ export interface ThemeSettings {
 function useSettingsInternal() {
   const store = useSettingsStore();
   const setCustomDictionary = store.setCustomDictionary;
+  const addTerminologySuggestions = store.addTerminologySuggestions;
 
   // One-time initialization: sync API keys, dictation key, UI language,
   // and dictionary from the main process / SQLite.
@@ -95,6 +105,34 @@ function useSettingsInternal() {
     });
     return unsubscribe;
   }, [setCustomDictionary]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.electronAPI?.onCorrectionsLearned) return;
+    const unsubscribe = window.electronAPI.onCorrectionsLearned(
+      (entries: string[] | TerminologySuggestion[]) => {
+        if (!Array.isArray(entries) || entries.length === 0) {
+          return;
+        }
+
+        const suggestions = entries
+          .map((entry) =>
+            typeof entry === "string"
+              ? {
+                  term: entry,
+                  sourceTerm: entry,
+                  source: "auto_learn_edit",
+                }
+              : entry
+          )
+          .filter((entry): entry is TerminologySuggestion => Boolean(entry?.term));
+
+        if (suggestions.length > 0) {
+          addTerminologySuggestions(suggestions);
+        }
+      }
+    );
+    return unsubscribe;
+  }, [addTerminologySuggestions]);
 
   // Auto-learn corrections from user edits in external apps
   const [autoLearnCorrections, setAutoLearnCorrectionsRaw] = useLocalStorage(
@@ -176,7 +214,9 @@ function useSettingsInternal() {
     cloudReasoningMode: store.cloudReasoningMode,
     bailianReasoningEnableThinking: store.bailianReasoningEnableThinking,
     customReasoningEnableThinking: store.customReasoningEnableThinking,
+    defaultOutputStrategy: store.defaultOutputStrategy,
     customDictionary: store.customDictionary,
+    terminologyProfile: store.terminologyProfile,
     assemblyAiStreaming: store.assemblyAiStreaming,
     deepgramStreamingEnabled: store.deepgramStreamingEnabled,
     sonioxRealtimeEnabled: store.sonioxRealtimeEnabled,
@@ -216,7 +256,12 @@ function useSettingsInternal() {
     setCloudReasoningMode: store.setCloudReasoningMode,
     setBailianReasoningEnableThinking: store.setBailianReasoningEnableThinking,
     setCustomReasoningEnableThinking: store.setCustomReasoningEnableThinking,
+    setDefaultOutputStrategy: store.setDefaultOutputStrategy,
     setCustomDictionary: store.setCustomDictionary,
+    setTerminologyProfile: store.setTerminologyProfile,
+    addTerminologySuggestions: store.addTerminologySuggestions,
+    approveTerminologySuggestion: store.approveTerminologySuggestion,
+    rejectTerminologySuggestion: store.rejectTerminologySuggestion,
     setUseReasoningModel: store.setUseReasoningModel,
     setVoiceAssistantEnabled: store.setVoiceAssistantEnabled,
     setReasoningModel: store.setReasoningModel,
@@ -244,7 +289,17 @@ function useSettingsInternal() {
     autoLearnCorrections,
     setAutoLearnCorrections,
     cloudBackupEnabled: store.cloudBackupEnabled,
+    sensitiveAppProtectionEnabled: store.sensitiveAppProtectionEnabled,
+    sensitiveAppBlockInsertion: store.sensitiveAppBlockInsertion,
+    allowSensitiveAppCloudReasoning: store.allowSensitiveAppCloudReasoning,
+    allowSensitiveAppAutoLearn: store.allowSensitiveAppAutoLearn,
+    allowSensitiveAppPasteMonitoring: store.allowSensitiveAppPasteMonitoring,
     setCloudBackupEnabled: store.setCloudBackupEnabled,
+    setSensitiveAppProtectionEnabled: store.setSensitiveAppProtectionEnabled,
+    setSensitiveAppBlockInsertion: store.setSensitiveAppBlockInsertion,
+    setAllowSensitiveAppCloudReasoning: store.setAllowSensitiveAppCloudReasoning,
+    setAllowSensitiveAppAutoLearn: store.setAllowSensitiveAppAutoLearn,
+    setAllowSensitiveAppPasteMonitoring: store.setAllowSensitiveAppPasteMonitoring,
     updateTranscriptionSettings: store.updateTranscriptionSettings,
     updateReasoningSettings: store.updateReasoningSettings,
     updateApiKeys: store.updateApiKeys,

@@ -7,6 +7,10 @@ const os = require("os");
 const { buildMacOSAccessibilityResetCommand } = require("./accessibilityRepair");
 const { resolveMacOSAccessibilityMode } = require("./macOSAccessibilityMode");
 const debugLogger = require("./debugLogger");
+const { createInsertionPlan, resolveInsertionOutcomeMode } = require("./insertionPlan");
+const {
+  resolveInsertionCompatibilityProfile,
+} = require("../config/insertionCompatibilityProfiles.js");
 
 const CACHE_TTL_MS = 30000;
 
@@ -115,7 +119,22 @@ function writeClipboardInRenderer(webContents, text) {
   return webContents.executeJavaScript(`navigator.clipboard.writeText(${escaped})`);
 }
 
-function buildPasteResult({ success, mode, message, reason, method, platform }) {
+function buildPasteResult({
+  success,
+  mode,
+  message,
+  reason,
+  method,
+  platform,
+  outcomeMode,
+  monitorMode,
+  compatibilityProfileId,
+  compatibilityFamily,
+  feedbackCode,
+  recoveryHint,
+  manualAction,
+  retryCount,
+}) {
   return {
     success,
     mode,
@@ -123,6 +142,14 @@ function buildPasteResult({ success, mode, message, reason, method, platform }) 
     ...(reason ? { reason } : {}),
     ...(method ? { method } : {}),
     ...(platform ? { platform } : {}),
+    ...(outcomeMode ? { outcomeMode } : {}),
+    ...(monitorMode ? { monitorMode } : {}),
+    ...(compatibilityProfileId ? { compatibilityProfileId } : {}),
+    ...(compatibilityFamily ? { compatibilityFamily } : {}),
+    ...(feedbackCode ? { feedbackCode } : {}),
+    ...(recoveryHint ? { recoveryHint } : {}),
+    ...(manualAction ? { manualAction } : {}),
+    ...(Number.isInteger(retryCount) ? { retryCount } : {}),
   };
 }
 
@@ -165,6 +192,32 @@ class ClipboardManager {
     this.winFastPasteChecked = false;
     this.linuxFastPastePath = null;
     this.linuxFastPasteChecked = false;
+  }
+
+  async attemptAutoPaste(runPaste, { attempts = 1, retryDelayMs = 0, onRetry } = {}) {
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= Math.max(1, attempts); attempt += 1) {
+      try {
+        await runPaste(attempt);
+        return attempt;
+      } catch (error) {
+        lastError = error;
+        if (attempt >= attempts) {
+          break;
+        }
+
+        if (typeof onRetry === "function") {
+          await onRetry(attempt, error);
+        }
+
+        if (retryDelayMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+        }
+      }
+    }
+
+    throw lastError || new Error("Auto paste failed");
   }
 
   _isWayland() {
@@ -675,6 +728,32 @@ class ClipboardManager {
     let method = "unknown";
     const webContents = options.webContents;
     let clipboardWritten = false;
+    const compatibilityProfile = resolveInsertionCompatibilityProfile({
+      platform,
+      intent: options.intent,
+      targetApp: options.targetApp,
+    });
+    let insertionPlan = createInsertionPlan({
+      platform,
+      request: {
+        ...options,
+        allowFallbackCopy:
+          compatibilityProfile.fallback.allowClipboardCopy && options.allowFallbackCopy !== false,
+      },
+    });
+    let retryCount = 0;
+
+    const buildCompatibilityMeta = (resultMode) => ({
+      compatibilityProfileId: compatibilityProfile.id,
+      compatibilityFamily: compatibilityProfile.family,
+      feedbackCode:
+        resultMode === "pasted" ? undefined : compatibilityProfile.fallback.feedbackCode,
+      recoveryHint:
+        resultMode === "pasted" ? undefined : compatibilityProfile.fallback.recoveryHint,
+      manualAction:
+        resultMode === "pasted" ? undefined : compatibilityProfile.fallback.manualAction,
+      retryCount,
+    });
 
     try {
       const originalClipboard = clipboard.readText();
@@ -704,17 +783,31 @@ class ClipboardManager {
         }
 
         this.safeLog("✅ Permissions granted, attempting to paste...");
-        try {
-          await this.pasteMacOS(originalClipboard, options);
-        } catch (firstError) {
-          this.safeLog("⚠️ First paste attempt failed, retrying...", firstError?.message);
-          clipboard.writeText(text);
-          await new Promise((r) => setTimeout(r, 200));
-          await this.pasteMacOS(originalClipboard, options);
-        }
+        retryCount = await this.attemptAutoPaste(
+          () => this.pasteMacOS(originalClipboard, options),
+          {
+            attempts: compatibilityProfile.retry.autoPasteAttempts,
+            retryDelayMs: compatibilityProfile.retry.retryDelayMs,
+            onRetry: async (_attempt, error) => {
+              this.safeLog("⚠️ Paste attempt failed, retrying with compatibility profile", {
+                compatibilityProfileId: compatibilityProfile.id,
+                error: error?.message || String(error),
+              });
+              clipboard.writeText(text);
+            },
+          }
+        );
       } else if (platform === "win32") {
         const focusProbe = this.probeWindowsPasteTarget();
         if (focusProbe?.shouldSkipAutoPaste) {
+          insertionPlan = createInsertionPlan({
+            platform,
+            request: options,
+            capabilities: {
+              autoPasteViable: false,
+              autoPasteReason: focusProbe.reason || "focus_not_editable",
+            },
+          });
           method = "clipboard";
           this.safeLog("⚠️ Windows target is not text-editable, skipping auto paste", focusProbe);
           debugLogger.info(
@@ -733,6 +826,13 @@ class ClipboardManager {
             reason: focusProbe.reason,
             method,
             platform,
+            outcomeMode: resolveInsertionOutcomeMode({
+              plan: insertionPlan,
+              mode: "copied",
+              success: false,
+            }),
+            monitorMode: insertionPlan.monitor.mode,
+            ...buildCompatibilityMeta("copied"),
           });
         }
 
@@ -760,7 +860,19 @@ class ClipboardManager {
           preserveClipboard: preserveClipboardForManualFallback,
         });
 
-        if (method === "nircmd" && !hasMatchingTargetPid) {
+        if (
+          method === "nircmd" &&
+          !hasMatchingTargetPid &&
+          compatibilityProfile.fallback.downgradeUnverifiedAutoPaste
+        ) {
+          insertionPlan = createInsertionPlan({
+            platform,
+            request: options,
+            capabilities: {
+              autoPasteViable: false,
+              autoPasteReason: "paste_unverified_nircmd",
+            },
+          });
           debugLogger.info(
             "Windows paste treated as clipboard fallback (unverified nircmd sendkeypress)",
             {
@@ -778,12 +890,27 @@ class ClipboardManager {
             reason: "paste_unverified_nircmd",
             method,
             platform,
+            outcomeMode: resolveInsertionOutcomeMode({
+              plan: insertionPlan,
+              mode: "copied",
+              success: false,
+            }),
+            monitorMode: insertionPlan.monitor.mode,
+            ...buildCompatibilityMeta("copied"),
           });
         }
 
         // PowerShell SendKeys often exits 0 even when the target app did not
         // accept the paste. Treat it as clipboard fallback so UI stays visible.
-        if (method === "powershell") {
+        if (method === "powershell" && compatibilityProfile.fallback.downgradeUnverifiedAutoPaste) {
+          insertionPlan = createInsertionPlan({
+            platform,
+            request: options,
+            capabilities: {
+              autoPasteViable: false,
+              autoPasteReason: "paste_unverified_powershell",
+            },
+          });
           debugLogger.info(
             "Windows paste treated as clipboard fallback (unverified powershell sendkeys)",
             {
@@ -799,10 +926,32 @@ class ClipboardManager {
             reason: "paste_unverified_powershell",
             method,
             platform,
+            outcomeMode: resolveInsertionOutcomeMode({
+              plan: insertionPlan,
+              mode: "copied",
+              success: false,
+            }),
+            monitorMode: insertionPlan.monitor.mode,
+            ...buildCompatibilityMeta("copied"),
           });
         }
       } else {
-        method = (await this.pasteLinux(originalClipboard, options)) || "linux-tools";
+        retryCount = await this.attemptAutoPaste(
+          async () => {
+            method = (await this.pasteLinux(originalClipboard, options)) || "linux-tools";
+          },
+          {
+            attempts: compatibilityProfile.retry.autoPasteAttempts,
+            retryDelayMs: compatibilityProfile.retry.retryDelayMs,
+            onRetry: async (_attempt, error) => {
+              this.safeLog("⚠️ Linux paste attempt failed, retrying with compatibility profile", {
+                compatibilityProfileId: compatibilityProfile.id,
+                error: error?.message || String(error),
+              });
+              clipboard.writeText(text);
+            },
+          }
+        );
       }
 
       this.safeLog("✅ Paste operation complete", {
@@ -810,12 +959,21 @@ class ClipboardManager {
         method,
         elapsedMs: Date.now() - startTime,
         textLength: text.length,
+        compatibilityProfileId: compatibilityProfile.id,
+        retryCount,
       });
       return buildPasteResult({
         success: true,
         mode: "pasted",
         method,
         platform,
+        outcomeMode: resolveInsertionOutcomeMode({
+          plan: insertionPlan,
+          mode: "pasted",
+          success: true,
+        }),
+        monitorMode: insertionPlan.monitor.mode,
+        ...buildCompatibilityMeta("pasted"),
       });
     } catch (error) {
       const message =
@@ -832,11 +990,13 @@ class ClipboardManager {
           platform,
           method,
           mode,
-          reason,
-          clipboardWritten,
-          elapsedMs: Date.now() - startTime,
-          error: message,
-        }
+        reason,
+        clipboardWritten,
+        elapsedMs: Date.now() - startTime,
+        error: message,
+        compatibilityProfileId: compatibilityProfile.id,
+        retryCount,
+      }
       );
       return buildPasteResult({
         success: false,
@@ -845,6 +1005,13 @@ class ClipboardManager {
         reason,
         method,
         platform,
+        outcomeMode: resolveInsertionOutcomeMode({
+          plan: insertionPlan,
+          mode,
+          success: false,
+        }),
+        monitorMode: insertionPlan.monitor.mode,
+        ...buildCompatibilityMeta(mode),
       });
     }
   }

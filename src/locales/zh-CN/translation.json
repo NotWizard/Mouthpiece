@@ -926,6 +926,49 @@
       "tipLabel": "提示",
       "tipDescription": "用逗号分隔多个词语。添加上下文短语如 \"The word is Synty\" 以获得更好的识别效果。"
     },
+    "postProcessingStrategy": {
+      "title": "默认整理风格",
+      "description": "当没有命中特定应用规则时，选择 Mouthpiece 默认采用多强的文本整理力度。",
+      "options": {
+        "raw_first": {
+          "label": "原文优先",
+          "description": "尽量少改动，最大程度贴近你说出的原话。"
+        },
+        "light_polish": {
+          "label": "轻润色",
+          "description": "去掉明显语气词并稍微顺一下语句，但不过度改变表达。"
+        },
+        "publishable": {
+          "label": "可直接发送",
+          "description": "更积极地补标点、大小写和句子结构，让结果更像可直接发送的文本。"
+        },
+        "structured_rewrite": {
+          "label": "结构化重写",
+          "description": "当明显更合适时，允许整理层重组结构与表达。"
+        }
+      }
+    },
+    "terminology": {
+      "title": "术语控制",
+      "description": "查看自动学习建议，并微调 Mouthpiece 对优先术语、规避词和纠错映射的处理方式。",
+      "glossaryTitle": "术语表",
+      "glossaryEmpty": "还没有术语表词条。可以添加公司名、产品名或常用行话。",
+      "glossaryPlaceholder": "添加术语表词条，多个请用逗号分隔",
+      "addGlossary": "添加术语表词条",
+      "blacklistTitle": "规避词",
+      "blacklistEmpty": "还没有规避词。可以添加你不希望整理层使用的拼写。",
+      "blacklistPlaceholder": "添加规避词，多个请用逗号分隔",
+      "addBlacklist": "添加规避词",
+      "homophoneTitle": "同音纠错映射",
+      "homophoneEmpty": "还没有同音映射。可使用 source=target 记录常见听错。",
+      "homophonePlaceholder": "添加映射，例如 mode boat=mouthpiece",
+      "addMapping": "添加同音映射",
+      "pendingSuggestionsTitle": "待确认建议",
+      "pendingSuggestionsEmpty": "当前没有待确认建议。",
+      "pendingSuggestionSource": "来源：{{source}}",
+      "approve": "批准",
+      "reject": "忽略"
+    },
     "general": {
       "appearance": {
         "auto": "自动",

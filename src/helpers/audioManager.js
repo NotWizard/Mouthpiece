@@ -27,6 +27,7 @@ import {
   getEffectiveReasoningModel,
   isCloudReasoningMode,
 } from "../stores/settingsStore";
+import { resolveSensitiveAppPolicy } from "../config/sensitiveAppPolicy.ts";
 import { SONIOX_ASYNC_MODEL, SONIOX_REALTIME_MODEL, selectSonioxModel } from "./sonioxShared.mjs";
 
 const SHORT_CLIP_DURATION_SECONDS = 2.5;
@@ -1657,6 +1658,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         confidence: contextClassification.confidence,
         strictMode: contextClassification.strictMode,
         strictOverlapThreshold: contextClassification.strictOverlapThreshold,
+        sensitiveAppAction: contextClassification.sensitiveAppAction || "allow_full_pipeline",
+        sensitiveAppRuleId: contextClassification.sensitiveAppRuleId || null,
         targetApp: targetApp.appName || "unknown",
         source: targetApp.source,
         signals: contextClassification.signals,
@@ -1681,10 +1684,35 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       contextClassification: contextClassification || undefined,
       postProcessingPolicy: resolvePostProcessingPolicy({
         contextClassification,
+        preferredOutputStrategy: getSettings().defaultOutputStrategy,
       }),
       strictMode: contextClassification?.strictMode ?? true,
       strictOverlapThreshold,
     };
+  }
+
+  getSensitiveAppPolicy(targetApp) {
+    const settings = getSettings();
+    return resolveSensitiveAppPolicy({
+      targetApp,
+      protectionsEnabled: settings.sensitiveAppProtectionEnabled !== false,
+      allowCloudReasoning: settings.allowSensitiveAppCloudReasoning === true,
+      allowAutoLearn: settings.allowSensitiveAppAutoLearn === true,
+      allowPasteMonitoring: settings.allowSensitiveAppPasteMonitoring === true,
+      allowInjection: settings.sensitiveAppBlockInsertion === false,
+    });
+  }
+
+  shouldBlockCloudReasoning(sensitiveAppPolicy, cloudReasoningMode = getSettings().cloudReasoningMode) {
+    if (!sensitiveAppPolicy?.blocksCloudReasoning) {
+      return false;
+    }
+
+    if (cloudReasoningMode === "mouthpiece" || cloudReasoningMode === "openwhispr") {
+      return true;
+    }
+
+    return getSettings().reasoningProvider !== "local";
   }
 
   enforceCleanupOnlyReasoningContext(contextClassification) {
@@ -1945,11 +1973,21 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
         let contextClassification = await this.buildReasoningContext(normalizedText, agentName);
         contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
+        const reasoningConfig = this.buildReasoningConfig(contextClassification);
+        const sensitiveAppPolicy = this.getSensitiveAppPolicy(contextClassification?.targetApp);
+        if (this.shouldBlockCloudReasoning(sensitiveAppPolicy)) {
+          logger.logReasoning("REASONING_SKIPPED_SENSITIVE_APP", {
+            appName: contextClassification?.targetApp?.appName || null,
+            matchedRuleId: sensitiveAppPolicy.ruleId,
+            action: sensitiveAppPolicy.action,
+          });
+          return cleanedText;
+        }
         const result = await this.processWithReasoningModel(
           normalizedText,
           reasoningModel,
           agentName,
-          this.buildReasoningConfig(contextClassification)
+          reasoningConfig
         );
 
         logger.logReasoning("REASONING_SUCCESS", {
@@ -2306,8 +2344,15 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       let contextClassification = await this.buildReasoningContext(processedText, agentName);
       contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
       const reasoningConfig = this.buildReasoningConfig(contextClassification);
+      const sensitiveAppPolicy = this.getSensitiveAppPolicy(contextClassification?.targetApp);
 
-      if (cloudReasoningMode === "mouthpiece" || cloudReasoningMode === "openwhispr") {
+      if (this.shouldBlockCloudReasoning(sensitiveAppPolicy, cloudReasoningMode)) {
+        logger.logReasoning("CLOUD_REASONING_SKIPPED_SENSITIVE_APP", {
+          appName: contextClassification?.targetApp?.appName || null,
+          matchedRuleId: sensitiveAppPolicy.ruleId,
+          action: sensitiveAppPolicy.action,
+        });
+      } else if (cloudReasoningMode === "mouthpiece" || cloudReasoningMode === "openwhispr") {
         const reasonResult = await withSessionRefresh(async () => {
           const systemPrompt = getSystemPrompt(
             agentName,
@@ -2316,7 +2361,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             processedText,
             settings.uiLanguage || "zh-CN",
             contextClassification || undefined,
-            reasoningConfig.postProcessingPolicy
+            reasoningConfig.postProcessingPolicy,
+            settings.terminologyProfile
           );
           const res = await window.electronAPI.cloudReason(processedText, {
             agentName,
@@ -3809,9 +3855,16 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       let contextClassification = await this.buildReasoningContext(finalText, agentName);
       contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
       const reasoningConfig = this.buildReasoningConfig(contextClassification);
+      const sensitiveAppPolicy = this.getSensitiveAppPolicy(contextClassification?.targetApp);
 
       try {
-        if (cloudReasoningMode === "mouthpiece" || cloudReasoningMode === "openwhispr") {
+        if (this.shouldBlockCloudReasoning(sensitiveAppPolicy, cloudReasoningMode)) {
+          logger.logReasoning("STREAMING_REASONING_SKIPPED_SENSITIVE_APP", {
+            appName: contextClassification?.targetApp?.appName || null,
+            matchedRuleId: sensitiveAppPolicy.ruleId,
+            action: sensitiveAppPolicy.action,
+          });
+        } else if (cloudReasoningMode === "mouthpiece" || cloudReasoningMode === "openwhispr") {
           const reasonResult = await withSessionRefresh(async () => {
             const systemPrompt = getSystemPrompt(
               agentName,
@@ -3820,7 +3873,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
               finalText,
               stSettings.uiLanguage || "zh-CN",
               contextClassification || undefined,
-              reasoningConfig.postProcessingPolicy
+              reasoningConfig.postProcessingPolicy,
+              stSettings.terminologyProfile
             );
             const res = await window.electronAPI.cloudReason(finalText, {
               agentName,

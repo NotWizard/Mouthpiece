@@ -4,6 +4,7 @@ import { BookOpen, X, CornerDownLeft, Info } from "lucide-react";
 import { FixedSizeList as List, type ListChildComponentProps } from "react-window";
 import { Input } from "./ui/input";
 import { ConfirmDialog } from "./ui/dialog";
+import TerminologySettingsCard from "./TerminologySettingsCard";
 import { useSettings } from "../hooks/useSettings";
 import { getAgentName } from "../utils/agentName";
 import { parseDictionaryInput } from "../utils/parseDictionaryInput";
@@ -54,7 +55,13 @@ const DictionaryRow = memo(function DictionaryRow({
 
 function DictionaryView() {
   const { t } = useTranslation();
-  const { customDictionary, setCustomDictionary } = useSettings();
+  const {
+    customDictionary,
+    terminologyProfile,
+    setCustomDictionary,
+    approveTerminologySuggestion,
+    rejectTerminologySuggestion,
+  } = useSettings();
   const agentName = getAgentName();
   const [newWord, setNewWord] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
@@ -129,73 +136,83 @@ function DictionaryView() {
 
       {isEmpty ? (
         /* ─── Empty state ─── */
-        <div className="flex-1 flex flex-col items-center justify-center px-8 -mt-4">
-          <div className="w-10 h-10 rounded-[10px] bg-gradient-to-b from-primary/8 to-primary/4 dark:from-primary/12 dark:to-primary/6 border border-primary/10 dark:border-primary/15 flex items-center justify-center mb-4">
-            <BookOpen
-              size={17}
-              strokeWidth={1.5}
-              className="text-primary/50 dark:text-primary/60"
-            />
-          </div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="flex flex-col items-center justify-center px-8 py-4">
+            <div className="w-10 h-10 rounded-[10px] bg-gradient-to-b from-primary/8 to-primary/4 dark:from-primary/12 dark:to-primary/6 border border-primary/10 dark:border-primary/15 flex items-center justify-center mb-4">
+              <BookOpen
+                size={17}
+                strokeWidth={1.5}
+                className="text-primary/50 dark:text-primary/60"
+              />
+            </div>
 
-          <h2 className="text-xs font-semibold text-foreground mb-1">{t("dictionary.title")}</h2>
-          <p className="text-xs text-foreground/30 text-center leading-relaxed max-w-[240px] mb-6">
-            {t("dictionary.description")}
-          </p>
+            <h2 className="text-xs font-semibold text-foreground mb-1">{t("dictionary.title")}</h2>
+            <p className="text-xs text-foreground/30 text-center leading-relaxed max-w-[240px] mb-6">
+              {t("dictionary.description")}
+            </p>
 
-          <div className="w-full max-w-[260px] relative">
-            <Input
-              placeholder={t("dictionary.addPlaceholder")}
-              value={newWord}
-              onChange={(e) => setNewWord(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAdd();
-              }}
-              className="w-full h-8 text-xs pr-8 placeholder:text-foreground/20"
-            />
-            {newWord.trim() ? (
+            <div className="w-full max-w-[260px] relative">
+              <Input
+                placeholder={t("dictionary.addPlaceholder")}
+                value={newWord}
+                onChange={(e) => setNewWord(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAdd();
+                }}
+                className="w-full h-8 text-xs pr-8 placeholder:text-foreground/20"
+              />
+              {newWord.trim() ? (
+                <button
+                  onClick={handleAdd}
+                  aria-label={t("dictionary.addWord")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/50 hover:text-primary transition-colors"
+                >
+                  <CornerDownLeft size={11} />
+                </button>
+              ) : (
+                <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-foreground/12 font-mono select-none pointer-events-none">
+                  ⏎
+                </kbd>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 mt-3">
+              {["Mouthpiece", "Dr. Smith", "gRPC"].map((ex) => (
+                <span
+                  key={ex}
+                  className="text-xs text-foreground/12 px-1.5 py-0.5 rounded-[4px] border border-dashed border-foreground/6 dark:border-white/5"
+                >
+                  {ex}
+                </span>
+              ))}
+            </div>
+
+            <div className="mt-8 w-full max-w-[260px]">
               <button
-                onClick={handleAdd}
-                aria-label={t("dictionary.addWord")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/50 hover:text-primary transition-colors"
+                onClick={() => setShowInfo(!showInfo)}
+                aria-expanded={showInfo}
+                aria-label={t("dictionary.howItWorks")}
+                className="flex items-center gap-1 text-xs text-foreground/15 hover:text-foreground/30 transition-colors mx-auto"
               >
-                <CornerDownLeft size={11} />
+                <Info size={9} />
+                {t("dictionary.howItWorks")}
               </button>
-            ) : (
-              <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-foreground/12 font-mono select-none pointer-events-none">
-                ⏎
-              </kbd>
-            )}
+              {showInfo && (
+                <div className="mt-2.5 rounded-md bg-foreground/[0.02] dark:bg-white/[0.02] border border-foreground/5 dark:border-white/4 px-3 py-2.5">
+                  <p className="text-xs text-foreground/25 leading-[1.6]">
+                    {t("dictionary.howItWorksDetail")}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-1.5 mt-3">
-            {["Mouthpiece", "Dr. Smith", "gRPC"].map((ex) => (
-              <span
-                key={ex}
-                className="text-xs text-foreground/12 px-1.5 py-0.5 rounded-[4px] border border-dashed border-foreground/6 dark:border-white/5"
-              >
-                {ex}
-              </span>
-            ))}
-          </div>
-
-          <div className="mt-8 w-full max-w-[260px]">
-            <button
-              onClick={() => setShowInfo(!showInfo)}
-              aria-expanded={showInfo}
-              aria-label={t("dictionary.howItWorks")}
-              className="flex items-center gap-1 text-xs text-foreground/15 hover:text-foreground/30 transition-colors mx-auto"
-            >
-              <Info size={9} />
-              {t("dictionary.howItWorks")}
-            </button>
-            {showInfo && (
-              <div className="mt-2.5 rounded-md bg-foreground/[0.02] dark:bg-white/[0.02] border border-foreground/5 dark:border-white/4 px-3 py-2.5">
-                <p className="text-xs text-foreground/25 leading-[1.6]">
-                  {t("dictionary.howItWorksDetail")}
-                </p>
-              </div>
-            )}
+          <div className="px-5 pb-5">
+            <TerminologySettingsCard
+              terminologyProfile={terminologyProfile}
+              approveTerminologySuggestion={approveTerminologySuggestion}
+              rejectTerminologySuggestion={rejectTerminologySuggestion}
+            />
           </div>
         </div>
       ) : (
@@ -303,6 +320,14 @@ function DictionaryView() {
             <p className="text-xs text-foreground/12 leading-relaxed">
               {t("dictionary.inputHint")}
             </p>
+          </div>
+
+          <div className="px-5 pb-5">
+            <TerminologySettingsCard
+              terminologyProfile={terminologyProfile}
+              approveTerminologySuggestion={approveTerminologySuggestion}
+              rejectTerminologySuggestion={rejectTerminologySuggestion}
+            />
           </div>
         </>
       )}

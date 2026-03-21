@@ -222,7 +222,7 @@ function findSubstitutions(origWords, editedWords) {
  * @param {string[]} existingDictionary - Words already in the custom dictionary
  * @returns {string[]} Array of corrected words to add to the dictionary
  */
-function extractCorrections(originalText, fieldValue, existingDictionary) {
+function extractCorrectionSuggestions(originalText, fieldValue, existingDictionary) {
   if (!originalText || !fieldValue) return [];
   if (originalText === fieldValue) return [];
 
@@ -295,7 +295,11 @@ function extractCorrections(originalText, fieldValue, existingDictionary) {
         if (bestRatio > maxDistanceRatio) continue;
       }
 
-      results.push(candidate);
+      results.push({
+        term: candidate,
+        sourceTerm: normalizeCandidate(origWord),
+        source: "auto_learn_edit",
+      });
       seenCorrections.add(normalizedCandidate);
     }
   }
@@ -303,4 +307,10 @@ function extractCorrections(originalText, fieldValue, existingDictionary) {
   return results;
 }
 
-module.exports = { extractCorrections };
+function extractCorrections(originalText, fieldValue, existingDictionary) {
+  return extractCorrectionSuggestions(originalText, fieldValue, existingDictionary).map(
+    (suggestion) => suggestion.term
+  );
+}
+
+module.exports = { extractCorrections, extractCorrectionSuggestions };

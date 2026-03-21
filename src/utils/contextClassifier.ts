@@ -1,5 +1,9 @@
 import type { TargetAppInfo } from "../types/electron";
 import { hasAgentDirectAddress } from "./agentDirectAddress.mjs";
+import {
+  resolveSensitiveAppPolicy,
+  type SensitiveAppAction,
+} from "../config/sensitiveAppPolicy.ts";
 export const DEFAULT_STRICT_OVERLAP_THRESHOLD = 0.72;
 
 export type ReasoningContext =
@@ -22,6 +26,8 @@ export interface ContextClassification {
   strictOverlapThreshold: number;
   signals: string[];
   targetApp: TargetAppInfo;
+  sensitiveAppAction?: SensitiveAppAction;
+  sensitiveAppRuleId?: string | null;
 }
 
 const APP_CONTEXT_RULES: Array<{ context: ReasoningContext; re: RegExp; signal: string }> = [
@@ -115,6 +121,26 @@ const readStrictMode = (): boolean => {
   return raw !== "false";
 };
 
+const readSensitiveAppProtectionOptions = () => {
+  if (typeof window === "undefined" || !window.localStorage) {
+    return {
+      protectionsEnabled: true,
+      allowCloudReasoning: false,
+      allowAutoLearn: false,
+      allowPasteMonitoring: false,
+      allowInjection: false,
+    };
+  }
+
+  return {
+    protectionsEnabled: window.localStorage.getItem("sensitiveAppProtectionEnabled") !== "false",
+    allowCloudReasoning: window.localStorage.getItem("allowSensitiveAppCloudReasoning") === "true",
+    allowAutoLearn: window.localStorage.getItem("allowSensitiveAppAutoLearn") === "true",
+    allowPasteMonitoring: window.localStorage.getItem("allowSensitiveAppPasteMonitoring") === "true",
+    allowInjection: window.localStorage.getItem("sensitiveAppBlockInsertion") === "false",
+  };
+};
+
 const detectInstructionIntent = (text: string, agentName: string | null, signals: string[]) => {
   const trimmed = text.trim();
   if (!trimmed) return false;
@@ -189,6 +215,18 @@ export function classifyContext({
   const appName = targetApp.appName || "";
   const appContext = detectContextFromRules(APP_CONTEXT_RULES, appName, signals);
   const contentContext = detectContextFromRules(CONTENT_CONTEXT_RULES, normalizedText, signals);
+  const sensitiveAppDecision = resolveSensitiveAppPolicy({
+    targetApp,
+    ...readSensitiveAppProtectionOptions(),
+  });
+  if (sensitiveAppDecision.matched) {
+    if (sensitiveAppDecision.ruleId) {
+      signals.push(`app:sensitive:${sensitiveAppDecision.ruleId}`);
+    }
+    if (sensitiveAppDecision.action !== "allow_full_pipeline") {
+      signals.push(`sensitive-action:${sensitiveAppDecision.action}`);
+    }
+  }
   const context = contentContext || appContext || "general";
 
   const isInstruction = detectInstructionIntent(normalizedText, agentName || null, signals);
@@ -210,5 +248,7 @@ export function classifyContext({
     strictOverlapThreshold: parseStrictThreshold(),
     signals,
     targetApp,
+    sensitiveAppAction: sensitiveAppDecision.action,
+    sensitiveAppRuleId: sensitiveAppDecision.ruleId,
   };
 }

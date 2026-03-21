@@ -19,6 +19,7 @@ import {
   commitLiveTranscriptStabilizer,
   createLiveTranscriptStabilizerState,
 } from "../utils/liveTranscriptStabilizer.mjs";
+import { buildInsertionRequest } from "../utils/insertionIntent";
 
 const STABLE_PARTIAL_SETTLE_MS = 260;
 const SINGLE_OCCURRENCE_SESSION_EVENTS = new Set([
@@ -371,24 +372,48 @@ export const useAudioRecording = (toast, options = {}) => {
         });
 
         const isStreaming = result.source?.includes("streaming");
+        const targetApp =
+          (await window.electronAPI?.getTargetAppInfo?.().catch(() => null)) || null;
+        const settings = getSettings();
+        const insertionRequest = buildInsertionRequest({
+          fromStreaming: isStreaming,
+          preserveClipboard: true,
+          allowFallbackCopy: true,
+          targetApp,
+        });
         trackSessionEvent("paste_started", {
           source: result.source,
           textLength: result.text.length,
+          intent: insertionRequest.intent,
+          replaceSelectionExpected: insertionRequest.replaceSelectionExpected,
+          preserveClipboard: insertionRequest.preserveClipboard,
+          allowFallbackCopy: insertionRequest.allowFallbackCopy,
+          targetApp: insertionRequest.targetApp,
         });
 
         const pasteStart = performance.now();
-        const pasteResult = await audioManagerRef.current.safePaste(
-          result.text,
-          isStreaming
-            ? { fromStreaming: true, preserveClipboard: true }
-            : { preserveClipboard: true }
-        );
+        const pasteResult = await audioManagerRef.current.safePaste(result.text, {
+          ...insertionRequest,
+          sensitiveAppProtectionEnabled: settings.sensitiveAppProtectionEnabled !== false,
+          sensitiveAppBlockInsertion: settings.sensitiveAppBlockInsertion === true,
+          allowSensitiveAppCloudReasoning: settings.allowSensitiveAppCloudReasoning === true,
+          allowSensitiveAppAutoLearn: settings.allowSensitiveAppAutoLearn === true,
+          allowSensitiveAppPasteMonitoring: settings.allowSensitiveAppPasteMonitoring === true,
+        });
         const pasteMode = pasteResult?.mode || (pasteResult?.success ? "pasted" : "failed");
+        const insertionOutcomeMode =
+          pasteResult?.outcomeMode ||
+          (pasteMode === "copied" ? "copied" : pasteMode === "failed" ? "failed" : "inserted");
 
         trackSessionEvent("paste_finished", {
           mode: pasteMode,
+          outcomeMode: insertionOutcomeMode,
           success: Boolean(pasteResult?.success),
           reason: pasteResult?.reason,
+          compatibilityProfileId: pasteResult?.compatibilityProfileId,
+          feedbackCode: pasteResult?.feedbackCode,
+          recoveryHint: pasteResult?.recoveryHint,
+          retryCount: pasteResult?.retryCount,
         });
 
         if (pasteMode === "copied") {
@@ -416,7 +441,12 @@ export const useAudioRecording = (toast, options = {}) => {
           });
           finalizeSession("error");
         } else {
-          trackSessionEvent("inserted", { mode: pasteMode });
+          trackSessionEvent("inserted", {
+            mode: pasteMode,
+            outcomeMode: insertionOutcomeMode,
+            intent: pasteResult?.intent || insertionRequest.intent,
+            compatibilityProfileId: pasteResult?.compatibilityProfileId,
+          });
           finalizeSession("inserted");
         }
 
@@ -429,6 +459,9 @@ export const useAudioRecording = (toast, options = {}) => {
             textLength: result.text.length,
             mode: pasteMode,
             reason: pasteResult?.reason,
+            compatibilityProfileId: pasteResult?.compatibilityProfileId,
+            feedbackCode: pasteResult?.feedbackCode,
+            retryCount: pasteResult?.retryCount,
           },
           "streaming"
         );
