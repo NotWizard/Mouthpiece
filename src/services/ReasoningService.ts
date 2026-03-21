@@ -30,6 +30,9 @@ class ReasoningService extends BaseReasoningService {
   private openAiEndpointPreference = new Map<string, "responses" | "chat">();
   private static readonly OPENAI_ENDPOINT_PREF_STORAGE_KEY = "openAiEndpointPreference";
   private cacheCleanupStop: (() => void) | undefined;
+  private readonly handleApiKeyChanged = () => {
+    this.clearApiKeyCache();
+  };
 
   constructor() {
     super();
@@ -37,6 +40,7 @@ class ReasoningService extends BaseReasoningService {
     this.cacheCleanupStop = this.apiKeyCache.startAutoCleanup();
 
     if (typeof window !== "undefined") {
+      window.addEventListener("api-key-changed", this.handleApiKeyChanged);
       window.addEventListener("beforeunload", () => this.destroy());
     }
   }
@@ -1527,6 +1531,9 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
   }
 
   destroy(): void {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("api-key-changed", this.handleApiKeyChanged);
+    }
     if (this.cacheCleanupStop) {
       this.cacheCleanupStop();
     }

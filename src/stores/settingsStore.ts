@@ -26,8 +26,6 @@ import type {
   ThemeSettings,
 } from "../hooks/useSettings";
 
-let _ReasoningService: typeof import("../services/ReasoningService").default | null = null;
-
 const isBrowser = typeof window !== "undefined";
 const MOUTHPIECE_CLOUD_ENABLED = Boolean(RUNTIME_CONFIG.enableMouthpieceCloud);
 const CLOUD_AUTH_AVAILABLE = MOUTHPIECE_CLOUD_ENABLED && Boolean(RUNTIME_CONFIG.authUrl);
@@ -325,21 +323,9 @@ function debouncedPersistToEnv() {
 }
 
 function invalidateApiKeyCaches(
-  provider?: ApiKeyCacheProvider,
+  _provider?: ApiKeyCacheProvider,
   options: { persistToEnv?: boolean } = {}
 ) {
-  if (provider) {
-    if (_ReasoningService) {
-      _ReasoningService.clearApiKeyCache(provider);
-    } else {
-      import("../services/ReasoningService")
-        .then((mod) => {
-          _ReasoningService = mod.default;
-          _ReasoningService.clearApiKeyCache(provider);
-        })
-        .catch(() => {});
-    }
-  }
   if (isBrowser) window.dispatchEvent(new Event("api-key-changed"));
   if (options.persistToEnv !== false) {
     debouncedPersistToEnv();
