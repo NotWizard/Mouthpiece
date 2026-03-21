@@ -42,6 +42,6 @@ test("useAudioRecording routes realtime overlay cancellation to the dedicated st
 
   assert.match(
     source,
-    /if \(state\.isStreaming \|\| state\.isStreamingStartInProgress\) \{\s*return await audioManagerRef\.current\.cancelStreamingRecording\(\);\s*\}/s
+    /const didCancel =[\s\S]*state\.isStreaming \|\| state\.isStreamingStartInProgress[\s\S]*await audioManagerRef\.current\.cancelStreamingRecording\(\)[\s\S]*return didCancel;/s
   );
 });

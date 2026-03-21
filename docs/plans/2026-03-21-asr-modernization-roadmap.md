@@ -19,6 +19,34 @@
   - Existing failure: [tests/control-panel-layout.test.mjs](/Users/mac/Downloads/Projects/AICode/Mouthpiece/.worktrees/phase0-phase1-foundation/tests/control-panel-layout.test.mjs)
 - The current red baseline should be treated as a known pre-existing issue unless explicitly fixed as part of this roadmap.
 
+## Progress Update 2026-03-21
+
+### Completed in this batch
+
+- Restored the red baseline by fixing the brittle control-panel layout regression test.
+- Added a normalized ASR session timeline schema with session IDs, lifecycle events, and derived latency metrics.
+- Added ASR feature-flag plumbing for session timeline, replay harness, formal dictation state, unified session contract, multi-state VAD, and incremental stabilizer rollout.
+- Added a headless replay harness scaffold plus CLI entry point:
+  - `src/tools/asrReplayHarness.mjs`
+  - `scripts/run-asr-replay.mjs`
+  - `npm run replay:asr`
+- Added a formal dictation session state model and wired the overlay visibility helpers and `App.jsx` to consume that state.
+- Wired `useAudioRecording.js` and `audioManager.js` so active dictation sessions now carry `sessionId` metadata across recording, transcription completion, and paste delivery.
+
+### Still intentionally pending
+
+- Golden fixture set and real-world transcript corpus.
+- Replay execution through a production ASR processor adapter instead of scaffold-only skip behavior.
+- Full unified ASR session contract across every provider path.
+- Error taxonomy normalization across provider, device, network, and insertion failures.
+- Orchestration split-out from `audioManager.js` into smaller phase-1 session modules.
+
+### Verification after this batch
+
+- `node --test tests/*.test.mjs tests/*.test.cjs`
+- `npm run typecheck`
+- `npm run build:renderer`
+
 ## Guiding Principles
 
 - Measure before optimizing.
