@@ -17,6 +17,6 @@ test("secondary control panel views use a shared padded content wrapper", async 
   );
   assert.match(
     source,
-    /\(activeView === "general"[\s\S]*?<div className=\{SIDEBAR_VIEW_CONTENT_CLASS_NAME\}>[\s\S]*?<SettingsPage activeSection=\{activeView\} \/>/
+    /\(activeView === "general"[\s\S]*?<div className=\{SIDEBAR_VIEW_CONTENT_CLASS_NAME\}>[\s\S]*?<SettingsPage[\s\S]*?activeSection=\{activeView\}[\s\S]*?\/>/
   );
 });
