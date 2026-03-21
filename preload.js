@@ -379,6 +379,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     "bailian-realtime-error",
     (callback) => (_event, error) => callback(error)
   ),
+  onBailianRealtimeSpeechStarted: registerListener(
+    "bailian-realtime-speech-started",
+    (callback) => (_event, data) => callback(data)
+  ),
   onBailianRealtimeSessionEnd: registerListener(
     "bailian-realtime-session-end",
     (callback) => (_event, data) => callback(data)

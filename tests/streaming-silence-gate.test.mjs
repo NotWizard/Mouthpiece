@@ -148,10 +148,16 @@ test("audio manager gates Bailian realtime partials until speech is detected and
   assert.match(source, /shouldDiscardStreamingTranscript/);
   assert.match(source, /this\.streamingSpeechDetected = false;/);
   assert.match(source, /this\.streamingSpeechEverDetected = false;/);
-  assert.match(source, /this\.streamingHeldPartialText = "";/);
+  assert.match(source, /this\.streamingHeldPartialText = null;/);
+  assert.match(source, /onSpeechStarted: \(cb\) => window\.electronAPI\.onBailianRealtimeSpeechStarted\(cb\)/);
+  assert.match(source, /promoteStreamingSpeechGateFromProvider\(/);
   assert.match(
     source,
-    /if\s*\(\s*!this\.streamingSpeechGateState\.speechDetected\s*\)\s*\{\s*this\.streamingHeldPartialText = cleanedText;\s*return;\s*\}/s
+    /const speechStartedCleanup = provider\.onSpeechStarted\?\.\(\(\) => \{\s*this\.promoteStreamingSpeechGateFromProvider\(\);\s*\}\);/s
+  );
+  assert.match(
+    source,
+    /if\s*\(\s*!this\.streamingSpeechGateState\.speechDetected\s*\)\s*\{\s*this\.streamingHeldPartialText = isStructuredBailianPayload \? partialPayload : cleanedText;\s*return;\s*\}/s
   );
   assert.match(
     source,

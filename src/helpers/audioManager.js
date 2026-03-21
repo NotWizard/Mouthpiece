@@ -612,6 +612,7 @@ const STREAMING_PROVIDERS = {
     onPartial: (cb) => window.electronAPI.onBailianRealtimePartialTranscript(cb),
     onFinal: (cb) => window.electronAPI.onBailianRealtimeFinalTranscript(cb),
     onError: (cb) => window.electronAPI.onBailianRealtimeError(cb),
+    onSpeechStarted: (cb) => window.electronAPI.onBailianRealtimeSpeechStarted(cb),
     onSessionEnd: (cb) => window.electronAPI.onBailianRealtimeSessionEnd(cb),
   },
   deepgram: {
@@ -700,7 +701,7 @@ class AudioManager {
     this.streamingSpeechGateDisabled = false;
     this.streamingSpeechGateState = createStreamingSpeechGateState();
     this.asrFeatureFlags = resolveAsrFeatureFlags();
-    this.streamingHeldPartialText = "";
+    this.streamingHeldPartialText = null;
     this.activeSession = null;
   }
 
@@ -827,7 +828,26 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           }
         : undefined
     );
-    this.streamingHeldPartialText = "";
+    this.streamingHeldPartialText = null;
+  }
+
+  flushHeldStreamingPartialText() {
+    if (!this.streamingHeldPartialText) {
+      return false;
+    }
+
+    const heldPayload = this.streamingHeldPartialText;
+    const heldText =
+      typeof heldPayload === "string"
+        ? heldPayload
+        : typeof heldPayload?.fullText === "string"
+          ? heldPayload.fullText
+          : "";
+
+    this.streamingPartialText = heldText;
+    this.onPartialTranscript?.(heldPayload);
+    this.streamingHeldPartialText = null;
+    return true;
   }
 
   updateStreamingSpeechGate(rms) {
@@ -845,12 +865,32 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     }
 
     if (this.streamingSpeechGateState.speechDetected && this.streamingHeldPartialText) {
-      this.streamingPartialText = this.streamingHeldPartialText;
-      this.onPartialTranscript?.(this.streamingHeldPartialText);
-      this.streamingHeldPartialText = "";
+      this.flushHeldStreamingPartialText();
     }
 
     return this.streamingSpeechGateState.speechDetected;
+  }
+
+  promoteStreamingSpeechGateFromProvider() {
+    const previousState =
+      this.streamingSpeechGateState && typeof this.streamingSpeechGateState === "object"
+        ? this.streamingSpeechGateState
+        : createStreamingSpeechGateState();
+
+    this.streamingSpeechGateDisabled = false;
+    this.streamingSpeechDetected = true;
+    this.streamingSpeechEverDetected = true;
+    this.streamingSpeechGateState = {
+      ...previousState,
+      stage: "speaking",
+      activeMs: Math.max(STREAMING_SPEECH_GATE_MIN_ACTIVE_MS, previousState.activeMs || 0),
+      silenceMs: 0,
+      speechDetected: true,
+      lastRms: this.currentInputRms,
+    };
+
+    this.flushHeldStreamingPartialText();
+    return true;
   }
 
   sanitizeStreamingPreviewText(text) {
@@ -3483,6 +3523,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
       this.streamingProcessor = new AudioWorkletNode(audioContext, "pcm-streaming-processor");
       const provider = this.getStreamingProvider();
+      const streamingProviderName = this.getStreamingProviderName();
 
       this.streamingProcessor.port.onmessage = (event) => {
         if (!this.isStreaming) return;
@@ -3500,21 +3541,36 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       this.streamingTextResolve = null;
       this.streamingTextDebounce = null;
 
-      const partialCleanup = provider.onPartial((text) => {
-        const cleanedText = this.sanitizeStreamingPreviewText(text);
+      const partialCleanup = provider.onPartial((partialPayload) => {
+        const isStructuredBailianPayload =
+          streamingProviderName === "bailian" &&
+          partialPayload &&
+          typeof partialPayload === "object";
+        const cleanedText = isStructuredBailianPayload
+          ? typeof partialPayload.fullText === "string"
+            ? partialPayload.fullText
+            : ""
+          : this.sanitizeStreamingPreviewText(
+              typeof partialPayload === "string" ? partialPayload : ""
+            );
+
         this.streamingPartialText = cleanedText;
 
         if (!cleanedText) {
-          this.streamingHeldPartialText = "";
+          this.streamingHeldPartialText = null;
           return;
+        }
+
+        if (!this.streamingSpeechGateState.speechDetected && streamingProviderName === "bailian") {
+          this.promoteStreamingSpeechGateFromProvider();
         }
 
         if (!this.streamingSpeechGateState.speechDetected) {
-          this.streamingHeldPartialText = cleanedText;
+          this.streamingHeldPartialText = isStructuredBailianPayload ? partialPayload : cleanedText;
           return;
         }
 
-        this.onPartialTranscript?.(cleanedText);
+        this.onPartialTranscript?.(isStructuredBailianPayload ? partialPayload : cleanedText);
       });
 
       const finalCleanup = provider.onFinal((text) => {
@@ -3545,6 +3601,10 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         }
       });
 
+      const speechStartedCleanup = provider.onSpeechStarted?.(() => {
+        this.promoteStreamingSpeechGateFromProvider();
+      });
+
       const sessionEndCleanup = provider.onSessionEnd((data) => {
         logger.debug("Streaming session ended", data, "streaming");
         if (data.text) {
@@ -3552,7 +3612,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         }
       });
 
-      this.streamingCleanupFns = [partialCleanup, finalCleanup, errorCleanup, sessionEndCleanup];
+      this.streamingCleanupFns = [
+        partialCleanup,
+        finalCleanup,
+        errorCleanup,
+        speechStartedCleanup,
+        sessionEndCleanup,
+      ].filter(Boolean);
       this.isRecording = true;
       this.recordingStartTime = Date.now();
       this.onStateChange?.({ isRecording: true, isProcessing: false, isStreaming: true });

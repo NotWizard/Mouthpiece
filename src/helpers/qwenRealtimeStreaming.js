@@ -11,6 +11,52 @@ const SAMPLE_RATE = 16000;
 const WEBSOCKET_TIMEOUT_MS = 30000;
 const TERMINATION_TIMEOUT_MS = 5000;
 const PENDING_AUDIO_BUFFER_MAX = 3 * SAMPLE_RATE * 2;
+const QWEN_REALTIME_TURN_DETECTION = Object.freeze({
+  type: "server_vad",
+  threshold: 0,
+  silence_duration_ms: 400,
+});
+const CJK_CHARACTER_RE = /[\u3400-\u9FFF\uF900-\uFAFF\u3040-\u30FF]/u;
+const NO_SPACE_BEFORE_RE = /[),.?!%:;}\]，。！？、；：）》」』】]/u;
+const NO_SPACE_AFTER_RE = /[(\[{“‘《「『【]/u;
+
+function getFirstCharacter(text) {
+  const characters = Array.from(typeof text === "string" ? text.trim() : "");
+  return characters[0] || "";
+}
+
+function getLastCharacter(text) {
+  const characters = Array.from(typeof text === "string" ? text.trim() : "");
+  return characters[characters.length - 1] || "";
+}
+
+function shouldUseCompactCjkJoin(language) {
+  return typeof language === "string" && /^(zh|ja)(-|$)/i.test(language.trim());
+}
+
+function joinTranscriptSegments(leftText, rightText, { language } = {}) {
+  const left = typeof leftText === "string" ? leftText.trim() : "";
+  const right = typeof rightText === "string" ? rightText.trim() : "";
+
+  if (!left) {
+    return right;
+  }
+
+  if (!right) {
+    return left;
+  }
+
+  const leftLast = getLastCharacter(left);
+  const rightFirst = getFirstCharacter(right);
+  const shouldOmitSpace =
+    NO_SPACE_AFTER_RE.test(leftLast) ||
+    NO_SPACE_BEFORE_RE.test(rightFirst) ||
+    (CJK_CHARACTER_RE.test(leftLast) && CJK_CHARACTER_RE.test(rightFirst)) ||
+    (shouldUseCompactCjkJoin(language) &&
+      (CJK_CHARACTER_RE.test(leftLast) || CJK_CHARACTER_RE.test(rightFirst)));
+
+  return shouldOmitSpace ? `${left}${right}` : `${left} ${right}`;
+}
 
 class QwenRealtimeStreaming {
   constructor() {
@@ -29,8 +75,10 @@ class QwenRealtimeStreaming {
     this.onPartialTranscript = null;
     this.onFinalTranscript = null;
     this.onError = null;
+    this.onSpeechStarted = null;
     this.onSessionEnd = null;
     this.currentModel = QWEN_REALTIME_MODEL;
+    this.currentLanguage = null;
     this.audioBytesSent = 0;
     this.accumulatedText = "";
     this.liveText = "";
@@ -94,7 +142,9 @@ class QwenRealtimeStreaming {
         input_audio_format: "pcm",
         sample_rate: normalized.sampleRate,
         input_audio_transcription: inputAudioTranscription,
-        turn_detection: null,
+        // Keep server VAD enabled so Bailian emits partial transcripts while audio
+        // is still flowing. Manual mode only starts recognition after commit.
+        turn_detection: QWEN_REALTIME_TURN_DETECTION,
       },
     };
   }
@@ -138,7 +188,9 @@ class QwenRealtimeStreaming {
   }
 
   getResolvedText() {
-    return this.accumulatedText || this.liveText || "";
+    return joinTranscriptSegments(this.accumulatedText, this.liveText, {
+      language: this.currentLanguage,
+    });
   }
 
   buildResult() {
@@ -162,6 +214,7 @@ class QwenRealtimeStreaming {
     this.sessionConfigured = false;
     this.finalizeSent = false;
     this.finishSent = false;
+    this.currentLanguage = null;
     this.audioBytesSent = 0;
     this.accumulatedText = "";
     this.liveText = "";
@@ -322,6 +375,7 @@ class QwenRealtimeStreaming {
     const socket = this.warmConnection;
     const sessionId = this.warmSessionId;
     const model = this.warmConnectionOptions?.model || QWEN_REALTIME_MODEL;
+    const language = this.warmConnectionOptions?.language || null;
 
     this.warmConnection = null;
     this.warmConnectionReady = false;
@@ -331,6 +385,7 @@ class QwenRealtimeStreaming {
     this.attachActiveSocket(socket);
     this.sessionId = sessionId || null;
     this.currentModel = model;
+    this.currentLanguage = language;
     this.flushPendingAudio();
     return true;
   }
@@ -457,6 +512,7 @@ class QwenRealtimeStreaming {
     }
 
     this.resetTranscriptState();
+    this.currentLanguage = normalized.language || null;
     this.isDisconnecting = false;
 
     if (this.useWarmConnection(normalized)) {
@@ -520,9 +576,32 @@ class QwenRealtimeStreaming {
       this.completedItemIds.add(itemId);
     }
 
-    this.accumulatedText = this.accumulatedText
-      ? `${this.accumulatedText} ${trimmedTranscript}`.trim()
-      : trimmedTranscript;
+    this.accumulatedText = joinTranscriptSegments(this.accumulatedText, trimmedTranscript, {
+      language: this.currentLanguage,
+    });
+  }
+
+  buildPartialTranscriptPayload({ itemId = null, language = null, text = "", stash = "" } = {}) {
+    const stableCurrentText = typeof text === "string" ? text : "";
+    const activeCurrentText = typeof stash === "string" ? stash : "";
+    const currentPreviewText = `${stableCurrentText}${activeCurrentText}`;
+    const stablePreviewText = joinTranscriptSegments(this.accumulatedText, stableCurrentText, {
+      language: this.currentLanguage,
+    });
+    const fullPreviewText = joinTranscriptSegments(this.accumulatedText, currentPreviewText, {
+      language: this.currentLanguage,
+    });
+    const activePreviewText = fullPreviewText.startsWith(stablePreviewText)
+      ? fullPreviewText.slice(stablePreviewText.length)
+      : activeCurrentText;
+
+    return {
+      stableText: stablePreviewText,
+      activeText: activePreviewText,
+      fullText: fullPreviewText,
+      itemId: itemId || null,
+      language: language || this.currentLanguage || null,
+    };
   }
 
   handleMessage(data) {
@@ -539,10 +618,14 @@ class QwenRealtimeStreaming {
         this.liveText = previewText;
 
         if (previewText) {
-          const combinedPreview = this.accumulatedText
-            ? `${this.accumulatedText} ${previewText}`.trim()
-            : previewText;
-          this.onPartialTranscript?.(combinedPreview);
+          this.onPartialTranscript?.(
+            this.buildPartialTranscriptPayload({
+              itemId: payload.item_id || null,
+              language: payload.language || null,
+              text,
+              stash,
+            })
+          );
         }
         break;
       }
@@ -553,6 +636,14 @@ class QwenRealtimeStreaming {
         if (this.accumulatedText) {
           this.onFinalTranscript?.(this.accumulatedText);
         }
+        break;
+      }
+
+      case "input_audio_buffer.speech_started": {
+        this.onSpeechStarted?.({
+          itemId: payload.item_id || null,
+          audioStartMs: Number.isFinite(payload.audio_start_ms) ? payload.audio_start_ms : null,
+        });
         break;
       }
 
@@ -590,6 +681,12 @@ class QwenRealtimeStreaming {
   }
 
   finalize() {
+    // In server VAD mode the service commits turns automatically and manual
+    // input_audio_buffer.commit is disabled.
+    if (QWEN_REALTIME_TURN_DETECTION.type === "server_vad") {
+      return false;
+    }
+
     if (
       !this.ws ||
       this.ws.readyState !== WebSocket.OPEN ||

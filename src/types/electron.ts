@@ -827,6 +827,9 @@ declare global {
       onBailianRealtimePartialTranscript?: (callback: (text: string) => void) => () => void;
       onBailianRealtimeFinalTranscript?: (callback: (text: string) => void) => () => void;
       onBailianRealtimeError?: (callback: (error: string) => void) => () => void;
+      onBailianRealtimeSpeechStarted?: (
+        callback: (data: { itemId?: string | null; audioStartMs?: number | null }) => void
+      ) => () => void;
       onBailianRealtimeSessionEnd?: (
         callback: (data: { text?: string; code?: number; reason?: string }) => void
       ) => () => void;
