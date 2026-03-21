@@ -1684,7 +1684,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       contextClassification: contextClassification || undefined,
       postProcessingPolicy: resolvePostProcessingPolicy({
         contextClassification,
-        preferredOutputStrategy: getSettings().defaultOutputStrategy,
       }),
       strictMode: contextClassification?.strictMode ?? true,
       strictOverlapThreshold,

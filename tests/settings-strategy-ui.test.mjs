@@ -7,10 +7,11 @@ async function readRepoFile(relativePath) {
   return fs.readFile(path.resolve(process.cwd(), relativePath), "utf8");
 }
 
-test("settings page wires the post-processing strategy card to strategy settings", async () => {
+test("settings page no longer renders a post-processing strategy card", async () => {
   const source = await readRepoFile("src/components/SettingsPage.tsx");
 
-  assert.match(source, /PostProcessingStrategyCard/);
-  assert.match(source, /defaultOutputStrategy/);
-  assert.match(source, /setDefaultOutputStrategy/);
+  assert.doesNotMatch(source, /PostProcessingStrategyCard/);
+  assert.doesNotMatch(source, /defaultOutputStrategy/);
+  assert.doesNotMatch(source, /setDefaultOutputStrategy/);
+  assert.match(source, /PromptStudio/);
 });
