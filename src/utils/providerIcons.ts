@@ -8,10 +8,13 @@ import groqIcon from "@/assets/icons/providers/groq.svg";
 import nvidiaIcon from "@/assets/icons/providers/nvidia.svg";
 import openaiOssIcon from "@/assets/icons/providers/openai-oss.svg";
 import gemmaIcon from "@/assets/icons/providers/gemma.svg";
+import deepgramIcon from "@/assets/icons/providers/deepgram.png";
+import sonioxIcon from "@/assets/icons/providers/soniox.png";
 
 export const PROVIDER_ICONS: Record<string, string> = {
   openai: openaiIcon,
   whisper: openaiIcon,
+  deepgram: deepgramIcon,
   anthropic: anthropicIcon,
   gemini: geminiIcon,
   bailian: qwenIcon,
@@ -19,6 +22,7 @@ export const PROVIDER_ICONS: Record<string, string> = {
   mistral: mistralIcon,
   qwen: qwenIcon,
   groq: groqIcon,
+  soniox: sonioxIcon,
   nvidia: nvidiaIcon,
   "openai-oss": openaiOssIcon,
   gemma: gemmaIcon,
