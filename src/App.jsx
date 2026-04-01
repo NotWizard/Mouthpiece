@@ -17,6 +17,26 @@ import { presentOverlayToast } from "./utils/toastPresentation.mjs";
 import { formatHotkeyLabel } from "./utils/hotkeys";
 import "./index.css";
 
+function normalizeLearnedCorrectionTerms(entries) {
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+
+  return entries
+    .map((entry) => {
+      if (typeof entry === "string") {
+        return entry.trim();
+      }
+
+      if (entry && typeof entry.term === "string") {
+        return entry.term.trim();
+      }
+
+      return "";
+    })
+    .filter(Boolean);
+}
+
 export default function App() {
   const [isHovered, setIsHovered] = useState(false);
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
@@ -68,12 +88,13 @@ export default function App() {
       });
     });
 
-    const unsubscribeCorrections = window.electronAPI?.onCorrectionsLearned?.((words) => {
-      if (!words || words.length === 0) {
+    const unsubscribeCorrections = window.electronAPI?.onCorrectionsLearned?.((entries) => {
+      const learnedTerms = normalizeLearnedCorrectionTerms(entries);
+      if (learnedTerms.length === 0) {
         return;
       }
 
-      const wordList = words.map((word) => `\u201c${word}\u201d`).join(", ");
+      const wordList = learnedTerms.map((word) => `\u201c${word}\u201d`).join(", ");
       let toastId;
       toastId = toast({
         title: t("app.toasts.addedToDict", { words: wordList }),
@@ -83,7 +104,7 @@ export default function App() {
           <button
             onClick={async () => {
               try {
-                const result = await window.electronAPI?.undoLearnedCorrections?.(words);
+                const result = await window.electronAPI?.undoLearnedCorrections?.(learnedTerms);
                 if (result?.success) {
                   dismiss(toastId);
                 }
