@@ -2,6 +2,50 @@
 
 This document provides comprehensive technical details about the OpenWhispr project architecture for AI assistants working on the codebase.
 
+## Repository Collaboration Rules
+
+### Git Commit Messages
+
+- Every Git commit must be concise, structured, and bilingual.
+- The subject line must place Chinese first and English second.
+- The body must place the full Chinese section first, followed by the full English section.
+- The body must include a concise summary of the current change and a structured, ordered description of the important modifications or verification notes.
+- Use real line breaks, blank lines, and spaces for formatting. Never simulate formatting with literal escape sequences such as `\n` or `\t`.
+- Do not use Markdown syntax in commit messages.
+
+Recommended plain-text structure:
+
+subject: 中文总结 / English summary
+
+中文
+  概述：一句话总结本次修改。
+  变更：
+    1. 第一项关键改动。
+    2. 第二项关键改动。
+  验证：
+    1. 相关验证信息。
+
+English
+  Summary: One-line overview of the change.
+  Changes:
+    1. First key update.
+    2. Second key update.
+  Verification:
+    1. Relevant verification notes.
+
+### Git Worktree Confirmation
+
+- Before any feature addition, feature change, or code modification, first ask the user whether the task should be done in a Git worktree.
+- If the current task is already being handled inside an existing Git worktree, continue there and do not ask again unless the user asks to switch.
+- If the user explicitly instructs the assistant to work in the current workspace instead of a worktree, follow that instruction and treat it as an intentional exception for that task.
+
+### Agent Teams
+
+- Prefer using Agent Teams whenever a task can reasonably benefit from delegation, parallel exploration, or parallel implementation.
+- Create teammates dynamically according to the specific task instead of reusing a fixed team shape.
+- Give each teammate a narrow, explicit scope and integrate the results in the main thread.
+- Close and clean up teammates promptly after their work is complete.
+
 ## Project Overview
 
 OpenWhispr is an Electron-based desktop dictation application that uses whisper.cpp for speech-to-text transcription. It supports both local (privacy-focused) and cloud (OpenAI API) processing modes.
@@ -561,22 +605,3 @@ const { t } = useTranslation();
 - Export formats beyond clipboard
 
 ---
-
-## Git Commit Guidelines
-
-When writing git commits for this project, follow these requirements:
-
-1. Write Git commits in both Chinese and English. The commit message should have Chinese first, followed by English, separated by a forward slash (/) with spaces around it.
-
-2. Git commit content should be complete and structured, using direct text formatting (e.g., using spaces, line breaks, etc. for line breaks and spacing), do not use Markdown syntax like bullet points, bold, or code blocks.
-
-Example format:
-
-fix: 修复登录页面的样式问题 / Fix login page styling issue
-
-Changes:
-- Adjusted button padding on mobile devices
-- Fixed color contrast for accessibility
-- Updated error message positioning
-
-This ensures commits are readable in plain text format while providing bilingual context for all team members.
