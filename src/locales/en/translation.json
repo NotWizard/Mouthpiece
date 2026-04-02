@@ -119,6 +119,7 @@
       "welcome": "Welcome",
       "setup": "Setup",
       "permissions": "Permissions",
+      "hotkeySetup": "Hotkey Setup",
       "activation": "Activation"
     },
     "hotkey": {
@@ -145,6 +146,11 @@
       "title": "Transcription Setup",
       "description": "Choose your mode and provider",
       "preferredLanguage": "Preferred Language"
+    },
+    "hotkeySetup": {
+      "title": "Hotkey Setup",
+      "description": "Choose how you want to trigger Mouthpiece before you test it.",
+      "hotkey": "Hotkey"
     },
     "activation": {
       "title": "Activation Setup",
@@ -612,24 +618,24 @@
     },
     "recommended": {
       "linux": {
-        "0": "Ctrl+Alt+Space",
+        "0": "Ctrl+Space",
         "1": "Super+S",
-        "2": "Ctrl+Alt+D",
-        "3": "Ctrl+Shift+J",
+        "2": "Alt+D",
+        "3": "Shift+J",
         "4": "Alt+Space"
       },
       "macos": {
-        "0": "⌥Space",
-        "1": "⌃⌥S",
-        "2": "⌃⌥D",
+        "0": "⌃Space",
+        "1": "⌥S",
+        "2": "⌘D",
         "3": "Fn",
-        "4": "⌘⇧J"
+        "4": "⌃J"
       },
       "windows": {
-        "0": "Ctrl+Alt+Space",
-        "1": "Ctrl+Shift+S",
-        "2": "Ctrl+Alt+D",
-        "3": "Win+Alt+K"
+        "0": "Ctrl+Space",
+        "1": "Shift+S",
+        "2": "Alt+D",
+        "3": "Win+K"
       }
     },
     "recommendedTitle": "Recommended shortcuts",
@@ -638,9 +644,9 @@
     "showFewer": "Show fewer",
     "title": "Shortcut Guide",
     "validationRules": {
-      "0": "Must use at least one modifier (Ctrl, Alt, Shift, etc.)",
+      "0": "Use a supported modifier by itself, or exactly one modifier plus one key",
       "1": "Cannot use reserved system shortcuts",
-      "2": "Single keys alone are not allowed",
+      "2": "Do not use reserved system shortcuts or conflicting combinations",
       "3": "Some combinations may conflict with other apps"
     }
   },
@@ -653,7 +659,22 @@
     "fnHeldHint": "+ key or release for Globe",
     "globe": "Globe",
     "hotkeyLabel": "Hotkey",
+    "modeLabel": "Shortcut type",
+    "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
+    "modifierOnlyUnavailable": "Modifier-only shortcuts are not available with your current shortcut system. Choose a key combo instead.",
+    "modifiersLabel": "Modifiers",
+    "modes": {
+      "keyCombo": "Key combo",
+      "modifierOnly": "Modifier only"
+    },
     "keyHint": "+ key",
+    "primaryKeyHint": "Click here, then press the main key you want to use",
+    "primaryKeyLabel": "Primary key",
+    "primaryKeyListening": "Press one non-modifier key",
+    "primaryKeyRequiresModifier": "Choose one modifier first",
+    "primaryKeyUnset": "Choose the main key",
+    "previewEmpty": "Choose your shortcut to preview it",
+    "previewLabel": "Preview",
     "listening": "Listening...",
     "pressAnyKey": "Press any key or Ctrl+Shift+K",
     "pressAnyKeyMac": "Press any key or ⌘⇧K",

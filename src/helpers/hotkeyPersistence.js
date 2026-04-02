@@ -3,7 +3,7 @@ function normalizePersistedHotkey(value) {
 }
 
 function getDefaultHotkeyForPlatform(platform = process.platform) {
-  return platform === "darwin" ? "GLOBE" : "Control+Super";
+  return platform === "darwin" ? "GLOBE" : "Control+K";
 }
 
 function resolvePersistedHotkey({

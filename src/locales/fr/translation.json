@@ -119,6 +119,7 @@
       "welcome": "Bienvenue",
       "setup": "Configuration",
       "permissions": "Permissions",
+      "hotkeySetup": "Hotkey Setup",
       "activation": "Activation"
     },
     "hotkey": {
@@ -145,6 +146,11 @@
       "title": "Configuration de la transcription",
       "description": "Choisissez votre mode et fournisseur",
       "preferredLanguage": "Langue préférée"
+    },
+    "hotkeySetup": {
+      "title": "Hotkey Setup",
+      "description": "Choose how you want to trigger Mouthpiece before you test it.",
+      "hotkey": "Hotkey"
     },
     "activation": {
       "title": "Configuration de l'activation",
@@ -612,24 +618,24 @@
     },
     "recommended": {
       "linux": {
-        "0": "Ctrl+Alt+Space",
+        "0": "Ctrl+Space",
         "1": "Super+S",
-        "2": "Ctrl+Alt+D",
-        "3": "Ctrl+Shift+J",
+        "2": "Alt+D",
+        "3": "Shift+J",
         "4": "Alt+Space"
       },
       "macos": {
-        "0": "⌥Space",
-        "1": "⌃⌥S",
-        "2": "⌃⌥D",
+        "0": "⌃Space",
+        "1": "⌥S",
+        "2": "⌘D",
         "3": "Fn",
-        "4": "⌘⇧J"
+        "4": "⌃J"
       },
       "windows": {
-        "0": "Ctrl+Alt+Space",
-        "1": "Ctrl+Shift+S",
-        "2": "Ctrl+Alt+D",
-        "3": "Win+Alt+K"
+        "0": "Ctrl+Space",
+        "1": "Shift+S",
+        "2": "Alt+D",
+        "3": "Win+K"
       }
     },
     "recommendedTitle": "Raccourcis recommandés",
@@ -638,9 +644,9 @@
     "showFewer": "Afficher moins",
     "title": "Guide des raccourcis",
     "validationRules": {
-      "0": "Doit utiliser au moins un modificateur (Ctrl, Alt, Shift, etc.)",
+      "0": "Use a supported modifier by itself, or exactly one modifier plus one key",
       "1": "Les raccourcis système réservés ne peuvent pas être utilisés",
-      "2": "Les touches seules ne sont pas autorisées",
+      "2": "Do not use reserved system shortcuts or conflicting combinations",
       "3": "Certaines combinaisons peuvent entrer en conflit avec d'autres applications"
     }
   },
@@ -653,7 +659,22 @@
     "fnHeldHint": "+ touche ou relâchez pour Globe",
     "globe": "Globe",
     "hotkeyLabel": "Raccourci",
+    "modeLabel": "Shortcut type",
+    "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
+    "modifierOnlyUnavailable": "Modifier-only shortcuts are not available with your current shortcut system. Choose a key combo instead.",
+    "modifiersLabel": "Modifiers",
+    "modes": {
+      "keyCombo": "Key combo",
+      "modifierOnly": "Modifier only"
+    },
     "keyHint": "+ touche",
+    "primaryKeyHint": "Click here, then press the main key you want to use",
+    "primaryKeyLabel": "Primary key",
+    "primaryKeyListening": "Press one non-modifier key",
+    "primaryKeyRequiresModifier": "Choose one modifier first",
+    "primaryKeyUnset": "Choose the main key",
+    "previewEmpty": "Choose your shortcut to preview it",
+    "previewLabel": "Preview",
     "listening": "Écoute...",
     "pressAnyKey": "Appuyez sur une touche ou Ctrl+Shift+K",
     "pressAnyKeyMac": "Appuyez sur une touche ou ⌘⇧K",

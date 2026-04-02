@@ -53,8 +53,8 @@ function normalizeToAccelerator(hotkey) {
 
 // Suggested alternative hotkeys when registration fails
 const SUGGESTED_HOTKEYS = {
-  single: ["F8", "F9", "F10", "Pause", "ScrollLock"],
-  compound: ["Control+Super", "Control+Alt", "Control+Shift+Space", "Alt+F7"],
+  single: ["Control+K", "Alt+F7", "Shift+F9"],
+  compound: ["Control+K", "Alt+F7", "Shift+F9", "Alt+M"],
 };
 
 class HotkeyManager {
@@ -108,17 +108,17 @@ class HotkeyManager {
     let suggestions = isCompound ? [...SUGGESTED_HOTKEYS.compound] : [...SUGGESTED_HOTKEYS.single];
 
     if (process.platform === "darwin" && isCompound) {
-      suggestions = ["Control+Alt", "Alt+Command", "Command+Shift+Space"];
+      suggestions = ["Control+K", "Command+9", "Shift+F9"];
     } else if (process.platform === "win32" && isCompound) {
-      suggestions = ["Control+Super", "Control+Alt", "Control+Shift+K"];
+      suggestions = ["Control+K", "Alt+F7", "Shift+F9"];
     } else if (process.platform === "linux" && isCompound) {
-      suggestions = ["Control+Super", "Control+Shift+K", "Super+Shift+R"];
+      suggestions = ["Alt+F7", "Super+R", "Shift+F9"];
     }
 
     return suggestions.filter((s) => s !== failedHotkey).slice(0, 3);
   }
 
-  setupShortcuts(hotkey = "Control+Super", callback) {
+  setupShortcuts(hotkey = getDefaultHotkeyForPlatform(process.platform), callback) {
     if (!callback) {
       throw new Error(i18nMain.t("hotkey.errors.callbackRequired"));
     }
@@ -370,7 +370,7 @@ class HotkeyManager {
       debugLogger.log(
         `[HotkeyManager] Default hotkey "${defaultHotkey}" failed, trying fallbacks...`
       );
-      const fallbackHotkeys = ["F8", "F9", "Control+Shift+Space"];
+      const fallbackHotkeys = ["Control+K", "Alt+F7", "Shift+F9"];
 
       for (const fallback of fallbackHotkeys) {
         const fallbackResult = await this._registerStartupHotkey(fallback, callback);
@@ -535,7 +535,7 @@ class HotkeyManager {
       this.mainWindow.webContents.send("hotkey-registration-failed", {
         hotkey,
         error: result?.error || `Could not register "${hotkey}"`,
-        suggestions: result?.suggestions || ["F8", "F9", "Control+Shift+Space"],
+        suggestions: result?.suggestions || ["Control+K", "Alt+F7", "Shift+F9"],
       });
     }
   }

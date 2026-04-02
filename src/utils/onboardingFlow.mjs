@@ -1,4 +1,5 @@
-const ONBOARDING_STEP_KEYS = Object.freeze(["welcome", "permissions", "activation"]);
+const ONBOARDING_STEP_KEYS = Object.freeze(["welcome", "permissions", "hotkeySetup", "activation"]);
+const HOTKEY_SETUP_STEP_INDEX = ONBOARDING_STEP_KEYS.indexOf("hotkeySetup");
 const ACTIVATION_STEP_INDEX = ONBOARDING_STEP_KEYS.indexOf("activation");
 
 export function getOnboardingStepKeys() {
@@ -11,6 +12,10 @@ export function getOnboardingMaxStep() {
 
 export function getActivationStepIndex() {
   return ACTIVATION_STEP_INDEX;
+}
+
+export function getHotkeySetupStepIndex() {
+  return HOTKEY_SETUP_STEP_INDEX;
 }
 
 export function normalizeOnboardingStep(step) {

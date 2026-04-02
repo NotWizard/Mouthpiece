@@ -43,7 +43,7 @@ function getAutomaticActivationSupport({
   }
 
   if (platform === "darwin") {
-    if (isGlobeLikeHotkey(hotkey) || isRightSideModifier(hotkey) || hotkey.includes("+")) {
+    if (isGlobeLikeHotkey(hotkey) || isRightSideModifier(hotkey)) {
       return {
         supportsHold: true,
         mode: "automatic",

@@ -29,6 +29,7 @@ import { getPlatform } from "../utils/platform";
 import logger from "../utils/logger";
 import {
   getActivationStepIndex,
+  getHotkeySetupStepIndex,
   getOnboardingMaxStep,
   getOnboardingStepKeys,
   resolveOnboardingHotkeyDraft,
@@ -95,8 +96,10 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     switch (stepKey) {
       case "permissions":
         return { title: t("onboarding.steps.permissions"), icon: Shield };
+      case "hotkeySetup":
+        return { title: t("onboarding.steps.hotkeySetup"), icon: Command };
       case "activation":
-        return { title: t("onboarding.steps.activation"), icon: Command };
+        return { title: t("onboarding.steps.activation"), icon: Mic };
       case "welcome":
       default:
         return { title: t("onboarding.steps.welcome"), icon: UserCircle };
@@ -120,6 +123,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   }, []);
 
   const activationStepIndex = getActivationStepIndex();
+  const hotkeySetupStepIndex = getHotkeySetupStepIndex();
 
   useEffect(() => {
     const syncedHotkey = resolveOnboardingHotkeyDraft({
@@ -135,8 +139,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   }, [dictationKey, hotkey]);
 
   useEffect(() => {
-    if (currentStep !== activationStepIndex) {
-      // Reset initialization flag when leaving activation step
+    if (currentStep !== hotkeySetupStepIndex) {
+      // Reset initialization flag when leaving hotkey setup step
       hotkeyStepInitializedRef.current = false;
       return;
     }
@@ -174,7 +178,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     };
 
     void autoRegisterDefaultHotkey();
-  }, [currentStep, hotkey, registerHotkey, activationStepIndex]);
+  }, [currentStep, hotkey, registerHotkey, hotkeySetupStepIndex]);
 
   const ensureHotkeyRegistered = useCallback(async () => {
     if (!window.electronAPI?.updateHotkey) {
@@ -341,7 +345,10 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           </div>
         );
 
-      case 2: // Activation
+      case 2: // Hotkey setup
+        return renderHotkeySetupStep();
+
+      case 3: // Activation
         return renderActivationStep();
 
       default:
@@ -349,23 +356,20 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     }
   };
 
-  const renderActivationStep = () => (
+  const renderHotkeySetupStep = () => (
     <div className="space-y-4">
-      {/* Header */}
       <div className="text-center space-y-0.5">
         <h2 className="text-lg font-semibold text-foreground tracking-tight">
-          {t("onboarding.activation.title")}
+          {t("onboarding.hotkeySetup.title")}
         </h2>
-        <p className="text-xs text-muted-foreground">{t("onboarding.activation.description")}</p>
+        <p className="text-xs text-muted-foreground">{t("onboarding.hotkeySetup.description")}</p>
       </div>
 
-      {/* Unified control surface */}
       <div className="rounded-lg border border-border-subtle bg-surface-1 overflow-hidden">
-        {/* Hotkey section */}
-        <div className="p-4 border-b border-border-subtle">
+        <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              {t("onboarding.activation.hotkey")}
+              {t("onboarding.hotkeySetup.hotkey")}
             </span>
           </div>
           <HotkeyInput
@@ -382,8 +386,25 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             validate={validateHotkeyForInput}
           />
         </div>
+      </div>
+    </div>
+  );
 
+  const renderActivationStep = () => (
+    <div className="space-y-4">
+      <div className="text-center space-y-0.5">
+        <h2 className="text-lg font-semibold text-foreground tracking-tight">
+          {t("onboarding.activation.title")}
+        </h2>
+        <p className="text-xs text-muted-foreground">{t("onboarding.activation.description")}</p>
+      </div>
+
+      <div className="rounded-lg border border-border-subtle bg-surface-1 overflow-hidden">
         <div className="p-4 space-y-1.5">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            {t("onboarding.activation.hotkey")}
+          </span>
+          <p className="text-sm font-semibold text-foreground">{readableHotkey}</p>
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             {t("onboarding.activation.mode")}
           </span>
@@ -398,7 +419,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         </div>
       </div>
 
-      {/* Test area - minimal chrome */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -432,6 +452,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         }
         return true;
       case 2:
+        return hotkey.trim() !== ""; // Hotkey setup step
+      case 3:
         return hotkey.trim() !== ""; // Activation step
       default:
         return false;

@@ -248,56 +248,56 @@ const LINUX_RESERVED_SHORTCUTS = [
 
 const MAC_RECOMMENDED = [
   "Fn",
-  "Ctrl + Option",
-  "Option + Cmd",
+  "Right Cmd",
+  "Right Option",
   "Right Cmd or Right Option",
-  "Modifier + unused key (e.g., Ctrl + Page Up)",
+  "One modifier + unused key (e.g., Ctrl + Page Up)",
 ] as const;
 
 const WINDOWS_RECOMMENDED = [
-  "Ctrl + Win",
-  "Ctrl + Alt",
+  "Ctrl",
+  "Alt",
   "Ctrl (right) or Alt (right)",
-  "Modifier + rarely used key (e.g., Ctrl + Page Up)",
+  "One modifier + rarely used key (e.g., Ctrl + Page Up)",
 ] as const;
 
 const LINUX_RECOMMENDED = [
-  "Ctrl + Super",
-  "Ctrl + Shift + Super",
-  "Super + Shift",
-  "Ctrl (right) or Alt (right)",
-  "Modifier + rarely used key (e.g., Ctrl + Page Up or Ctrl + Scroll Lock)",
+  "Ctrl",
+  "Alt",
+  "Shift",
+  "Super",
+  "One modifier + rarely used key (e.g., Ctrl + Page Up or Shift + Scroll Lock)",
 ] as const;
 
 const MAC_EXAMPLES = [
-  "Control+Shift+K",
+  "Control+K",
   "Alt+F7",
-  "Command+Shift+9",
+  "Command+9",
   "Control+Space",
-  "Control+Alt+M",
+  "Command+M",
   "Shift+F9",
 ] as const;
 
 const WINDOWS_EXAMPLES = [
-  "Control+Shift+K",
+  "Control+K",
   "Alt+F7",
   "Control+Space",
-  "Control+Alt+M",
+  "Alt+M",
   "Shift+F9",
 ] as const;
 
 const LINUX_EXAMPLES = [
-  "Control+Super+K",
-  "Control+Shift+K",
-  "Super+Shift+R",
-  "Control+Shift+Space",
+  "Control+K",
+  "Alt+F7",
+  "Super+R",
+  "Control+Space",
   "Shift+F9",
-  "Control+Super+M",
+  "Alt+M",
 ] as const;
 
 export const VALIDATION_RULES = [
   "Uses three keys or fewer",
-  "Includes at least one modifier or non-alphanumeric key",
+  "Uses a supported modifier by itself, or exactly one modifier plus one key",
   "Does not mix left and right versions of the same modifier",
   "Is not reserved by the system",
 ] as const;
@@ -550,7 +550,6 @@ export function validateHotkey(
   }
 
   let hasModifier = false;
-  let hasSpecialKey = false;
 
   for (const part of parts) {
     const normalizedModifier = normalizeModifier(part, platform);
@@ -558,20 +557,6 @@ export function validateHotkey(
       hasModifier = true;
       continue;
     }
-
-    const normalizedKey = normalizeKeyToken(part);
-    if (SPECIAL_KEYS.has(normalizedKey)) {
-      hasSpecialKey = true;
-    }
-  }
-
-  if (!hasModifier && !hasSpecialKey) {
-    return {
-      valid: false,
-      error:
-        "Shortcuts must include a modifier or a non-alphanumeric key (like arrows, space, or function keys).",
-      errorCode: "NO_MODIFIER_OR_SPECIAL",
-    };
   }
 
   // Check for modifier-only hotkeys: require right-side for single modifier, or 2+ modifiers
@@ -597,6 +582,14 @@ export function validateHotkey(
         errorCode: "LEFT_MODIFIER_ONLY",
       };
     }
+  }
+
+  if (hasBaseKey && modifierCount !== 1) {
+    return {
+      valid: false,
+      error: "Key combinations must use exactly one modifier and one main key.",
+      errorCode: "NO_MODIFIER_OR_SPECIAL",
+    };
   }
 
   const normalizedHotkey = normalizeHotkey(hotkey, platform);

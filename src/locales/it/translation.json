@@ -119,6 +119,7 @@
       "welcome": "Benvenuto",
       "setup": "Configurazione",
       "permissions": "Permessi",
+      "hotkeySetup": "Hotkey Setup",
       "activation": "Attivazione"
     },
     "hotkey": {
@@ -145,6 +146,11 @@
       "title": "Configurazione trascrizione",
       "description": "Scegli modalità e provider",
       "preferredLanguage": "Lingua preferita"
+    },
+    "hotkeySetup": {
+      "title": "Hotkey Setup",
+      "description": "Choose how you want to trigger Mouthpiece before you test it.",
+      "hotkey": "Hotkey"
     },
     "activation": {
       "title": "Configurazione attivazione",
@@ -612,24 +618,24 @@
     },
     "recommended": {
       "linux": {
-        "0": "Ctrl+Alt+Space",
+        "0": "Ctrl+Space",
         "1": "Super+S",
-        "2": "Ctrl+Alt+D",
-        "3": "Ctrl+Shift+J",
+        "2": "Alt+D",
+        "3": "Shift+J",
         "4": "Alt+Space"
       },
       "macos": {
-        "0": "⌥Space",
-        "1": "⌃⌥S",
-        "2": "⌃⌥D",
+        "0": "⌃Space",
+        "1": "⌥S",
+        "2": "⌘D",
         "3": "Fn",
-        "4": "⌘⇧J"
+        "4": "⌃J"
       },
       "windows": {
-        "0": "Ctrl+Alt+Space",
-        "1": "Ctrl+Shift+S",
-        "2": "Ctrl+Alt+D",
-        "3": "Win+Alt+K"
+        "0": "Ctrl+Space",
+        "1": "Shift+S",
+        "2": "Alt+D",
+        "3": "Win+K"
       }
     },
     "recommendedTitle": "Scorciatoie consigliate",
@@ -638,9 +644,9 @@
     "showFewer": "Mostra meno",
     "title": "Guida alle scorciatoie",
     "validationRules": {
-      "0": "È necessario almeno un tasto modificatore (Ctrl, Alt, Shift, ecc.)",
+      "0": "Use a supported modifier by itself, or exactly one modifier plus one key",
       "1": "Non è possibile usare scorciatoie riservate dal sistema",
-      "2": "I tasti singoli non sono consentiti",
+      "2": "Do not use reserved system shortcuts or conflicting combinations",
       "3": "Alcune combinazioni potrebbero entrare in conflitto con altre app"
     }
   },
@@ -653,7 +659,22 @@
     "fnHeldHint": "+ tasto o rilascia per Globe",
     "globe": "Globe",
     "hotkeyLabel": "Scorciatoia",
+    "modeLabel": "Shortcut type",
+    "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
+    "modifierOnlyUnavailable": "Modifier-only shortcuts are not available with your current shortcut system. Choose a key combo instead.",
+    "modifiersLabel": "Modifiers",
+    "modes": {
+      "keyCombo": "Key combo",
+      "modifierOnly": "Modifier only"
+    },
     "keyHint": "+ tasto",
+    "primaryKeyHint": "Click here, then press the main key you want to use",
+    "primaryKeyLabel": "Primary key",
+    "primaryKeyListening": "Press one non-modifier key",
+    "primaryKeyRequiresModifier": "Choose one modifier first",
+    "primaryKeyUnset": "Choose the main key",
+    "previewEmpty": "Choose your shortcut to preview it",
+    "previewLabel": "Preview",
     "listening": "In ascolto...",
     "pressAnyKey": "Premi un tasto qualsiasi o Ctrl+Shift+K",
     "pressAnyKeyMac": "Premi un tasto qualsiasi o ⌘⇧K",

@@ -119,6 +119,7 @@
       "welcome": "歡迎",
       "setup": "設定",
       "permissions": "權限",
+      "hotkeySetup": "快捷鍵設定",
       "activation": "啟用"
     },
     "hotkey": {
@@ -145,6 +146,11 @@
       "title": "轉錄設定",
       "description": "選擇模式和服務供應商",
       "preferredLanguage": "偏好語言"
+    },
+    "hotkeySetup": {
+      "title": "快捷鍵設定",
+      "description": "先設定好觸發 Mouthpiece 的快捷鍵，再繼續測試使用方式。",
+      "hotkey": "快捷鍵"
     },
     "activation": {
       "title": "啟用設定",
@@ -612,24 +618,24 @@
     },
     "recommended": {
       "linux": {
-        "0": "Ctrl+Alt+Space",
+        "0": "Ctrl+Space",
         "1": "Super+S",
-        "2": "Ctrl+Alt+D",
-        "3": "Ctrl+Shift+J",
+        "2": "Alt+D",
+        "3": "Shift+J",
         "4": "Alt+Space"
       },
       "macos": {
-        "0": "⌥Space",
-        "1": "⌃⌥S",
-        "2": "⌃⌥D",
+        "0": "⌃Space",
+        "1": "⌥S",
+        "2": "⌘D",
         "3": "Fn",
-        "4": "⌘⇧J"
+        "4": "⌃J"
       },
       "windows": {
-        "0": "Ctrl+Alt+Space",
-        "1": "Ctrl+Shift+S",
-        "2": "Ctrl+Alt+D",
-        "3": "Win+Alt+K"
+        "0": "Ctrl+Space",
+        "1": "Shift+S",
+        "2": "Alt+D",
+        "3": "Win+K"
       }
     },
     "recommendedTitle": "推薦的快捷鍵",
@@ -638,9 +644,9 @@
     "showFewer": "顯示較少",
     "title": "快捷鍵指南",
     "validationRules": {
-      "0": "必須使用至少一個修飾鍵（Ctrl、Alt、Shift 等）",
+      "0": "只能使用受支援的單個修飾鍵，或使用剛好一個修飾鍵加上一個主鍵",
       "1": "不可使用系統保留的快捷鍵",
-      "2": "不允許單獨使用單一按鍵",
+      "2": "不要使用系統保留快捷鍵或容易衝突的組合",
       "3": "部分組合可能與其他應用程式衝突"
     }
   },
@@ -653,7 +659,22 @@
     "fnHeldHint": "+ 按鍵，或放開以設為 Globe",
     "globe": "Globe",
     "hotkeyLabel": "快捷鍵",
+    "modeLabel": "快捷鍵類型",
+    "comboModifierHint": "請先選擇且只選擇一個修飾鍵，再錄入主鍵。",
+    "modifierOnlyUnavailable": "目前的快捷鍵系統不支援僅修飾鍵方案，請改用按鍵組合。",
+    "modifiersLabel": "修飾鍵",
+    "modes": {
+      "keyCombo": "按鍵組合",
+      "modifierOnly": "僅修飾鍵"
+    },
     "keyHint": "+ 按鍵",
+    "primaryKeyHint": "點擊這裡，然後按下你要使用的主鍵",
+    "primaryKeyLabel": "主鍵",
+    "primaryKeyListening": "請按下一個非修飾鍵",
+    "primaryKeyRequiresModifier": "請先選擇一個修飾鍵",
+    "primaryKeyUnset": "選擇主鍵",
+    "previewEmpty": "選擇快捷鍵後，這裡會顯示最終預覽",
+    "previewLabel": "預覽",
     "listening": "聆聽中...",
     "pressAnyKey": "按下任意按鍵或 Ctrl+Shift+K",
     "pressAnyKeyMac": "按下任意按鍵或 ⌘⇧K",

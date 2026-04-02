@@ -133,6 +133,19 @@ test("automatic activation falls back to tap when key release cannot be detected
   assert.deepEqual(
     getAutomaticActivationSupport({
       platform: "darwin",
+      hotkey: "Control+A",
+      isUsingGnome: false,
+    }),
+    {
+      supportsHold: false,
+      mode: "tap-only",
+      reason: "shortcut-without-key-up",
+    }
+  );
+
+  assert.deepEqual(
+    getAutomaticActivationSupport({
+      platform: "darwin",
       hotkey: "GLOBE",
       isUsingGnome: false,
     }),

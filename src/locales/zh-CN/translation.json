@@ -119,6 +119,7 @@
       "welcome": "欢迎",
       "setup": "设置",
       "permissions": "权限",
+      "hotkeySetup": "快捷键设置",
       "activation": "激活"
     },
     "hotkey": {
@@ -145,6 +146,11 @@
       "title": "转录设置",
       "description": "选择模式和服务商",
       "preferredLanguage": "首选语言"
+    },
+    "hotkeySetup": {
+      "title": "快捷键设置",
+      "description": "先设置好触发 Mouthpiece 的快捷键，再继续测试使用方式。",
+      "hotkey": "快捷键"
     },
     "activation": {
       "title": "激活设置",
@@ -612,24 +618,24 @@
     },
     "recommended": {
       "linux": {
-        "0": "Ctrl+Alt+Space",
+        "0": "Ctrl+Space",
         "1": "Super+S",
-        "2": "Ctrl+Alt+D",
-        "3": "Ctrl+Shift+J",
+        "2": "Alt+D",
+        "3": "Shift+J",
         "4": "Alt+Space"
       },
       "macos": {
-        "0": "⌥Space",
-        "1": "⌃⌥S",
-        "2": "⌃⌥D",
+        "0": "⌃Space",
+        "1": "⌥S",
+        "2": "⌘D",
         "3": "Fn",
-        "4": "⌘⇧J"
+        "4": "⌃J"
       },
       "windows": {
-        "0": "Ctrl+Alt+Space",
-        "1": "Ctrl+Shift+S",
-        "2": "Ctrl+Alt+D",
-        "3": "Win+Alt+K"
+        "0": "Ctrl+Space",
+        "1": "Shift+S",
+        "2": "Alt+D",
+        "3": "Win+K"
       }
     },
     "recommendedTitle": "推荐快捷键",
@@ -638,9 +644,9 @@
     "showFewer": "收起",
     "title": "快捷键指南",
     "validationRules": {
-      "0": "必须使用至少一个修饰键（Ctrl、Alt、Shift 等）",
+      "0": "只能使用受支持的单个修饰键，或使用恰好一个修饰键加一个主键",
       "1": "不能使用系统保留的快捷键",
-      "2": "不允许单独使用单个按键",
+      "2": "不要使用系统保留快捷键或容易冲突的组合",
       "3": "某些组合可能与其他应用冲突"
     }
   },
@@ -653,7 +659,22 @@
     "fnHeldHint": "+ 按键，或松开以使用 Globe",
     "globe": "Globe",
     "hotkeyLabel": "快捷键",
+    "modeLabel": "快捷键类型",
+    "comboModifierHint": "请先选择且只选择一个修饰键，然后再录入主键。",
+    "modifierOnlyUnavailable": "当前快捷键系统不支持仅修饰键方案，请改用按键组合。",
+    "modifiersLabel": "修饰键",
+    "modes": {
+      "keyCombo": "按键组合",
+      "modifierOnly": "仅修饰键"
+    },
     "keyHint": "+ 按键",
+    "primaryKeyHint": "点击这里，然后按下你要使用的主键",
+    "primaryKeyLabel": "主键",
+    "primaryKeyListening": "请按下一个非修饰键",
+    "primaryKeyRequiresModifier": "请先选择一个修饰键",
+    "primaryKeyUnset": "选择主键",
+    "previewEmpty": "选择快捷键后，这里会显示最终预览",
+    "previewLabel": "预览",
     "listening": "正在监听...",
     "pressAnyKey": "按任意键或 Ctrl+Shift+K",
     "pressAnyKeyMac": "按任意键或 ⌘⇧K",

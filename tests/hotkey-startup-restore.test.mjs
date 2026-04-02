@@ -27,6 +27,15 @@ async function loadOnboardingFlowModule() {
   }
 }
 
+test("platform defaults follow the new single-step hotkey rules", () => {
+  const mod = loadHotkeyPersistenceModule();
+
+  assert.equal(typeof mod.getDefaultHotkeyForPlatform, "function");
+  assert.equal(mod.getDefaultHotkeyForPlatform("darwin"), "GLOBE");
+  assert.equal(mod.getDefaultHotkeyForPlatform("win32"), "Control+K");
+  assert.equal(mod.getDefaultHotkeyForPlatform("linux"), "Control+K");
+});
+
 test("hotkey startup restore prefers env first, then renderer storage, then the legacy renderer key, then platform defaults", () => {
   const mod = loadHotkeyPersistenceModule();
 
