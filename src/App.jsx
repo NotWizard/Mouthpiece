@@ -37,6 +37,24 @@ function normalizeLearnedCorrectionTerms(entries) {
     .filter(Boolean);
 }
 
+function mergePendingLearnedCorrectionTerms(groups) {
+  const seen = new Set();
+  const merged = [];
+
+  for (const group of groups) {
+    for (const term of normalizeLearnedCorrectionTerms(group)) {
+      const key = term.toLowerCase();
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      merged.push(term);
+    }
+  }
+
+  return merged;
+}
+
 export default function App() {
   const [isHovered, setIsHovered] = useState(false);
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
@@ -46,6 +64,8 @@ export default function App() {
   const commandMenuRef = useRef(null);
   const buttonRef = useRef(null);
   const hasRecordedSinceShowRef = useRef(false);
+  const pendingLearnedCorrectionsRef = useRef([]);
+  const isDictationBusyRef = useRef(false);
 
   const { toast, dismiss, toastCount } = useToast();
   const { t } = useTranslation();
@@ -88,44 +108,11 @@ export default function App() {
       });
     });
 
-    const unsubscribeCorrections = window.electronAPI?.onCorrectionsLearned?.((entries) => {
-      const learnedTerms = normalizeLearnedCorrectionTerms(entries);
-      if (learnedTerms.length === 0) {
-        return;
-      }
-
-      const wordList = learnedTerms.map((word) => `\u201c${word}\u201d`).join(", ");
-      let toastId;
-      toastId = toast({
-        title: t("app.toasts.addedToDict", { words: wordList }),
-        variant: "success",
-        duration: 6000,
-        action: (
-          <button
-            onClick={async () => {
-              try {
-                const result = await window.electronAPI?.undoLearnedCorrections?.(learnedTerms);
-                if (result?.success) {
-                  dismiss(toastId);
-                }
-              } catch {
-                // Silently fail and keep the learned corrections.
-              }
-            }}
-            className="rounded-sm border border-emerald-400/20 bg-emerald-500/15 px-2.5 py-1 text-[10px] font-medium whitespace-nowrap text-emerald-100/90 transition-all duration-150 hover:border-emerald-400/35 hover:bg-emerald-500/25 hover:text-white"
-          >
-            {t("app.toasts.undo")}
-          </button>
-        ),
-      });
-    });
-
     return () => {
       unsubscribeFallback?.();
       unsubscribeFailed?.();
-      unsubscribeCorrections?.();
     };
-  }, [dismiss, t, toast]);
+  }, [t, toast]);
 
   const handleDictationToggle = React.useCallback(() => {
     setIsCommandMenuOpen(false);
@@ -148,6 +135,7 @@ export default function App() {
     dismiss,
   });
 
+  const isDictationBusy = isRecording || isProcessing || isTranscribing;
   const capsuleIsBusy = isTranscribing || isProcessing;
   const shouldRenderCapsule = shouldShowDictationCapsule({
     dictationState,
@@ -172,13 +160,96 @@ export default function App() {
     toastCount,
   });
 
+  const showLearnedCorrectionsToast = React.useCallback(
+    (entries) => {
+      const learnedTerms = normalizeLearnedCorrectionTerms(entries);
+      if (learnedTerms.length === 0) {
+        return;
+      }
+
+      const wordList = learnedTerms.map((word) => `\u201c${word}\u201d`).join(", ");
+      let toastId;
+      toastId = showDictationOverlayToast({
+        title: t("app.toasts.addedToDict", { words: wordList }),
+        variant: "success",
+        duration: 6000,
+        action: (
+          <button
+            onClick={async () => {
+              try {
+                const result = await window.electronAPI?.undoLearnedCorrections?.(learnedTerms);
+                if (result?.success) {
+                  dismiss(toastId);
+                }
+              } catch {
+                // Silently fail and keep the learned corrections.
+              }
+            }}
+            className="rounded-sm border border-emerald-400/20 bg-emerald-500/15 px-2.5 py-1 text-[10px] font-medium whitespace-nowrap text-emerald-100/90 transition-all duration-150 hover:border-emerald-400/35 hover:bg-emerald-500/25 hover:text-white"
+          >
+            {t("app.toasts.undo")}
+          </button>
+        ),
+      });
+    },
+    [dismiss, showDictationOverlayToast, t]
+  );
+
+  useEffect(() => {
+    isDictationBusyRef.current = isDictationBusy;
+  }, [isDictationBusy]);
+
+  useEffect(() => {
+    const unsubscribeCorrections = window.electronAPI?.onCorrectionsLearned?.((entries) => {
+      const learnedTerms = normalizeLearnedCorrectionTerms(entries);
+      if (learnedTerms.length === 0) {
+        return;
+      }
+
+      if (isDictationBusyRef.current) {
+        pendingLearnedCorrectionsRef.current.push(learnedTerms);
+        return;
+      }
+
+      showLearnedCorrectionsToast(learnedTerms);
+    });
+
+    return () => {
+      unsubscribeCorrections?.();
+    };
+  }, [showLearnedCorrectionsToast]);
+
+  useEffect(() => {
+    if (isDictationBusy || pendingLearnedCorrectionsRef.current.length === 0) {
+      return;
+    }
+
+    const pendingLearnedTerms = mergePendingLearnedCorrectionTerms(
+      pendingLearnedCorrectionsRef.current
+    );
+    pendingLearnedCorrectionsRef.current = [];
+
+    if (pendingLearnedTerms.length > 0) {
+      showLearnedCorrectionsToast(pendingLearnedTerms);
+    }
+  }, [isDictationBusy, showLearnedCorrectionsToast]);
+
   useEffect(() => {
     if (shouldCaptureWindowInput) {
       setWindowInteractivity(true);
     } else if (!isHovered) {
       setWindowInteractivity(false);
     }
-  }, [isHovered, setWindowInteractivity, shouldCaptureWindowInput]);
+  }, [
+    isCommandMenuOpen,
+    isHovered,
+    isProcessing,
+    isRecording,
+    isTranscribing,
+    setWindowInteractivity,
+    shouldCaptureWindowInput,
+    toastCount,
+  ]);
 
   useEffect(() => {
     if (isCommandMenuOpen && toastCount > 0) {

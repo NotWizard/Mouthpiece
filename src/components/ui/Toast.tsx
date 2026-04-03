@@ -16,7 +16,7 @@ export interface ToastProps {
 }
 
 export interface ToastContextType {
-  toast: (props: Omit<ToastProps, "id">) => void;
+  toast: (props: Omit<ToastProps, "id">) => string;
   dismiss: (id?: string) => void;
   toastCount: number;
 }
@@ -39,6 +39,7 @@ interface ToastState extends ToastProps {
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = React.useState<ToastState[]>([]);
+  const toastsRef = React.useRef<ToastState[]>([]);
   const timersRef = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const exitingToastIdsRef = React.useRef<Set<string>>(new Set());
 
@@ -101,19 +102,20 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const dismiss = React.useCallback(
     (id?: string) => {
+      const currentToasts = toastsRef.current;
       if (id) {
-        const toast = toasts.find((item) => item.id === id);
+        const toast = currentToasts.find((item) => item.id === id);
         if (toast) {
           dismissToast(toast);
         }
       } else {
-        const lastToast = toasts[toasts.length - 1];
+        const lastToast = currentToasts[currentToasts.length - 1];
         if (lastToast) {
           dismissToast(lastToast);
         }
       }
     },
-    [toasts, dismissToast]
+    [dismissToast]
   );
 
   const pauseTimer = React.useCallback(
@@ -134,6 +136,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     },
     [startExitAnimation]
   );
+
+  React.useEffect(() => {
+    toastsRef.current = toasts;
+  }, [toasts]);
 
   React.useEffect(() => {
     const timers = timersRef.current;
