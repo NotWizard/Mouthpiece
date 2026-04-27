@@ -21,6 +21,51 @@ interface SearchableModelSelectProps {
   className?: string;
 }
 
+const DROPDOWN_SCROLL_MARGIN_PX = 18;
+const SCROLLABLE_OVERFLOW_RE = /(auto|scroll|overlay)/;
+
+function getScrollableAncestor(element: HTMLElement | null) {
+  let current = element?.parentElement ?? null;
+
+  while (current) {
+    const style = window.getComputedStyle(current);
+    if (
+      current.scrollHeight > current.clientHeight &&
+      SCROLLABLE_OVERFLOW_RE.test(style.overflowY)
+    ) {
+      return current;
+    }
+    current = current.parentElement;
+  }
+
+  return document.scrollingElement;
+}
+
+function isDocumentScrollElement(element: Element) {
+  return (
+    element === document.scrollingElement ||
+    element === document.documentElement ||
+    element === document.body
+  );
+}
+
+function ensureDropdownVisible(container: HTMLElement | null, dropdown: HTMLDivElement | null) {
+  if (!container || !dropdown) return;
+
+  const scrollParent = getScrollableAncestor(container);
+  if (!scrollParent) return;
+
+  const dropdownRect = dropdown.getBoundingClientRect();
+  const visibleBottom = isDocumentScrollElement(scrollParent)
+    ? window.innerHeight
+    : scrollParent.getBoundingClientRect().bottom;
+  const scrollOffset = dropdownRect.bottom - visibleBottom + DROPDOWN_SCROLL_MARGIN_PX;
+
+  if (scrollOffset > 0) {
+    scrollParent.scrollBy({ top: scrollOffset, behavior: "smooth" });
+  }
+}
+
 export default function SearchableModelSelect({
   models,
   selectedModel,
@@ -33,6 +78,7 @@ export default function SearchableModelSelect({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const selectedModelData = useMemo(
@@ -52,6 +98,8 @@ export default function SearchableModelSelect({
   }, [models, searchQuery]);
 
   useEffect(() => {
+    let animationFrameId: number | null = null;
+
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -61,14 +109,19 @@ export default function SearchableModelSelect({
 
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-      // Focus search input when opened
-      setTimeout(() => inputRef.current?.focus(), 0);
+      animationFrameId = requestAnimationFrame(() => {
+        inputRef.current?.focus({ preventScroll: true });
+        ensureDropdownVisible(containerRef.current, dropdownRef.current);
+      });
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+      }
     };
-  }, [isOpen]);
+  }, [filteredModels.length, isOpen]);
 
   const handleSelect = (modelId: string) => {
     onModelSelect(modelId);
@@ -128,6 +181,7 @@ export default function SearchableModelSelect({
       {/* Dropdown */}
       {isOpen && (
         <div
+          ref={dropdownRef}
           className={cn(
             "absolute z-50 w-full mt-1 rounded-xl border border-border/60 bg-popover shadow-xl",
             "dark:bg-surface-3 dark:border-border-hover dark:shadow-elevated",

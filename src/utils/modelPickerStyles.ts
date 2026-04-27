@@ -11,7 +11,7 @@ export interface ModelPickerStyles {
 export const MODEL_PICKER_COLORS: Record<ColorScheme, ModelPickerStyles> = {
   purple: {
     container:
-      "bg-surface-1/95 dark:bg-white/[0.03] rounded-lg overflow-hidden border border-border/60 dark:border-white/8 backdrop-blur-xl shadow-(--shadow-metallic-light) dark:shadow-(--shadow-metallic-dark)",
+      "bg-surface-1/95 dark:bg-white/[0.03] rounded-lg overflow-visible border border-border/60 dark:border-white/8 backdrop-blur-xl shadow-(--shadow-metallic-light) dark:shadow-(--shadow-metallic-dark)",
     header: "font-medium text-foreground tracking-tight",
     modelCard: {
       selected:
@@ -37,7 +37,7 @@ export const MODEL_PICKER_COLORS: Record<ColorScheme, ModelPickerStyles> = {
   },
   blue: {
     container:
-      "bg-surface-1/95 dark:bg-white/[0.03] rounded-lg overflow-hidden border border-border/60 dark:border-white/8 backdrop-blur-xl shadow-(--shadow-metallic-light) dark:shadow-(--shadow-metallic-dark)",
+      "bg-surface-1/95 dark:bg-white/[0.03] rounded-lg overflow-visible border border-border/60 dark:border-white/8 backdrop-blur-xl shadow-(--shadow-metallic-light) dark:shadow-(--shadow-metallic-dark)",
     header: "text-sm font-medium text-foreground tracking-tight",
     modelCard: {
       selected:

@@ -52,3 +52,23 @@ test("model discovery UI strings exist across every supported translation file",
     assert.match(source, /"providerModelHint": /);
   }
 });
+
+test("dynamic model dropdowns can overflow provider cards instead of being clipped", async () => {
+  const [reasoningSource, modelPickerStylesSource] = await Promise.all([
+    readRepoFile("src/components/ReasoningModelSelector.tsx"),
+    readRepoFile("src/utils/modelPickerStyles.ts"),
+  ]);
+
+  assert.doesNotMatch(reasoningSource, /border border-border rounded-lg overflow-hidden/);
+  assert.doesNotMatch(modelPickerStylesSource, /rounded-lg overflow-hidden border/);
+});
+
+test("model dropdown scrolls the surrounding panel when opened near the viewport bottom", async () => {
+  const source = await readRepoFile("src/components/ui/SearchableModelSelect.tsx");
+
+  assert.match(source, /ensureDropdownVisible/);
+  assert.match(source, /dropdownRef/);
+  assert.match(source, /requestAnimationFrame/);
+  assert.match(source, /preventScroll: true/);
+  assert.match(source, /scrollBy\(\{\s*top:/s);
+});
