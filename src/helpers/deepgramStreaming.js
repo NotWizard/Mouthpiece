@@ -143,6 +143,10 @@ class DeepgramStreaming {
       model,
       punctuate: "true",
       interim_results: "true",
+      smart_format: "true",
+      vad_events: "true",
+      endpointing: String(options.endpointing || 500),
+      utterance_end_ms: String(options.utteranceEndMs || options.utterance_end_ms || 1000),
     });
     if (lang) {
       params.set("language", lang);
@@ -570,6 +574,8 @@ class DeepgramStreaming {
       sampleRate: options.sampleRate,
       language: options.language,
       keyterms: options.keyterms,
+      endpointing: options.endpointing,
+      utteranceEndMs: options.utteranceEndMs,
     };
     this.accumulatedText = "";
     this.finalSegments = [];

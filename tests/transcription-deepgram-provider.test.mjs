@@ -2,6 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 async function readRepoFile(relativePath) {
   return fs.readFile(path.resolve(process.cwd(), relativePath), "utf8");
@@ -28,9 +31,15 @@ test("Deepgram settings are persisted through the store, hook, environment manag
       readRepoFile("src/types/electron.ts"),
     ]);
 
-  assert.match(settingsStoreSource, /deepgramStreamingEnabled: readBoolean\("deepgramStreamingEnabled", false\)/);
+  assert.match(
+    settingsStoreSource,
+    /deepgramStreamingEnabled: readBoolean\("deepgramStreamingEnabled", false\)/
+  );
   assert.match(settingsStoreSource, /deepgramApiKey: ""/);
-  assert.match(settingsStoreSource, /setDeepgramStreamingEnabled: createBooleanSetter\("deepgramStreamingEnabled"\)/);
+  assert.match(
+    settingsStoreSource,
+    /setDeepgramStreamingEnabled: createBooleanSetter\("deepgramStreamingEnabled"\)/
+  );
   assert.match(settingsStoreSource, /setDeepgramApiKey: createSecretSetter\("deepgramApiKey"\)/);
   assert.match(settingsStoreSource, /case "deepgramApiKey":[\s\S]*saveDeepgramKey\?\.\(value\)/);
   assert.match(settingsStoreSource, /case "deepgramApiKey":[\s\S]*getDeepgramKey\?\.\(\)/);
@@ -39,7 +48,10 @@ test("Deepgram settings are persisted through the store, hook, environment manag
   assert.match(settingsHookSource, /deepgramApiKey: string;/);
   assert.match(settingsHookSource, /deepgramStreamingEnabled: store\.deepgramStreamingEnabled,/);
   assert.match(settingsHookSource, /deepgramApiKey: store\.deepgramApiKey,/);
-  assert.match(settingsHookSource, /setDeepgramStreamingEnabled: store\.setDeepgramStreamingEnabled,/);
+  assert.match(
+    settingsHookSource,
+    /setDeepgramStreamingEnabled: store\.setDeepgramStreamingEnabled,/
+  );
   assert.match(settingsHookSource, /setDeepgramApiKey: store\.setDeepgramApiKey,/);
 
   assert.match(environmentSource, /"DEEPGRAM_API_KEY"/);
@@ -47,7 +59,10 @@ test("Deepgram settings are persisted through the store, hook, environment manag
   assert.match(environmentSource, /saveDeepgramKey\(key\)/);
 
   assert.match(preloadSource, /getDeepgramKey: \(\) => ipcRenderer\.invoke\("get-deepgram-key"\)/);
-  assert.match(preloadSource, /saveDeepgramKey: \(key\) => ipcRenderer\.invoke\("save-deepgram-key", key\)/);
+  assert.match(
+    preloadSource,
+    /saveDeepgramKey: \(key\) => ipcRenderer\.invoke\("save-deepgram-key", key\)/
+  );
 
   assert.match(typesSource, /getDeepgramKey\?: \(\) => Promise<string \| null>;/);
   assert.match(typesSource, /saveDeepgramKey\?: \(key: string\) => Promise<void>;/);
@@ -154,4 +169,27 @@ test("audio manager handles Deepgram batch and realtime transcription as first-c
   assert.match(deepgramStreamingSource, /Authorization: `Token \$\{token\}`/);
   assert.match(deepgramStreamingSource, /Authorization: `Bearer \$\{token\}`/);
   assert.match(deepgramStreamingSource, /const requestedModel = options\.model/);
+  assert.match(deepgramStreamingSource, /smart_format/);
+  assert.match(deepgramStreamingSource, /vad_events/);
+  assert.match(deepgramStreamingSource, /endpointing/);
+  assert.match(deepgramStreamingSource, /utterance_end_ms/);
+
+  const DeepgramStreaming = require(
+    path.resolve(process.cwd(), "src/helpers/deepgramStreaming.js")
+  );
+  const streaming = new DeepgramStreaming();
+  const url = new URL(
+    streaming.buildWebSocketUrl({
+      model: "nova-3",
+      sampleRate: 16000,
+      language: "en",
+    })
+  );
+
+  assert.equal(url.searchParams.get("punctuate"), "true");
+  assert.equal(url.searchParams.get("interim_results"), "true");
+  assert.equal(url.searchParams.get("smart_format"), "true");
+  assert.equal(url.searchParams.get("vad_events"), "true");
+  assert.equal(url.searchParams.get("endpointing"), "500");
+  assert.equal(url.searchParams.get("utterance_end_ms"), "1000");
 });

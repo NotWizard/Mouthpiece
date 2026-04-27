@@ -678,8 +678,34 @@
     "errors": {
       "unableToAccess": "Não foi possível acessar o microfone. Verifique as permissões."
     },
+    "fallbackDeviceName": "Microfone {{id}}",
     "helpText": "Selecione um microfone específico ou use a configuração padrão do sistema.",
     "inputDevice": "Dispositivo de entrada",
+    "inputTest": {
+      "advice": {
+        "good": "Ótimo nível. Continue falando desta distância.",
+        "idle": "Inicie o teste e fale normalmente perto do microfone.",
+        "moveCloser": "Aproxime-se um pouco ou aponte o microfone para a sua boca.",
+        "tooNoisy": "Reduza o ruído de fundo antes de gravar.",
+        "tooQuiet": "Fale mais perto do microfone para que o Mouthpiece separe a voz do ruído ambiente."
+      },
+      "description": "Verifique a entrada ao vivo antes de gravar. O áudio permanece neste dispositivo.",
+      "environment": "Ambiente",
+      "environmentStates": {
+        "idle": "Ainda não medido",
+        "noisy": "Ruidoso · piso de ruído {{level}}%",
+        "normal": "Normal · piso de ruído {{level}}%",
+        "quiet": "Silencioso · piso de ruído {{level}}%"
+      },
+      "errors": {
+        "unableToStart": "Não foi possível iniciar o teste de entrada. Verifique as permissões do microfone."
+      },
+      "nearTalkAdvice": "Dica de proximidade",
+      "start": "Iniciar teste",
+      "stop": "Parar teste",
+      "title": "Teste de entrada",
+      "volume": "Volume de entrada"
+    },
     "noBuiltInDetected": "Nenhum microfone integrado detectado. Usando o padrão do sistema.",
     "preferBuiltIn": {
       "description": "Microfones externos podem causar latência ou reduzir a qualidade da transcrição",
@@ -1123,6 +1149,64 @@
         "switchedCustom": {
           "description": "Configure seu próprio provedor e chave API.",
           "title": "Mudou para configuração personalizada"
+        }
+      },
+      "audioQuality": {
+        "advancedDescription": "Aumente estes valores somente se sons de fundo ou pausas curtas ainda virarem texto indesejado.",
+        "advancedTitle": "Controles avançados contra falsos inícios",
+        "description": "Priorize menos gravações acidentais ou troque parte da filtragem por velocidade.",
+        "modeDescription": "Define as restrições de captura e o perfil padrão do gate de voz.",
+        "modeLabel": "Modo de qualidade de áudio",
+        "modes": {
+          "balanced": {
+            "description": "Equilibra precisão, resposta e rejeição de ruído.",
+            "label": "Equilibrado"
+          },
+          "low_latency": {
+            "description": "Inicia e termina mais rápido com filtragem mais leve.",
+            "label": "Baixa latência"
+          },
+          "noise_reduction": {
+            "description": "Prioriza reduzir capturas falsas causadas por áudio de fundo.",
+            "label": "Reduzir capturas falsas"
+          }
+        },
+        "realtimeEndpointing": {
+          "description": "Controla quanto provedores em tempo real aguardam antes de encerrar uma frase.",
+          "label": "Finalização em tempo real",
+          "options": {
+            "balanced": {
+              "description": "Uma janela de pausa equilibrada para ditado natural.",
+              "label": "Equilibrado"
+            },
+            "fast": {
+              "description": "Encerra frases rapidamente para resultados mais ágeis.",
+              "label": "Rápido"
+            },
+            "patient": {
+              "description": "Espera mais durante pausas para evitar cortes prematuros.",
+              "label": "Paciente"
+            }
+          }
+        },
+        "title": "Qualidade de áudio e controle de capturas falsas",
+        "voiceGateStrictness": {
+          "description": "Controla quanta confiança é necessária para aceitar áudio como fala.",
+          "label": "Rigidez do gate de voz",
+          "options": {
+            "relaxed": {
+              "description": "Mais sensível, útil para vozes baixas.",
+              "label": "Relaxado"
+            },
+            "standard": {
+              "description": "Padrão recomendado para a maioria dos ambientes.",
+              "label": "Padrão"
+            },
+            "strict": {
+              "description": "Exige fala mais clara e rejeita mais ruído de fundo.",
+              "label": "Rígido"
+            }
+          }
         }
       },
       "cloudDisabled": "Desabilitado",

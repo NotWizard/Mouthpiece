@@ -691,8 +691,34 @@
     "errors": {
       "unableToAccess": "Zugriff auf das Mikrofon nicht möglich. Bitte prüfen Sie die Berechtigungen."
     },
+    "fallbackDeviceName": "Mikrofon {{id}}",
     "helpText": "Wählen Sie ein bestimmtes Mikrofon oder verwenden Sie die Systemstandardeinstellung.",
     "inputDevice": "Eingabegerät",
+    "inputTest": {
+      "advice": {
+        "good": "Guter Pegel. Sprechen Sie weiter aus dieser Entfernung.",
+        "idle": "Starten Sie den Test und sprechen Sie normal in Mikrofonnähe.",
+        "moveCloser": "Gehen Sie etwas näher heran oder richten Sie das Mikrofon auf Ihren Mund.",
+        "tooNoisy": "Reduzieren Sie Hintergrundgeräusche vor der Aufnahme.",
+        "tooQuiet": "Sprechen Sie näher am Mikrofon, damit Mouthpiece Sprache besser vom Raumgeräusch trennt."
+      },
+      "description": "Prüfen Sie den Live-Eingang vor der Aufnahme. Audio bleibt auf diesem Gerät.",
+      "environment": "Umgebung",
+      "environmentStates": {
+        "idle": "Noch nicht gemessen",
+        "noisy": "Laut · Rauschpegel {{level}}%",
+        "normal": "Normal · Rauschpegel {{level}}%",
+        "quiet": "Ruhig · Rauschpegel {{level}}%"
+      },
+      "errors": {
+        "unableToStart": "Eingabetest konnte nicht gestartet werden. Bitte prüfen Sie die Mikrofonberechtigungen."
+      },
+      "nearTalkAdvice": "Nahsprech-Tipp",
+      "start": "Test starten",
+      "stop": "Test stoppen",
+      "title": "Eingabetest",
+      "volume": "Eingangspegel"
+    },
     "noBuiltInDetected": "Kein integriertes Mikrofon erkannt. Systemstandard wird verwendet.",
     "preferBuiltIn": {
       "description": "Externe Mikrofone können Latenz oder eine verringerte Transkriptionsqualität verursachen",
@@ -1136,6 +1162,64 @@
         "switchedCustom": {
           "description": "Konfigurieren Sie Ihren eigenen Anbieter und API-Schlüssel.",
           "title": "Zu benutzerdefinierter Einrichtung gewechselt"
+        }
+      },
+      "audioQuality": {
+        "advancedDescription": "Erhöhen Sie diese Werte nur, wenn Hintergrundgeräusche oder kurze Pausen weiterhin unerwünschten Text erzeugen.",
+        "advancedTitle": "Erweiterte Fehlstart-Kontrolle",
+        "description": "Priorisieren Sie weniger versehentliche Aufnahmen oder tauschen Sie etwas Filterung gegen Geschwindigkeit.",
+        "modeDescription": "Legt Aufnahmebeschränkungen und das Standardprofil der Sprachschwelle fest.",
+        "modeLabel": "Audioqualitätsmodus",
+        "modes": {
+          "balanced": {
+            "description": "Gleicht Genauigkeit, Reaktionsgeschwindigkeit und Rauschunterdrückung aus.",
+            "label": "Ausgewogen"
+          },
+          "low_latency": {
+            "description": "Startet und beendet schneller mit leichterer Filterung.",
+            "label": "Niedrige Latenz"
+          },
+          "noise_reduction": {
+            "description": "Priorisiert weniger Fehlaufnahmen durch Hintergrundgeräusche.",
+            "label": "Fehlaufnahmen reduzieren"
+          }
+        },
+        "realtimeEndpointing": {
+          "description": "Steuert, wie lange Echtzeit-Anbieter warten, bevor eine Phrase beendet wird.",
+          "label": "Echtzeit-Endpunkt",
+          "options": {
+            "balanced": {
+              "description": "Ein ausgewogenes Pausenfenster für natürliche Diktate.",
+              "label": "Ausgewogen"
+            },
+            "fast": {
+              "description": "Beendet Phrasen schnell für reaktionsschnellere Ergebnisse.",
+              "label": "Schnell"
+            },
+            "patient": {
+              "description": "Wartet länger durch Pausen, um zu frühe Enden zu vermeiden.",
+              "label": "Geduldig"
+            }
+          }
+        },
+        "title": "Audioqualität & Fehlaufnahme-Kontrolle",
+        "voiceGateStrictness": {
+          "description": "Steuert, wie sicher Sprache erkannt werden muss, bevor Audio akzeptiert wird.",
+          "label": "Strenge der Sprachschwelle",
+          "options": {
+            "relaxed": {
+              "description": "Empfindlicher, nützlich für leise Stimmen.",
+              "label": "Locker"
+            },
+            "standard": {
+              "description": "Empfohlener Standard für die meisten Räume.",
+              "label": "Standard"
+            },
+            "strict": {
+              "description": "Erfordert deutlichere Sprache und weist mehr Hintergrundgeräusche ab.",
+              "label": "Streng"
+            }
+          }
         }
       },
       "cloudDisabled": "Deaktiviert",

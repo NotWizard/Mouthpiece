@@ -691,8 +691,34 @@
     "errors": {
       "unableToAccess": "マイクにアクセスできません。権限を確認してください。"
     },
+    "fallbackDeviceName": "マイク {{id}}",
     "helpText": "特定のマイクを選択するか、システムのデフォルト設定を使用してください。",
     "inputDevice": "入力デバイス",
+    "inputTest": {
+      "advice": {
+        "good": "良い音量です。この距離で話し続けてください。",
+        "idle": "テストを開始し、マイクの近くで普段どおり話してください。",
+        "moveCloser": "少し近づくか、マイクを口元に向けてください。",
+        "tooNoisy": "録音前に背景ノイズを減らしてください。",
+        "tooQuiet": "Mouthpiece が声と環境音を分けやすいように、マイクに近づいて話してください。"
+      },
+      "description": "録音前にライブ入力を確認します。音声はこのデバイス内に留まります。",
+      "environment": "環境",
+      "environmentStates": {
+        "idle": "まだ測定していません",
+        "noisy": "騒がしい · ノイズフロア {{level}}%",
+        "normal": "通常 · ノイズフロア {{level}}%",
+        "quiet": "静か · ノイズフロア {{level}}%"
+      },
+      "errors": {
+        "unableToStart": "入力テストを開始できません。マイク権限を確認してください。"
+      },
+      "nearTalkAdvice": "近接マイクのヒント",
+      "start": "テスト開始",
+      "stop": "テスト停止",
+      "title": "入力テスト",
+      "volume": "入力音量"
+    },
     "noBuiltInDetected": "内蔵マイクが検出されません。システムのデフォルトを使用しています。",
     "preferBuiltIn": {
       "description": "外部マイクは遅延や文字起こし品質の低下を引き起こす場合があります",
@@ -1093,6 +1119,64 @@
         "switchedCustom": {
           "description": "独自のプロバイダーと API キーを設定してください。",
           "title": "カスタム設定に切り替えました"
+        }
+      },
+      "audioQuality": {
+        "advancedDescription": "背景音や短い無音がまだ不要なテキストになる場合のみ、これらを強めてください。",
+        "advancedTitle": "誤開始を抑える詳細設定",
+        "description": "誤録音の少なさを優先するか、フィルタリングを少し弱めて速度を優先します。",
+        "modeDescription": "録音制約と既定の音声ゲートプロファイルを設定します。",
+        "modeLabel": "音声品質モード",
+        "modes": {
+          "balanced": {
+            "description": "精度、応答性、ノイズ除去のバランスを取ります。",
+            "label": "バランス"
+          },
+          "low_latency": {
+            "description": "軽めのフィルタリングで開始と終了を速くします。",
+            "label": "低遅延"
+          },
+          "noise_reduction": {
+            "description": "背景音による誤検出を減らすことを優先します。",
+            "label": "誤検出を減らす"
+          }
+        },
+        "realtimeEndpointing": {
+          "description": "リアルタイムプロバイダーがフレーズ終了前に待つ長さを制御します。",
+          "label": "リアルタイム終端検出",
+          "options": {
+            "balanced": {
+              "description": "自然なディクテーション向けのバランスのよい無音時間です。",
+              "label": "バランス"
+            },
+            "fast": {
+              "description": "フレーズをすばやく終了して反応を高めます。",
+              "label": "高速"
+            },
+            "patient": {
+              "description": "無音中も長めに待ち、早すぎる終了を避けます。",
+              "label": "長めに待つ"
+            }
+          }
+        },
+        "title": "音声品質と誤録音コントロール",
+        "voiceGateStrictness": {
+          "description": "音声として受け入れる前に必要な検出確度を制御します。",
+          "label": "音声ゲートの厳しさ",
+          "options": {
+            "relaxed": {
+              "description": "より敏感で、小さな声に適しています。",
+              "label": "ゆるめ"
+            },
+            "standard": {
+              "description": "ほとんどの部屋に推奨される標準設定です。",
+              "label": "標準"
+            },
+            "strict": {
+              "description": "より明瞭な発話を求め、背景ノイズを多く拒否します。",
+              "label": "厳しめ"
+            }
+          }
         }
       },
       "cloudDisabled": "無効",

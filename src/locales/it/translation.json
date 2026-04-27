@@ -691,8 +691,34 @@
     "errors": {
       "unableToAccess": "Impossibile accedere al microfono. Verifica i permessi."
     },
+    "fallbackDeviceName": "Microfono {{id}}",
     "helpText": "Seleziona un microfono specifico o usa l'impostazione predefinita di sistema.",
     "inputDevice": "Dispositivo di ingresso",
+    "inputTest": {
+      "advice": {
+        "good": "Livello ottimo. Continua a parlare da questa distanza.",
+        "idle": "Avvia il test e parla normalmente vicino al microfono.",
+        "moveCloser": "Avvicinati un po' o punta il microfono verso la bocca.",
+        "tooNoisy": "Riduci il rumore di fondo prima di registrare.",
+        "tooQuiet": "Parla più vicino al microfono così Mouthpiece separa meglio la voce dal rumore ambientale."
+      },
+      "description": "Controlla l'ingresso in tempo reale prima di registrare. L'audio resta su questo dispositivo.",
+      "environment": "Ambiente",
+      "environmentStates": {
+        "idle": "Non ancora misurato",
+        "noisy": "Rumoroso · rumore di fondo {{level}}%",
+        "normal": "Normale · rumore di fondo {{level}}%",
+        "quiet": "Silenzioso · rumore di fondo {{level}}%"
+      },
+      "errors": {
+        "unableToStart": "Impossibile avviare il test di ingresso. Verifica i permessi del microfono."
+      },
+      "nearTalkAdvice": "Consiglio di prossimità",
+      "start": "Avvia test",
+      "stop": "Ferma test",
+      "title": "Test ingresso",
+      "volume": "Volume ingresso"
+    },
     "noBuiltInDetected": "Nessun microfono integrato rilevato. Verrà usato quello predefinito di sistema.",
     "preferBuiltIn": {
       "description": "I microfoni esterni possono causare latenza o ridurre la qualità della trascrizione",
@@ -1136,6 +1162,64 @@
         "switchedCustom": {
           "description": "Configura il tuo provider e la tua chiave API.",
           "title": "Passato a configurazione personalizzata"
+        }
+      },
+      "audioQuality": {
+        "advancedDescription": "Aumenta questi valori solo se i rumori di fondo o le pause brevi diventano ancora testo indesiderato.",
+        "advancedTitle": "Controlli avanzati contro i falsi avvii",
+        "description": "Dai priorità a meno registrazioni accidentali o scambia parte del filtro con più velocità.",
+        "modeDescription": "Imposta i vincoli di acquisizione e il profilo predefinito del gate vocale.",
+        "modeLabel": "Modalità qualità audio",
+        "modes": {
+          "balanced": {
+            "description": "Bilancia accuratezza, reattività e rifiuto del rumore.",
+            "label": "Bilanciata"
+          },
+          "low_latency": {
+            "description": "Avvia e termina più rapidamente con un filtro più leggero.",
+            "label": "Bassa latenza"
+          },
+          "noise_reduction": {
+            "description": "Dà priorità alla riduzione delle false acquisizioni dal rumore di fondo.",
+            "label": "Riduci false acquisizioni"
+          }
+        },
+        "realtimeEndpointing": {
+          "description": "Controlla quanto attendono i provider in tempo reale prima di chiudere una frase.",
+          "label": "Chiusura in tempo reale",
+          "options": {
+            "balanced": {
+              "description": "Una finestra di pausa bilanciata per dettatura naturale.",
+              "label": "Bilanciata"
+            },
+            "fast": {
+              "description": "Chiude rapidamente le frasi per risultati più reattivi.",
+              "label": "Veloce"
+            },
+            "patient": {
+              "description": "Attende più a lungo durante le pause per evitare chiusure premature.",
+              "label": "Paziente"
+            }
+          }
+        },
+        "title": "Qualità audio e controllo false acquisizioni",
+        "voiceGateStrictness": {
+          "description": "Controlla con quanta sicurezza deve essere rilevata la voce prima di accettare l'audio.",
+          "label": "Rigidità del gate vocale",
+          "options": {
+            "relaxed": {
+              "description": "Più sensibile, utile per voci basse.",
+              "label": "Rilassata"
+            },
+            "standard": {
+              "description": "Predefinito consigliato per la maggior parte degli ambienti.",
+              "label": "Standard"
+            },
+            "strict": {
+              "description": "Richiede voce più chiara e respinge più rumore di fondo.",
+              "label": "Rigida"
+            }
+          }
         }
       },
       "cloudDisabled": "Disabilitato",

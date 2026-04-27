@@ -6,11 +6,14 @@ import path from "node:path";
 test("App initializes recording state before any effect reads isRecording", async () => {
   const source = await fs.readFile(path.resolve(process.cwd(), "src/App.jsx"), "utf8");
 
-  const recordingHookIndex = source.indexOf("} = useAudioRecording(toast, {");
+  const recordingHookMatch = /}\s*=\s*useAudioRecording\([^)]*,\s*\{/.exec(source);
+  const recordingHookIndex = recordingHookMatch?.index ?? -1;
   const activityDerivationIndex = source.indexOf(
     "const shouldCaptureWindowInput = shouldCaptureDictationWindowInput({"
   );
-  const firstRecordingEffectIndex = source.indexOf("useEffect(() => {\n    if (shouldCaptureWindowInput) {");
+  const firstRecordingEffectIndex = source.indexOf(
+    "useEffect(() => {\n    if (shouldCaptureWindowInput) {"
+  );
 
   assert.notEqual(recordingHookIndex, -1);
   assert.notEqual(activityDerivationIndex, -1);

@@ -691,8 +691,34 @@
     "errors": {
       "unableToAccess": "无法访问麦克风，请检查权限设置。"
     },
+    "fallbackDeviceName": "麦克风 {{id}}",
     "helpText": "选择特定的麦克风或使用系统默认设置。",
     "inputDevice": "输入设备",
+    "inputTest": {
+      "advice": {
+        "good": "输入音量很好，请保持这个距离说话。",
+        "idle": "开始测试后，靠近麦克风用正常音量说话。",
+        "moveCloser": "请再靠近一点，或把麦克风朝向嘴部。",
+        "tooNoisy": "录音前请先降低背景噪声。",
+        "tooQuiet": "请靠近麦克风说话，帮助 Mouthpiece 区分语音和环境噪声。"
+      },
+      "description": "录音前检查实时输入。音频仅在本机分析。",
+      "environment": "环境状态",
+      "environmentStates": {
+        "idle": "尚未测量",
+        "noisy": "嘈杂 · 噪声地板 {{level}}%",
+        "normal": "正常 · 噪声地板 {{level}}%",
+        "quiet": "安静 · 噪声地板 {{level}}%"
+      },
+      "errors": {
+        "unableToStart": "无法启动输入测试，请检查麦克风权限。"
+      },
+      "nearTalkAdvice": "近讲建议",
+      "start": "开始测试",
+      "stop": "停止测试",
+      "title": "输入测试",
+      "volume": "输入音量"
+    },
     "noBuiltInDetected": "未检测到内置麦克风，正在使用系统默认设备。",
     "preferBuiltIn": {
       "description": "外接麦克风可能导致延迟或降低转录质量",
@@ -1136,6 +1162,64 @@
         "switchedCustom": {
           "description": "请配置你的服务商和 API Key。",
           "title": "已切换到自定义设置"
+        }
+      },
+      "audioQuality": {
+        "advancedDescription": "仅当背景声或短暂停顿仍会变成多余文字时，再提高这些设置。",
+        "advancedTitle": "高级误启动控制",
+        "description": "优先减少误录，也可以用部分降噪能力换取更低延迟。",
+        "modeDescription": "设置采集约束和默认语音门限策略。",
+        "modeLabel": "音频质量模式",
+        "modes": {
+          "balanced": {
+            "description": "在准确率、响应速度和抑制噪声之间取得平衡。",
+            "label": "平衡"
+          },
+          "low_latency": {
+            "description": "使用更轻的过滤，更快开始和结束。",
+            "label": "低延迟"
+          },
+          "noise_reduction": {
+            "description": "优先减少背景音导致的误录。",
+            "label": "减少误录"
+          }
+        },
+        "realtimeEndpointing": {
+          "description": "控制实时服务商在结束一句话前等待静音的时间。",
+          "label": "实时断句",
+          "options": {
+            "balanced": {
+              "description": "适合自然听写的平衡停顿窗口。",
+              "label": "平衡"
+            },
+            "fast": {
+              "description": "更快结束短句，响应更灵敏。",
+              "label": "快速"
+            },
+            "patient": {
+              "description": "在停顿时等待更久，避免过早截断。",
+              "label": "耐心"
+            }
+          }
+        },
+        "title": "音频质量与误录控制",
+        "voiceGateStrictness": {
+          "description": "控制语音需要达到多高置信度才会被接受。",
+          "label": "语音门限严格度",
+          "options": {
+            "relaxed": {
+              "description": "更灵敏，适合较小的说话声。",
+              "label": "宽松"
+            },
+            "standard": {
+              "description": "适合大多数环境的推荐默认值。",
+              "label": "标准"
+            },
+            "strict": {
+              "description": "要求更清晰的语音，过滤更多背景噪声。",
+              "label": "严格"
+            }
+          }
         }
       },
       "cloudDisabled": "已禁用",

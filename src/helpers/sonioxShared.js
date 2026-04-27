@@ -73,6 +73,7 @@ const buildSonioxRealtimeConfig = ({
     audio_format: "pcm_s16le",
     sample_rate: sampleRate,
     num_channels: numChannels,
+    enable_endpoint_detection: true,
   };
 
   if (language && language !== "auto") {

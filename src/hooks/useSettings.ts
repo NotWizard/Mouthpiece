@@ -5,6 +5,10 @@ import { useLocalStorage } from "./useLocalStorage";
 import type { LocalTranscriptionProvider } from "../types/electron";
 import type { TerminologyProfile, TerminologySuggestion } from "../utils/terminologyProfile";
 
+export type AudioQualityMode = "noise_reduction" | "balanced" | "low_latency";
+export type VoiceGateStrictness = "relaxed" | "standard" | "strict";
+export type RealtimeEndpointingMode = "fast" | "balanced" | "patient";
+
 export interface TranscriptionSettings {
   uiLanguage: string;
   useLocalWhisper: boolean;
@@ -24,6 +28,9 @@ export interface TranscriptionSettings {
   deepgramStreamingEnabled: boolean;
   sonioxRealtimeEnabled: boolean;
   bailianRealtimeEnabled: boolean;
+  audioQualityMode: AudioQualityMode;
+  voiceGateStrictness: VoiceGateStrictness;
+  realtimeEndpointingMode: RealtimeEndpointingMode;
   terminologyProfile: TerminologyProfile;
 }
 
@@ -218,10 +225,16 @@ function useSettingsInternal() {
     deepgramStreamingEnabled: store.deepgramStreamingEnabled,
     sonioxRealtimeEnabled: store.sonioxRealtimeEnabled,
     bailianRealtimeEnabled: store.bailianRealtimeEnabled,
+    audioQualityMode: store.audioQualityMode,
+    voiceGateStrictness: store.voiceGateStrictness,
+    realtimeEndpointingMode: store.realtimeEndpointingMode,
     setAssemblyAiStreaming: store.setAssemblyAiStreaming,
     setDeepgramStreamingEnabled: store.setDeepgramStreamingEnabled,
     setSonioxRealtimeEnabled: store.setSonioxRealtimeEnabled,
     setBailianRealtimeEnabled: store.setBailianRealtimeEnabled,
+    setAudioQualityMode: store.setAudioQualityMode,
+    setVoiceGateStrictness: store.setVoiceGateStrictness,
+    setRealtimeEndpointingMode: store.setRealtimeEndpointingMode,
     useReasoningModel: store.useReasoningModel,
     voiceAssistantEnabled: store.voiceAssistantEnabled,
     reasoningModel: store.reasoningModel,

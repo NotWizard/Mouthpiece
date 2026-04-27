@@ -22,10 +22,7 @@ test("Bailian realtime toggle is persisted through the settings store and hook",
     readRepoFile("src/hooks/useSettings.ts"),
   ]);
 
-  assert.match(
-    settingsStoreSource,
-    /"bailianRealtimeEnabled"/
-  );
+  assert.match(settingsStoreSource, /"bailianRealtimeEnabled"/);
   assert.match(
     settingsStoreSource,
     /bailianRealtimeEnabled: readBoolean\("bailianRealtimeEnabled", false\)/
@@ -41,10 +38,7 @@ test("Bailian realtime toggle is persisted through the settings store and hook",
 
   assert.match(settingsHookSource, /bailianRealtimeEnabled: boolean;/);
   assert.match(settingsHookSource, /bailianRealtimeEnabled: store\.bailianRealtimeEnabled,/);
-  assert.match(
-    settingsHookSource,
-    /setBailianRealtimeEnabled: store\.setBailianRealtimeEnabled,/
-  );
+  assert.match(settingsHookSource, /setBailianRealtimeEnabled: store\.setBailianRealtimeEnabled,/);
 });
 
 test("Bailian transcription capsule exposes a realtime toggle without creating a separate provider", async () => {
@@ -54,10 +48,7 @@ test("Bailian transcription capsule exposes a realtime toggle without creating a
   ]);
 
   assert.match(transcriptionSource, /bailianRealtimeEnabled\??: boolean;/);
-  assert.match(
-    transcriptionSource,
-    /setBailianRealtimeEnabled\??: \(enabled: boolean\) => void;/
-  );
+  assert.match(transcriptionSource, /setBailianRealtimeEnabled\??: \(enabled: boolean\) => void;/);
   assert.match(
     transcriptionSource,
     /selectedCloudProvider === "bailian"[\s\S]*?<Toggle[\s\S]*checked=\{bailianRealtimeEnabled\}[\s\S]*setBailianRealtimeEnabled/
@@ -128,21 +119,22 @@ test("audio manager routes Bailian realtime separately from Bailian batch transc
     source,
     /getStreamingRequestOptions\(\) \{[\s\S]*this\.isByokBailianStreamingEnabled\(\)[\s\S]*model: this\.getRealtimeStreamingModel\(\)/
   );
-  assert.match(source, /shouldUseStreaming\(isSignedInOverride\) \{[\s\S]*this\.isByokBailianStreamingEnabled\(\)/);
   assert.match(
     source,
-    /const isByokBailianStreaming = this\.isByokBailianStreamingEnabled\(\);/
+    /shouldUseStreaming\(isSignedInOverride\) \{[\s\S]*this\.isByokBailianStreamingEnabled\(\)/
   );
+  assert.match(source, /const isByokBailianStreaming = this\.isByokBailianStreamingEnabled\(\);/);
 });
 
 test("main-process bridge exposes Bailian realtime IPC and dedicated realtime helper", async () => {
-  const [preloadSource, ipcHandlersSource, electronTypes, realtimeHelperSource] =
-    await Promise.all([
+  const [preloadSource, ipcHandlersSource, electronTypes, realtimeHelperSource] = await Promise.all(
+    [
       readRepoFile("preload.js"),
       readRepoFile("src/helpers/ipcHandlers.js"),
       readRepoFile("src/types/electron.ts"),
       readRepoFile("src/helpers/qwenRealtimeStreaming.js"),
-    ]);
+    ]
+  );
 
   assert.match(preloadSource, /bailianRealtimeWarmup/);
   assert.match(preloadSource, /bailianRealtimeStart/);
@@ -156,7 +148,10 @@ test("main-process bridge exposes Bailian realtime IPC and dedicated realtime he
   assert.match(preloadSource, /onBailianRealtimeSpeechStarted/);
   assert.match(preloadSource, /onBailianRealtimeSessionEnd/);
 
-  assert.match(ipcHandlersSource, /const QwenRealtimeStreaming = require\("\.\/qwenRealtimeStreaming"\);/);
+  assert.match(
+    ipcHandlersSource,
+    /const QwenRealtimeStreaming = require\("\.\/qwenRealtimeStreaming"\);/
+  );
   assert.match(ipcHandlersSource, /this\.bailianRealtimeStreaming = null;/);
   assert.match(ipcHandlersSource, /"bailian-realtime-warmup"/);
   assert.match(ipcHandlersSource, /"bailian-realtime-start"/);
@@ -226,8 +221,8 @@ test("Bailian realtime session config keeps server VAD enabled for live partial 
   assert.equal(event.type, "session.update");
   assert.deepEqual(event.session.turn_detection, {
     type: "server_vad",
-    threshold: 0,
-    silence_duration_ms: 400,
+    threshold: 0.35,
+    silence_duration_ms: 800,
   });
 });
 
@@ -340,8 +335,14 @@ test("Bailian realtime graceful disconnect flushes in-flight live text via sessi
 
   const result = await streaming.disconnect(true);
 
-  assert.equal(sentEvents.some((event) => event.type === "session.finish"), true);
-  assert.equal(sentEvents.some((event) => event.type === "input_audio_buffer.commit"), false);
+  assert.equal(
+    sentEvents.some((event) => event.type === "session.finish"),
+    true
+  );
+  assert.equal(
+    sentEvents.some((event) => event.type === "input_audio_buffer.commit"),
+    false
+  );
   assert.equal(result.text, "你好");
 });
 
@@ -373,6 +374,9 @@ test("Bailian realtime disconnect keeps completed and in-flight Chinese segments
 
   const result = await streaming.disconnect(true);
 
-  assert.equal(sentEvents.some((event) => event.type === "session.finish"), true);
+  assert.equal(
+    sentEvents.some((event) => event.type === "session.finish"),
+    true
+  );
   assert.equal(result.text, "你好世界");
 });

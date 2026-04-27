@@ -691,8 +691,34 @@
     "errors": {
       "unableToAccess": "No se pudo acceder al micrófono. Revisa los permisos."
     },
+    "fallbackDeviceName": "Micrófono {{id}}",
     "helpText": "Selecciona un micrófono específico o usa la configuración predeterminada del sistema.",
     "inputDevice": "Dispositivo de entrada",
+    "inputTest": {
+      "advice": {
+        "good": "Buen nivel. Sigue hablando desde esta distancia.",
+        "idle": "Inicia la prueba y habla con normalidad cerca del micrófono.",
+        "moveCloser": "Acércate un poco o apunta el micrófono hacia tu boca.",
+        "tooNoisy": "Reduce el ruido de fondo antes de grabar.",
+        "tooQuiet": "Habla más cerca del micrófono para que Mouthpiece separe la voz del ruido ambiental."
+      },
+      "description": "Comprueba la entrada en vivo antes de grabar. El audio permanece en este dispositivo.",
+      "environment": "Entorno",
+      "environmentStates": {
+        "idle": "Aún no medido",
+        "noisy": "Ruidoso · piso de ruido {{level}}%",
+        "normal": "Normal · piso de ruido {{level}}%",
+        "quiet": "Silencioso · piso de ruido {{level}}%"
+      },
+      "errors": {
+        "unableToStart": "No se pudo iniciar la prueba de entrada. Revisa los permisos del micrófono."
+      },
+      "nearTalkAdvice": "Consejo de cercanía",
+      "start": "Iniciar prueba",
+      "stop": "Detener prueba",
+      "title": "Prueba de entrada",
+      "volume": "Volumen de entrada"
+    },
     "noBuiltInDetected": "No se detectó micrófono integrado. Usando el predeterminado del sistema.",
     "preferBuiltIn": {
       "description": "Los micrófonos externos pueden causar latencia o menor calidad de transcripción",
@@ -1136,6 +1162,64 @@
         "switchedCustom": {
           "description": "Configura tu propio proveedor y clave API.",
           "title": "Cambiado a configuración personalizada"
+        }
+      },
+      "audioQuality": {
+        "advancedDescription": "Aumenta estos valores solo si los sonidos de fondo o las pausas breves siguen convirtiéndose en texto no deseado.",
+        "advancedTitle": "Controles avanzados contra inicios falsos",
+        "description": "Prioriza menos grabaciones accidentales o cambia parte del filtrado por velocidad.",
+        "modeDescription": "Define las restricciones de captura y el perfil predeterminado de detección de voz.",
+        "modeLabel": "Modo de calidad de audio",
+        "modes": {
+          "balanced": {
+            "description": "Equilibra precisión, respuesta y rechazo de ruido.",
+            "label": "Equilibrado"
+          },
+          "low_latency": {
+            "description": "Inicia y termina más rápido con un filtrado más ligero.",
+            "label": "Baja latencia"
+          },
+          "noise_reduction": {
+            "description": "Prioriza reducir capturas falsas causadas por audio de fondo.",
+            "label": "Reducir capturas falsas"
+          }
+        },
+        "realtimeEndpointing": {
+          "description": "Controla cuánto esperan los proveedores en tiempo real antes de cerrar una frase.",
+          "label": "Finalización en tiempo real",
+          "options": {
+            "balanced": {
+              "description": "Una ventana de pausa equilibrada para dictado natural.",
+              "label": "Equilibrado"
+            },
+            "fast": {
+              "description": "Cierra frases rápido para resultados más ágiles.",
+              "label": "Rápido"
+            },
+            "patient": {
+              "description": "Espera más durante las pausas para evitar cortes prematuros.",
+              "label": "Paciente"
+            }
+          }
+        },
+        "title": "Calidad de audio y control de capturas falsas",
+        "voiceGateStrictness": {
+          "description": "Controla cuánta confianza se requiere para aceptar audio como voz.",
+          "label": "Rigor de la puerta de voz",
+          "options": {
+            "relaxed": {
+              "description": "Más sensible, útil para voces bajas.",
+              "label": "Relajado"
+            },
+            "standard": {
+              "description": "Valor recomendado para la mayoría de habitaciones.",
+              "label": "Estándar"
+            },
+            "strict": {
+              "description": "Requiere voz más clara y rechaza más ruido de fondo.",
+              "label": "Estricto"
+            }
+          }
         }
       },
       "cloudDisabled": "Desactivado",

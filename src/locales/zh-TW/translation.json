@@ -691,8 +691,34 @@
     "errors": {
       "unableToAccess": "無法存取麥克風。請檢查權限設定。"
     },
+    "fallbackDeviceName": "麥克風 {{id}}",
     "helpText": "選擇特定的麥克風，或使用系統預設裝置。",
     "inputDevice": "輸入裝置",
+    "inputTest": {
+      "advice": {
+        "good": "輸入音量很好，請保持這個距離說話。",
+        "idle": "開始測試後，靠近麥克風用正常音量說話。",
+        "moveCloser": "請再靠近一點，或將麥克風朝向嘴部。",
+        "tooNoisy": "錄音前請先降低背景噪音。",
+        "tooQuiet": "請靠近麥克風說話，協助 Mouthpiece 區分語音與環境噪音。"
+      },
+      "description": "錄音前檢查即時輸入。音訊只會在本機分析。",
+      "environment": "環境狀態",
+      "environmentStates": {
+        "idle": "尚未測量",
+        "noisy": "嘈雜 · 噪音底 {{level}}%",
+        "normal": "正常 · 噪音底 {{level}}%",
+        "quiet": "安靜 · 噪音底 {{level}}%"
+      },
+      "errors": {
+        "unableToStart": "無法啟動輸入測試，請檢查麥克風權限。"
+      },
+      "nearTalkAdvice": "近講建議",
+      "start": "開始測試",
+      "stop": "停止測試",
+      "title": "輸入測試",
+      "volume": "輸入音量"
+    },
     "noBuiltInDetected": "未偵測到內建麥克風。使用系統預設裝置。",
     "preferBuiltIn": {
       "description": "外接麥克風可能造成延遲或降低轉錄品質",
@@ -1136,6 +1162,64 @@
         "switchedCustom": {
           "description": "設定你自己的供應商和 API Key。",
           "title": "已切換至自訂設定"
+        }
+      },
+      "audioQuality": {
+        "advancedDescription": "只有在背景聲或短暫停頓仍會變成多餘文字時，才提高這些設定。",
+        "advancedTitle": "進階誤啟動控制",
+        "description": "優先減少誤錄，也可以用部分降噪能力換取更低延遲。",
+        "modeDescription": "設定擷取限制與預設語音閘門策略。",
+        "modeLabel": "音訊品質模式",
+        "modes": {
+          "balanced": {
+            "description": "在準確度、反應速度與抑制噪音之間取得平衡。",
+            "label": "平衡"
+          },
+          "low_latency": {
+            "description": "使用較輕的過濾，更快開始和結束。",
+            "label": "低延遲"
+          },
+          "noise_reduction": {
+            "description": "優先減少背景音造成的誤錄。",
+            "label": "減少誤錄"
+          }
+        },
+        "realtimeEndpointing": {
+          "description": "控制即時供應商在結束一句話前等待靜音的時間。",
+          "label": "即時斷句",
+          "options": {
+            "balanced": {
+              "description": "適合自然聽寫的平衡停頓視窗。",
+              "label": "平衡"
+            },
+            "fast": {
+              "description": "更快結束短句，反應更靈敏。",
+              "label": "快速"
+            },
+            "patient": {
+              "description": "在停頓時等待更久，避免過早截斷。",
+              "label": "耐心"
+            }
+          }
+        },
+        "title": "音訊品質與誤錄控制",
+        "voiceGateStrictness": {
+          "description": "控制語音需要達到多高信心才會被接受。",
+          "label": "語音閘門嚴格度",
+          "options": {
+            "relaxed": {
+              "description": "更靈敏，適合較小的說話聲。",
+              "label": "寬鬆"
+            },
+            "standard": {
+              "description": "適合大多數環境的建議預設值。",
+              "label": "標準"
+            },
+            "strict": {
+              "description": "要求更清楚的語音，過濾更多背景噪音。",
+              "label": "嚴格"
+            }
+          }
         }
       },
       "cloudDisabled": "已停用",

@@ -691,8 +691,34 @@
     "errors": {
       "unableToAccess": "Impossible d'accéder au microphone. Veuillez vérifier les permissions."
     },
+    "fallbackDeviceName": "Microphone {{id}}",
     "helpText": "Sélectionnez un microphone spécifique ou utilisez le réglage par défaut du système.",
     "inputDevice": "Périphérique d'entrée",
+    "inputTest": {
+      "advice": {
+        "good": "Bon niveau. Continuez à parler depuis cette distance.",
+        "idle": "Lancez le test et parlez normalement près du microphone.",
+        "moveCloser": "Rapprochez-vous un peu ou orientez le microphone vers votre bouche.",
+        "tooNoisy": "Réduisez le bruit de fond avant d'enregistrer.",
+        "tooQuiet": "Parlez plus près du microphone afin que Mouthpiece distingue la voix du bruit ambiant."
+      },
+      "description": "Vérifiez l'entrée en direct avant d'enregistrer. L'audio reste sur cet appareil.",
+      "environment": "Environnement",
+      "environmentStates": {
+        "idle": "Pas encore mesuré",
+        "noisy": "Bruyant · bruit de fond {{level}}%",
+        "normal": "Normal · bruit de fond {{level}}%",
+        "quiet": "Calme · bruit de fond {{level}}%"
+      },
+      "errors": {
+        "unableToStart": "Impossible de lancer le test d'entrée. Veuillez vérifier les autorisations du microphone."
+      },
+      "nearTalkAdvice": "Conseil de proximité",
+      "start": "Démarrer le test",
+      "stop": "Arrêter le test",
+      "title": "Test d'entrée",
+      "volume": "Volume d'entrée"
+    },
     "noBuiltInDetected": "Aucun microphone intégré détecté. Utilisation du réglage par défaut du système.",
     "preferBuiltIn": {
       "description": "Les microphones externes peuvent causer de la latence ou réduire la qualité de transcription",
@@ -1136,6 +1162,64 @@
         "switchedCustom": {
           "description": "Configurez votre propre fournisseur et clé API.",
           "title": "Basculé vers la configuration personnalisée"
+        }
+      },
+      "audioQuality": {
+        "advancedDescription": "Augmentez ces valeurs uniquement si les bruits de fond ou les courtes pauses produisent encore du texte indésirable.",
+        "advancedTitle": "Contrôles avancés contre les faux départs",
+        "description": "Priorisez moins d'enregistrements accidentels ou échangez une partie du filtrage contre plus de vitesse.",
+        "modeDescription": "Définit les contraintes de capture et le profil par défaut du détecteur de voix.",
+        "modeLabel": "Mode de qualité audio",
+        "modes": {
+          "balanced": {
+            "description": "Équilibre précision, réactivité et rejet du bruit.",
+            "label": "Équilibré"
+          },
+          "low_latency": {
+            "description": "Démarre et termine plus vite avec un filtrage plus léger.",
+            "label": "Faible latence"
+          },
+          "noise_reduction": {
+            "description": "Priorise la réduction des captures erronées dues au son de fond.",
+            "label": "Réduire les fausses captures"
+          }
+        },
+        "realtimeEndpointing": {
+          "description": "Contrôle la durée d'attente des fournisseurs temps réel avant de terminer une phrase.",
+          "label": "Fin de phrase en temps réel",
+          "options": {
+            "balanced": {
+              "description": "Une fenêtre de pause équilibrée pour une dictée naturelle.",
+              "label": "Équilibré"
+            },
+            "fast": {
+              "description": "Termine rapidement les phrases pour des résultats plus réactifs.",
+              "label": "Rapide"
+            },
+            "patient": {
+              "description": "Attend plus longtemps pendant les pauses pour éviter les coupures prématurées.",
+              "label": "Patient"
+            }
+          }
+        },
+        "title": "Qualité audio et contrôle des fausses captures",
+        "voiceGateStrictness": {
+          "description": "Contrôle le niveau de confiance requis pour accepter l'audio comme parole.",
+          "label": "Strictesse du détecteur de voix",
+          "options": {
+            "relaxed": {
+              "description": "Plus sensible, utile pour les voix faibles.",
+              "label": "Souple"
+            },
+            "standard": {
+              "description": "Réglage recommandé pour la plupart des pièces.",
+              "label": "Standard"
+            },
+            "strict": {
+              "description": "Exige une parole plus claire et rejette davantage le bruit de fond.",
+              "label": "Strict"
+            }
+          }
         }
       },
       "cloudDisabled": "Désactivé",

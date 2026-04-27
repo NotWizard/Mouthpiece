@@ -5,14 +5,19 @@ The technical reference below remains the primary architecture map for the curre
 
 ## Repository Baseline
 
-- This repository was re-initialized from the current working tree and now uses a fresh Git history.
-- Do not assume any previous fork history, remotes, or inherited branch structure still apply.
 - Treat the files currently present in this directory as the canonical starting point for future work.
 
 ## Worktree Requirement
 
-- Any feature addition, feature change, or code modification must start from a newly created Git worktree and be implemented inside that worktree.
+- For any feature addition, feature change, or code modification, first ask the user whether to create a new Git worktree and let the user decide.
+- If the user chooses to create a new Git worktree, implement the task inside that worktree.
 - If the current task is already being handled inside an existing Git worktree, continue there and do not create another worktree unless explicitly requested.
+
+## Subagent Usage
+
+- For every task, evaluate whether subagents can be used effectively.
+- When a task can be usefully delegated to subagents, use subagents as much as practical.
+- Set each subagent's reasoning depth to the highest available level.
 
 ## Git Commit Rules
 

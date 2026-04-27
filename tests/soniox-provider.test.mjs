@@ -2,12 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const require = createRequire(import.meta.url);
 
-const read = (relativePath) =>
-  fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+const read = (relativePath) => fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
 
 test("model registry exposes Soniox transcription provider and both official models", () => {
   const registry = JSON.parse(read("src/models/modelRegistryData.json"));
@@ -25,15 +26,30 @@ test("model registry exposes Soniox transcription provider and both official mod
   );
 });
 
-test("shared Soniox helper exists and exposes stream assembly primitives", () => {
+test("shared Soniox helper exists and exposes stream assembly primitives", async () => {
   const helperPath = path.join(repoRoot, "src/helpers/sonioxShared.js");
   assert.ok(fs.existsSync(helperPath), "expected src/helpers/sonioxShared.js to exist");
 
   const helperSource = read("src/helpers/sonioxShared.js");
+  const helperModule = require(helperPath);
+  const helperMjs = await import(
+    pathToFileURL(path.join(repoRoot, "src/helpers/sonioxShared.mjs"))
+  );
+
   assert.match(helperSource, /buildSonioxRealtimeConfig/);
   assert.match(helperSource, /selectSonioxModel/);
   assert.match(helperSource, /accumulateSonioxTokens/);
+  assert.match(helperSource, /enable_endpoint_detection/);
   assert.match(helperSource, /<fin>/);
+
+  assert.equal(
+    helperModule.buildSonioxRealtimeConfig({ apiKey: "soniox-test-key" }).enable_endpoint_detection,
+    true
+  );
+  assert.equal(
+    helperMjs.buildSonioxRealtimeConfig({ apiKey: "soniox-test-key" }).enable_endpoint_detection,
+    true
+  );
 });
 
 test("audio manager contains Soniox-specific runtime routing hooks", () => {

@@ -23,6 +23,17 @@ import {
   STREAMING_SPEECH_GATE_MIN_ACTIVE_MS,
 } from "../utils/streamingSpeechGate.mjs";
 import {
+  getAudioProcessingConstraints,
+  getRealtimeEndpointingConfig,
+} from "../utils/audioQualitySettings.mjs";
+import {
+  advanceSpeechActivityGate,
+  analyzeSpeechActivity,
+  createSilenceFrameLike,
+  createSpeechActivityGateState,
+  getSpeechActivityGateConfig,
+} from "../utils/speechActivityGate.mjs";
+import {
   getSettings,
   getEffectiveReasoningModel,
   isCloudReasoningMode,
@@ -700,6 +711,9 @@ class AudioManager {
     this.streamingSpeechEverDetected = false;
     this.streamingSpeechGateDisabled = false;
     this.streamingSpeechGateState = createStreamingSpeechGateState();
+    this.speechActivityGateDisabled = false;
+    this.speechActivityGateConfig = getSpeechActivityGateConfig();
+    this.speechActivityGateState = createSpeechActivityGateState();
     this.asrFeatureFlags = resolveAsrFeatureFlags();
     this.streamingHeldPartialText = null;
     this.activeSession = null;
@@ -831,6 +845,44 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     this.streamingHeldPartialText = null;
   }
 
+  resetSpeechActivityGate({ disabled = false } = {}) {
+    const settings = getSettings();
+    this.speechActivityGateDisabled =
+      Boolean(disabled) || settings.audioQualityMode === "low_latency";
+    this.speechActivityGateConfig = getSpeechActivityGateConfig({
+      audioQualityMode: settings.audioQualityMode,
+      voiceGateStrictness: settings.voiceGateStrictness,
+    });
+    this.speechActivityGateState = createSpeechActivityGateState();
+  }
+
+  sendRealtimeFrameThroughSpeechActivityGate(provider, pcmFrame) {
+    if (this.speechActivityGateDisabled) {
+      provider.send(pcmFrame);
+      return;
+    }
+
+    const gateResult = advanceSpeechActivityGate(
+      this.speechActivityGateState,
+      pcmFrame,
+      this.speechActivityGateConfig
+    );
+    this.speechActivityGateState = gateResult.state;
+
+    if (gateResult.speechDetected) {
+      this.promoteStreamingSpeechGateFromProvider();
+    }
+
+    if (gateResult.framesToSend.length > 0) {
+      for (const frame of gateResult.framesToSend) {
+        provider.send(frame.samples);
+      }
+      return;
+    }
+
+    provider.send(createSilenceFrameLike(pcmFrame));
+  }
+
   flushHeldStreamingPartialText() {
     if (!this.streamingHeldPartialText) {
       return false;
@@ -960,7 +1012,10 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           this._peakRms = rms;
         }
 
-        if (this.isStreaming || this.streamingStartInProgress) {
+        if (
+          (this.isStreaming || this.streamingStartInProgress) &&
+          this.speechActivityGateDisabled
+        ) {
           this.updateStreamingSpeechGate(rms);
         }
 
@@ -1015,15 +1070,12 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   async getAudioConstraints() {
-    const { preferBuiltInMic: preferBuiltIn, selectedMicDeviceId: selectedDeviceId } =
-      getSettings();
-
-    // Disable browser audio processing — dictation doesn't need it and it adds ~48ms latency
-    const noProcessing = {
-      echoCancellation: false,
-      noiseSuppression: false,
-      autoGainControl: false,
-    };
+    const {
+      preferBuiltInMic: preferBuiltIn,
+      selectedMicDeviceId: selectedDeviceId,
+      audioQualityMode,
+    } = getSettings();
+    const audioProcessing = getAudioProcessingConstraints(audioQualityMode);
 
     if (preferBuiltIn) {
       if (this.cachedMicDeviceId) {
@@ -1032,7 +1084,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           { deviceId: this.cachedMicDeviceId },
           "audio"
         );
-        return { audio: { deviceId: { exact: this.cachedMicDeviceId }, ...noProcessing } };
+        return { audio: { deviceId: { exact: this.cachedMicDeviceId }, ...audioProcessing } };
       }
 
       try {
@@ -1047,7 +1099,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             { deviceId: builtInMic.deviceId, label: builtInMic.label },
             "audio"
           );
-          return { audio: { deviceId: { exact: builtInMic.deviceId }, ...noProcessing } };
+          return { audio: { deviceId: { exact: builtInMic.deviceId }, ...audioProcessing } };
         }
       } catch (error) {
         logger.debug(
@@ -1060,11 +1112,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
     if (!preferBuiltIn && selectedDeviceId) {
       logger.debug("Using selected microphone", { deviceId: selectedDeviceId }, "audio");
-      return { audio: { deviceId: { exact: selectedDeviceId }, ...noProcessing } };
+      return { audio: { deviceId: { exact: selectedDeviceId }, ...audioProcessing } };
     }
 
     logger.debug("Using default microphone", {}, "audio");
-    return { audio: noProcessing };
+    return { audio: audioProcessing };
   }
 
   async cacheMicrophoneDeviceId() {
@@ -1104,6 +1156,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             deviceId: settings.deviceId?.slice(0, 20) + "...",
             sampleRate: settings.sampleRate,
             channelCount: settings.channelCount,
+            echoCancellation: settings.echoCancellation,
+            noiseSuppression: settings.noiseSuppression,
+            autoGainControl: settings.autoGainControl,
           }),
           "audio"
         );
@@ -1221,6 +1276,144 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     return false;
   }
 
+  getBatchSpeechActivityConfig() {
+    const settings = getSettings();
+    return getSpeechActivityGateConfig({
+      audioQualityMode: settings.audioQualityMode,
+      voiceGateStrictness: settings.voiceGateStrictness,
+    });
+  }
+
+  async decodeAudioBlobToMono16kSamples(audioBlob) {
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    const OfflineAudioContextCtor = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!AudioContextCtor || !OfflineAudioContextCtor) {
+      throw new Error("Web Audio decoding is unavailable");
+    }
+
+    const audioContext = new AudioContextCtor();
+    try {
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+      const sampleRate = 16000;
+      const length = Math.max(1, Math.ceil(audioBuffer.duration * sampleRate));
+      const offlineContext = new OfflineAudioContextCtor(1, length, sampleRate);
+      const source = offlineContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(offlineContext.destination);
+      source.start();
+      const renderedBuffer = await offlineContext.startRendering();
+      return renderedBuffer.getChannelData(0).slice();
+    } finally {
+      if (audioContext.state !== "closed") {
+        audioContext.close().catch(() => {});
+      }
+    }
+  }
+
+  samplesToWavBlob(samples, sampleRate = 16000) {
+    const length = samples.length;
+    const arrayBuffer = new ArrayBuffer(44 + length * 2);
+    const view = new DataView(arrayBuffer);
+
+    const writeString = (offset, string) => {
+      for (let index = 0; index < string.length; index += 1) {
+        view.setUint8(offset + index, string.charCodeAt(index));
+      }
+    };
+
+    writeString(0, "RIFF");
+    view.setUint32(4, 36 + length * 2, true);
+    writeString(8, "WAVE");
+    writeString(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, "data");
+    view.setUint32(40, length * 2, true);
+
+    let offset = 44;
+    for (let index = 0; index < length; index += 1) {
+      const sample = Math.max(-1, Math.min(1, samples[index]));
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+      offset += 2;
+    }
+
+    return new Blob([arrayBuffer], { type: "audio/wav" });
+  }
+
+  async preprocessBatchAudioForSpeechActivity(audioBlob, metadata = {}) {
+    const settings = getSettings();
+    if (settings.audioQualityMode === "low_latency") {
+      return { audioBlob, metadata, shouldTranscribe: true };
+    }
+
+    try {
+      const samples = await this.decodeAudioBlobToMono16kSamples(audioBlob);
+      const config = this.getBatchSpeechActivityConfig();
+      const analysis = analyzeSpeechActivity(samples, config);
+
+      logger.info(
+        "Batch speech activity analysis",
+        this.withActiveSessionMeta({
+          shouldTranscribe: analysis.shouldTranscribe,
+          voicedRatio: Number(analysis.voicedRatio.toFixed(3)),
+          voicedFrameCount: analysis.voicedFrameCount,
+          totalFrameCount: analysis.totalFrameCount,
+          maxSpeechProbability: Number(analysis.maxSpeechProbability.toFixed(3)),
+          noiseFloor: Number(analysis.noiseFloor.toFixed(4)),
+        }),
+        "audio"
+      );
+
+      if (!analysis.shouldTranscribe) {
+        return {
+          audioBlob,
+          metadata: { ...metadata, speechActivity: analysis },
+          shouldTranscribe: false,
+        };
+      }
+
+      const trimStart = Math.max(0, analysis.trimStartSample);
+      const trimEnd = Math.min(samples.length, analysis.trimEndSample || samples.length);
+      const shouldTrim = trimEnd > trimStart && (trimStart > 0 || trimEnd < samples.length);
+      const model = this.getTranscriptionModel();
+      const canUseTrimmedWav = settings.useLocalWhisper || !model.includes("gpt-4o");
+
+      if (shouldTrim && canUseTrimmedWav) {
+        const trimmedSamples = samples.slice(trimStart, trimEnd);
+        const trimmedBlob = this.samplesToWavBlob(trimmedSamples, config.sampleRate);
+        return {
+          audioBlob: trimmedBlob,
+          metadata: {
+            ...metadata,
+            durationSeconds: trimmedSamples.length / config.sampleRate,
+            originalDurationSeconds: metadata.durationSeconds,
+            speechActivity: analysis,
+          },
+          shouldTranscribe: true,
+        };
+      }
+
+      return {
+        audioBlob,
+        metadata: { ...metadata, speechActivity: analysis },
+        shouldTranscribe: true,
+      };
+    } catch (error) {
+      logger.debug(
+        "Batch speech activity preprocessing skipped",
+        this.withActiveSessionMeta({ error: error.message }),
+        "audio"
+      );
+      return { audioBlob, metadata, shouldTranscribe: true };
+    }
+  }
+
   async processAudio(audioBlob, metadata = {}) {
     const pipelineStart = performance.now();
 
@@ -1245,6 +1438,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
     try {
       const s = getSettings();
+      let audioForTranscription = audioBlob;
+      let transcriptionMetadata = metadata;
       const useLocalWhisper = s.useLocalWhisper;
       const localProvider = s.localTranscriptionProvider;
       const whisperModel = s.whisperModel;
@@ -1257,6 +1452,22 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         !useLocalWhisper &&
         (cloudTranscriptionMode === "mouthpiece" || cloudTranscriptionMode === "openwhispr");
       const useCloud = isMouthpieceCloudMode && isSignedIn;
+      const speechPreprocessing = await this.preprocessBatchAudioForSpeechActivity(
+        audioForTranscription,
+        transcriptionMetadata
+      );
+
+      if (!speechPreprocessing.shouldTranscribe) {
+        logger.info("Batch speech activity rejected transcription", {}, "audio");
+        this.isProcessing = false;
+        this.onStateChange?.({ isRecording: false, isProcessing: false });
+        this.onTranscriptionComplete?.(this.withActiveSessionResult({ success: true, text: "" }));
+        return;
+      }
+
+      audioForTranscription = speechPreprocessing.audioBlob;
+      transcriptionMetadata = speechPreprocessing.metadata;
+
       logger.debug(
         "Transcription routing",
         { useLocalWhisper, useCloud, isSignedIn, cloudTranscriptionMode },
@@ -1268,10 +1479,18 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       if (useLocalWhisper) {
         if (localProvider === "nvidia") {
           activeModel = parakeetModel;
-          result = await this.processWithLocalParakeet(audioBlob, parakeetModel, metadata);
+          result = await this.processWithLocalParakeet(
+            audioForTranscription,
+            parakeetModel,
+            transcriptionMetadata
+          );
         } else {
           activeModel = whisperModel;
-          result = await this.processWithLocalWhisper(audioBlob, whisperModel, metadata);
+          result = await this.processWithLocalWhisper(
+            audioForTranscription,
+            whisperModel,
+            transcriptionMetadata
+          );
         }
       } else if (isMouthpieceCloudMode) {
         if (!isSignedIn) {
@@ -1282,14 +1501,17 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           throw err;
         }
         activeModel = "mouthpiece-cloud";
-        result = await this.processWithMouthpieceCloud(audioBlob, metadata);
+        result = await this.processWithMouthpieceCloud(
+          audioForTranscription,
+          transcriptionMetadata
+        );
       } else {
         const provider = s.cloudTranscriptionProvider || "openai";
         activeModel = this.getTranscriptionModel();
         if (provider === "soniox") {
-          result = await this.processWithSonioxAsync(audioBlob, metadata);
+          result = await this.processWithSonioxAsync(audioForTranscription, transcriptionMetadata);
         } else {
-          result = await this.processWithOpenAIAPI(audioBlob, metadata);
+          result = await this.processWithOpenAIAPI(audioForTranscription, transcriptionMetadata);
         }
       }
 
@@ -1304,13 +1526,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const timingData = {
         mode: useLocalWhisper ? `local-${localProvider}` : "cloud",
         model: activeModel,
-        audioDurationMs: metadata.durationSeconds
-          ? Math.round(metadata.durationSeconds * 1000)
+        audioDurationMs: transcriptionMetadata.durationSeconds
+          ? Math.round(transcriptionMetadata.durationSeconds * 1000)
           : null,
         reasoningProcessingDurationMs: result?.timings?.reasoningProcessingDurationMs ?? null,
         roundTripDurationMs,
-        audioSizeBytes: audioBlob.size,
-        audioFormat: audioBlob.type,
+        audioSizeBytes: audioForTranscription.size,
+        audioFormat: audioForTranscription.type,
         outputTextLength: result?.text?.length,
       };
 
@@ -2129,7 +2351,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   getStreamingRequestOptions() {
-    const preferredLang = getSettings().preferredLanguage;
+    const settings = getSettings();
+    const preferredLang = settings.preferredLanguage;
     const options = {
       sampleRate: 16000,
       language: preferredLang && preferredLang !== "auto" ? preferredLang : undefined,
@@ -2137,17 +2360,25 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     };
 
     if (this.isByokDeepgramStreamingEnabled()) {
+      const endpointing = getRealtimeEndpointingConfig(
+        settings.realtimeEndpointingMode,
+        "deepgram"
+      );
       return {
         ...options,
         authMode: "apiKey",
         model: this.getTranscriptionModel(),
+        endpointing: endpointing.endpointing,
+        utteranceEndMs: endpointing.utteranceEndMs,
       };
     }
 
     if (this.isByokBailianStreamingEnabled()) {
+      const endpointing = getRealtimeEndpointingConfig(settings.realtimeEndpointingMode, "bailian");
       return {
         ...options,
         model: this.getRealtimeStreamingModel(),
+        silenceDurationMs: endpointing.silenceDurationMs,
       };
     }
 
@@ -3484,6 +3715,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             deviceId: settings.deviceId?.slice(0, 20) + "...",
             sampleRate: settings.sampleRate,
             usedCachedId: !!this.cachedMicDeviceId,
+            echoCancellation: settings.echoCancellation,
+            noiseSuppression: settings.noiseSuppression,
+            autoGainControl: settings.autoGainControl,
           },
           "audio"
         );
@@ -3510,10 +3744,12 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       this.streamingStream = stream;
       this._peakRms = 0;
       this.resetStreamingSpeechGate({ disabled: !this.asrFeatureFlags.multiStateVad });
+      this.resetSpeechActivityGate({ disabled: !this.asrFeatureFlags.multiStateVad });
       this.startInputLevelMonitoring({ stream, audioContext, sourceNode: this.streamingSource });
       if (!this.inputLevelAnalyser) {
         this._peakRms = 1;
         this.resetStreamingSpeechGate({ disabled: true });
+        this.resetSpeechActivityGate({ disabled: true });
       }
 
       if (!this.workletModuleLoaded) {
@@ -3527,7 +3763,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
       this.streamingProcessor.port.onmessage = (event) => {
         if (!this.isStreaming) return;
-        provider.send(event.data);
+        this.sendRealtimeFrameThroughSpeechActivityGate(provider, event.data);
       };
 
       this.isStreaming = true;
@@ -4225,6 +4461,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     clearTimeout(this.streamingTextDebounce);
     this.streamingTextDebounce = null;
     this.resetStreamingSpeechGate();
+    this.resetSpeechActivityGate();
   }
 
   async cleanupStreaming() {

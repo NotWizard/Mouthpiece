@@ -691,8 +691,34 @@
     "errors": {
       "unableToAccess": "Unable to access microphone. Please check permissions."
     },
+    "fallbackDeviceName": "Microphone {{id}}",
     "helpText": "Select a specific microphone or use the system default setting.",
     "inputDevice": "Input Device",
+    "inputTest": {
+      "advice": {
+        "good": "Great level. Keep speaking from this distance.",
+        "idle": "Start the test and speak normally near the microphone.",
+        "moveCloser": "Move a little closer or point the microphone toward your mouth.",
+        "tooNoisy": "Reduce background noise before recording.",
+        "tooQuiet": "Speak closer to the microphone so Mouthpiece can separate speech from room noise."
+      },
+      "description": "Check your live input before recording. Audio stays on this device.",
+      "environment": "Environment",
+      "environmentStates": {
+        "idle": "Not measured yet",
+        "noisy": "Noisy · noise floor {{level}}%",
+        "normal": "Normal · noise floor {{level}}%",
+        "quiet": "Quiet · noise floor {{level}}%"
+      },
+      "errors": {
+        "unableToStart": "Unable to start the input test. Please check microphone permissions."
+      },
+      "nearTalkAdvice": "Close-talk tip",
+      "start": "Start test",
+      "stop": "Stop test",
+      "title": "Input test",
+      "volume": "Input volume"
+    },
     "noBuiltInDetected": "No built-in microphone detected. Using system default.",
     "preferBuiltIn": {
       "description": "External microphones may cause latency or reduced transcription quality",
@@ -1136,6 +1162,64 @@
         "switchedCustom": {
           "description": "Configure your own provider and API key.",
           "title": "Switched to Custom Setup"
+        }
+      },
+      "audioQuality": {
+        "advancedDescription": "Raise these only if background sounds or short pauses still become unwanted text.",
+        "advancedTitle": "Advanced false-start controls",
+        "description": "Prioritize fewer accidental recordings, or trade some filtering for speed.",
+        "modeDescription": "Sets capture constraints and the default speech gate profile.",
+        "modeLabel": "Audio quality mode",
+        "modes": {
+          "balanced": {
+            "description": "Balances accuracy, responsiveness, and noise rejection.",
+            "label": "Balanced"
+          },
+          "low_latency": {
+            "description": "Starts and finishes faster with lighter filtering.",
+            "label": "Low latency"
+          },
+          "noise_reduction": {
+            "description": "Prioritizes reducing false captures from background audio.",
+            "label": "Reduce false captures"
+          }
+        },
+        "realtimeEndpointing": {
+          "description": "Controls how long real-time providers wait before ending a phrase.",
+          "label": "Realtime endpointing",
+          "options": {
+            "balanced": {
+              "description": "A balanced pause window for natural dictation.",
+              "label": "Balanced"
+            },
+            "fast": {
+              "description": "Ends phrases quickly for snappier results.",
+              "label": "Fast"
+            },
+            "patient": {
+              "description": "Waits longer through pauses to avoid premature endings.",
+              "label": "Patient"
+            }
+          }
+        },
+        "title": "Audio quality & false capture control",
+        "voiceGateStrictness": {
+          "description": "Controls how confidently speech must be detected before audio is accepted.",
+          "label": "Voice gate strictness",
+          "options": {
+            "relaxed": {
+              "description": "More sensitive, useful for quiet voices.",
+              "label": "Relaxed"
+            },
+            "standard": {
+              "description": "Recommended default for most rooms.",
+              "label": "Standard"
+            },
+            "strict": {
+              "description": "Requires clearer speech and rejects more background noise.",
+              "label": "Strict"
+            }
+          }
         }
       },
       "cloudDisabled": "Disabled",
