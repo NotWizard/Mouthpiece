@@ -2,7 +2,7 @@ const HotkeyManager = require("./hotkeyManager");
 
 const { isGlobeLikeHotkey, isRightSideModifier } = HotkeyManager;
 
-const AUTOMATIC_ACTIVATION_THRESHOLD_MS = 150;
+const AUTOMATIC_ACTIVATION_THRESHOLD_MS = 350;
 
 function getAutomaticActivationSupport({
   platform = process.platform,

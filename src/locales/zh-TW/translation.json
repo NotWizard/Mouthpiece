@@ -325,6 +325,9 @@
       "pasteCopied": {
         "title": "已複製到剪貼簿",
         "description": "自動貼上未完成。文字已在剪貼簿中。請使用 Cmd+V 或 Ctrl+V 手動貼上。"
+      },
+      "streamingFallback": {
+        "description": "即時轉錄沒有返回文字，已改用錄音音訊進行回退轉寫。"
       }
     },
     "clipboard": {

@@ -18,6 +18,18 @@ async function loadOverlayStateModule() {
   }
 }
 
+async function loadSessionStateModule() {
+  const modulePath = pathToFileURL(
+    path.resolve(process.cwd(), "src/utils/dictationSessionState.mjs")
+  ).href;
+
+  try {
+    return await import(modulePath);
+  } catch {
+    return {};
+  }
+}
+
 test("dictation capsule stays visible for any active dictation stage", async () => {
   const mod = await loadOverlayStateModule();
 
@@ -26,6 +38,25 @@ test("dictation capsule stays visible for any active dictation stage", async () 
   assert.equal(mod.shouldShowDictationCapsule({ isRecording: false, isTranscribing: true }), true);
   assert.equal(mod.shouldShowDictationCapsule({ isRecording: false, isProcessing: true }), true);
   assert.equal(mod.shouldShowDictationCapsule({ isRecording: false, isProcessing: false }), false);
+});
+
+test("dictation capsule treats startup arming as an active visible stage", async () => {
+  const sessionState = await loadSessionStateModule();
+  const overlayState = await loadOverlayStateModule();
+
+  assert.equal(typeof sessionState.getDictationSessionState, "function");
+  const dictationState = sessionState.getDictationSessionState({ isStarting: true });
+
+  assert.equal(dictationState, sessionState.DICTATION_SESSION_STATES.ARMING);
+  assert.equal(overlayState.shouldShowDictationCapsule({ dictationState }), true);
+  assert.equal(
+    overlayState.shouldKeepDictationWindowVisible({
+      dictationState,
+      isCommandMenuOpen: false,
+      toastCount: 0,
+    }),
+    true
+  );
 });
 
 test("dictation window stays visible while dictation is active, menu is open, or toasts are present", async () => {

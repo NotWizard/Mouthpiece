@@ -325,6 +325,9 @@
       "pasteCopied": {
         "title": "In die Zwischenablage kopiert",
         "description": "Das automatische Einfügen wurde nicht abgeschlossen. Der Text befindet sich in Ihrer Zwischenablage. Fügen Sie ihn manuell mit Cmd+V oder Ctrl+V ein."
+      },
+      "streamingFallback": {
+        "description": "Die Echtzeit-Transkription hat keinen Text zurückgegeben. Mouthpiece hat daher die aufgezeichnete Audio-Fallback-Transkription verwendet."
       }
     },
     "clipboard": {

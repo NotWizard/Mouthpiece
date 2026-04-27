@@ -50,6 +50,9 @@ function estimateSpeechProbability({ rms, snrDb, config }) {
 function blendNoiseFloor(noiseFloor, rms, active = false) {
   const current = Math.max(MIN_NOISE_FLOOR, sanitizeNumber(noiseFloor, MIN_NOISE_FLOOR));
   const nextRms = Math.max(MIN_NOISE_FLOOR, sanitizeNumber(rms, 0));
+  if (active && nextRms > current) {
+    return current;
+  }
   const alpha = active ? ACTIVE_NOISE_ALPHA : NOISE_ALPHA;
   return current + (nextRms - current) * alpha;
 }

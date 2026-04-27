@@ -325,6 +325,9 @@
       "pasteCopied": {
         "title": "Copiado al portapapeles",
         "description": "El pegado automático no se completó. El texto está en el portapapeles. Pégalo manualmente con Cmd+V o Ctrl+V."
+      },
+      "streamingFallback": {
+        "description": "La transcripción en tiempo real no devolvió texto, así que Mouthpiece usó la transcripción de respaldo del audio grabado."
       }
     },
     "clipboard": {

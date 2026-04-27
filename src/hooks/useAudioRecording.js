@@ -63,6 +63,18 @@ function shouldShowFallbackToast(result) {
   return typeof result.source === "string" && result.source.includes("fallback");
 }
 
+function getFallbackToastDescription(result, t) {
+  if (
+    result?.fallbackUsed &&
+    typeof result.source === "string" &&
+    result.source.includes("-streaming")
+  ) {
+    return t("hooks.audioRecording.streamingFallback.description");
+  }
+
+  return t("hooks.audioRecording.fallback.description");
+}
+
 function buildLiveTranscriptSegments(state) {
   const nextState =
     state && typeof state === "object"
@@ -108,6 +120,7 @@ export const useAudioRecording = (toast, options = {}) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isStartingRecording, setIsStartingRecording] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
   const [transcript, setTranscript] = useState("");
@@ -126,7 +139,8 @@ export const useAudioRecording = (toast, options = {}) => {
   const stopLockRef = useRef(false);
   const pasteFallbackToastIdRef = useRef(null);
   const { onToggle, dismiss } = options;
-  const isDictationActive = isRecording || isProcessing || isTranscribing;
+  const isDictationActive =
+    isStartingRecording || isRecording || isProcessing || isTranscribing || isStreaming;
 
   const clearPasteFallbackToast = useCallback(() => {
     if (pasteFallbackToastIdRef.current && typeof dismiss === "function") {
@@ -259,6 +273,7 @@ export const useAudioRecording = (toast, options = {}) => {
       }
 
       const shouldUseStreaming = audioManagerRef.current.shouldUseStreaming();
+      setIsStartingRecording(true);
       beginSession(shouldUseStreaming ? "streaming" : "batch");
 
       const didStart = shouldUseStreaming
@@ -274,6 +289,7 @@ export const useAudioRecording = (toast, options = {}) => {
       return didStart;
     } finally {
       startLockRef.current = false;
+      setIsStartingRecording(false);
     }
   }, [beginSession, finalizeSession]);
 
@@ -284,7 +300,13 @@ export const useAudioRecording = (toast, options = {}) => {
       if (!audioManagerRef.current) return false;
 
       const currentState = audioManagerRef.current.getState();
-      if (!currentState.isRecording && !currentState.isStreamingStartInProgress) return false;
+      if (
+        !currentState.isRecording &&
+        !currentState.isStreaming &&
+        !currentState.isStreamingStartInProgress
+      ) {
+        return false;
+      }
 
       if (currentState.isStreaming || currentState.isStreamingStartInProgress) {
         void playStopCue();
@@ -317,6 +339,9 @@ export const useAudioRecording = (toast, options = {}) => {
         setIsRecording(nextIsRecording);
         setIsProcessing(nextIsProcessing);
         setIsStreaming(nextIsStreaming ?? false);
+        if (nextIsRecording || nextIsProcessing) {
+          setIsStartingRecording(false);
+        }
 
         if (nextIsRecording) {
           clearPasteFallbackToast();
@@ -581,7 +606,7 @@ export const useAudioRecording = (toast, options = {}) => {
         if (shouldShowFallbackToast(result)) {
           toast({
             title: t("hooks.audioRecording.fallback.title"),
-            description: t("hooks.audioRecording.fallback.description"),
+            description: getFallbackToastDescription(result, t),
             variant: "default",
           });
         }
@@ -606,9 +631,13 @@ export const useAudioRecording = (toast, options = {}) => {
       if (!audioManagerRef.current) return;
       const currentState = audioManagerRef.current.getState();
 
-      if (!currentState.isRecording && !currentState.isProcessing) {
+      if (currentState.isStreamingStartInProgress) {
+        return;
+      }
+
+      if (!currentState.isRecording && !currentState.isProcessing && !currentState.isStreaming) {
         await performStartRecording();
-      } else if (currentState.isRecording) {
+      } else if (currentState.isRecording || currentState.isStreaming) {
         await performStopRecording();
       }
     };
@@ -748,14 +777,25 @@ export const useAudioRecording = (toast, options = {}) => {
   }, [cancelProcessing, cancelRecording]);
 
   const toggleListening = async () => {
-    if (!isRecording && !isProcessing) {
-      await startRecording();
-    } else if (isRecording) {
-      await stopRecording();
+    const currentState = audioManagerRef.current?.getState?.();
+
+    if (currentState?.isStreamingStartInProgress) {
+      return false;
     }
+
+    if (currentState?.isRecording || currentState?.isStreaming || isRecording || isStreaming) {
+      return stopRecording();
+    }
+
+    if (!currentState?.isProcessing && !isProcessing && !isTranscribing && !isStartingRecording) {
+      return startRecording();
+    }
+
+    return false;
   };
 
   const dictationState = getDictationSessionState({
+    isStarting: isStartingRecording,
     isRecording,
     isProcessing,
     isTranscribing,
@@ -763,6 +803,7 @@ export const useAudioRecording = (toast, options = {}) => {
   });
 
   return {
+    isStarting: isStartingRecording,
     isRecording,
     isProcessing,
     isTranscribing,

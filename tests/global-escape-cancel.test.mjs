@@ -23,7 +23,10 @@ test("preload exposes global dictation cancel controls", async () => {
 test("audio recording hook syncs active dictation state and listens for global cancel events", async () => {
   const source = await readRepoFile("src/hooks/useAudioRecording.js");
 
-  assert.match(source, /const isDictationActive = isRecording \|\| isProcessing \|\| isTranscribing;/);
+  assert.match(
+    source,
+    /const isDictationActive =\s*isStartingRecording \|\| isRecording \|\| isProcessing \|\| isTranscribing \|\| isStreaming;/s
+  );
   assert.match(source, /window\.electronAPI\?\.setDictationCancelEnabled\?\.\(isDictationActive\)/);
   assert.match(source, /const disposeCancel = window\.electronAPI\.onCancelDictation\?\.\(\(\) => \{/);
   assert.match(

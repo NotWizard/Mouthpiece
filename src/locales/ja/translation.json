@@ -325,6 +325,9 @@
       "pasteCopied": {
         "title": "クリップボードにコピーしました",
         "description": "自動貼り付けは完了しませんでした。テキストはクリップボードにあります。Cmd+V または Ctrl+V で手動で貼り付けてください。"
+      },
+      "streamingFallback": {
+        "description": "リアルタイム文字起こしでテキストが返らなかったため、Mouthpiece は録音済み音声のフォールバック文字起こしを使用しました。"
       }
     },
     "clipboard": {

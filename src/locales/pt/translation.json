@@ -312,6 +312,9 @@
       "pasteCopied": {
         "title": "Copiado para a área de transferência",
         "description": "A colagem automática não foi concluída. O texto está na sua área de transferência. Cole manualmente com Cmd+V ou Ctrl+V."
+      },
+      "streamingFallback": {
+        "description": "A transcrição em tempo real não retornou texto, então o Mouthpiece usou a transcrição de fallback do áudio gravado."
       }
     },
     "clipboard": {

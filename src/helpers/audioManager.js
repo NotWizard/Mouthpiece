@@ -862,7 +862,12 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     this.speechActivityGateState = createSpeechActivityGateState();
   }
 
-  sendRealtimeFrameThroughSpeechActivityGate(provider, pcmFrame) {
+  sendRealtimeFrameThroughSpeechActivityGate(provider, pcmFrame, { providerName = null } = {}) {
+    if (providerName === "bailian") {
+      provider.send(pcmFrame);
+      return;
+    }
+
     if (this.speechActivityGateDisabled) {
       provider.send(pcmFrame);
       return;
@@ -3771,7 +3776,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
       this.streamingProcessor.port.onmessage = (event) => {
         if (!this.isStreaming) return;
-        this.sendRealtimeFrameThroughSpeechActivityGate(provider, event.data);
+        this.sendRealtimeFrameThroughSpeechActivityGate(provider, event.data, {
+          providerName: streamingProviderName,
+        });
       };
 
       this.isStreaming = true;

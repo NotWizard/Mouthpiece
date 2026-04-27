@@ -34,6 +34,18 @@ test("streaming stop marks processing active before post-stream guards decide wh
   );
 });
 
+test("useAudioRecording can stop a realtime stream before recording state has caught up", async () => {
+  const source = await fs.readFile(
+    path.resolve(process.cwd(), "src/hooks/useAudioRecording.js"),
+    "utf8"
+  );
+
+  assert.match(
+    source,
+    /if \(\s*!currentState\.isRecording &&\s*!currentState\.isStreaming &&\s*!currentState\.isStreamingStartInProgress\s*\)\s*\{\s*return false;\s*\}/s
+  );
+});
+
 test("useAudioRecording routes realtime overlay cancellation to the dedicated streaming cancel path", async () => {
   const source = await fs.readFile(
     path.resolve(process.cwd(), "src/hooks/useAudioRecording.js"),
@@ -55,6 +67,22 @@ test("useAudioRecording ignores duplicate starts while realtime startup is in pr
   assert.match(
     source,
     /if \(\s*currentState\.isRecording \|\|\s*currentState\.isProcessing \|\|\s*currentState\.isStreaming \|\|\s*currentState\.isStreamingStartInProgress\s*\)\s*\{\s*return false;\s*\}/s
+  );
+});
+
+test("useAudioRecording toggle does not restart while realtime startup is in progress", async () => {
+  const source = await fs.readFile(
+    path.resolve(process.cwd(), "src/hooks/useAudioRecording.js"),
+    "utf8"
+  );
+
+  assert.match(
+    source,
+    /if \(\s*currentState\.isStreamingStartInProgress\s*\)\s*\{\s*return;\s*\}/s
+  );
+  assert.match(
+    source,
+    /else if \(\s*currentState\.isRecording \|\| currentState\.isStreaming\s*\)\s*\{\s*await performStopRecording\(\);\s*\}/s
   );
 });
 

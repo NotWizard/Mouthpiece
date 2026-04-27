@@ -91,6 +91,40 @@ test("speech activity gate keeps hangover frames and then closes", async () => {
   assert.equal(state.speechDetected, false);
 });
 
+test("speech activity gate reopens for softer speech after a pause", async () => {
+  const mod = await loadGateModule();
+  let state = mod.createSpeechActivityGateState();
+  const config = mod.getSpeechActivityGateConfig({
+    audioQualityMode: "noise_reduction",
+    voiceGateStrictness: "standard",
+  });
+  let firstUtteranceSent = 0;
+  let secondUtteranceSent = 0;
+
+  for (let index = 0; index < 8; index += 1) {
+    state = mod.advanceSpeechActivityGate(state, frame(0.004), config).state;
+  }
+
+  for (let index = 0; index < 160; index += 1) {
+    const result = mod.advanceSpeechActivityGate(state, frame(0.052), config);
+    state = result.state;
+    firstUtteranceSent += result.framesToSend.length;
+  }
+
+  for (let index = 0; index < 20; index += 1) {
+    state = mod.advanceSpeechActivityGate(state, frame(0.004), config).state;
+  }
+
+  for (let index = 0; index < 30; index += 1) {
+    const result = mod.advanceSpeechActivityGate(state, frame(0.04), config);
+    state = result.state;
+    secondUtteranceSent += result.framesToSend.length;
+  }
+
+  assert.equal(firstUtteranceSent >= 150, true);
+  assert.equal(secondUtteranceSent >= 20, true);
+});
+
 test("analyzeSpeechActivity rejects noisy clips and keeps speech clips", async () => {
   const mod = await loadGateModule();
   const config = mod.getSpeechActivityGateConfig({

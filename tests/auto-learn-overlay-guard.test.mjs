@@ -11,7 +11,10 @@ test("App queues auto-learn correction toasts until dictation is idle", async ()
   const source = await readRepoFile("src/App.jsx");
 
   assert.match(source, /const pendingLearnedCorrectionsRef = useRef\(\[\]\);/);
-  assert.match(source, /const isDictationBusy = isRecording \|\| isProcessing \|\| isTranscribing;/);
+  assert.match(
+    source,
+    /const isDictationBusy = isStarting \|\| isRecording \|\| isProcessing \|\| isTranscribing;/
+  );
   assert.match(
     source,
     /if \(isDictationBusyRef\.current\) \{\s*pendingLearnedCorrectionsRef\.current\.push\(learnedTerms\);\s*return;\s*\}/s

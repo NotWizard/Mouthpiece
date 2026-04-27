@@ -120,6 +120,7 @@ export default function App() {
   }, [setWindowInteractivity]);
 
   const {
+    isStarting,
     isRecording,
     isProcessing,
     isTranscribing,
@@ -135,7 +136,7 @@ export default function App() {
     dismiss,
   });
 
-  const isDictationBusy = isRecording || isProcessing || isTranscribing;
+  const isDictationBusy = isStarting || isRecording || isProcessing || isTranscribing;
   const capsuleIsBusy = isTranscribing || isProcessing;
   const shouldRenderCapsule = shouldShowDictationCapsule({
     dictationState,

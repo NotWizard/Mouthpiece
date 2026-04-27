@@ -325,6 +325,9 @@
       "pasteCopied": {
         "title": "Copied to Clipboard",
         "description": "Automatic paste did not complete. The text is in your clipboard. Paste it manually with Cmd+V or Ctrl+V."
+      },
+      "streamingFallback": {
+        "description": "Realtime transcription returned no text, so Mouthpiece used the recorded audio fallback."
       }
     },
     "clipboard": {

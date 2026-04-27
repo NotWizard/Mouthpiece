@@ -325,6 +325,9 @@
       "pasteCopied": {
         "title": "Copié dans le presse-papiers",
         "description": "Le collage automatique n'a pas abouti. Le texte se trouve dans votre presse-papiers. Collez-le manuellement avec Cmd+V ou Ctrl+V."
+      },
+      "streamingFallback": {
+        "description": "La transcription en temps réel n’a renvoyé aucun texte ; Mouthpiece a donc utilisé la transcription de secours de l’audio enregistré."
       }
     },
     "clipboard": {

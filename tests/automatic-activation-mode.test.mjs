@@ -31,6 +31,40 @@ function createFakeTimerController() {
   };
 }
 
+function createVirtualTimerController() {
+  let nextId = 1;
+  let now = 0;
+  const pending = new Map();
+
+  return {
+    schedule(callback, delay = 0) {
+      const id = nextId++;
+      pending.set(id, {
+        callback,
+        dueAt: now + delay,
+      });
+      return id;
+    },
+    cancel(id) {
+      pending.delete(id);
+    },
+    advanceTo(nextNow) {
+      now = nextNow;
+      const dueEntries = [...pending.entries()]
+        .filter(([, entry]) => entry.dueAt <= now)
+        .sort(([, left], [, right]) => left.dueAt - right.dueAt);
+
+      for (const [id, entry] of dueEntries) {
+        if (!pending.has(id)) {
+          continue;
+        }
+        pending.delete(id);
+        entry.callback();
+      }
+    },
+  };
+}
+
 test("automatic activation treats a quick release as tap mode", () => {
   const { AUTOMATIC_ACTIVATION_THRESHOLD_MS, createAutomaticActivationSession } =
     loadAutomaticActivationModule();
@@ -56,6 +90,34 @@ test("automatic activation treats a quick release as tap mode", () => {
     active: false,
     holdStarted: false,
   });
+});
+
+test("automatic activation keeps a deliberate single click in tap mode", () => {
+  const { AUTOMATIC_ACTIVATION_THRESHOLD_MS, createAutomaticActivationSession } =
+    loadAutomaticActivationModule();
+  const timers = createVirtualTimerController();
+  const events = [];
+
+  const session = createAutomaticActivationSession({
+    thresholdMs: AUTOMATIC_ACTIVATION_THRESHOLD_MS,
+    schedule: (callback, delay) => timers.schedule(callback, delay),
+    cancel: (id) => timers.cancel(id),
+    onShow: () => events.push("show"),
+    onTap: () => events.push("tap"),
+    onHoldStart: () => events.push("hold-start"),
+    onHoldStop: () => events.push("hold-stop"),
+  });
+
+  session.keyDown();
+  timers.advanceTo(280);
+  const outcome = session.keyUp();
+
+  assert.equal(outcome, "tap");
+  assert.deepEqual(events, ["show", "tap"]);
+  assert.ok(
+    AUTOMATIC_ACTIVATION_THRESHOLD_MS > 280,
+    "automatic activation threshold should leave room for normal single-click duration"
+  );
 });
 
 test("automatic activation enters hold mode after the threshold and stops on release", () => {

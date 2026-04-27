@@ -24,6 +24,7 @@ const ACTIVE_DICTATION_STATES = new Set([
 
 export function getDictationSessionState({
   dictationState = null,
+  isStarting = false,
   isRecording = false,
   isProcessing = false,
   isTranscribing = false,
@@ -58,6 +59,10 @@ export function getDictationSessionState({
 
   if (isProcessing || isTranscribing) {
     return DICTATION_SESSION_STATES.PROCESSING;
+  }
+
+  if (isStarting) {
+    return DICTATION_SESSION_STATES.ARMING;
   }
 
   if (lastEventType === "first_stable_partial") {

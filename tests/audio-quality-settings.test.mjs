@@ -124,6 +124,44 @@ test("audio manager applies capture constraints and gates realtime frames before
   assert.match(source, /provider\.send\(frame\.samples\)/);
 });
 
+test("Bailian realtime sends raw frames to provider server VAD", async () => {
+  const source = await readRepoFile("src/helpers/audioManager.js");
+
+  assert.match(
+    source,
+    /sendRealtimeFrameThroughSpeechActivityGate\(provider,\s*event\.data,\s*\{\s*providerName:\s*streamingProviderName,\s*\}\)/
+  );
+  assert.match(
+    source,
+    /providerName === "bailian"[\s\S]*provider\.send\(pcmFrame\);[\s\S]*return;/s
+  );
+});
+
+test("streaming batch fallback uses realtime-specific toast copy", async () => {
+  const hookSource = await readRepoFile("src/hooks/useAudioRecording.js");
+
+  assert.match(hookSource, /getFallbackToastDescription\(result,\s*t\)/);
+  assert.match(hookSource, /hooks\.audioRecording\.streamingFallback\.description/);
+
+  const localeFiles = [
+    "src/locales/en/translation.json",
+    "src/locales/de/translation.json",
+    "src/locales/es/translation.json",
+    "src/locales/fr/translation.json",
+    "src/locales/it/translation.json",
+    "src/locales/ja/translation.json",
+    "src/locales/pt/translation.json",
+    "src/locales/ru/translation.json",
+    "src/locales/zh-CN/translation.json",
+    "src/locales/zh-TW/translation.json",
+  ];
+
+  for (const file of localeFiles) {
+    const parsed = JSON.parse(await readRepoFile(file));
+    assert.equal(typeof parsed?.hooks?.audioRecording?.streamingFallback?.description, "string");
+  }
+});
+
 test("audio quality locale keys exist across every supported translation file", async () => {
   const localeFiles = [
     "src/locales/en/translation.json",
