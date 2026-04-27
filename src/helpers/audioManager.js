@@ -3936,6 +3936,15 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       this.streamingStartInProgress = false;
       this.stopRequestedDuringStreamingStart = false;
       this.cancelRequestedDuringStreamingStart = false;
+      if (error.code === "START_IN_PROGRESS") {
+        logger.warn("Duplicate streaming start ignored", { error: error.message }, "streaming");
+        await this.cleanupStreaming();
+        this.isRecording = false;
+        this.recordingStartTime = null;
+        this.onStateChange?.({ isRecording: false, isProcessing: false, isStreaming: false });
+        return false;
+      }
+
       logger.error("Failed to start streaming recording", { error: error.message }, "streaming");
 
       let errorTitle = "Streaming Error";

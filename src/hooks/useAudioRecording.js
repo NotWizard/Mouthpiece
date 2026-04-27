@@ -249,7 +249,14 @@ export const useAudioRecording = (toast, options = {}) => {
       if (!audioManagerRef.current) return false;
 
       const currentState = audioManagerRef.current.getState();
-      if (currentState.isRecording || currentState.isProcessing) return false;
+      if (
+        currentState.isRecording ||
+        currentState.isProcessing ||
+        currentState.isStreaming ||
+        currentState.isStreamingStartInProgress
+      ) {
+        return false;
+      }
 
       const shouldUseStreaming = audioManagerRef.current.shouldUseStreaming();
       beginSession(shouldUseStreaming ? "streaming" : "batch");

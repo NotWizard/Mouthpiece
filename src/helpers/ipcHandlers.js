@@ -2767,7 +2767,7 @@ class IPCHandlers {
     ipcMain.handle("assemblyai-streaming-start", async (event, options = {}) => {
       if (streamingStartInProgress) {
         debugLogger.debug("Streaming start already in progress, ignoring", {}, "streaming");
-        return { success: false, error: "Operation in progress" };
+        return { success: false, error: "Operation in progress", code: "START_IN_PROGRESS" };
       }
 
       streamingStartInProgress = true;
@@ -2916,7 +2916,7 @@ class IPCHandlers {
 
     ipcMain.handle("soniox-streaming-start", async (event, options = {}) => {
       if (sonioxStreamingStartInProgress) {
-        return { success: false, error: "Operation in progress" };
+        return { success: false, error: "Operation in progress", code: "START_IN_PROGRESS" };
       }
 
       sonioxStreamingStartInProgress = true;
@@ -3041,7 +3041,7 @@ class IPCHandlers {
 
     ipcMain.handle("bailian-realtime-start", async (event, options = {}) => {
       if (bailianRealtimeStartInProgress) {
-        return { success: false, error: "Operation in progress" };
+        return { success: false, error: "Operation in progress", code: "START_IN_PROGRESS" };
       }
 
       bailianRealtimeStartInProgress = true;
@@ -3300,7 +3300,7 @@ class IPCHandlers {
           {},
           "streaming"
         );
-        return { success: false, error: "Operation in progress" };
+        return { success: false, error: "Operation in progress", code: "START_IN_PROGRESS" };
       }
 
       deepgramStreamingStartInProgress = true;
