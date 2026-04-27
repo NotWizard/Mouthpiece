@@ -287,9 +287,18 @@
       "realtimeDescription": "Show live partial text while you speak and finalize the transcript from the stream. Turn this off to use standard non-streaming transcription."
     },
     "bailian": {
-      "realtimeLabel": "Включить транскрибацию в реальном времени",
-      "realtimeEnabledDescription": "Показывает живой текст во время речи, завершает после остановки записи и переводит Bailian на realtime-модель.",
-      "realtimeDisabledDescription": "Загружает запись после остановки и продолжает использовать текущую пакетную транскрибацию Bailian ASR Flash."
+      "modelMode": {
+        "label": "Режим модели Bailian",
+        "batch": {
+          "title": "Пакетная транскрибация",
+          "description": "Загружает аудио после остановки записи и использует Bailian ASR Flash для стандартной пакетной транскрибации."
+        },
+        "realtime": {
+          "title": "Транскрибация в реальном времени",
+          "description": "Передаёт живой текст во время речи и завершает результат через realtime-модель Bailian после остановки записи."
+        },
+        "selectModel": "Выбрать модель транскрибации Bailian"
+      }
     },
     "soniox": {
       "apiKeyHelp": "Используется и для асинхронной, и для потоковой транскрибации Soniox.",

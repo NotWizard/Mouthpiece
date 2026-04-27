@@ -4,7 +4,10 @@ import { RUNTIME_CONFIG } from "../config/runtimeConfig";
 import i18n, { normalizeUiLanguage } from "../i18n";
 import { hasAnyByokKey } from "../utils/byokDetection";
 import { ensureAgentNameInDictionary } from "../utils/agentName";
-import { normalizeCloudTranscriptionProviderSettings } from "../utils/transcriptionProviderConfig.mjs";
+import {
+  migrateLegacyBailianRealtimeModel,
+  normalizeCloudTranscriptionProviderSettings,
+} from "../utils/transcriptionProviderConfig.mjs";
 import {
   normalizeAudioQualityMode,
   normalizeVoiceGateStrictness,
@@ -169,6 +172,7 @@ function clearLegacySecretSettings(keys: readonly SecretSettingKey[] = SECRET_SE
   }
 }
 
+const INITIAL_BAILIAN_REALTIME_ENABLED = readBoolean("bailianRealtimeEnabled", false);
 const INITIAL_CLOUD_TRANSCRIPTION_SETTINGS = normalizeCloudTranscriptionProviderSettings({
   cloudTranscriptionProvider: readString("cloudTranscriptionProvider", "openai"),
   cloudTranscriptionModel: readString("cloudTranscriptionModel", "gpt-4o-mini-transcribe"),
@@ -178,6 +182,12 @@ const INITIAL_CLOUD_TRANSCRIPTION_SETTINGS = normalizeCloudTranscriptionProvider
   ),
   customTranscriptionApiKey: "",
   bailianApiKey: "",
+  bailianRealtimeEnabled: INITIAL_BAILIAN_REALTIME_ENABLED,
+});
+const INITIAL_LEGACY_BAILIAN_REALTIME_MODEL = migrateLegacyBailianRealtimeModel({
+  cloudTranscriptionProvider: INITIAL_CLOUD_TRANSCRIPTION_SETTINGS.cloudTranscriptionProvider,
+  cloudTranscriptionModel: INITIAL_CLOUD_TRANSCRIPTION_SETTINGS.cloudTranscriptionModel,
+  bailianRealtimeEnabled: INITIAL_BAILIAN_REALTIME_ENABLED,
 });
 
 const LEGACY_CUSTOM_DICTIONARY = readStringArray("customDictionary", []);
@@ -475,7 +485,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   preferredLanguage: readString("preferredLanguage", "auto"),
   cloudTranscriptionProvider: INITIAL_CLOUD_TRANSCRIPTION_SETTINGS.cloudTranscriptionProvider,
   cloudTranscriptionModel:
-    INITIAL_CLOUD_TRANSCRIPTION_SETTINGS.cloudTranscriptionModel || "gpt-4o-mini-transcribe",
+    INITIAL_LEGACY_BAILIAN_REALTIME_MODEL ||
+    INITIAL_CLOUD_TRANSCRIPTION_SETTINGS.cloudTranscriptionModel ||
+    "gpt-4o-mini-transcribe",
   cloudTranscriptionBaseUrl:
     INITIAL_CLOUD_TRANSCRIPTION_SETTINGS.cloudTranscriptionBaseUrl ||
     API_ENDPOINTS.TRANSCRIPTION_BASE,
@@ -878,6 +890,7 @@ export async function initializeSettings(): Promise<void> {
       cloudTranscriptionBaseUrl: refreshedState.cloudTranscriptionBaseUrl,
       customTranscriptionApiKey: refreshedState.customTranscriptionApiKey,
       bailianApiKey: refreshedState.bailianApiKey,
+      bailianRealtimeEnabled: refreshedState.bailianRealtimeEnabled,
     });
     if (
       normalizedCloudTranscriptionSettings.cloudTranscriptionProvider !==

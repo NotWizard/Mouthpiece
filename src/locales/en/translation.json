@@ -287,9 +287,18 @@
       "realtimeDescription": "Show live partial text while you speak and finalize the transcript from the stream. Turn this off to use standard non-streaming transcription."
     },
     "bailian": {
-      "realtimeLabel": "Enable realtime transcription",
-      "realtimeEnabledDescription": "Show live text while you speak, finalize when recording stops, and route Bailian requests to the realtime model.",
-      "realtimeDisabledDescription": "Upload the recording after you stop and continue using the current Bailian ASR Flash batch transcription."
+      "modelMode": {
+        "label": "Bailian model mode",
+        "batch": {
+          "title": "Batch transcription",
+          "description": "Upload audio after recording stops and use Bailian ASR Flash for standard batch transcription."
+        },
+        "realtime": {
+          "title": "Realtime transcription",
+          "description": "Stream live text while you speak and finalize with Bailian's realtime model when recording stops."
+        },
+        "selectModel": "Select a Bailian transcription model"
+      }
     },
     "soniox": {
       "apiKeyHelp": "Used for both Soniox async and realtime transcription.",

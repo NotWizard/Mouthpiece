@@ -1,5 +1,12 @@
+import {
+  BAILIAN_QWEN_ASR_BATCH_MODEL,
+  BAILIAN_QWEN_ASR_REALTIME_MODEL,
+  getBailianQwenAsrMode,
+  normalizeBailianQwenAsrModelId,
+} from "./bailianQwenAsrModels.mjs";
+
 const DASHSCOPE_TRANSCRIPTION_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1";
-const BAILIAN_TRANSCRIPTION_DEFAULT_MODEL = "qwen3-asr-flash";
+const BAILIAN_TRANSCRIPTION_DEFAULT_MODEL = BAILIAN_QWEN_ASR_BATCH_MODEL;
 
 const toTrimmedString = (value) => (typeof value === "string" ? value.trim() : "");
 
@@ -34,6 +41,24 @@ export function isDashScopeTranscriptionBaseUrl(value) {
   return normalizeBaseUrl(value) === DASHSCOPE_TRANSCRIPTION_BASE_URL;
 }
 
+export function migrateLegacyBailianRealtimeModel(settings = {}) {
+  const provider = toTrimmedString(settings.cloudTranscriptionProvider);
+  if (provider !== "bailian" || settings.bailianRealtimeEnabled !== true) {
+    return toTrimmedString(settings.cloudTranscriptionModel);
+  }
+
+  const normalizedModel = normalizeBailianQwenAsrModelId(settings.cloudTranscriptionModel);
+  const mode = getBailianQwenAsrMode(normalizedModel);
+  if (!normalizedModel || mode === "batch" || normalizedModel === BAILIAN_QWEN_ASR_BATCH_MODEL) {
+    return BAILIAN_QWEN_ASR_REALTIME_MODEL;
+  }
+  if (mode === "realtime") {
+    return BAILIAN_QWEN_ASR_REALTIME_MODEL;
+  }
+
+  return toTrimmedString(settings.cloudTranscriptionModel);
+}
+
 export function normalizeCloudTranscriptionProviderSettings(settings = {}) {
   const cloudTranscriptionProvider =
     toTrimmedString(settings.cloudTranscriptionProvider) || "openai";
@@ -47,10 +72,15 @@ export function normalizeCloudTranscriptionProviderSettings(settings = {}) {
     isDashScopeTranscriptionBaseUrl(cloudTranscriptionBaseUrl);
 
   const normalizedProvider = didPromoteCustomDashScope ? "bailian" : cloudTranscriptionProvider;
-  const normalizedModel =
-    normalizedProvider === "bailian"
-      ? cloudTranscriptionModel || BAILIAN_TRANSCRIPTION_DEFAULT_MODEL
-      : cloudTranscriptionModel;
+  const normalizedModel = (() => {
+    if (normalizedProvider !== "bailian") return cloudTranscriptionModel;
+    const model = cloudTranscriptionModel || BAILIAN_TRANSCRIPTION_DEFAULT_MODEL;
+    return migrateLegacyBailianRealtimeModel({
+      cloudTranscriptionProvider: normalizedProvider,
+      cloudTranscriptionModel: model,
+      bailianRealtimeEnabled: settings.bailianRealtimeEnabled,
+    });
+  })();
   const normalizedBailianApiKey =
     normalizedProvider === "bailian" && !bailianApiKey ? customTranscriptionApiKey : bailianApiKey;
 
@@ -63,7 +93,4 @@ export function normalizeCloudTranscriptionProviderSettings(settings = {}) {
   };
 }
 
-export {
-  DASHSCOPE_TRANSCRIPTION_BASE_URL,
-  BAILIAN_TRANSCRIPTION_DEFAULT_MODEL,
-};
+export { DASHSCOPE_TRANSCRIPTION_BASE_URL, BAILIAN_TRANSCRIPTION_DEFAULT_MODEL };

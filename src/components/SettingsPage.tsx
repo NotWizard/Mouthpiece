@@ -282,8 +282,6 @@ interface TranscriptionSectionProps {
   setSonioxRealtimeEnabled: (enabled: boolean) => void;
   bailianApiKey: string;
   setBailianApiKey: (key: string) => void;
-  bailianRealtimeEnabled: boolean;
-  setBailianRealtimeEnabled: (enabled: boolean) => void;
   deepgramStreamingEnabled: boolean;
   setDeepgramStreamingEnabled: (enabled: boolean) => void;
   audioQualityMode: AudioQualityMode;
@@ -336,8 +334,6 @@ function TranscriptionSection({
   setSonioxRealtimeEnabled,
   bailianApiKey,
   setBailianApiKey,
-  bailianRealtimeEnabled,
-  setBailianRealtimeEnabled,
   deepgramStreamingEnabled,
   setDeepgramStreamingEnabled,
   audioQualityMode,
@@ -488,8 +484,6 @@ function TranscriptionSection({
           setSonioxRealtimeEnabled={setSonioxRealtimeEnabled}
           bailianApiKey={bailianApiKey}
           setBailianApiKey={setBailianApiKey}
-          bailianRealtimeEnabled={bailianRealtimeEnabled}
-          setBailianRealtimeEnabled={setBailianRealtimeEnabled}
           deepgramStreamingEnabled={deepgramStreamingEnabled}
           setDeepgramStreamingEnabled={setDeepgramStreamingEnabled}
           customTranscriptionApiKey={customTranscriptionApiKey}
@@ -733,7 +727,6 @@ export default function SettingsPage({
     mistralApiKey,
     sonioxApiKey,
     bailianApiKey,
-    bailianRealtimeEnabled,
     dictationKey,
     audioQualityMode,
     voiceGateStrictness,
@@ -766,7 +759,6 @@ export default function SettingsPage({
     setBailianApiKey,
     sonioxRealtimeEnabled,
     setSonioxRealtimeEnabled,
-    setBailianRealtimeEnabled,
     setAudioQualityMode,
     setVoiceGateStrictness,
     setRealtimeEndpointingMode,
@@ -1316,8 +1308,6 @@ export default function SettingsPage({
             setSonioxRealtimeEnabled={setSonioxRealtimeEnabled}
             bailianApiKey={bailianApiKey}
             setBailianApiKey={setBailianApiKey}
-            bailianRealtimeEnabled={bailianRealtimeEnabled}
-            setBailianRealtimeEnabled={setBailianRealtimeEnabled}
             deepgramStreamingEnabled={deepgramStreamingEnabled}
             setDeepgramStreamingEnabled={setDeepgramStreamingEnabled}
             audioQualityMode={audioQualityMode}

@@ -7,9 +7,9 @@ import { pathToFileURL } from "node:url";
 const repoRoot = process.cwd();
 
 async function importHelper() {
-  const moduleUrl = `${pathToFileURL(
-    path.resolve(repoRoot, "src/utils/transcriptionProviderConfig.mjs")
-  ).href}?ts=${Date.now()}`;
+  const moduleUrl = `${
+    pathToFileURL(path.resolve(repoRoot, "src/utils/transcriptionProviderConfig.mjs")).href
+  }?ts=${Date.now()}`;
   return import(moduleUrl);
 }
 
@@ -51,23 +51,52 @@ test("existing explicit Bailian selection keeps provider explicit and falls back
   assert.equal(normalized.didPromoteCustomDashScope, false);
 });
 
+test("legacy Bailian realtime toggle migrates the default batch model to the realtime model", async () => {
+  const { normalizeCloudTranscriptionProviderSettings } = await importHelper();
+
+  const normalized = normalizeCloudTranscriptionProviderSettings({
+    cloudTranscriptionProvider: "bailian",
+    cloudTranscriptionBaseUrl: "",
+    cloudTranscriptionModel: "qwen3-asr-flash",
+    customTranscriptionApiKey: "",
+    bailianApiKey: "sk-bailian",
+    bailianRealtimeEnabled: true,
+  });
+
+  assert.equal(normalized.cloudTranscriptionProvider, "bailian");
+  assert.equal(normalized.cloudTranscriptionModel, "qwen3-asr-flash-realtime");
+});
+
+test("legacy Bailian realtime toggle preserves an explicit realtime model selection", async () => {
+  const { normalizeCloudTranscriptionProviderSettings } = await importHelper();
+
+  const normalized = normalizeCloudTranscriptionProviderSettings({
+    cloudTranscriptionProvider: "bailian",
+    cloudTranscriptionBaseUrl: "",
+    cloudTranscriptionModel: "qwen3-asr-flash-realtime",
+    customTranscriptionApiKey: "",
+    bailianApiKey: "sk-bailian",
+    bailianRealtimeEnabled: true,
+  });
+
+  assert.equal(normalized.cloudTranscriptionProvider, "bailian");
+  assert.equal(normalized.cloudTranscriptionModel, "qwen3-asr-flash-realtime");
+});
+
 test("audio manager treats Bailian as an explicit provider instead of only using custom Qwen ASR routing", async () => {
   const source = await readRepoFile("src/helpers/audioManager.js");
 
   assert.match(source, /provider === "bailian"/);
   assert.match(source, /const isBailianProvider = provider === "bailian";/);
   assert.match(source, /\(isCustomProvider \|\| isBailianProvider\) && isQwenAsrModel\(model\)/);
-  assert.match(source, /if \(provider === "bailian"\) return "qwen3-asr-flash";/);
+  assert.match(source, /getBailianBatchTranscriptionModel\(trimmedModel\)/);
   assert.match(source, /base = API_ENDPOINTS\.DASHSCOPE_BASE;/);
 });
 
 test("settings store imports the transcription provider normalization helper for startup migration", async () => {
   const source = await readRepoFile("src/stores/settingsStore.ts");
 
-  assert.match(
-    source,
-    /import \{ normalizeCloudTranscriptionProviderSettings \} from "\.\.\/utils\/transcriptionProviderConfig\.mjs";/
-  );
+  assert.match(source, /normalizeCloudTranscriptionProviderSettings/);
   assert.match(source, /normalizeCloudTranscriptionProviderSettings\(/);
   assert.match(source, /setCloudTranscriptionProvider\("bailian"\)|setBailianApiKey\(/);
 });

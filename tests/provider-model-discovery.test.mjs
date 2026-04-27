@@ -180,8 +180,23 @@ test("provider model discovery keeps only trunk Qwen ASR models for Bailian tran
           { id: "qwen3.5-flash" },
         ],
       },
-    }).map((model) => model.value),
-    ["qwen3-asr-flash", "qwen3-asr-flash-realtime"]
+    }).map((model) => ({
+      value: model.value,
+      label: model.label,
+      transcriptionMode: model.transcriptionMode,
+    })),
+    [
+      {
+        value: "qwen3-asr-flash",
+        label: "qwen3-asr-flash",
+        transcriptionMode: "batch",
+      },
+      {
+        value: "qwen3-asr-flash-realtime",
+        label: "qwen3-asr-flash-realtime",
+        transcriptionMode: "realtime",
+      },
+    ]
   );
 });
 

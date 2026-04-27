@@ -287,9 +287,18 @@
       "realtimeDescription": "說話時即時顯示暫時文字，並在串流結束後產生最終轉錄。關閉後改用標準非串流轉錄。"
     },
     "bailian": {
-      "realtimeLabel": "啟用即時轉錄",
-      "realtimeEnabledDescription": "說話時即時顯示目前轉錄文字，停止錄音後完成最終整理，並切換到 Bailian 即時模型。",
-      "realtimeDisabledDescription": "停止錄音後再上傳音訊，並繼續使用目前的 Bailian ASR Flash 批次轉錄。"
+      "modelMode": {
+        "label": "Bailian 模型模式",
+        "batch": {
+          "title": "批次轉錄",
+          "description": "停止錄音後上傳音訊，並使用 Bailian ASR Flash 進行標準批次轉錄。"
+        },
+        "realtime": {
+          "title": "即時轉錄",
+          "description": "說話時即時串流顯示文字，並在停止錄音後使用 Bailian 即時模型完成最終轉錄。"
+        },
+        "selectModel": "選擇 Bailian 轉錄模型"
+      }
     },
     "soniox": {
       "apiKeyHelp": "同時用於 Soniox 的非同步轉錄與即時轉錄。",

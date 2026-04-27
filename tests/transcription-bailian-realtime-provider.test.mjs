@@ -16,7 +16,7 @@ async function loadQwenRealtimeStreaming() {
   return mod.default ?? mod;
 }
 
-test("Bailian realtime toggle is persisted through the settings store and hook", async () => {
+test("legacy Bailian realtime setting is retained only for migration compatibility", async () => {
   const [settingsStoreSource, settingsHookSource] = await Promise.all([
     readRepoFile("src/stores/settingsStore.ts"),
     readRepoFile("src/hooks/useSettings.ts"),
@@ -31,48 +31,43 @@ test("Bailian realtime toggle is persisted through the settings store and hook",
     settingsStoreSource,
     /setBailianRealtimeEnabled: createBooleanSetter\("bailianRealtimeEnabled"\)/
   );
-  assert.match(
-    settingsStoreSource,
-    /if \(settings\.bailianRealtimeEnabled !== undefined\)[\s\S]*s\.setBailianRealtimeEnabled\(settings\.bailianRealtimeEnabled\);/
-  );
+  assert.match(settingsStoreSource, /migrateLegacyBailianRealtimeModel/);
 
   assert.match(settingsHookSource, /bailianRealtimeEnabled: boolean;/);
   assert.match(settingsHookSource, /bailianRealtimeEnabled: store\.bailianRealtimeEnabled,/);
   assert.match(settingsHookSource, /setBailianRealtimeEnabled: store\.setBailianRealtimeEnabled,/);
 });
 
-test("Bailian transcription capsule exposes a realtime toggle without creating a separate provider", async () => {
+test("Bailian transcription capsule derives realtime mode from the selected model", async () => {
   const [transcriptionSource, settingsPageSource] = await Promise.all([
     readRepoFile("src/components/TranscriptionModelPicker.tsx"),
     readRepoFile("src/components/SettingsPage.tsx"),
   ]);
 
-  assert.match(transcriptionSource, /bailianRealtimeEnabled\??: boolean;/);
-  assert.match(transcriptionSource, /setBailianRealtimeEnabled\??: \(enabled: boolean\) => void;/);
-  assert.match(
+  assert.doesNotMatch(transcriptionSource, /bailianRealtimeEnabled\??: boolean;/);
+  assert.doesNotMatch(
     transcriptionSource,
-    /selectedCloudProvider === "bailian"[\s\S]*?<Toggle[\s\S]*checked=\{bailianRealtimeEnabled\}[\s\S]*setBailianRealtimeEnabled/
+    /setBailianRealtimeEnabled\??: \(enabled: boolean\) => void;/
   );
+  assert.doesNotMatch(transcriptionSource, /checked=\{bailianRealtimeEnabled\}/);
   assert.match(
     transcriptionSource,
-    /selectedCloudProvider === "bailian"[\s\S]*transcription\.bailian\.realtimeLabel/
+    /selectedCloudProvider === "bailian"[\s\S]*renderBailianModelModeHint/
   );
+  assert.match(transcriptionSource, /getBailianQwenAsrMode\(selectedCloudModel\)/);
   assert.match(
     transcriptionSource,
-    /selectedCloudProvider === "bailian"[\s\S]*transcription\.bailian\.realtimeEnabledDescription/
-  );
-  assert.match(
-    transcriptionSource,
-    /selectedCloudProvider === "bailian"[\s\S]*transcription\.bailian\.realtimeDisabledDescription/
+    /transcription\.bailian\.modelMode\.\$\{selectedBailianMode\}\.title/
   );
 
-  assert.match(
+  assert.doesNotMatch(settingsPageSource, /bailianRealtimeEnabled=\{bailianRealtimeEnabled\}/);
+  assert.doesNotMatch(
     settingsPageSource,
-    /<TranscriptionModelPicker[\s\S]*bailianApiKey=\{bailianApiKey\}[\s\S]*bailianRealtimeEnabled=\{bailianRealtimeEnabled\}[\s\S]*setBailianRealtimeEnabled=\{setBailianRealtimeEnabled\}/
+    /setBailianRealtimeEnabled=\{setBailianRealtimeEnabled\}/
   );
 });
 
-test("Bailian realtime locale keys exist across every supported translation file", async () => {
+test("Bailian model-mode locale keys exist across every supported translation file", async () => {
   const localeFiles = [
     "src/locales/en/translation.json",
     "src/locales/de/translation.json",
@@ -90,9 +85,12 @@ test("Bailian realtime locale keys exist across every supported translation file
 
   for (const source of localeSources) {
     const parsed = JSON.parse(source);
-    assert.equal(typeof parsed?.transcription?.bailian?.realtimeLabel, "string");
-    assert.equal(typeof parsed?.transcription?.bailian?.realtimeEnabledDescription, "string");
-    assert.equal(typeof parsed?.transcription?.bailian?.realtimeDisabledDescription, "string");
+    assert.equal(typeof parsed?.transcription?.bailian?.modelMode?.label, "string");
+    assert.equal(typeof parsed?.transcription?.bailian?.modelMode?.batch?.title, "string");
+    assert.equal(typeof parsed?.transcription?.bailian?.modelMode?.batch?.description, "string");
+    assert.equal(typeof parsed?.transcription?.bailian?.modelMode?.realtime?.title, "string");
+    assert.equal(typeof parsed?.transcription?.bailian?.modelMode?.realtime?.description, "string");
+    assert.equal(typeof parsed?.transcription?.bailian?.modelMode?.selectModel, "string");
   }
 });
 
@@ -109,11 +107,15 @@ test("audio manager routes Bailian realtime separately from Bailian batch transc
   assert.match(source, /isByokBailianStreamingEnabled\(\)/);
   assert.match(
     source,
-    /getBatchTranscriptionModel\(\) \{[\s\S]*if \(provider === "bailian"\) return "qwen3-asr-flash";/
+    /isByokBailianStreamingEnabled\(\) \{[\s\S]*getBailianQwenAsrMode\(s\.cloudTranscriptionModel\) === "realtime";/
   );
   assert.match(
     source,
-    /getRealtimeStreamingModel\(\) \{[\s\S]*if \(provider === "bailian" && s\.bailianRealtimeEnabled\) return "qwen3-asr-flash-realtime";/
+    /getBatchTranscriptionModel\(\) \{[\s\S]*getBailianBatchTranscriptionModel\(trimmedModel\)/
+  );
+  assert.match(
+    source,
+    /getRealtimeStreamingModel\(\) \{[\s\S]*getBailianRealtimeTranscriptionModel\(trimmedModel\)/
   );
   assert.match(
     source,

@@ -27,6 +27,11 @@ import {
   getRealtimeEndpointingConfig,
 } from "../utils/audioQualitySettings.mjs";
 import {
+  getBailianBatchTranscriptionModel,
+  getBailianQwenAsrMode,
+  getBailianRealtimeTranscriptionModel,
+} from "../utils/bailianQwenAsrModels.mjs";
+import {
   advanceSpeechActivityGate,
   analyzeSpeechActivity,
   createSilenceFrameLike,
@@ -49,6 +54,7 @@ const PLACEHOLDER_KEYS = {
   groq: "your_groq_api_key_here",
   mistral: "your_mistral_api_key_here",
   soniox: "your_soniox_api_key_here",
+  bailian: "your_bailian_api_key_here",
 };
 
 const isValidApiKey = (key, provider = "openai") => {
@@ -2314,11 +2320,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
   isByokBailianStreamingEnabled() {
     const s = getSettings();
+    const isRealtimeModel = getBailianQwenAsrMode(s.cloudTranscriptionModel) === "realtime";
     return (
       !s.useLocalWhisper &&
       s.cloudTranscriptionMode === "byok" &&
       s.cloudTranscriptionProvider === "bailian" &&
-      s.bailianRealtimeEnabled
+      isValidApiKey(s.bailianApiKey, "bailian") &&
+      isRealtimeModel
     );
   }
 
@@ -3279,8 +3287,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         return selectSonioxModel({ requestedModel: trimmedModel, realtimeEnabled: false });
       }
 
-      if (provider === "bailian" && isQwenAsrModel(trimmedModel)) {
-        return trimmedModel;
+      if (provider === "bailian") {
+        return getBailianBatchTranscriptionModel(trimmedModel);
       }
 
       if (provider === "deepgram" && isDeepgramTranscriptionModel(trimmedModel)) {
@@ -3310,7 +3318,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           return selectSonioxModel({ requestedModel: trimmedModel, realtimeEnabled: false });
         }
         if (provider === "bailian" && isBailianModel) {
-          return trimmedModel;
+          return getBailianBatchTranscriptionModel(trimmedModel);
         }
         if (provider === "deepgram" && isDeepgramModel) {
           return trimmedModel;
@@ -3325,7 +3333,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       if (provider === "soniox") {
         return selectSonioxModel({ realtimeEnabled: false });
       }
-      if (provider === "bailian") return "qwen3-asr-flash";
+      if (provider === "bailian") return getBailianBatchTranscriptionModel(trimmedModel);
       return "gpt-4o-mini-transcribe";
     } catch (error) {
       return "gpt-4o-mini-transcribe";
@@ -3342,7 +3350,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         return selectSonioxModel({ requestedModel: trimmedModel, realtimeEnabled: true });
       }
 
-      if (provider === "bailian" && s.bailianRealtimeEnabled) return "qwen3-asr-flash-realtime";
+      if (provider === "bailian") return getBailianRealtimeTranscriptionModel(trimmedModel);
 
       return this.getBatchTranscriptionModel();
     } catch (error) {

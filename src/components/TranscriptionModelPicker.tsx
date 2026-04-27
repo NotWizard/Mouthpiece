@@ -35,6 +35,7 @@ import {
   createProviderModelDiscoveryRequest,
   normalizeProviderModelResponse,
 } from "../utils/providerModelDiscovery.mjs";
+import { getBailianQwenAsrMode } from "../utils/bailianQwenAsrModels.mjs";
 
 interface LocalModel {
   model: string;
@@ -47,6 +48,7 @@ type CloudModelOption = {
   label: string;
   description?: string;
   ownedBy?: string;
+  transcriptionMode?: "batch" | "realtime";
   icon?: string;
   invertInDark?: boolean;
 };
@@ -221,8 +223,6 @@ interface TranscriptionModelPickerProps {
   setSonioxRealtimeEnabled?: (enabled: boolean) => void;
   bailianApiKey?: string;
   setBailianApiKey?: (key: string) => void;
-  bailianRealtimeEnabled?: boolean;
-  setBailianRealtimeEnabled?: (enabled: boolean) => void;
   deepgramStreamingEnabled?: boolean;
   setDeepgramStreamingEnabled?: (enabled: boolean) => void;
   customTranscriptionApiKey?: string;
@@ -311,8 +311,6 @@ export default function TranscriptionModelPicker({
   setSonioxRealtimeEnabled,
   bailianApiKey = "",
   setBailianApiKey,
-  bailianRealtimeEnabled = false,
-  setBailianRealtimeEnabled = () => {},
   deepgramStreamingEnabled = false,
   setDeepgramStreamingEnabled = () => {},
   customTranscriptionApiKey = "",
@@ -937,6 +935,44 @@ export default function TranscriptionModelPicker({
     );
   };
 
+  const renderBailianModelModeHint = () => {
+    const selectedBailianMode = getBailianQwenAsrMode(selectedCloudModel);
+
+    if (!selectedBailianMode) {
+      return (
+        <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2">
+          <div className="text-xs font-medium text-foreground">
+            {t("transcription.bailian.modelMode.label")}
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            {t("transcription.bailian.modelMode.selectModel")}
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2">
+        <div className="flex items-start gap-2">
+          <Zap
+            className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
+              selectedBailianMode === "realtime" ? "text-primary" : "text-muted-foreground"
+            }`}
+          />
+          <div className="min-w-0">
+            <div className="text-xs font-medium text-foreground">
+              {t("transcription.bailian.modelMode.label")} ·{" "}
+              {t(`transcription.bailian.modelMode.${selectedBailianMode}.title`)}
+            </div>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {t(`transcription.bailian.modelMode.${selectedBailianMode}.description`)}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const progressDisplay = useMemo(() => {
     if (!useLocalWhisper) return null;
 
@@ -1220,23 +1256,8 @@ export default function TranscriptionModelPicker({
                   />
                 </div>
 
-                <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2.5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-xs font-medium text-foreground">
-                        {t("transcription.bailian.realtimeLabel")}
-                      </div>
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        {bailianRealtimeEnabled
-                          ? t("transcription.bailian.realtimeEnabledDescription")
-                          : t("transcription.bailian.realtimeDisabledDescription")}
-                      </p>
-                    </div>
-                    <Toggle checked={bailianRealtimeEnabled} onChange={setBailianRealtimeEnabled} />
-                  </div>
-                </div>
-
                 {renderTranscriptionModelDiscoveryPanel()}
+                {renderBailianModelModeHint()}
               </div>
             ) : selectedCloudProvider === "soniox" ? (
               <div className="space-y-3">
