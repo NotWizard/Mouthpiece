@@ -164,6 +164,67 @@ test("provider model discovery normalizes OpenAI-compatible, Gemini, Deepgram, a
   );
 });
 
+test("provider model discovery keeps only trunk Qwen ASR models for Bailian transcription", async () => {
+  const { normalizeProviderModelResponse } = await loadDiscoveryModule();
+
+  assert.deepEqual(
+    normalizeProviderModelResponse({
+      providerId: "bailian",
+      purpose: "transcription",
+      payload: {
+        data: [
+          { id: "qwen3-asr-flash" },
+          { id: "qwen3-asr-flash-realtime" },
+          { id: "qwen3-asr-flash-2026-02-10" },
+          { id: "qwen3-asr-flash-2025-09-08" },
+          { id: "qwen3.5-flash" },
+        ],
+      },
+    }).map((model) => model.value),
+    ["qwen3-asr-flash", "qwen3-asr-flash-realtime"]
+  );
+});
+
+test("provider model discovery derives Bailian Qwen ASR trunk aliases from snapshot-only responses", async () => {
+  const { normalizeProviderModelResponse } = await loadDiscoveryModule();
+
+  const models = normalizeProviderModelResponse({
+    providerId: "bailian",
+    purpose: "transcription",
+    payload: {
+      data: [
+        { id: "qwen3-asr-flash-realtime", owned_by: "system" },
+        { id: "qwen3-asr-flash-2026-02-10", owned_by: "system" },
+        { id: "qwen3-asr-flash-2025-09-08", owned_by: "system" },
+      ],
+    },
+  });
+
+  assert.deepEqual(
+    models.map((model) => model.value),
+    ["qwen3-asr-flash", "qwen3-asr-flash-realtime"]
+  );
+  assert.deepEqual(
+    models.map((model) => model.label),
+    ["qwen3-asr-flash", "qwen3-asr-flash-realtime"]
+  );
+});
+
+test("provider model discovery labels Bailian realtime snapshot aliases as trunk models", async () => {
+  const { normalizeProviderModelResponse } = await loadDiscoveryModule();
+
+  assert.deepEqual(
+    normalizeProviderModelResponse({
+      providerId: "bailian",
+      purpose: "transcription",
+      payload: {
+        data: [{ id: "qwen3-asr-flash-realtime-2026-02-10", owned_by: "system" }],
+      },
+    }).map((model) => ({ value: model.value, label: model.label })),
+    [{ value: "qwen3-asr-flash-realtime", label: "qwen3-asr-flash-realtime" }]
+  );
+});
+
 test("provider model discovery summarizes fetch failures without leaking API keys", async () => {
   const { createModelDiscoveryErrorMessage } = await loadDiscoveryModule();
 

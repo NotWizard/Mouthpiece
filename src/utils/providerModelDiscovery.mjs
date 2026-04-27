@@ -1,5 +1,6 @@
 const DISCOVERY_TIMEOUT_MS = 15000;
 const ANTHROPIC_API_VERSION = "2023-06-01";
+const DATE_SNAPSHOT_SUFFIX_RE = /-\d{4}-\d{2}-\d{2}$/;
 
 export const MODEL_DISCOVERY_DEFAULT_BASE_URLS = {
   openai: "https://api.openai.com/v1",
@@ -192,6 +193,19 @@ function getOwnedBy(item) {
   return undefined;
 }
 
+function createModelOption(providerId, item, value, options = {}) {
+  return {
+    value,
+    label: options.forceValueLabel ? value : normalizeModelLabel(providerId, item, value),
+    description: buildModelDescription(providerId, item),
+    ownedBy: getOwnedBy(item),
+  };
+}
+
+function getBailianQwenTrunkValue(value) {
+  return value.replace(DATE_SNAPSHOT_SUFFIX_RE, "");
+}
+
 function shouldIncludeModel({ providerId, purpose, item, value }) {
   const normalized = value.toLowerCase();
 
@@ -215,7 +229,12 @@ function shouldIncludeModel({ providerId, purpose, item, value }) {
   if (providerId === "openai") return /(whisper|transcribe)/i.test(normalized);
   if (providerId === "groq") return /(whisper|transcribe|distil-whisper)/i.test(normalized);
   if (providerId === "mistral") return /(voxtral|transcrib|audio)/i.test(normalized);
-  if (providerId === "bailian") return /(asr|paraformer|sensevoice|whisper)/i.test(normalized);
+  if (providerId === "bailian") {
+    return (
+      /(asr|paraformer|sensevoice|whisper)/i.test(normalized) &&
+      !DATE_SNAPSHOT_SUFFIX_RE.test(normalized)
+    );
+  }
 
   return true;
 }
@@ -227,17 +246,21 @@ export function normalizeProviderModelResponse({ providerId, purpose, payload } 
   const models = [];
 
   for (const item of rawModels) {
-    const value = normalizeModelValue(normalizedProvider, item);
+    const rawValue = normalizeModelValue(normalizedProvider, item);
+    const value =
+      normalizedProvider === "bailian" && purpose === "transcription"
+        ? getBailianQwenTrunkValue(rawValue)
+        : rawValue;
     if (!value || seen.has(value)) continue;
     if (!shouldIncludeModel({ providerId: normalizedProvider, purpose, item, value })) continue;
 
     seen.add(value);
-    models.push({
-      value,
-      label: normalizeModelLabel(normalizedProvider, item, value),
-      description: buildModelDescription(normalizedProvider, item),
-      ownedBy: getOwnedBy(item),
-    });
+    models.push(
+      createModelOption(normalizedProvider, item, value, {
+        forceValueLabel:
+          normalizedProvider === "bailian" && purpose === "transcription" && rawValue !== value,
+      })
+    );
   }
 
   return models.sort((first, second) => first.label.localeCompare(second.label));
