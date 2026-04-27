@@ -759,11 +759,9 @@
       }
     },
     "edit": {
-      "agentNameLabel": "Nome do agente:",
       "cautionLabel": "Cuidado",
-      "cautionTextPrefix": "Modificar este prompt pode afetar a qualidade da transcrição.",
-      "cautionTextSuffix": "Mantenha o marcador {{agentName}} para preservar a detecção do agente.",
-      "placeholder": "Digite seu prompt de sistema personalizado..."
+      "placeholder": "Digite seu prompt de sistema personalizado...",
+      "cautionText": "Este prompt afeta apenas a limpeza e o refinamento com IA após ASR. Ele pode alterar o estilo, a redação e a fidelidade do texto transcrito otimizado."
     },
     "tabs": {
       "customize": "Personalizar",
@@ -1457,5 +1455,18 @@
       "redirectTitle": "Redirecionando para o app...",
       "closeTab": "Você pode fechar esta aba."
     }
+  },
+  "modelDiscovery": {
+    "fetching": "Buscando modelos do provedor...",
+    "enterApiKey": "Insira uma chave de API para carregar os modelos deste provedor.",
+    "noModels": "Nenhum modelo retornado. Você pode atualizar ou inserir um ID de modelo manualmente.",
+    "noModelsAvailable": "Nenhum modelo disponível",
+    "unableToLoad": "Não foi possível carregar os modelos.",
+    "providerModelHint": "Os modelos são buscados no provedor selecionado após salvar sua chave de API. Escolha um modelo compatível com este fluxo.",
+    "manualEntryLabel": "ID de modelo manual",
+    "manualEntryPlaceholder": "Digite o ID do modelo manualmente",
+    "manualEntryHelp": "Use se o provedor não retornar um modelo ou se quiser testar um modelo recém-lançado.",
+    "selectPlaceholder": "Selecionar um modelo...",
+    "searchPlaceholder": "Buscar modelos..."
   }
 }

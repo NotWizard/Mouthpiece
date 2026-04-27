@@ -111,23 +111,25 @@ function SectionHeader({ title, description }: { title: string; description?: st
   );
 }
 
-function AudioQualityOptionSelect<TValue extends string>({
+function AudioQualityCompactSelect<TValue extends string>({
   value,
   options,
   translationBase,
   onChange,
+  showDescription = false,
 }: {
   value: TValue;
   options: readonly TValue[];
   translationBase: string;
   onChange: (value: TValue) => void;
+  showDescription?: boolean;
 }) {
   const { t } = useTranslation();
 
   return (
-    <div className="w-60 max-w-[48vw] space-y-1.5">
+    <div className="w-56 max-w-[48vw] space-y-1">
       <Select value={value} onValueChange={(nextValue) => onChange(nextValue as TValue)}>
-        <SelectTrigger className="h-9 w-full">
+        <SelectTrigger className="h-8 w-full text-xs">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -138,9 +140,11 @@ function AudioQualityOptionSelect<TValue extends string>({
           ))}
         </SelectContent>
       </Select>
-      <p className="text-xs text-muted-foreground/75 leading-relaxed">
-        {t(`${translationBase}.${value}.description`)}
-      </p>
+      {showDescription && (
+        <p className="text-xs text-muted-foreground/75 leading-snug">
+          {t(`${translationBase}.${value}.description`)}
+        </p>
+      )}
     </div>
   );
 }
@@ -177,54 +181,69 @@ function AudioQualitySettingsCard({
             description={t("settingsPage.transcription.audioQuality.modeDescription")}
             className="items-start"
           >
-            <AudioQualityOptionSelect
+            <AudioQualityCompactSelect
               value={audioQualityMode}
               options={AUDIO_QUALITY_MODE_OPTIONS}
               translationBase="settingsPage.transcription.audioQuality.modes"
               onChange={setAudioQualityMode}
+              showDescription
             />
           </SettingsRow>
         </SettingsPanelRow>
 
-        <SettingsPanelRow className="space-y-3">
-          <div>
+        <SettingsPanelRow className="space-y-2 py-2.5">
+          <div className="flex items-center justify-between gap-3">
             <p className="text-xs font-semibold text-foreground">
               {t("settingsPage.transcription.audioQuality.advancedTitle")}
             </p>
-            <p className="text-xs text-muted-foreground/80 mt-0.5 leading-relaxed">
+            <p className="max-w-md text-right text-xs text-muted-foreground/75 leading-snug">
               {t("settingsPage.transcription.audioQuality.advancedDescription")}
             </p>
           </div>
 
-          <SettingsRow
-            label={t("settingsPage.transcription.audioQuality.voiceGateStrictness.label")}
-            description={t(
-              "settingsPage.transcription.audioQuality.voiceGateStrictness.description"
-            )}
-            className="items-start"
-          >
-            <AudioQualityOptionSelect
-              value={voiceGateStrictness}
-              options={VOICE_GATE_STRICTNESS_OPTIONS}
-              translationBase="settingsPage.transcription.audioQuality.voiceGateStrictness.options"
-              onChange={setVoiceGateStrictness}
-            />
-          </SettingsRow>
+          <div className="grid gap-2 lg:grid-cols-2">
+            <div className="rounded-md border border-border/40 bg-muted/20 px-3 py-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-foreground">
+                    {t("settingsPage.transcription.audioQuality.voiceGateStrictness.label")}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground/75">
+                    {t(
+                      `settingsPage.transcription.audioQuality.voiceGateStrictness.options.${voiceGateStrictness}.description`
+                    )}
+                  </p>
+                </div>
+                <AudioQualityCompactSelect
+                  value={voiceGateStrictness}
+                  options={VOICE_GATE_STRICTNESS_OPTIONS}
+                  translationBase="settingsPage.transcription.audioQuality.voiceGateStrictness.options"
+                  onChange={setVoiceGateStrictness}
+                />
+              </div>
+            </div>
 
-          <SettingsRow
-            label={t("settingsPage.transcription.audioQuality.realtimeEndpointing.label")}
-            description={t(
-              "settingsPage.transcription.audioQuality.realtimeEndpointing.description"
-            )}
-            className="items-start"
-          >
-            <AudioQualityOptionSelect
-              value={realtimeEndpointingMode}
-              options={REALTIME_ENDPOINTING_MODE_OPTIONS}
-              translationBase="settingsPage.transcription.audioQuality.realtimeEndpointing.options"
-              onChange={setRealtimeEndpointingMode}
-            />
-          </SettingsRow>
+            <div className="rounded-md border border-border/40 bg-muted/20 px-3 py-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-foreground">
+                    {t("settingsPage.transcription.audioQuality.realtimeEndpointing.label")}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground/75">
+                    {t(
+                      `settingsPage.transcription.audioQuality.realtimeEndpointing.options.${realtimeEndpointingMode}.description`
+                    )}
+                  </p>
+                </div>
+                <AudioQualityCompactSelect
+                  value={realtimeEndpointingMode}
+                  options={REALTIME_ENDPOINTING_MODE_OPTIONS}
+                  translationBase="settingsPage.transcription.audioQuality.realtimeEndpointing.options"
+                  onChange={setRealtimeEndpointingMode}
+                />
+              </div>
+            </div>
+          </div>
         </SettingsPanelRow>
       </SettingsPanel>
     </div>

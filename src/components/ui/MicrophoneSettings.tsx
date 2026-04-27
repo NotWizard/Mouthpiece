@@ -29,6 +29,9 @@ const QUIET_NOISE_FLOOR_THRESHOLD = 0.025;
 const NOISY_NOISE_FLOOR_THRESHOLD = 0.07;
 const LOW_INPUT_LEVEL_THRESHOLD = 0.03;
 const GOOD_INPUT_LEVEL_THRESHOLD = 0.12;
+const INPUT_STATUS_UPDATE_INTERVAL_MS = 650;
+const MIC_TEST_STATUS_CARD_CLASS = "min-h-[72px] rounded-md bg-muted/40 p-2 dark:bg-surface-1/60";
+const MIC_TEST_DYNAMIC_TEXT_CLASS = "mt-1 min-h-[2rem] text-xs leading-snug text-muted-foreground";
 
 function getRmsLevel(data: Uint8Array<ArrayBuffer>) {
   let sum = 0;
@@ -87,6 +90,9 @@ export const MicrophoneSettings: React.FC<MicrophoneSettingsProps> = ({
   const animationFrameRef = useRef<number | null>(null);
   const analysisBufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const noiseFloorRef = useRef(0);
+  const environmentStateRef = useRef<InputEnvironmentState>("idle");
+  const inputAdviceRef = useRef<InputAdviceState>("idle");
+  const lastInputStatusUpdateRef = useRef(0);
 
   // Keep refs in sync
   useEffect(() => {
@@ -166,6 +172,9 @@ export const MicrophoneSettings: React.FC<MicrophoneSettingsProps> = ({
     }
 
     noiseFloorRef.current = 0;
+    environmentStateRef.current = "idle";
+    inputAdviceRef.current = "idle";
+    lastInputStatusUpdateRef.current = 0;
     setIsInputTestRunning(false);
     setInputLevel(0);
     setNoiseFloor(0);
@@ -194,8 +203,25 @@ export const MicrophoneSettings: React.FC<MicrophoneSettingsProps> = ({
     noiseFloorRef.current = nextNoiseFloor;
     setInputLevel(toDisplayPercent(rms));
     setNoiseFloor(toDisplayPercent(nextNoiseFloor));
-    setEnvironmentState(getEnvironmentState(nextNoiseFloor));
-    setInputAdvice(getInputAdviceState(rms, nextNoiseFloor));
+
+    const now = performance.now();
+    const nextEnvironmentState = getEnvironmentState(nextNoiseFloor);
+    const nextInputAdvice = getInputAdviceState(rms, nextNoiseFloor);
+    const shouldUpdateStatus =
+      lastInputStatusUpdateRef.current === 0 ||
+      now - lastInputStatusUpdateRef.current >= INPUT_STATUS_UPDATE_INTERVAL_MS;
+
+    if (shouldUpdateStatus) {
+      if (nextEnvironmentState !== environmentStateRef.current) {
+        environmentStateRef.current = nextEnvironmentState;
+        setEnvironmentState(nextEnvironmentState);
+      }
+      if (nextInputAdvice !== inputAdviceRef.current) {
+        inputAdviceRef.current = nextInputAdvice;
+        setInputAdvice(nextInputAdvice);
+      }
+      lastInputStatusUpdateRef.current = now;
+    }
 
     animationFrameRef.current = requestAnimationFrame(updateInputAnalysis);
   }, []);
@@ -235,6 +261,9 @@ export const MicrophoneSettings: React.FC<MicrophoneSettingsProps> = ({
       analyserRef.current = analyser;
       analysisBufferRef.current = new Uint8Array(analyser.fftSize);
       noiseFloorRef.current = 0;
+      environmentStateRef.current = "idle";
+      inputAdviceRef.current = "idle";
+      lastInputStatusUpdateRef.current = 0;
       setIsInputTestRunning(true);
       animationFrameRef.current = requestAnimationFrame(updateInputAnalysis);
     } catch {
@@ -357,12 +386,14 @@ export const MicrophoneSettings: React.FC<MicrophoneSettingsProps> = ({
         {inputTestError && <ErrorNotice message={inputTestError} compact />}
 
         <div className="grid gap-2 sm:grid-cols-3">
-          <div className="rounded-md bg-muted/40 p-2 dark:bg-surface-1/60">
+          <div className={MIC_TEST_STATUS_CARD_CLASS}>
             <div className="mb-1 flex items-center justify-between gap-2">
               <span className="text-xs font-medium text-foreground">
                 {t("microphoneSettings.inputTest.volume")}
               </span>
-              <span className="text-xs text-muted-foreground">{inputLevel}%</span>
+              <span className="inline-block w-10 text-right text-xs tabular-nums text-muted-foreground">
+                {inputLevel}%
+              </span>
             </div>
             <div
               className="h-1.5 overflow-hidden rounded-full bg-muted dark:bg-surface-3"
@@ -375,22 +406,22 @@ export const MicrophoneSettings: React.FC<MicrophoneSettingsProps> = ({
             </div>
           </div>
 
-          <div className="rounded-md bg-muted/40 p-2 dark:bg-surface-1/60">
+          <div className={MIC_TEST_STATUS_CARD_CLASS}>
             <p className="text-xs font-medium text-foreground">
               {t("microphoneSettings.inputTest.environment")}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className={MIC_TEST_DYNAMIC_TEXT_CLASS}>
               {t(`microphoneSettings.inputTest.environmentStates.${environmentState}`, {
                 level: noiseFloor,
               })}
             </p>
           </div>
 
-          <div className="rounded-md bg-muted/40 p-2 dark:bg-surface-1/60">
+          <div className={MIC_TEST_STATUS_CARD_CLASS}>
             <p className="text-xs font-medium text-foreground">
               {t("microphoneSettings.inputTest.nearTalkAdvice")}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className={MIC_TEST_DYNAMIC_TEXT_CLASS}>
               {t(`microphoneSettings.inputTest.advice.${inputAdvice}`)}
             </p>
           </div>

@@ -5,7 +5,7 @@ import { Input } from "./ui/input";
 import { Download, Trash2, Cloud, Lock, X, Zap, Check } from "lucide-react";
 import { ProviderIcon } from "./ui/ProviderIcon";
 import { ProviderTabs } from "./ui/ProviderTabs";
-import ModelCardList from "./ui/ModelCardList";
+import SearchableModelSelect from "./ui/SearchableModelSelect";
 import { DownloadProgressBar } from "./ui/DownloadProgressBar";
 import ApiKeyInput from "./ui/ApiKeyInput";
 import { Toggle } from "./ui/toggle";
@@ -14,7 +14,6 @@ import { useDialogs } from "../hooks/useDialogs";
 import { useModelDownload, type DownloadProgress } from "../hooks/useModelDownload";
 import {
   getTranscriptionProviders,
-  TranscriptionProviderData,
   WHISPER_MODEL_INFO,
   PARAKEET_MODEL_INFO,
 } from "../models/ModelRegistry";
@@ -27,15 +26,30 @@ import { getProviderIcon, isMonochromeProvider } from "../utils/providerIcons";
 import { API_ENDPOINTS, normalizeBaseUrl } from "../config/constants";
 import { createExternalLinkHandler } from "../utils/externalLinks";
 import { getCachedPlatform } from "../utils/platform";
+import { isSecureEndpoint } from "../utils/urlUtils";
 import type { CudaWhisperStatus } from "../types/electron";
 import logger from "../utils/logger";
-import { selectSonioxModel } from "../helpers/sonioxShared.mjs";
+import {
+  createModelDiscoveryErrorMessage,
+  createProviderModelDiscoveryCacheKey,
+  createProviderModelDiscoveryRequest,
+  normalizeProviderModelResponse,
+} from "../utils/providerModelDiscovery.mjs";
 
 interface LocalModel {
   model: string;
   size_mb?: number;
   downloaded?: boolean;
 }
+
+type CloudModelOption = {
+  value: string;
+  label: string;
+  description?: string;
+  ownedBy?: string;
+  icon?: string;
+  invertInDark?: boolean;
+};
 
 interface LocalModelCardProps {
   modelId: string;
@@ -322,12 +336,24 @@ export default function TranscriptionModelPicker({
     percentage: 0,
   });
   const [cudaDismissed, setCudaDismissed] = useState(false);
+  const [discoveredCloudModelOptions, setDiscoveredCloudModelOptions] = useState<
+    CloudModelOption[]
+  >([]);
+  const [modelDiscoveryLoading, setModelDiscoveryLoading] = useState(false);
+  const [modelDiscoveryError, setModelDiscoveryError] = useState<string | null>(null);
+  const [manualCloudModelInput, setManualCloudModelInput] = useState(selectedCloudModel);
+  const lastLoadedDiscoveryRef = useRef<string | null>(null);
+  const pendingDiscoveryRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (selectedLocalProvider !== internalLocalProvider) {
       setInternalLocalProvider(selectedLocalProvider);
     }
   }, [internalLocalProvider, selectedLocalProvider]);
+
+  useEffect(() => {
+    setManualCloudModelInput(selectedCloudModel);
+  }, [selectedCloudModel]);
   const isLoadingRef = useRef(false);
   const isLoadingParakeetRef = useRef(false);
   const loadLocalModelsRef = useRef<(() => Promise<void>) | null>(null);
@@ -343,17 +369,6 @@ export default function TranscriptionModelPicker({
   const cloudProviderTabs = CLOUD_PROVIDER_TABS.map((provider) =>
     provider.id === "custom" ? { ...provider, name: t("transcription.customProvider") } : provider
   );
-
-  useEffect(() => {
-    if (selectedCloudProvider !== "soniox") return;
-    const nextModel = selectSonioxModel({
-      requestedModel: selectedCloudModel,
-      realtimeEnabled: sonioxRealtimeEnabled,
-    });
-    if (nextModel !== selectedCloudModel) {
-      onCloudModelSelect(nextModel);
-    }
-  }, [onCloudModelSelect, selectedCloudModel, selectedCloudProvider, sonioxRealtimeEnabled]);
 
   useEffect(() => {
     selectedLocalModelRef.current = selectedLocalModel;
@@ -428,25 +443,10 @@ export default function TranscriptionModelPicker({
         const firstProvider = cloudProviders[0];
         if (firstProvider) {
           onCloudProviderSelect(firstProvider.id);
-          if (firstProvider.models?.length) {
-            onCloudModelSelect(firstProvider.models[0].id);
-          }
         }
       }
-    } else if (selectedCloudProvider !== "custom" && !selectedCloudModel) {
-      const provider = cloudProviders.find((p) => p.id === selectedCloudProvider);
-      if (provider?.models?.length) {
-        onCloudModelSelect(provider.models[0].id);
-      }
     }
-  }, [
-    cloudProviders,
-    cloudTranscriptionBaseUrl,
-    selectedCloudProvider,
-    selectedCloudModel,
-    onCloudProviderSelect,
-    onCloudModelSelect,
-  ]);
+  }, [cloudProviders, cloudTranscriptionBaseUrl, selectedCloudProvider, onCloudProviderSelect]);
 
   useEffect(() => {
     loadLocalModelsRef.current = loadLocalModels;
@@ -568,38 +568,220 @@ export default function TranscriptionModelPicker({
     [onModeChange, ensureValidCloudSelection]
   );
 
+  const getTranscriptionProviderApiKey = useCallback(
+    (providerId: string) => {
+      switch (providerId) {
+        case "openai":
+          return openaiApiKey;
+        case "deepgram":
+          return deepgramApiKey;
+        case "groq":
+          return groqApiKey;
+        case "mistral":
+          return mistralApiKey;
+        case "soniox":
+          return sonioxApiKey;
+        case "bailian":
+          return bailianApiKey;
+        case "custom":
+          return customTranscriptionApiKey;
+        default:
+          return "";
+      }
+    },
+    [
+      bailianApiKey,
+      customTranscriptionApiKey,
+      deepgramApiKey,
+      groqApiKey,
+      mistralApiKey,
+      openaiApiKey,
+      sonioxApiKey,
+    ]
+  );
+
+  const getTranscriptionProviderBaseUrl = useCallback(
+    (providerId: string, baseOverride?: string) => {
+      if (providerId === "custom") {
+        return normalizeBaseUrl(baseOverride ?? cloudTranscriptionBaseUrl);
+      }
+      return normalizeBaseUrl(
+        cloudProviders.find((provider) => provider.id === providerId)?.baseUrl
+      );
+    },
+    [cloudProviders, cloudTranscriptionBaseUrl]
+  );
+
+  const loadDiscoveredCloudModels = useCallback(
+    async (providerOverride?: string, force = false, baseOverride?: string) => {
+      const providerId = providerOverride || selectedCloudProvider;
+      const base = getTranscriptionProviderBaseUrl(providerId, baseOverride);
+      const apiKey = (getTranscriptionProviderApiKey(providerId) || "").trim();
+      const discoveryKey = createProviderModelDiscoveryCacheKey({
+        providerId,
+        baseUrl: base,
+        apiKey,
+      });
+
+      if (!base) {
+        setDiscoveredCloudModelOptions([]);
+        setModelDiscoveryError(null);
+        setModelDiscoveryLoading(false);
+        lastLoadedDiscoveryRef.current = null;
+        pendingDiscoveryRef.current = null;
+        return;
+      }
+
+      if (providerId !== "custom" && !apiKey) {
+        setDiscoveredCloudModelOptions([]);
+        setModelDiscoveryError(null);
+        setModelDiscoveryLoading(false);
+        lastLoadedDiscoveryRef.current = null;
+        pendingDiscoveryRef.current = null;
+        return;
+      }
+
+      if (!base.includes("://")) {
+        setDiscoveredCloudModelOptions([]);
+        setModelDiscoveryError(t("reasoning.custom.endpointWithProtocol"));
+        setModelDiscoveryLoading(false);
+        lastLoadedDiscoveryRef.current = null;
+        pendingDiscoveryRef.current = null;
+        return;
+      }
+
+      if (!isSecureEndpoint(base)) {
+        setDiscoveredCloudModelOptions([]);
+        setModelDiscoveryError(t("reasoning.custom.httpsRequired"));
+        setModelDiscoveryLoading(false);
+        lastLoadedDiscoveryRef.current = null;
+        pendingDiscoveryRef.current = null;
+        return;
+      }
+
+      if (!force && lastLoadedDiscoveryRef.current === discoveryKey) return;
+      if (!force && pendingDiscoveryRef.current === discoveryKey) return;
+
+      pendingDiscoveryRef.current = discoveryKey;
+      setModelDiscoveryLoading(true);
+      setModelDiscoveryError(null);
+      setDiscoveredCloudModelOptions([]);
+
+      try {
+        if (!window.electronAPI?.processCloudReasoningRequest) {
+          throw new Error(t("modelDiscovery.unableToLoad"));
+        }
+
+        const request = createProviderModelDiscoveryRequest({
+          providerId,
+          purpose: "transcription",
+          baseUrl: base,
+          apiKey,
+        });
+        const response = await window.electronAPI.processCloudReasoningRequest({
+          endpoint: request.endpoint,
+          method: request.method,
+          headers: request.headers as unknown as Record<string, string>,
+          timeoutMs: request.timeoutMs,
+        });
+
+        if (!response.ok) {
+          throw new Error(createModelDiscoveryErrorMessage(response));
+        }
+
+        const icon = getProviderIcon(providerId);
+        const invertInDark = isMonochromeProvider(providerId);
+        const mappedModels = normalizeProviderModelResponse({
+          providerId,
+          purpose: "transcription",
+          payload: response.json || {},
+        }).map((model: CloudModelOption) => ({
+          ...model,
+          icon,
+          invertInDark,
+        }));
+
+        if (pendingDiscoveryRef.current !== discoveryKey) return;
+
+        setDiscoveredCloudModelOptions(mappedModels);
+        if (
+          selectedCloudModel &&
+          mappedModels.length > 0 &&
+          !mappedModels.some((model: CloudModelOption) => model.value === selectedCloudModel)
+        ) {
+          onCloudModelSelect("");
+        }
+        setModelDiscoveryError(null);
+        lastLoadedDiscoveryRef.current = discoveryKey;
+      } catch (error) {
+        if (pendingDiscoveryRef.current === discoveryKey) {
+          setModelDiscoveryError(createModelDiscoveryErrorMessage(error));
+          setDiscoveredCloudModelOptions([]);
+        }
+      } finally {
+        if (pendingDiscoveryRef.current === discoveryKey) {
+          pendingDiscoveryRef.current = null;
+        }
+        setModelDiscoveryLoading(false);
+      }
+    },
+    [
+      getTranscriptionProviderApiKey,
+      getTranscriptionProviderBaseUrl,
+      onCloudModelSelect,
+      selectedCloudModel,
+      selectedCloudProvider,
+      t,
+    ]
+  );
+
+  useEffect(() => {
+    if (useLocalWhisper) return;
+    loadDiscoveredCloudModels();
+  }, [
+    useLocalWhisper,
+    selectedCloudProvider,
+    cloudTranscriptionBaseUrl,
+    openaiApiKey,
+    deepgramApiKey,
+    groqApiKey,
+    mistralApiKey,
+    sonioxApiKey,
+    bailianApiKey,
+    customTranscriptionApiKey,
+    loadDiscoveredCloudModels,
+  ]);
+
   const handleCloudProviderChange = useCallback(
     (providerId: string) => {
       onCloudProviderSelect(providerId);
       const provider = cloudProviders.find((p) => p.id === providerId);
 
       if (providerId === "custom") {
-        onCloudModelSelect("whisper-1");
+        onCloudModelSelect("");
+        setDiscoveredCloudModelOptions([]);
+        setModelDiscoveryError(null);
+        lastLoadedDiscoveryRef.current = null;
+        pendingDiscoveryRef.current = null;
         return;
-      }
-
-      if (providerId === "soniox") {
-        onCloudModelSelect(
-          selectSonioxModel({
-            requestedModel: provider?.models?.[0]?.id,
-            realtimeEnabled: sonioxRealtimeEnabled,
-          })
-        );
       }
 
       if (provider) {
         setCloudTranscriptionBaseUrl?.(provider.baseUrl);
-        if (provider.models?.length && providerId !== "soniox") {
-          onCloudModelSelect(provider.models[0].id);
-        }
       }
+      onCloudModelSelect("");
+      setDiscoveredCloudModelOptions([]);
+      setModelDiscoveryError(null);
+      lastLoadedDiscoveryRef.current = null;
+      pendingDiscoveryRef.current = null;
+      loadDiscoveredCloudModels(providerId, true);
     },
     [
       cloudProviders,
       onCloudProviderSelect,
       onCloudModelSelect,
       setCloudTranscriptionBaseUrl,
-      sonioxRealtimeEnabled,
+      loadDiscoveredCloudModels,
     ]
   );
 
@@ -646,7 +828,7 @@ export default function TranscriptionModelPicker({
       const providerNormalized = normalizeBaseUrl(provider.baseUrl);
       if (normalizedForProviderMatch === providerNormalized) {
         onCloudProviderSelect(provider.id);
-        onCloudModelSelect(provider.models?.[0]?.id || "whisper-1");
+        onCloudModelSelect("");
         break;
       }
     }
@@ -679,35 +861,81 @@ export default function TranscriptionModelPicker({
     [showConfirmDialog, deleteModel, validateAndSelectModel, t]
   );
 
-  const currentCloudProvider = useMemo<TranscriptionProviderData | undefined>(
-    () => cloudProviders.find((p) => p.id === selectedCloudProvider),
-    [cloudProviders, selectedCloudProvider]
-  );
-
   const cloudModelOptions = useMemo(() => {
-    if (!currentCloudProvider) return [];
-    const visibleModels =
-      currentCloudProvider.id === "soniox"
-        ? currentCloudProvider.models.filter(
-            (model) =>
-              model.id ===
-              selectSonioxModel({
-                requestedModel: model.id,
-                realtimeEnabled: sonioxRealtimeEnabled,
-              })
-          )
-        : currentCloudProvider.models;
+    return discoveredCloudModelOptions;
+  }, [discoveredCloudModelOptions]);
 
-    return visibleModels.map((m) => ({
-      value: m.id,
-      label: m.name,
-      description: m.descriptionKey
-        ? t(m.descriptionKey, { defaultValue: m.description })
-        : m.description,
-      icon: getProviderIcon(selectedCloudProvider),
-      invertInDark: isMonochromeProvider(selectedCloudProvider),
-    }));
-  }, [currentCloudProvider, selectedCloudProvider, sonioxRealtimeEnabled, t]);
+  const handleRefreshDiscoveredModels = () => {
+    loadDiscoveredCloudModels(selectedCloudProvider, true);
+  };
+
+  const handleManualCloudModelChange = (value: string) => {
+    setManualCloudModelInput(value);
+    onCloudModelSelect(value.trim());
+  };
+
+  const renderTranscriptionModelDiscoveryPanel = () => {
+    const hasProviderApiKey =
+      selectedCloudProvider === "custom" ||
+      Boolean((getTranscriptionProviderApiKey(selectedCloudProvider) || "").trim());
+    const hasEndpoint =
+      selectedCloudProvider !== "custom" || Boolean((cloudTranscriptionBaseUrl || "").trim());
+
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <label className="text-xs font-medium text-foreground">{t("common.model")}</label>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={handleRefreshDiscoveredModels}
+            disabled={modelDiscoveryLoading || !hasEndpoint}
+            className="h-7 px-2 text-xs"
+          >
+            {modelDiscoveryLoading ? t("common.loading") : t("common.refresh")}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">{t("modelDiscovery.providerModelHint")}</p>
+        {!hasEndpoint && (
+          <p className="text-xs text-warning">{t("reasoning.custom.enterEndpoint")}</p>
+        )}
+        {!hasProviderApiKey && (
+          <p className="text-xs text-warning">{t("modelDiscovery.enterApiKey")}</p>
+        )}
+        {modelDiscoveryLoading && (
+          <p className="text-xs text-primary">{t("modelDiscovery.fetching")}</p>
+        )}
+        {modelDiscoveryError && <p className="text-xs text-warning">{modelDiscoveryError}</p>}
+        {!modelDiscoveryLoading &&
+          !modelDiscoveryError &&
+          hasProviderApiKey &&
+          cloudModelOptions.length === 0 && (
+            <p className="text-xs text-warning">{t("modelDiscovery.noModels")}</p>
+          )}
+        <SearchableModelSelect
+          models={cloudModelOptions}
+          selectedModel={selectedCloudModel}
+          onModelSelect={onCloudModelSelect}
+          placeholder={t("modelDiscovery.selectPlaceholder")}
+          searchPlaceholder={t("modelDiscovery.searchPlaceholder")}
+          emptyMessage={t("modelDiscovery.noModelsAvailable")}
+        />
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-foreground">
+            {t("modelDiscovery.manualEntryLabel")}
+          </label>
+          <Input
+            value={manualCloudModelInput}
+            onChange={(event) => handleManualCloudModelChange(event.target.value)}
+            placeholder={t("modelDiscovery.manualEntryPlaceholder")}
+            className="h-8 text-sm"
+          />
+          <p className="text-xs text-muted-foreground/75">{t("modelDiscovery.manualEntryHelp")}</p>
+        </div>
+      </div>
+    );
+  };
 
   const progressDisplay = useMemo(() => {
     if (!useLocalWhisper) return null;
@@ -921,17 +1149,7 @@ export default function TranscriptionModelPicker({
                   saveMode="immediate"
                 />
 
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-medium text-foreground">
-                    {t("common.model")}
-                  </label>
-                  <Input
-                    value={selectedCloudModel}
-                    onChange={(e) => onCloudModelSelect(e.target.value)}
-                    placeholder="whisper-1"
-                    className="h-8 text-sm"
-                  />
-                </div>
+                {renderTranscriptionModelDiscoveryPanel()}
               </div>
             ) : selectedCloudProvider === "deepgram" ? (
               <div className="space-y-3">
@@ -976,15 +1194,7 @@ export default function TranscriptionModelPicker({
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">{t("common.model")}</label>
-                  <ModelCardList
-                    models={cloudModelOptions}
-                    selectedModel={selectedCloudModel}
-                    onModelSelect={onCloudModelSelect}
-                    colorScheme="purple"
-                  />
-                </div>
+                {renderTranscriptionModelDiscoveryPanel()}
               </div>
             ) : selectedCloudProvider === "bailian" ? (
               <div className="space-y-3">
@@ -1026,15 +1236,7 @@ export default function TranscriptionModelPicker({
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">{t("common.model")}</label>
-                  <ModelCardList
-                    models={cloudModelOptions}
-                    selectedModel={selectedCloudModel}
-                    onModelSelect={onCloudModelSelect}
-                    colorScheme="purple"
-                  />
-                </div>
+                {renderTranscriptionModelDiscoveryPanel()}
               </div>
             ) : selectedCloudProvider === "soniox" ? (
               <div className="space-y-3">
@@ -1076,29 +1278,12 @@ export default function TranscriptionModelPicker({
                       checked={sonioxRealtimeEnabled}
                       onChange={(checked) => {
                         setSonioxRealtimeEnabled?.(checked);
-                        onCloudModelSelect(
-                          selectSonioxModel({
-                            requestedModel: selectedCloudModel,
-                            realtimeEnabled: checked,
-                          })
-                        );
                       }}
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">{t("common.model")}</label>
-                  <ModelCardList
-                    models={cloudModelOptions}
-                    selectedModel={selectSonioxModel({
-                      requestedModel: selectedCloudModel,
-                      realtimeEnabled: sonioxRealtimeEnabled,
-                    })}
-                    onModelSelect={onCloudModelSelect}
-                    colorScheme="purple"
-                  />
-                </div>
+                {renderTranscriptionModelDiscoveryPanel()}
               </div>
             ) : (
               <div className="space-y-2">
@@ -1137,15 +1322,7 @@ export default function TranscriptionModelPicker({
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">{t("common.model")}</label>
-                  <ModelCardList
-                    models={cloudModelOptions}
-                    selectedModel={selectedCloudModel}
-                    onModelSelect={onCloudModelSelect}
-                    colorScheme="purple"
-                  />
-                </div>
+                {renderTranscriptionModelDiscoveryPanel()}
               </div>
             )}
           </div>

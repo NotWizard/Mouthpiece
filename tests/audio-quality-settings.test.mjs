@@ -90,10 +90,22 @@ test("control panel exposes audio quality UI without hardcoded labels", async ()
   assert.match(source, /function AudioQualitySettingsCard/);
   assert.match(source, /settingsPage\.transcription\.audioQuality\.title/);
   assert.match(source, /settingsPage\.transcription\.audioQuality\.advancedTitle/);
+  assert.match(source, /AudioQualityCompactSelect/);
+  assert.doesNotMatch(source, /SettingsPanelRow className="space-y-3"/);
   assert.match(source, /audioQualityMode=\{audioQualityMode\}/);
   assert.match(source, /setAudioQualityMode=\{setAudioQualityMode\}/);
   assert.match(source, /voiceGateStrictness=\{voiceGateStrictness\}/);
   assert.match(source, /realtimeEndpointingMode=\{realtimeEndpointingMode\}/);
+});
+
+test("microphone input test reserves stable space for dynamic status text", async () => {
+  const source = await readRepoFile("src/components/ui/MicrophoneSettings.tsx");
+
+  assert.match(source, /MIC_TEST_STATUS_CARD_CLASS/);
+  assert.match(source, /MIC_TEST_DYNAMIC_TEXT_CLASS/);
+  assert.match(source, /tabular-nums/);
+  assert.match(source, /lastInputStatusUpdateRef/);
+  assert.match(source, /INPUT_STATUS_UPDATE_INTERVAL_MS/);
 });
 
 test("audio manager applies capture constraints and gates realtime frames before provider send", async () => {

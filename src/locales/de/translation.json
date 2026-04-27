@@ -772,11 +772,9 @@
       }
     },
     "edit": {
-      "agentNameLabel": "Agent-Name:",
       "cautionLabel": "Vorsicht",
-      "cautionTextPrefix": "Änderungen an diesem Prompt können die Transkriptionsqualität beeinträchtigen.",
-      "cautionTextSuffix": "Behalten Sie den Platzhalter {{agentName}} bei, um die Agent-Erkennung zu gewährleisten.",
-      "placeholder": "Geben Sie Ihren benutzerdefinierten System-Prompt ein..."
+      "placeholder": "Geben Sie Ihren benutzerdefinierten System-Prompt ein...",
+      "cautionText": "Dieser Prompt beeinflusst nur die KI-Bereinigung und Nachbearbeitung nach ASR. Er kann Stil, Formulierung und Texttreue der optimierten Transkription verändern."
     },
     "tabs": {
       "customize": "Anpassen",
@@ -1457,5 +1455,18 @@
       "redirectTitle": "Weiterleitung zur App...",
       "closeTab": "Du kannst diesen Tab schließen."
     }
+  },
+  "modelDiscovery": {
+    "fetching": "Modelle werden vom Anbieter geladen...",
+    "enterApiKey": "Geben Sie einen API-Schlüssel ein, um Modelle dieses Anbieters zu laden.",
+    "noModels": "Keine Modelle zurückgegeben. Aktualisieren Sie oder geben Sie eine Modell-ID manuell ein.",
+    "noModelsAvailable": "Keine Modelle verfügbar",
+    "unableToLoad": "Modelle konnten nicht geladen werden.",
+    "providerModelHint": "Modelle werden nach dem Speichern des API-Schlüssels vom ausgewählten Anbieter geladen. Wählen Sie ein für diesen Ablauf unterstütztes Modell.",
+    "manualEntryLabel": "Manuelle Modell-ID",
+    "manualEntryPlaceholder": "Modell-ID manuell eingeben",
+    "manualEntryHelp": "Nutzen Sie dies, wenn der Anbieter kein Modell zurückgibt oder Sie ein neues Modell testen möchten.",
+    "selectPlaceholder": "Modell auswählen...",
+    "searchPlaceholder": "Modelle suchen..."
   }
 }

@@ -772,11 +772,9 @@
       }
     },
     "edit": {
-      "agentNameLabel": "Agent name:",
       "cautionLabel": "Caution",
-      "cautionTextPrefix": "Modifying this prompt may affect transcription quality.",
-      "cautionTextSuffix": "Keep the {{agentName}} placeholder to preserve agent detection.",
-      "placeholder": "Enter your custom system prompt..."
+      "placeholder": "Enter your custom system prompt...",
+      "cautionText": "This prompt only affects AI cleanup and polishing after ASR. It can change the style, wording, and fidelity of optimized transcript text."
     },
     "tabs": {
       "customize": "Customize",
@@ -1457,5 +1455,18 @@
       "redirectTitle": "Redirecting to app...",
       "closeTab": "You can close this tab."
     }
+  },
+  "modelDiscovery": {
+    "fetching": "Fetching models from provider...",
+    "enterApiKey": "Enter an API key to load models from this provider.",
+    "noModels": "No models returned. You can refresh or enter a model ID manually.",
+    "noModelsAvailable": "No models available",
+    "unableToLoad": "Unable to load models.",
+    "providerModelHint": "Models are fetched from the selected provider after your API key is saved. Choose a provider-supported model for this workflow.",
+    "manualEntryLabel": "Manual model ID",
+    "manualEntryPlaceholder": "Enter model ID manually",
+    "manualEntryHelp": "Use this if the provider does not return a model or you want to try a newly released model.",
+    "selectPlaceholder": "Select a model...",
+    "searchPlaceholder": "Search models..."
   }
 }

@@ -298,11 +298,7 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
                 <span className="font-medium text-warning">
                   {t("promptStudio.edit.cautionLabel")}
                 </span>{" "}
-                {t("promptStudio.edit.cautionTextPrefix")}{" "}
-                <code className="text-xs bg-muted/50 px-1 py-0.5 rounded font-mono">
-                  {"{{agentName}}"}
-                </code>{" "}
-                {t("promptStudio.edit.cautionTextSuffix")}
+                {t("promptStudio.edit.cautionText")}
               </p>
             </div>
 
@@ -314,10 +310,6 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
                 className="font-mono text-xs leading-relaxed"
                 placeholder={t("promptStudio.edit.placeholder")}
               />
-              <p className="text-xs text-muted-foreground/50 mt-2">
-                {t("promptStudio.edit.agentNameLabel")}{" "}
-                <span className="font-medium text-foreground">{agentName}</span>
-              </p>
             </div>
 
             <div className="px-5 py-4">

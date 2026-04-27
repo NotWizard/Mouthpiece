@@ -772,11 +772,9 @@
       }
     },
     "edit": {
-      "agentNameLabel": "助理名稱：",
       "cautionLabel": "注意",
-      "cautionTextPrefix": "修改此提示詞可能影響轉錄品質。",
-      "cautionTextSuffix": "請保留 {{agentName}} 佔位符以維持助理偵測功能。",
-      "placeholder": "輸入你的自訂系統提示詞..."
+      "placeholder": "輸入你的自訂系統提示詞...",
+      "cautionText": "這個提示詞只影響 ASR 後文字的智慧優化與潤飾效果，可能改變優化後轉錄文字的風格、措辭與保真度。"
     },
     "tabs": {
       "customize": "自訂",
@@ -1457,5 +1455,18 @@
       "redirectTitle": "正在跳轉到應用程式...",
       "closeTab": "您可以關閉此分頁。"
     }
+  },
+  "modelDiscovery": {
+    "fetching": "正在從 provider 取得模型列表...",
+    "enterApiKey": "輸入 API Key 後即可載入該 provider 的模型。",
+    "noModels": "沒有回傳模型。你可以重新整理，或手動輸入模型 ID。",
+    "noModelsAvailable": "暫無可用模型",
+    "unableToLoad": "無法載入模型列表。",
+    "providerModelHint": "儲存 API Key 後會從目前 provider 拉取模型列表。請選擇該流程支援的模型。",
+    "manualEntryLabel": "手動輸入模型 ID",
+    "manualEntryPlaceholder": "手動輸入模型 ID",
+    "manualEntryHelp": "如果 provider 沒有回傳模型，或你想試用剛發布的新模型，可以在這裡手動填寫。",
+    "selectPlaceholder": "選擇模型...",
+    "searchPlaceholder": "搜尋模型..."
   }
 }

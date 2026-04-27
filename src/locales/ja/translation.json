@@ -772,11 +772,9 @@
       }
     },
     "edit": {
-      "agentNameLabel": "エージェント名:",
       "cautionLabel": "注意",
-      "cautionTextPrefix": "このプロンプトを変更すると文字起こしの品質に影響する場合があります。",
-      "cautionTextSuffix": "エージェント検出を維持するために {{agentName}} プレースホルダーを残してください。",
-      "placeholder": "カスタムシステムプロンプトを入力..."
+      "placeholder": "カスタムシステムプロンプトを入力...",
+      "cautionText": "このプロンプトは ASR 後の AI クリーンアップと整形にのみ影響します。最適化された文字起こしの文体、表現、忠実度が変わる場合があります。"
     },
     "tabs": {
       "customize": "カスタマイズ",
@@ -1457,5 +1455,18 @@
       "redirectTitle": "アプリにリダイレクト中...",
       "closeTab": "このタブを閉じてください。"
     }
+  },
+  "modelDiscovery": {
+    "fetching": "プロバイダーからモデルを取得中...",
+    "enterApiKey": "このプロバイダーのモデルを読み込むには API キーを入力してください。",
+    "noModels": "モデルが返されませんでした。更新するか、モデル ID を手動入力できます。",
+    "noModelsAvailable": "利用可能なモデルがありません",
+    "unableToLoad": "モデルを読み込めませんでした。",
+    "providerModelHint": "API キー保存後、選択したプロバイダーからモデルを取得します。このワークフローに対応したモデルを選んでください。",
+    "manualEntryLabel": "モデル ID を手動入力",
+    "manualEntryPlaceholder": "モデル ID を手動で入力",
+    "manualEntryHelp": "プロバイダーがモデルを返さない場合や、新しいモデルを試したい場合に使います。",
+    "selectPlaceholder": "モデルを選択...",
+    "searchPlaceholder": "モデルを検索..."
   }
 }
