@@ -14,12 +14,10 @@ class LocalReasoningService extends BaseReasoningService {
   async processText(
     text: string,
     modelId: string = "qwen2.5-7b-instruct-q5_k_m",
-    agentName: string | null = null,
     config: LocalReasoningConfig = {}
   ): Promise<string> {
     logger.logReasoning("LOCAL_MODEL_START", {
       modelId,
-      agentName,
       textLength: text.length,
       configKeys: Object.keys(config),
     });
@@ -34,7 +32,6 @@ class LocalReasoningService extends BaseReasoningService {
     try {
       logger.logReasoning("LOCAL_MODEL_PROMPT_PREPARED", {
         promptLength: text.length,
-        hasAgentName: !!agentName,
       });
 
       // Get optimized config for reasoning use case

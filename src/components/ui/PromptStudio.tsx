@@ -15,12 +15,16 @@ import {
 } from "lucide-react";
 import { AlertDialog } from "./dialog";
 import { useDialogs } from "../../hooks/useDialogs";
-import { useAgentName } from "../../utils/agentName";
 import ReasoningService from "../../services/ReasoningService";
 import { getModelProvider } from "../../models/ModelRegistry";
 import logger from "../../utils/logger";
 import { UNIFIED_SYSTEM_PROMPT } from "../../config/prompts";
 import { useSettingsStore, selectIsCloudReasoningMode } from "../../stores/settingsStore";
+import {
+  CUSTOM_CLEANUP_PROMPT_KEY,
+  migrateLegacyVoiceModeStorage,
+  readCustomCleanupPrompt,
+} from "../../utils/promptStorage";
 
 interface PromptStudioProps {
   className?: string;
@@ -49,15 +53,7 @@ const PROVIDER_CONFIG: Record<string, ProviderConfig> = {
 };
 
 function getCurrentPrompt(): string {
-  const customPrompt = localStorage.getItem("customUnifiedPrompt");
-  if (customPrompt) {
-    try {
-      return JSON.parse(customPrompt);
-    } catch {
-      return UNIFIED_SYSTEM_PROMPT;
-    }
-  }
-  return UNIFIED_SYSTEM_PROMPT;
+  return readCustomCleanupPrompt(localStorage) || UNIFIED_SYSTEM_PROMPT;
 }
 
 export default function PromptStudio({ className = "" }: PromptStudioProps) {
@@ -70,7 +66,6 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
   const [copiedPrompt, setCopiedPrompt] = useState(false);
 
   const { alertDialog, showAlertDialog, hideAlertDialog } = useDialogs();
-  const { agentName } = useAgentName();
 
   const effectiveModel = useSettingsStore((s) => s.reasoningModel);
   const isCloudMode = useSettingsStore(selectIsCloudReasoningMode);
@@ -78,31 +73,12 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
   const reasoningModel = useSettingsStore((s) => s.reasoningModel);
 
   useEffect(() => {
-    const legacyPrompts = localStorage.getItem("customPrompts");
-    if (legacyPrompts && !localStorage.getItem("customUnifiedPrompt")) {
-      try {
-        const parsed = JSON.parse(legacyPrompts);
-        if (parsed.agent) {
-          localStorage.setItem("customUnifiedPrompt", JSON.stringify(parsed.agent));
-          localStorage.removeItem("customPrompts");
-        }
-      } catch (e) {
-        logger.error("Failed to migrate legacy custom prompts", { error: e }, "prompts");
-      }
-    }
-
-    const customPrompt = localStorage.getItem("customUnifiedPrompt");
-    if (customPrompt) {
-      try {
-        setEditedPrompt(JSON.parse(customPrompt));
-      } catch (error) {
-        logger.error("Failed to load custom prompt", { error }, "prompts");
-      }
-    }
+    migrateLegacyVoiceModeStorage(localStorage);
+    setEditedPrompt(getCurrentPrompt());
   }, []);
 
   const savePrompt = () => {
-    localStorage.setItem("customUnifiedPrompt", JSON.stringify(editedPrompt));
+    localStorage.setItem(CUSTOM_CLEANUP_PROMPT_KEY, JSON.stringify(editedPrompt));
     showAlertDialog({
       title: t("promptStudio.dialogs.saved.title"),
       description: t("promptStudio.dialogs.saved.description"),
@@ -111,7 +87,7 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
 
   const resetToDefault = () => {
     setEditedPrompt(UNIFIED_SYSTEM_PROMPT);
-    localStorage.removeItem("customUnifiedPrompt");
+    localStorage.removeItem(CUSTOM_CLEANUP_PROMPT_KEY);
     showAlertDialog({
       title: t("promptStudio.dialogs.reset.title"),
       description: t("promptStudio.dialogs.reset.description"),
@@ -145,7 +121,6 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
           reasoningModel,
           reasoningProvider,
           testTextLength: testText.length,
-          agentName,
         },
         "prompt-studio"
       );
@@ -183,17 +158,17 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
 
       const modelToUse = isCloudMode ? effectiveModel || "auto" : reasoningModel;
 
-      const currentCustomPrompt = localStorage.getItem("customUnifiedPrompt");
-      localStorage.setItem("customUnifiedPrompt", JSON.stringify(editedPrompt));
+      const currentCustomPrompt = localStorage.getItem(CUSTOM_CLEANUP_PROMPT_KEY);
+      localStorage.setItem(CUSTOM_CLEANUP_PROMPT_KEY, JSON.stringify(editedPrompt));
 
       try {
-        const result = await ReasoningService.processText(testText, modelToUse, agentName, {});
+        const result = await ReasoningService.processText(testText, modelToUse, {});
         setTestResult(result);
       } finally {
         if (currentCustomPrompt) {
-          localStorage.setItem("customUnifiedPrompt", currentCustomPrompt);
+          localStorage.setItem(CUSTOM_CLEANUP_PROMPT_KEY, currentCustomPrompt);
         } else {
-          localStorage.removeItem("customUnifiedPrompt");
+          localStorage.removeItem(CUSTOM_CLEANUP_PROMPT_KEY);
         }
       }
     } catch (error) {
@@ -283,7 +258,7 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
               </div>
               <div className="bg-muted/30 dark:bg-surface-raised/30 border border-border/30 rounded-lg p-4 max-h-80 overflow-y-auto">
                 <pre className="text-xs font-mono text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {getCurrentPrompt().replace(/\{\{agentName\}\}/g, agentName)}
+                  {getCurrentPrompt()}
                 </pre>
               </div>
             </div>

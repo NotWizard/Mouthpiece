@@ -8,6 +8,7 @@ import { isSecureEndpoint } from "../utils/urlUtils";
 import { withSessionRefresh } from "../lib/neonAuth";
 import { getSettings, isCloudReasoningMode } from "../stores/settingsStore";
 import { DEFAULT_STRICT_OVERLAP_THRESHOLD } from "../utils/contextClassifier";
+import { readCustomCleanupPrompt } from "../utils/promptStorage";
 
 type CloudReasoningRequest = {
   endpoint: string;
@@ -45,19 +46,10 @@ class ReasoningService extends BaseReasoningService {
     }
   }
 
-  private resolveSystemPrompt(
-    agentName: string | null,
-    text: string,
-    config: ReasoningConfig
-  ): string {
+  private resolveSystemPrompt(text: string, config: ReasoningConfig): string {
     const basePrompt =
       config.systemPrompt ||
-      this.getSystemPrompt(
-        agentName,
-        text,
-        config.contextClassification,
-        config.postProcessingPolicy
-      );
+      this.getSystemPrompt(text, config.contextClassification, config.postProcessingPolicy);
     const strictMode = config.strictMode ?? config.contextClassification?.strictMode ?? false;
 
     if (!strictMode) {
@@ -582,11 +574,10 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
     apiKey: string,
     model: string,
     text: string,
-    agentName: string | null,
     config: ReasoningConfig,
     providerName: string
   ): Promise<string> {
-    const systemPrompt = this.resolveSystemPrompt(agentName, text, config);
+    const systemPrompt = this.resolveSystemPrompt(text, config);
     const userPrompt = text;
 
     const messages = [
@@ -709,7 +700,6 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
   async processText(
     text: string,
     model: string = "",
-    agentName: string | null = null,
     config: ReasoningConfig = {}
   ): Promise<string> {
     let trimmedModel = model?.trim?.() || "";
@@ -722,7 +712,6 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
     logger.logReasoning("PROVIDER_SELECTION", {
       model: trimmedModel,
       provider,
-      agentName,
       hasConfig: Object.keys(config).length > 0,
       textLength: text.length,
       context: config.contextClassification?.context || "general",
@@ -742,29 +731,29 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
 
       switch (provider) {
         case "openai":
-          result = await this.processWithOpenAI(text, trimmedModel, agentName, config);
+          result = await this.processWithOpenAI(text, trimmedModel, config);
           break;
         case "bailian":
-          result = await this.processWithOpenAI(text, trimmedModel, agentName, config);
+          result = await this.processWithOpenAI(text, trimmedModel, config);
           break;
         case "anthropic":
-          result = await this.processWithAnthropic(text, trimmedModel, agentName, config);
+          result = await this.processWithAnthropic(text, trimmedModel, config);
           break;
         case "local":
-          result = await this.processWithLocal(text, trimmedModel, agentName, config);
+          result = await this.processWithLocal(text, trimmedModel, config);
           break;
         case "gemini":
-          result = await this.processWithGemini(text, trimmedModel, agentName, config);
+          result = await this.processWithGemini(text, trimmedModel, config);
           break;
         case "groq":
-          result = await this.processWithGroq(text, model, agentName, config);
+          result = await this.processWithGroq(text, model, config);
           break;
         case "openwhispr":
         case "mouthpiece":
-          result = await this.processWithMouthpiece(text, model, agentName, config);
+          result = await this.processWithMouthpiece(text, model, config);
           break;
         case "custom":
-          result = await this.processWithOpenAI(text, trimmedModel, agentName, config);
+          result = await this.processWithOpenAI(text, trimmedModel, config);
           break;
         default:
           throw new Error(`Unsupported reasoning provider: ${provider}`);
@@ -802,7 +791,6 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
   private async processWithOpenAI(
     text: string,
     model: string,
-    agentName: string | null = null,
     config: ReasoningConfig = {}
   ): Promise<string> {
     const reasoningProvider = getSettings().reasoningProvider || "";
@@ -811,7 +799,6 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
 
     logger.logReasoning("OPENAI_START", {
       model,
-      agentName,
       isCustomProvider,
       isBailianProvider,
       hasApiKey: false, // Will update after fetching
@@ -833,7 +820,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
     this.isProcessing = true;
 
     try {
-      const systemPrompt = this.resolveSystemPrompt(agentName, text, config);
+      const systemPrompt = this.resolveSystemPrompt(text, config);
       const userPrompt = text;
 
       const messages = [
@@ -1068,12 +1055,10 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
   private async processWithAnthropic(
     text: string,
     model: string,
-    agentName: string | null = null,
     config: ReasoningConfig = {}
   ): Promise<string> {
     logger.logReasoning("ANTHROPIC_START", {
       model,
-      agentName,
       environment: typeof window !== "undefined" ? "browser" : "node",
     });
 
@@ -1085,8 +1070,8 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
         textLength: text.length,
       });
 
-      const systemPrompt = this.resolveSystemPrompt(agentName, text, config);
-      const result = await window.electronAPI.processAnthropicReasoning(text, model, agentName, {
+      const systemPrompt = this.resolveSystemPrompt(text, config);
+      const result = await window.electronAPI.processAnthropicReasoning(text, model, {
         ...config,
         systemPrompt,
       });
@@ -1119,12 +1104,10 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
   private async processWithLocal(
     text: string,
     model: string,
-    agentName: string | null = null,
     config: ReasoningConfig = {}
   ): Promise<string> {
     logger.logReasoning("LOCAL_START", {
       model,
-      agentName,
       environment: typeof window !== "undefined" ? "browser" : "node",
     });
 
@@ -1136,8 +1119,8 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
         textLength: text.length,
       });
 
-      const systemPrompt = this.resolveSystemPrompt(agentName, text, config);
-      const result = await window.electronAPI.processLocalReasoning(text, model, agentName, {
+      const systemPrompt = this.resolveSystemPrompt(text, config);
+      const result = await window.electronAPI.processLocalReasoning(text, model, {
         ...config,
         systemPrompt,
       });
@@ -1170,12 +1153,10 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
   private async processWithGemini(
     text: string,
     model: string,
-    agentName: string | null = null,
     config: ReasoningConfig = {}
   ): Promise<string> {
     logger.logReasoning("GEMINI_START", {
       model,
-      agentName,
       hasApiKey: false,
     });
 
@@ -1193,7 +1174,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
     this.isProcessing = true;
 
     try {
-      const systemPrompt = this.resolveSystemPrompt(agentName, text, config);
+      const systemPrompt = this.resolveSystemPrompt(text, config);
       const userPrompt = text;
 
       const requestBody = {
@@ -1341,10 +1322,9 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
   private async processWithGroq(
     text: string,
     model: string,
-    agentName: string | null = null,
     config: ReasoningConfig = {}
   ): Promise<string> {
-    logger.logReasoning("GROQ_START", { model, agentName });
+    logger.logReasoning("GROQ_START", { model });
 
     if (this.isProcessing) {
       throw new Error("Already processing a request");
@@ -1360,7 +1340,6 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
         apiKey,
         model,
         text,
-        agentName,
         config,
         "Groq"
       );
@@ -1379,10 +1358,9 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
   private async processWithMouthpiece(
     text: string,
     model: string,
-    agentName: string | null = null,
     config: ReasoningConfig = {}
   ): Promise<string> {
-    logger.logReasoning("MOUTHPIECE_START", { model, agentName });
+    logger.logReasoning("MOUTHPIECE_START", { model });
 
     if (this.isProcessing) {
       throw new Error("Already processing a request");
@@ -1394,11 +1372,10 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
       const customDictionary = this.getCustomDictionary();
       const language = this.getPreferredLanguage();
       const locale = this.getUiLanguage();
-      const systemPrompt = this.resolveSystemPrompt(agentName, text, config);
+      const systemPrompt = this.resolveSystemPrompt(text, config);
 
       const result = await withSessionRefresh(async () => {
         const res = await (window as any).electronAPI.cloudReason(text, {
-          agentName,
           customDictionary,
           customPrompt: this.getCustomPrompt(),
           systemPrompt,
@@ -1435,10 +1412,7 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
 
   private getCustomPrompt(): string | undefined {
     try {
-      const raw = localStorage.getItem("customUnifiedPrompt");
-      if (!raw) return undefined;
-      const parsed = JSON.parse(raw);
-      return typeof parsed === "string" ? parsed : undefined;
+      return readCustomCleanupPrompt(localStorage) || undefined;
     } catch {
       return undefined;
     }

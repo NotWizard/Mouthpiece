@@ -3,6 +3,7 @@ import i18n, { normalizeUiLanguage } from "../i18n";
 import { en as enPrompts, type PromptBundle } from "../locales/prompts";
 import { getLanguageInstruction } from "../utils/languageSupport";
 import type { ContextClassification } from "../utils/contextClassifier";
+import { readCustomCleanupPrompt } from "../utils/promptStorage";
 import {
   resolvePostProcessingPolicy,
   type InputSurfaceMode,
@@ -12,10 +13,7 @@ import {
 import type { TerminologyProfile } from "../utils/terminologyProfile";
 
 export const CLEANUP_PROMPT = promptData.CLEANUP_PROMPT;
-export const FULL_PROMPT = promptData.FULL_PROMPT;
-/** @deprecated Cleanup-only default kept for PromptStudio backwards compat */
 export const UNIFIED_SYSTEM_PROMPT = promptData.CLEANUP_PROMPT;
-export const LEGACY_PROMPTS = promptData.LEGACY_PROMPTS;
 
 function getPromptBundle(uiLanguage?: string): PromptBundle {
   const locale = normalizeUiLanguage(uiLanguage || "zh-CN");
@@ -23,7 +21,6 @@ function getPromptBundle(uiLanguage?: string): PromptBundle {
 
   return {
     cleanupPrompt: t("cleanupPrompt", { defaultValue: enPrompts.cleanupPrompt }),
-    fullPrompt: t("fullPrompt", { defaultValue: enPrompts.fullPrompt }),
     dictionarySuffix: t("dictionarySuffix", { defaultValue: enPrompts.dictionarySuffix }),
   };
 }
@@ -116,10 +113,7 @@ function getContextInstruction(context?: ContextClassification): string {
   };
 
   const appSuffix = context.targetApp?.appName ? ` Target app: ${context.targetApp.appName}.` : "";
-  const intentHint =
-    context.intent === "instruction"
-      ? "Likely direct instruction mode."
-      : "Likely cleanup mode; stay anchored to user content.";
+  const intentHint = "Cleanup mode; stay anchored to user content.";
 
   return [
     `Context hint: ${contextLabels[context.context]}.${appSuffix} ${focusHints[context.context]} ${intentHint}`,
@@ -155,7 +149,9 @@ function getTerminologyInstruction(
   }
 
   const sections: string[] = [];
-  const hotwords = Array.isArray(terminologyProfile.hotwords) ? terminologyProfile.hotwords : [];
+  const profilePreferredTerms = Array.isArray(terminologyProfile.preferredTerms)
+    ? terminologyProfile.preferredTerms
+    : [];
   const glossaryTerms = Array.isArray(terminologyProfile.glossaryTerms)
     ? terminologyProfile.glossaryTerms
     : [];
@@ -166,7 +162,7 @@ function getTerminologyInstruction(
     ? terminologyProfile.homophoneMappings
     : [];
 
-  const preferredTerms = [...hotwords, ...glossaryTerms].filter(Boolean);
+  const preferredTerms = [...profilePreferredTerms, ...glossaryTerms].filter(Boolean);
   if (preferredTerms.length > 0) {
     sections.push(`Preferred terminology: ${preferredTerms.join(", ")}`);
   }
@@ -189,7 +185,6 @@ function getTerminologyInstruction(
 }
 
 export function getSystemPrompt(
-  agentName: string | null,
   customDictionary?: string[],
   language?: string,
   transcript?: string,
@@ -198,7 +193,6 @@ export function getSystemPrompt(
   postProcessingPolicy?: PostProcessingPolicy,
   terminologyProfile?: Partial<TerminologyProfile> | null
 ): string {
-  const name = agentName?.trim() || "Assistant";
   const prompts = getPromptBundle(uiLanguage);
   const policy =
     postProcessingPolicy ||
@@ -206,23 +200,9 @@ export function getSystemPrompt(
       contextClassification: context,
     });
 
-  let promptTemplate: string | null = null;
+  let prompt = prompts.cleanupPrompt;
   if (typeof window !== "undefined" && window.localStorage) {
-    const customPrompt = window.localStorage.getItem("customUnifiedPrompt");
-    if (customPrompt) {
-      try {
-        promptTemplate = JSON.parse(customPrompt);
-      } catch {
-        // Use default if parsing fails
-      }
-    }
-  }
-
-  let prompt: string;
-  if (promptTemplate) {
-    prompt = promptTemplate.replace(/\{\{agentName\}\}/g, name);
-  } else {
-    prompt = prompts.cleanupPrompt.replace(/\{\{agentName\}\}/g, name);
+    prompt = readCustomCleanupPrompt(window.localStorage) || prompt;
   }
 
   const langInstruction = getLanguageInstruction(language);
@@ -266,9 +246,7 @@ export function getWordBoost(customDictionary?: string[]): string[] {
 
 export default {
   CLEANUP_PROMPT,
-  FULL_PROMPT,
   UNIFIED_SYSTEM_PROMPT,
   getSystemPrompt,
   getWordBoost,
-  LEGACY_PROMPTS,
 };

@@ -9,7 +9,7 @@ export function migrateLegacyDictionaryToTerminologyProfile(
 ): TerminologyProfile {
   return normalizeTerminologyProfile({
     ...createEmptyTerminologyProfile(),
-    hotwords: Array.isArray(legacyDictionary) ? legacyDictionary : [],
+    preferredTerms: Array.isArray(legacyDictionary) ? legacyDictionary : [],
   });
 }
 
@@ -19,7 +19,7 @@ export function migrateStoredTerminologyProfile(
 ): TerminologyProfile {
   const normalizedStored = normalizeTerminologyProfile(storedProfile || {});
 
-  if (normalizedStored.hotwords.length > 0 || normalizedStored.glossaryTerms.length > 0) {
+  if (normalizedStored.preferredTerms.length > 0 || normalizedStored.glossaryTerms.length > 0) {
     return normalizedStored;
   }
 

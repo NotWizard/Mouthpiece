@@ -29,7 +29,7 @@ async function loadModule(relativePath) {
   };
 }
 
-test("legacy custom dictionary migrates into hotwords without losing existing entries", async () => {
+test("legacy custom dictionary migrates into preferred terms without losing existing entries", async () => {
   const { module: mod, cleanup } = await loadModule("src/utils/terminologyMigration.ts");
 
   try {
@@ -39,7 +39,7 @@ test("legacy custom dictionary migrates into hotwords without losing existing en
       "Raycast",
     ]);
 
-    assert.deepEqual(profile.hotwords, ["Raycast", "Gmail"]);
+    assert.deepEqual(profile.preferredTerms, ["Raycast", "Gmail"]);
     assert.deepEqual(profile.blacklistedTerms, []);
     assert.deepEqual(profile.homophoneMappings, []);
     assert.deepEqual(profile.glossaryTerms, []);
@@ -55,7 +55,7 @@ test("terminology profiles normalize duplicates and expose a word-boost friendly
   try {
     const beforeNormalize = Date.now();
     const profile = mod.normalizeTerminologyProfile({
-      hotwords: ["Acme", "Acme", "  Mouthpiece  "],
+      preferredTerms: ["Acme", "Acme", "  Mouthpiece  "],
       blacklistedTerms: ["umm", "umm"],
       homophoneMappings: [
         { source: "race cast", target: "Raycast" },
@@ -72,7 +72,7 @@ test("terminology profiles normalize duplicates and expose a word-boost friendly
     });
     const afterNormalize = Date.now();
 
-    assert.deepEqual(profile.hotwords, ["Acme", "Mouthpiece"]);
+    assert.deepEqual(profile.preferredTerms, ["Acme", "Mouthpiece"]);
     assert.deepEqual(profile.blacklistedTerms, ["umm"]);
     assert.deepEqual(profile.homophoneMappings, [{ source: "race cast", target: "Raycast" }]);
     assert.deepEqual(profile.glossaryTerms, ["Project Atlas"]);
@@ -100,7 +100,7 @@ test("pending terminology suggestions expire after one day without becoming dict
 
     const profile = mod.pruneExpiredTerminologySuggestions(
       {
-        hotwords: ["Raycast"],
+        preferredTerms: ["Raycast"],
         glossaryTerms: [],
         blacklistedTerms: [],
         homophoneMappings: [],

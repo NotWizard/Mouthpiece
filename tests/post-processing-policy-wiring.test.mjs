@@ -90,7 +90,6 @@ test("prompt generation applies explicit policy instructions without requiring c
 
   try {
     const prompt = module.getSystemPrompt(
-      "AI",
       [],
       "en",
       "keep userIdValue exactly",

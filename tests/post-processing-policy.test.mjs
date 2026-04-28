@@ -69,7 +69,7 @@ test("post-processing policy keeps IDE and search surfaces on conservative raw-f
   assert.equal(searchPolicy.preserveIdentifiers, false);
 });
 
-test("post-processing policy allows richer polish for email and document instruction flows", async () => {
+test("post-processing policy keeps email and document cleanup publishable", async () => {
   const mod = await importPolicyModule();
 
   const emailPolicy = mod.resolvePostProcessingPolicy({
@@ -90,14 +90,14 @@ test("post-processing policy allows richer polish for email and document instruc
     },
   });
 
-  const documentInstructionPolicy = mod.resolvePostProcessingPolicy({
+  const documentPolicy = mod.resolvePostProcessingPolicy({
     contextClassification: {
       context: "document",
-      intent: "instruction",
+      intent: "cleanup",
       confidence: 0.91,
-      strictMode: false,
+      strictMode: true,
       strictOverlapThreshold: 0.72,
-      signals: ["text:document", "intent:agent_direct_address"],
+      signals: ["text:document"],
       targetApp: {
         appName: "Notion",
         processId: 18,
@@ -112,9 +112,9 @@ test("post-processing policy allows richer polish for email and document instruc
   assert.equal(emailPolicy.outputStrategy, "publishable");
   assert.equal(emailPolicy.allowStructuredRewrite, false);
 
-  assert.equal(documentInstructionPolicy.surfaceMode, "document");
-  assert.equal(documentInstructionPolicy.outputStrategy, "structured_rewrite");
-  assert.equal(documentInstructionPolicy.allowStructuredRewrite, true);
+  assert.equal(documentPolicy.surfaceMode, "document");
+  assert.equal(documentPolicy.outputStrategy, "publishable");
+  assert.equal(documentPolicy.allowStructuredRewrite, false);
 });
 
 test("prompt contract consumes identifier and formatting preservation policy hints", async () => {

@@ -617,7 +617,6 @@
     },
     "title": "重設你的密碼"
   },
-  "fullPrompt": "完整提示詞",
   "hotkeyGuidance": {
     "blockedDescription": "這些快捷鍵已被封鎖，因為它們通常是系統保留的。",
     "blockedTitle": "已封鎖的快捷鍵",
@@ -772,7 +771,7 @@
       "reset": "重設",
       "save": "儲存"
     },
-    "defaultTestInput": "嗯，今天下午三點的專案評審改到四點，請同步給產品和設計同學。",
+    "defaultTestInput": "嗯，今天下午三點的專案評審改到四點，請同步給產品和設計同事。",
     "dialogs": {
       "reset": {
         "description": "提示詞已重設為預設值。",
@@ -786,7 +785,7 @@
     "edit": {
       "cautionLabel": "注意",
       "placeholder": "輸入你的自訂系統提示詞...",
-      "cautionText": "這個提示詞只影響 ASR 後文字的智慧優化與潤飾效果，可能改變優化後轉錄文字的風格、措辭與保真度。"
+      "cautionText": "這個提示詞只影響 ASR 後文字的智慧優化。它可能改變優化後轉錄文字的風格、措辭和忠實度。"
     },
     "tabs": {
       "customize": "自訂",
@@ -794,7 +793,6 @@
       "view": "檢視"
     },
     "test": {
-      "addressHint": "試試對「{{agentName}}」說話以測試指令模式",
       "aiModels": "AI 模型",
       "baseUrlMissing": "缺少 {{provider}} 的 URL。請在 AI 模型設定中新增。",
       "cleanup": "文字整理",
@@ -804,7 +802,6 @@
       "failed": "測試失敗：{{error}}",
       "inputLabel": "輸入",
       "inputPlaceholder": "輸入文字進行測試...",
-      "instruction": "指令",
       "modelLabel": "模型",
       "noModelSelected": "未選擇模型",
       "none": "無",
@@ -818,16 +815,6 @@
     "view": {
       "customPrompt": "自訂提示詞",
       "defaultPrompt": "預設提示詞",
-      "modes": {
-        "agent": {
-          "description": "由「{{agentName}}」觸發——執行指令、回答問題、撰寫內容",
-          "label": "助理"
-        },
-        "cleanup": {
-          "description": "快速處理——移除語助詞，修正文法和標點",
-          "label": "文字整理"
-        }
-      },
       "modified": "已修改"
     }
   },
@@ -872,7 +859,7 @@
         "label": "轉錄"
       },
       "intelligence": {
-        "description": "AI 模型、助理與提示詞",
+        "description": "AI 模型、文字整理與提示詞",
         "label": "智慧功能"
       },
       "privacyData": {
@@ -887,35 +874,10 @@
     "title": "設定"
   },
   "settingsPage": {
-    "agentConfig": {
-      "agentName": "助理名稱",
-      "cleanupExample": "文字整理",
-      "cleanupMode": "文字整理模式",
-      "description": "為你的 AI 助理取個名字，這樣你可以在語音輸入時直接呼叫它",
-      "dialogs": {
-        "updatedDescription": "你的助理現在叫做「{{name}}」。說「Hey {{name}}」加上你的指令即可使用。",
-        "updatedTitle": "助理名稱已更新"
-      },
-      "examplesTitle": "範例",
-      "helper": "選個簡短、自然、好說的名字",
-      "howItWorksDescription": "當你說「Hey {{agentName}}」加上一個指令時，AI 會從文字整理模式切換到指令模式。沒有觸發語的時候，它只會整理你的語音輸入。",
-      "howItWorksTitle": "運作方式",
-      "instructionMode": "指令",
-      "placeholder": "例如 Jarvis、Nova、Atlas...",
-      "save": "儲存",
-      "title": "語音助理",
-      "voiceAssistantToggle": "啟用語音助理",
-      "voiceAssistantToggleDescription": "開啟後，說「Hey {{agentName}}」可觸發 AI 指令模式；關閉時僅使用文字整理功能",
-      "examples": {
-        "formalEmail": "Hey {{agentName}}，撰寫一封關於預算的正式郵件",
-        "professional": "Hey {{agentName}}，讓這個更專業",
-        "bulletPoints": "Hey {{agentName}}，將這個轉換成要點列表"
-      }
-    },
     "aiModels": {
       "customSetup": "自訂設定",
       "customSetupDescription": "使用你自己的供應商和 API Key。",
-      "description": "整理轉錄文字、處理指令、修正錯誤，同時保留你的語調。",
+      "description": "整理轉錄文字並修正辨識錯誤，同時保留你的語氣。",
       "enableTextCleanup": "啟用文字整理",
       "enableTextCleanupDescription": "AI 自動提升轉錄品質",
       "mouthpieceCloud": "Mouthpiece Cloud",
@@ -974,7 +936,6 @@
       "clearDictionaryTitle": "清除詞典？",
       "clearDictionaryDescription": "這將移除自訂詞典中的所有字詞。此操作無法復原。",
       "clearAll": "全部清除",
-      "agentNameAutoManaged": "自動管理 — 與助理名稱同步",
       "removeWord": "移除字詞",
       "noWords": "尚無字詞",
       "wordsAppearHere": "你新增的字詞將顯示在這裡",
@@ -1389,7 +1350,6 @@
     "clearAll": "全部清除",
     "howItWorks": "運作方式",
     "howItWorksDetail": "你新增的詞彙會包含在 AI 提示詞中，讓模型在轉錄整理時能辨識並保留這些詞彙。",
-    "autoManaged": "助理名稱（自動管理）",
     "inputHint": "按 Enter 新增",
     "title": "自訂字典",
     "description": "教 AI 學習你的詞彙 — 名字、專業術語和它可能遺漏的表達",

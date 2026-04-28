@@ -251,13 +251,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
   syncStartupPreferences: (prefs) => ipcRenderer.invoke("sync-startup-preferences", prefs),
 
   // Local reasoning
-  processLocalReasoning: (text, modelId, agentName, config) =>
-    ipcRenderer.invoke("process-local-reasoning", text, modelId, agentName, config),
+  processLocalReasoning: (text, modelId, config) =>
+    ipcRenderer.invoke("process-local-reasoning", text, modelId, config),
   checkLocalReasoningAvailable: () => ipcRenderer.invoke("check-local-reasoning-available"),
 
   // Anthropic reasoning
-  processAnthropicReasoning: (text, modelId, agentName, config) =>
-    ipcRenderer.invoke("process-anthropic-reasoning", text, modelId, agentName, config),
+  processAnthropicReasoning: (text, modelId, config) =>
+    ipcRenderer.invoke("process-anthropic-reasoning", text, modelId, config),
   processCloudReasoningRequest: (request) =>
     ipcRenderer.invoke("process-cloud-reasoning-request", request),
 

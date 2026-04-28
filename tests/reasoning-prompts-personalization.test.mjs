@@ -62,7 +62,6 @@ test("system prompt includes terminology personalization guidance for preferred 
 
   try {
     const prompt = module.getSystemPrompt(
-      "Mouthpiece",
       ["Raycast"],
       "en",
       "open race cast",
@@ -70,7 +69,7 @@ test("system prompt includes terminology personalization guidance for preferred 
       undefined,
       undefined,
       {
-        hotwords: ["Raycast"],
+        preferredTerms: ["Raycast"],
         blacklistedTerms: ["umm"],
         homophoneMappings: [{ source: "race cast", target: "Raycast" }],
         glossaryTerms: ["Project Atlas"],

@@ -617,7 +617,6 @@
     },
     "title": "パスワードをリセット"
   },
-  "fullPrompt": "フルプロンプト",
   "hotkeyGuidance": {
     "blockedDescription": "これらのショートカットはシステムでよく使われるためブロックされています。",
     "blockedTitle": "ブロックされたショートカット",
@@ -786,7 +785,7 @@
     "edit": {
       "cautionLabel": "注意",
       "placeholder": "カスタムシステムプロンプトを入力...",
-      "cautionText": "このプロンプトは ASR 後の AI クリーンアップと整形にのみ影響します。最適化された文字起こしの文体、表現、忠実度が変わる場合があります。"
+      "cautionText": "このプロンプトはASR後のAIテキスト整形だけに影響します。最適化された文字起こしのスタイル、表現、忠実度が変わる場合があります。"
     },
     "tabs": {
       "customize": "カスタマイズ",
@@ -794,7 +793,6 @@
       "view": "表示"
     },
     "test": {
-      "addressHint": "「{{agentName}}」と呼びかけて指示モードをテストしてみてください",
       "aiModels": "AI モデル",
       "baseUrlMissing": "{{provider}} のベース URL が未設定です。AI モデル設定で追加してください。",
       "cleanup": "クリーンアップ",
@@ -804,7 +802,6 @@
       "failed": "テスト失敗: {{error}}",
       "inputLabel": "入力",
       "inputPlaceholder": "テストするテキストを入力...",
-      "instruction": "指示",
       "modelLabel": "モデル",
       "noModelSelected": "モデル未選択",
       "none": "なし",
@@ -818,16 +815,6 @@
     "view": {
       "customPrompt": "カスタムプロンプト",
       "defaultPrompt": "デフォルトプロンプト",
-      "modes": {
-        "agent": {
-          "description": "「{{agentName}}」で起動 — コマンド実行、質問への回答、コンテンツ作成",
-          "label": "エージェント"
-        },
-        "cleanup": {
-          "description": "高速パス — フィラーワードの除去、文法・句読点の修正",
-          "label": "クリーンアップ"
-        }
-      },
       "modified": "変更済み"
     }
   },
@@ -872,7 +859,7 @@
         "label": "文字起こし"
       },
       "intelligence": {
-        "description": "AIモデル、エージェント、プロンプト",
+        "description": "AIモデル、テキスト整形、プロンプト",
         "label": "インテリジェンス"
       },
       "privacyData": {
@@ -887,35 +874,10 @@
     "title": "設定"
   },
   "settingsPage": {
-    "agentConfig": {
-      "agentName": "エージェント名",
-      "cleanupExample": "クリーンアップ",
-      "cleanupMode": "クリーンアップモード",
-      "description": "ディクテーション中に直接呼びかけられるよう、AI アシスタントに名前を付けましょう",
-      "dialogs": {
-        "updatedDescription": "エージェントの名前が「{{name}}」になりました。「ねぇ {{name}}」と呼びかけて指示を出してください。",
-        "updatedTitle": "エージェント名を更新しました"
-      },
-      "examplesTitle": "例",
-      "helper": "声に出して言いやすい短い名前を選びましょう",
-      "howItWorksDescription": "「ねぇ {{agentName}}」と呼びかけて指示を出すと、AI がクリーンアップモードから指示モードに切り替わります。呼びかけなければ、通常のディクテーションのクリーンアップが行われます。",
-      "howItWorksTitle": "仕組み",
-      "instructionMode": "指示",
-      "placeholder": "例: ジャービス、ノヴァ、アトラス...",
-      "save": "保存",
-      "title": "音声エージェント",
-      "voiceAssistantToggle": "音声アシスタントを有効にする",
-      "voiceAssistantToggleDescription": "有効にすると、「Hey {{agentName}}」と言うとAI指示モードが起動します。無効の場合、テキスト整形のみ使用されます",
-      "examples": {
-        "formalEmail": "Hey {{agentName}}、予算についてフォーマルなメールを書いて",
-        "professional": "Hey {{agentName}}、これをもっとプロフェッショナルにして",
-        "bulletPoints": "Hey {{agentName}}、これを箇条書きに変換して"
-      }
-    },
     "aiModels": {
       "customSetup": "カスタム設定",
       "customSetupDescription": "独自のプロバイダーと API キーを使用。",
-      "description": "文字起こしのクリーンアップ、コマンド処理、エラー修正を行いながら、あなたの話し方を維持します。",
+      "description": "トーンを保ちながら文字起こしを整え、認識ミスを修正します。",
       "enableTextCleanup": "テキスト補正を有効にする",
       "enableTextCleanupDescription": "AI が文字起こしの品質を向上",
       "mouthpieceCloud": "Mouthpiece Cloud",
@@ -974,7 +936,6 @@
       "clearDictionaryTitle": "辞書をクリアしますか？",
       "clearDictionaryDescription": "カスタム辞書からすべての単語が削除されます。この操作は元に戻せません。",
       "clearAll": "すべてクリア",
-      "agentNameAutoManaged": "自動管理 — エージェント名と同期",
       "removeWord": "単語を削除",
       "noWords": "まだ単語がありません",
       "wordsAppearHere": "追加した単語がここに表示されます",
@@ -1317,7 +1278,6 @@
     "clearAll": "すべてクリア",
     "howItWorks": "仕組み",
     "howItWorksDetail": "追加した単語は AI プロンプトに含まれ、文字起こし時にこれらの用語を正確に認識・保持します。",
-    "autoManaged": "自動管理",
     "inputHint": "Enter で追加",
     "title": "カスタム辞書",
     "description": "AIに語彙を学習させましょう — 名前、専門用語、見落とされがちな表現など",

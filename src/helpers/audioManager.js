@@ -12,6 +12,7 @@ import { isSecureEndpoint } from "../utils/urlUtils";
 import { withSessionRefresh } from "../lib/neonAuth";
 import { getBaseLanguageCode, validateLanguageForModel } from "../utils/languageSupport";
 import { classifyContext, getTargetAppInfo } from "../utils/contextClassifier";
+import { readCustomCleanupPrompt } from "../utils/promptStorage";
 import { normalizeAudioLevel } from "../utils/dictationWaveform.mjs";
 import { getReasoningAvailabilityCacheKey } from "../utils/reasoningAvailabilityCacheKey.mjs";
 import { resolveAsrFeatureFlags } from "../utils/asrFeatureFlags.mjs";
@@ -1916,13 +1917,12 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     return new Blob([arrayBuffer], { type: "audio/wav" });
   }
 
-  async buildReasoningContext(text, agentName) {
+  async buildReasoningContext(text) {
     try {
       const targetApp = await getTargetAppInfo();
       const contextClassification = classifyContext({
         text,
         targetApp,
-        agentName,
       });
 
       logger.logReasoning("REASONING_CONTEXT_CLASSIFIED", {
@@ -2083,10 +2083,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     return normalizedText;
   }
 
-  async processWithReasoningModel(text, model, agentName, config = {}) {
+  async processWithReasoningModel(text, model, config = {}) {
     logger.logReasoning("CALLING_REASONING_SERVICE", {
       model,
-      agentName,
       textLength: text.length,
       context: config?.contextClassification?.context || "general",
       intent: config?.contextClassification?.intent || "cleanup",
@@ -2096,7 +2095,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const startTime = Date.now();
 
     try {
-      const result = await ReasoningService.processText(text, model, agentName, config);
+      const result = await ReasoningService.processText(text, model, config);
 
       const processingTime = Date.now() - startTime;
 
@@ -2218,10 +2217,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const reasoningModel = getEffectiveReasoningModel();
     const isCloud = isCloudReasoningMode();
     const reasoningProvider = getSettings().reasoningProvider || "auto";
-    const agentName =
-      typeof window !== "undefined" && window.localStorage
-        ? localStorage.getItem("agentName") || null
-        : null;
     if (!reasoningModel && !isCloud) {
       logger.logReasoning("REASONING_SKIPPED", {
         reason: "No reasoning model selected",
@@ -2235,7 +2230,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       useReasoning,
       reasoningModel,
       reasoningProvider,
-      agentName,
     });
 
     if (useReasoning) {
@@ -2246,7 +2240,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           provider: reasoningProvider,
         });
 
-        let contextClassification = await this.buildReasoningContext(normalizedText, agentName);
+        let contextClassification = await this.buildReasoningContext(normalizedText);
         contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
         const reasoningConfig = this.buildReasoningConfig(contextClassification);
         const sensitiveAppPolicy = this.getSensitiveAppPolicy(contextClassification?.targetApp);
@@ -2261,7 +2255,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         const result = await this.processWithReasoningModel(
           normalizedText,
           reasoningModel,
-          agentName,
           reasoningConfig
         );
 
@@ -2624,9 +2617,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     let processedText = result.text;
     if (settings.useReasoningModel && processedText && !this.skipReasoning) {
       const reasoningStart = performance.now();
-      const agentName = localStorage.getItem("agentName") || "";
       const cloudReasoningMode = settings.cloudReasoningMode || "mouthpiece";
-      let contextClassification = await this.buildReasoningContext(processedText, agentName);
+      let contextClassification = await this.buildReasoningContext(processedText);
       contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
       const reasoningConfig = this.buildReasoningConfig(contextClassification);
       const sensitiveAppPolicy = this.getSensitiveAppPolicy(contextClassification?.targetApp);
@@ -2640,7 +2632,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       } else if (cloudReasoningMode === "mouthpiece" || cloudReasoningMode === "openwhispr") {
         const reasonResult = await withSessionRefresh(async () => {
           const systemPrompt = getSystemPrompt(
-            agentName,
             settings.customDictionary,
             settings.preferredLanguage || "auto",
             processedText,
@@ -2650,7 +2641,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             settings.terminologyProfile
           );
           const res = await window.electronAPI.cloudReason(processedText, {
-            agentName,
             customDictionary: settings.customDictionary,
             customPrompt: this.getCustomPrompt(),
             systemPrompt,
@@ -2688,7 +2678,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           const result = await this.processWithReasoningModel(
             processedText,
             effectiveModel,
-            agentName,
             reasoningConfig
           );
           if (result) {
@@ -2718,10 +2707,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
   getCustomPrompt() {
     try {
-      const raw = localStorage.getItem("customUnifiedPrompt");
-      if (!raw) return undefined;
-      const parsed = JSON.parse(raw);
-      return typeof parsed === "string" ? parsed : undefined;
+      return readCustomCleanupPrompt(localStorage) || undefined;
     } catch {
       return undefined;
     }
@@ -4177,9 +4163,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       }
     } else if (stSettings.useReasoningModel && finalText && !this.skipReasoning) {
       const reasoningStart = performance.now();
-      const agentName = localStorage.getItem("agentName") || "";
       const cloudReasoningMode = stSettings.cloudReasoningMode || "openwhispr";
-      let contextClassification = await this.buildReasoningContext(finalText, agentName);
+      let contextClassification = await this.buildReasoningContext(finalText);
       contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
       const reasoningConfig = this.buildReasoningConfig(contextClassification);
       const sensitiveAppPolicy = this.getSensitiveAppPolicy(contextClassification?.targetApp);
@@ -4194,7 +4179,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         } else if (cloudReasoningMode === "mouthpiece" || cloudReasoningMode === "openwhispr") {
           const reasonResult = await withSessionRefresh(async () => {
             const systemPrompt = getSystemPrompt(
-              agentName,
               stSettings.customDictionary,
               stSettings.preferredLanguage || "auto",
               finalText,
@@ -4204,7 +4188,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
               stSettings.terminologyProfile
             );
             const res = await window.electronAPI.cloudReason(finalText, {
-              agentName,
               customDictionary: stSettings.customDictionary,
               customPrompt: this.getCustomPrompt(),
               systemPrompt,
@@ -4252,7 +4235,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             const result = await this.processWithReasoningModel(
               finalText,
               effectiveModel,
-              agentName,
               reasoningConfig
             );
             if (result) {

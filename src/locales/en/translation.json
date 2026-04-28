@@ -617,7 +617,6 @@
     },
     "title": "Reset your password"
   },
-  "fullPrompt": "Full Prompt",
   "hotkeyGuidance": {
     "blockedDescription": "These shortcuts are blocked because they are commonly used by the system.",
     "blockedTitle": "Blocked shortcuts",
@@ -794,7 +793,6 @@
       "view": "View"
     },
     "test": {
-      "addressHint": "Try addressing \"{{agentName}}\" to test instruction mode",
       "aiModels": "AI Models",
       "baseUrlMissing": "{{provider}} base URL missing. Add it in AI Models settings.",
       "cleanup": "Cleanup",
@@ -804,7 +802,6 @@
       "failed": "Test failed: {{error}}",
       "inputLabel": "Input",
       "inputPlaceholder": "Enter text to test...",
-      "instruction": "Instruction",
       "modelLabel": "Model",
       "noModelSelected": "No model selected",
       "none": "None",
@@ -818,16 +815,6 @@
     "view": {
       "customPrompt": "Custom prompt",
       "defaultPrompt": "Default prompt",
-      "modes": {
-        "agent": {
-          "description": "Triggered by \"{{agentName}}\" - executes commands, answers questions, composes content",
-          "label": "Agent"
-        },
-        "cleanup": {
-          "description": "Fast path — removes filler words, fixes grammar and punctuation",
-          "label": "Cleanup"
-        }
-      },
       "modified": "Modified"
     }
   },
@@ -872,7 +859,7 @@
         "label": "Transcription"
       },
       "intelligence": {
-        "description": "AI models, agent & prompts",
+        "description": "AI models, text cleanup & prompts",
         "label": "Intelligence"
       },
       "privacyData": {
@@ -887,35 +874,10 @@
     "title": "Settings"
   },
   "settingsPage": {
-    "agentConfig": {
-      "agentName": "Agent Name",
-      "cleanupExample": "Cleanup",
-      "cleanupMode": "Cleanup Mode",
-      "description": "Name your AI assistant so you can address it directly during dictation",
-      "dialogs": {
-        "updatedDescription": "Your agent is now named \"{{name}}\". Address it by saying \"Hey {{name}}\" followed by your instructions.",
-        "updatedTitle": "Agent Name Updated"
-      },
-      "examplesTitle": "Examples",
-      "helper": "Pick something short and natural to say aloud",
-      "howItWorksDescription": "When you say \"Hey {{agentName}}\" followed by an instruction, the AI switches from cleanup mode to instruction mode. Without the trigger phrase, it simply cleans up your dictation.",
-      "howItWorksTitle": "How it works",
-      "instructionMode": "Instruction",
-      "placeholder": "e.g. Jarvis, Nova, Atlas...",
-      "save": "Save",
-      "title": "Voice Agent",
-      "voiceAssistantToggle": "Enable Voice Assistant",
-      "voiceAssistantToggleDescription": "When enabled, say \"Hey {{agentName}}\" to trigger AI instruction mode; when disabled, only text cleanup is used",
-      "examples": {
-        "formalEmail": "Hey {{agentName}}, write a formal email about the budget",
-        "professional": "Hey {{agentName}}, make this more professional",
-        "bulletPoints": "Hey {{agentName}}, convert this to bullet points"
-      }
-    },
     "aiModels": {
       "customSetup": "Custom Setup",
       "customSetupDescription": "Use your own provider and API key.",
-      "description": "Clean up transcriptions, handle commands, and fix errors while preserving your tone.",
+      "description": "Clean up transcriptions and fix recognition errors while preserving your tone.",
       "enableTextCleanup": "Enable text cleanup",
       "enableTextCleanupDescription": "AI improves transcription quality",
       "mouthpieceCloud": "Mouthpiece Cloud",
@@ -974,7 +936,6 @@
       "clearDictionaryTitle": "Clear dictionary?",
       "clearDictionaryDescription": "This will remove all words from your custom dictionary. This action cannot be undone.",
       "clearAll": "Clear all",
-      "agentNameAutoManaged": "Auto-managed — synced from agent name",
       "removeWord": "Remove word",
       "noWords": "No words yet",
       "wordsAppearHere": "Words you add will appear here",
@@ -1403,7 +1364,6 @@
     "clearAll": "Clear all",
     "howItWorks": "How it works",
     "howItWorksDetail": "Words are fed as context hints to the speech model, helping it recognize uncommon terms. For difficult words, try adding context like \"The word is Synty\" alongside the word itself.",
-    "autoManaged": "Auto-managed — synced from agent name",
     "inputHint": "Separate multiple words with commas. Add context phrases like \"The word is Synty\" for better recognition."
   },
   "support": {

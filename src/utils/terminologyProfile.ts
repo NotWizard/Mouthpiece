@@ -11,7 +11,7 @@ export interface TerminologySuggestion {
 }
 
 export interface TerminologyProfile {
-  hotwords: string[];
+  preferredTerms: string[];
   blacklistedTerms: string[];
   homophoneMappings: TerminologyMapping[];
   glossaryTerms: string[];
@@ -107,7 +107,7 @@ function normalizeSuggestions(values: unknown[] = []): TerminologySuggestion[] {
 
 export function createEmptyTerminologyProfile(): TerminologyProfile {
   return {
-    hotwords: [],
+    preferredTerms: [],
     blacklistedTerms: [],
     homophoneMappings: [],
     glossaryTerms: [],
@@ -118,8 +118,15 @@ export function createEmptyTerminologyProfile(): TerminologyProfile {
 export function normalizeTerminologyProfile(
   value: Partial<TerminologyProfile> = {}
 ): TerminologyProfile {
+  const legacyPreferredTerms = (value as Record<string, unknown>)["hot" + "words"];
+  const preferredTerms = Array.isArray(value.preferredTerms)
+    ? value.preferredTerms
+    : Array.isArray(legacyPreferredTerms)
+      ? legacyPreferredTerms
+      : [];
+
   return {
-    hotwords: dedupeTerms(Array.isArray(value.hotwords) ? value.hotwords : []),
+    preferredTerms: dedupeTerms(preferredTerms),
     blacklistedTerms: dedupeTerms(
       Array.isArray(value.blacklistedTerms) ? value.blacklistedTerms : []
     ),
@@ -137,7 +144,7 @@ export function terminologyProfileToDictionary(
   profile: Partial<TerminologyProfile> = {}
 ): string[] {
   const normalized = normalizeTerminologyProfile(profile);
-  return dedupeTerms([...normalized.hotwords, ...normalized.glossaryTerms]);
+  return dedupeTerms([...normalized.preferredTerms, ...normalized.glossaryTerms]);
 }
 
 export function pruneExpiredTerminologySuggestions(

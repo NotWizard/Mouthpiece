@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from "../config/constants";
 import { RUNTIME_CONFIG } from "../config/runtimeConfig";
 import i18n, { normalizeUiLanguage } from "../i18n";
 import { hasAnyByokKey } from "../utils/byokDetection";
-import { ensureAgentNameInDictionary } from "../utils/agentName";
+import { migrateLegacyVoiceModeStorage } from "../utils/promptStorage";
 import {
   migrateLegacyBailianRealtimeModel,
   normalizeCloudTranscriptionProviderSettings,
@@ -217,7 +217,6 @@ const BOOLEAN_SETTINGS = new Set([
   "sonioxRealtimeEnabled",
   "bailianRealtimeEnabled",
   "useReasoningModel",
-  "voiceAssistantEnabled",
   "bailianReasoningEnableThinking",
   "customReasoningEnableThinking",
   "preferBuiltInMic",
@@ -288,7 +287,6 @@ export interface SettingsState
   setVoiceGateStrictness: (value: VoiceGateStrictness) => void;
   setRealtimeEndpointingMode: (value: RealtimeEndpointingMode) => void;
   setUseReasoningModel: (value: boolean) => void;
-  setVoiceAssistantEnabled: (value: boolean) => void;
   setReasoningModel: (value: string) => void;
   setReasoningProvider: (value: string) => void;
   setUiLanguage: (language: string) => void;
@@ -525,7 +523,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   ) as RealtimeEndpointingMode,
 
   useReasoningModel: readBoolean("useReasoningModel", true),
-  voiceAssistantEnabled: readBoolean("voiceAssistantEnabled", false),
   reasoningModel: readString("reasoningModel", ""),
   reasoningProvider: readString("reasoningProvider", "openai"),
 
@@ -586,14 +583,13 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setVoiceGateStrictness: createVoiceGateStrictnessSetter("voiceGateStrictness"),
   setRealtimeEndpointingMode: createRealtimeEndpointingModeSetter("realtimeEndpointingMode"),
   setUseReasoningModel: createBooleanSetter("useReasoningModel"),
-  setVoiceAssistantEnabled: createBooleanSetter("voiceAssistantEnabled"),
   setReasoningModel: createStringSetter("reasoningModel"),
   setReasoningProvider: createStringSetter("reasoningProvider"),
 
   setCustomDictionary: (words: string[]) => {
     const terminologyProfile = pruneExpiredTerminologySuggestionsFromProfile({
       ...useSettingsStore.getState().terminologyProfile,
-      hotwords: words,
+      preferredTerms: words,
     });
     const dictionary = terminologyProfileToDictionary(terminologyProfile);
     if (isBrowser) {
@@ -645,7 +641,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const approved = current.pendingSuggestions.find((suggestion) => suggestion.term === term);
     const nextProfile = normalizeTerminologyProfile({
       ...current,
-      hotwords: approved ? [...current.hotwords, approved.term] : current.hotwords,
+      preferredTerms: approved
+        ? [...current.preferredTerms, approved.term]
+        : current.preferredTerms,
       pendingSuggestions: current.pendingSuggestions.filter(
         (suggestion) => suggestion.term !== term
       ),
@@ -785,8 +783,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const s = useSettingsStore.getState();
     if (settings.useReasoningModel !== undefined)
       s.setUseReasoningModel(settings.useReasoningModel);
-    if (settings.voiceAssistantEnabled !== undefined)
-      s.setVoiceAssistantEnabled(settings.voiceAssistantEnabled);
     if (settings.reasoningModel !== undefined) s.setReasoningModel(settings.reasoningModel);
     if (settings.reasoningProvider !== undefined)
       s.setReasoningProvider(settings.reasoningProvider);
@@ -858,6 +854,7 @@ export async function initializeSettings(): Promise<void> {
 
   localStorage.removeItem("activationMode");
   localStorage.removeItem("floatingIconAutoHide");
+  migrateLegacyVoiceModeStorage(localStorage);
 
   const state = useSettingsStore.getState();
 
@@ -1017,7 +1014,7 @@ export async function initializeSettings(): Promise<void> {
         } else if (dbWords.length > 0 && currentDictionary.length === 0) {
           const terminologyProfile = pruneExpiredTerminologySuggestionsFromProfile({
             ...useSettingsStore.getState().terminologyProfile,
-            hotwords: dbWords,
+            preferredTerms: dbWords,
           });
           const dictionary = terminologyProfileToDictionary(terminologyProfile);
           if (isBrowser) {
@@ -1034,8 +1031,6 @@ export async function initializeSettings(): Promise<void> {
         "settings"
       );
     }
-
-    ensureAgentNameInDictionary();
   }
 
   // Sync Zustand store when another window writes to localStorage

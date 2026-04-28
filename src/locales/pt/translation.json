@@ -604,7 +604,6 @@
     },
     "title": "Redefinir sua senha"
   },
-  "fullPrompt": "Prompt completo",
   "hotkeyGuidance": {
     "blockedDescription": "Esses atalhos são bloqueados porque são comumente usados pelo sistema.",
     "blockedTitle": "Atalhos bloqueados",
@@ -759,7 +758,7 @@
       "reset": "Redefinir",
       "save": "Salvar"
     },
-    "defaultTestInput": "Hum, mova a revisão do projeto de hoje das 15h para as 16h e avise produto e design.",
+    "defaultTestInput": "Ah, mude a revisao do projeto de hoje das 15h para as 16h e avise produto e design.",
     "dialogs": {
       "reset": {
         "description": "O prompt foi redefinido para o valor padrão.",
@@ -773,7 +772,7 @@
     "edit": {
       "cautionLabel": "Cuidado",
       "placeholder": "Digite seu prompt de sistema personalizado...",
-      "cautionText": "Este prompt afeta apenas a limpeza e o refinamento com IA após ASR. Ele pode alterar o estilo, a redação e a fidelidade do texto transcrito otimizado."
+      "cautionText": "Este prompt afeta apenas a limpeza e o polimento com IA apos ASR. Ele pode alterar estilo, redacao e fidelidade do texto otimizado."
     },
     "tabs": {
       "customize": "Personalizar",
@@ -781,7 +780,6 @@
       "view": "Visualizar"
     },
     "test": {
-      "addressHint": "Tente chamar \"{{agentName}}\" para testar o modo de instrução",
       "aiModels": "Modelos de IA",
       "baseUrlMissing": "URL base do {{provider}} ausente. Adicione nas configurações de Modelos de IA.",
       "cleanup": "Limpeza",
@@ -791,7 +789,6 @@
       "failed": "Teste falhou: {{error}}",
       "inputLabel": "Entrada",
       "inputPlaceholder": "Digite texto para testar...",
-      "instruction": "Instrução",
       "modelLabel": "Modelo",
       "noModelSelected": "Nenhum modelo selecionado",
       "none": "Nenhum",
@@ -805,16 +802,6 @@
     "view": {
       "customPrompt": "Prompt personalizado",
       "defaultPrompt": "Prompt padrão",
-      "modes": {
-        "agent": {
-          "description": "Acionado por \"{{agentName}}\" — executa comandos, responde perguntas, redige conteúdo",
-          "label": "Agente"
-        },
-        "cleanup": {
-          "description": "Caminho rápido — remove palavras de preenchimento, corrige gramática e pontuação",
-          "label": "Limpeza"
-        }
-      },
       "modified": "Modificado"
     }
   },
@@ -859,7 +846,7 @@
         "label": "Transcrição"
       },
       "intelligence": {
-        "description": "Modelos de IA, agente e prompts",
+        "description": "Modelos de IA, limpeza de texto e prompts",
         "label": "Inteligência"
       },
       "privacyData": {
@@ -874,35 +861,10 @@
     "title": "Configurações"
   },
   "settingsPage": {
-    "agentConfig": {
-      "agentName": "Nome do agente",
-      "cleanupExample": "Limpeza",
-      "cleanupMode": "Modo limpeza",
-      "description": "Dê um nome ao seu assistente de IA para poder chamá-lo diretamente durante o ditado",
-      "dialogs": {
-        "updatedDescription": "Seu agente agora se chama \"{{name}}\". Chame-o dizendo \"Ei {{name}}\" seguido das suas instruções.",
-        "updatedTitle": "Nome do agente atualizado"
-      },
-      "examplesTitle": "Exemplos",
-      "helper": "Escolha algo curto e natural de se dizer em voz alta",
-      "howItWorksDescription": "Quando você diz \"Ei {{agentName}}\" seguido de uma instrução, a IA muda do modo de limpeza para o modo de instrução. Sem a frase de ativação, ela simplesmente limpa seu ditado.",
-      "howItWorksTitle": "Como funciona",
-      "instructionMode": "Instrução",
-      "placeholder": "ex.: Jarvis, Nova, Atlas...",
-      "save": "Salvar",
-      "title": "Agente de voz",
-      "voiceAssistantToggle": "Ativar Assistente de Voz",
-      "voiceAssistantToggleDescription": "Quando ativado, diga \"Hey {{agentName}}\" para acionar o modo de instrução IA; quando desativado, apenas a limpeza de texto é usada",
-      "examples": {
-        "formalEmail": "Hey {{agentName}}, escreva um e-mail formal sobre o orçamento",
-        "professional": "Hey {{agentName}}, torne isso mais profissional",
-        "bulletPoints": "Hey {{agentName}}, converta isso em tópicos"
-      }
-    },
     "aiModels": {
       "customSetup": "Configuração personalizada",
       "customSetupDescription": "Use seu próprio provedor e chave API.",
-      "description": "Limpe transcrições, processe comandos e corrija erros preservando seu tom de voz.",
+      "description": "Limpa transcricoes e corrige erros de reconhecimento preservando seu tom.",
       "enableTextCleanup": "Ativar limpeza de texto",
       "enableTextCleanupDescription": "A IA melhora a qualidade da transcrição",
       "mouthpieceCloud": "Mouthpiece Cloud",
@@ -961,7 +923,6 @@
       "clearDictionaryTitle": "Limpar dicionário?",
       "clearDictionaryDescription": "Isso removerá todas as palavras do seu dicionário personalizado. Esta ação não pode ser desfeita.",
       "clearAll": "Limpar tudo",
-      "agentNameAutoManaged": "Gerenciado automaticamente — sincronizado com o nome do agente",
       "removeWord": "Remover palavra",
       "noWords": "Nenhuma palavra ainda",
       "wordsAppearHere": "Palavras que você adicionar aparecerão aqui",
@@ -1389,7 +1350,6 @@
     "clearAll": "Limpar tudo",
     "howItWorks": "Como funciona",
     "howItWorksDetail": "As palavras adicionadas são incluídas no prompt de IA para que o modelo saiba procurar e preservar esses termos durante a limpeza da transcrição.",
-    "autoManaged": "Gerenciado automaticamente",
     "inputHint": "Pressione Enter para adicionar",
     "title": "Dicionário personalizado",
     "description": "Ensine a IA o seu vocabulário — nomes, jargões e termos que ela poderia não reconhecer",

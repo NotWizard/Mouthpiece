@@ -6,7 +6,6 @@ import { Input } from "./ui/input";
 import { ConfirmDialog } from "./ui/dialog";
 import TerminologySettingsCard from "./TerminologySettingsCard";
 import { useSettings } from "../hooks/useSettings";
-import { getAgentName } from "../utils/agentName";
 import { parseDictionaryInput } from "../utils/parseDictionaryInput";
 
 const VIRTUALIZATION_THRESHOLD = 300;
@@ -14,8 +13,6 @@ const VIRTUALIZED_ROW_HEIGHT = 34;
 
 interface DictionaryRowData {
   words: string[];
-  agentName: string;
-  autoManagedLabel: string;
   getRemoveAriaLabel: (word: string) => string;
   onRemove: (word: string) => void;
 }
@@ -26,28 +23,20 @@ const DictionaryRow = memo(function DictionaryRow({
   data,
 }: ListChildComponentProps<DictionaryRowData>) {
   const word = data.words[index];
-  const isAgentName = word === data.agentName;
 
   return (
     <div style={style} className="pr-1">
       <div
-        className={`group flex items-center gap-2 py-[5px] px-2.5 rounded-[5px] border transition-colors duration-150 ${
-          isAgentName
-            ? "bg-primary/10 dark:bg-primary/15 text-primary border-primary/20 dark:border-primary/30"
-            : "bg-foreground/[0.02] dark:bg-white/[0.03] text-foreground/60 dark:text-foreground/50 border-foreground/8 dark:border-white/6 hover:border-foreground/15 dark:hover:border-white/12 hover:bg-foreground/[0.04] dark:hover:bg-white/[0.06] hover:text-foreground/80 dark:hover:text-foreground/70"
-        }`}
-        title={isAgentName ? data.autoManagedLabel : undefined}
+        className="group flex items-center gap-2 py-[5px] px-2.5 rounded-[5px] border transition-colors duration-150 bg-foreground/[0.02] dark:bg-white/[0.03] text-foreground/60 dark:text-foreground/50 border-foreground/8 dark:border-white/6 hover:border-foreground/15 dark:hover:border-white/12 hover:bg-foreground/[0.04] dark:hover:bg-white/[0.06] hover:text-foreground/80 dark:hover:text-foreground/70"
       >
         <span className="truncate">{word}</span>
-        {!isAgentName && (
-          <button
-            onClick={() => data.onRemove(word)}
-            aria-label={data.getRemoveAriaLabel(word)}
-            className="ml-auto p-0.5 rounded-sm text-foreground/25 hover:!text-destructive/70 transition-colors duration-150"
-          >
-            <X size={10} strokeWidth={2} />
-          </button>
-        )}
+        <button
+          onClick={() => data.onRemove(word)}
+          aria-label={data.getRemoveAriaLabel(word)}
+          className="ml-auto p-0.5 rounded-sm text-foreground/25 hover:!text-destructive/70 transition-colors duration-150"
+        >
+          <X size={10} strokeWidth={2} />
+        </button>
       </div>
     </div>
   );
@@ -62,7 +51,6 @@ function DictionaryView() {
     approveTerminologySuggestion,
     rejectTerminologySuggestion,
   } = useSettings();
-  const agentName = getAgentName();
   const [newWord, setNewWord] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -82,10 +70,9 @@ function DictionaryView() {
 
   const handleRemove = useCallback(
     (word: string) => {
-      if (word === agentName) return;
       setCustomDictionary(customDictionary.filter((w) => w !== word));
     },
-    [customDictionary, setCustomDictionary, agentName]
+    [customDictionary, setCustomDictionary]
   );
 
   useEffect(() => {
@@ -115,12 +102,10 @@ function DictionaryView() {
   const virtualizedRowData = useMemo<DictionaryRowData>(
     () => ({
       words: customDictionary,
-      agentName,
-      autoManagedLabel: t("dictionary.autoManaged"),
       getRemoveAriaLabel,
       onRemove: handleRemove,
     }),
-    [customDictionary, agentName, getRemoveAriaLabel, handleRemove, t]
+    [customDictionary, getRemoveAriaLabel, handleRemove]
   );
 
   return (
@@ -130,7 +115,7 @@ function DictionaryView() {
         onOpenChange={setConfirmClear}
         title={t("dictionary.clearTitle")}
         description={t("dictionary.clearDescription")}
-        onConfirm={() => setCustomDictionary(customDictionary.filter((w) => w === agentName))}
+        onConfirm={() => setCustomDictionary([])}
         variant="destructive"
       />
 
@@ -280,37 +265,24 @@ function DictionaryView() {
               </List>
             ) : (
               <div className="flex flex-wrap gap-1.5">
-                {customDictionary.map((word, index) => {
-                  const isAgentName = word === agentName;
-                  return (
-                    <span
-                      key={`${word}-${index}`}
-                      className={`group inline-flex items-center gap-1 py-[3px]
-                        rounded-[5px] text-xs
-                        border transition-colors duration-150
-                        ${
-                          isAgentName
-                            ? "pl-2.5 pr-2.5 bg-primary/10 dark:bg-primary/15 text-primary border-primary/20 dark:border-primary/30"
-                            : "pl-2.5 pr-1 bg-foreground/[0.02] dark:bg-white/[0.03] text-foreground/60 dark:text-foreground/50 border-foreground/8 dark:border-white/6 hover:border-foreground/15 dark:hover:border-white/12 hover:bg-foreground/[0.04] dark:hover:bg-white/[0.06] hover:text-foreground/80 dark:hover:text-foreground/70"
-                        }`}
-                      title={isAgentName ? t("dictionary.autoManaged") : undefined}
+                {customDictionary.map((word, index) => (
+                  <span
+                    key={`${word}-${index}`}
+                    className="group inline-flex items-center gap-1 py-[3px] pl-2.5 pr-1 rounded-[5px] text-xs border transition-colors duration-150 bg-foreground/[0.02] dark:bg-white/[0.03] text-foreground/60 dark:text-foreground/50 border-foreground/8 dark:border-white/6 hover:border-foreground/15 dark:hover:border-white/12 hover:bg-foreground/[0.04] dark:hover:bg-white/[0.06] hover:text-foreground/80 dark:hover:text-foreground/70"
+                  >
+                    {word}
+                    <button
+                      onClick={() => handleRemove(word)}
+                      aria-label={getRemoveAriaLabel(word)}
+                      className="p-0.5 rounded-sm
+                        opacity-0 group-hover:opacity-100
+                        text-foreground/25 hover:!text-destructive/70
+                        transition-colors duration-150"
                     >
-                      {word}
-                      {!isAgentName && (
-                        <button
-                          onClick={() => handleRemove(word)}
-                          aria-label={getRemoveAriaLabel(word)}
-                          className="p-0.5 rounded-sm
-                            opacity-0 group-hover:opacity-100
-                            text-foreground/25 hover:!text-destructive/70
-                            transition-colors duration-150"
-                        >
-                          <X size={10} strokeWidth={2} />
-                        </button>
-                      )}
-                    </span>
-                  );
-                })}
+                      <X size={10} strokeWidth={2} />
+                    </button>
+                  </span>
+                ))}
               </div>
             )}
           </div>

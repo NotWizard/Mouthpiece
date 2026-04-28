@@ -156,7 +156,7 @@ test("custom reasoning tries responses before falling back to chat completions f
     storage: {
       customReasoningApiKey: "sk-test-custom",
       preferredLanguage: "zh-CN",
-      customUnifiedPrompt: JSON.stringify("PROMPT::{{agentName}}::CUSTOM"),
+      customCleanupPrompt: JSON.stringify("PROMPT::CUSTOM"),
     },
     electronAPI: {
       getCustomReasoningKey: async () => "sk-test-custom",
@@ -164,7 +164,7 @@ test("custom reasoning tries responses before falling back to chat completions f
   });
 
   try {
-    const result = await service.processText("嗯，我上海没亲戚朋友。", "qwen3.5-flash", "AI", {
+    const result = await service.processText("嗯，我上海没亲戚朋友。", "qwen3.5-flash", {
       contextClassification: {
         context: "general",
         intent: "cleanup",
@@ -237,7 +237,7 @@ test("custom reasoning ignores stored chat endpoint preference and still probes 
       customReasoningApiKey: "sk-test-custom",
       preferredLanguage: "zh-CN",
       cloudReasoningBaseUrl: baseUrl,
-      customUnifiedPrompt: JSON.stringify("PROMPT::{{agentName}}::CUSTOM"),
+      customCleanupPrompt: JSON.stringify("PROMPT::CUSTOM"),
       openAiEndpointPreference: JSON.stringify({
         [baseUrl]: "chat",
       }),
@@ -248,7 +248,7 @@ test("custom reasoning ignores stored chat endpoint preference and still probes 
   });
 
   try {
-    const result = await service.processText("嗯，我上海没亲戚朋友。", "qwen3.5-flash", "AI", {
+    const result = await service.processText("嗯，我上海没亲戚朋友。", "qwen3.5-flash", {
       contextClassification: {
         context: "general",
         intent: "cleanup",
@@ -289,7 +289,7 @@ test("custom reasoning prefers the main-process request proxy over renderer fetc
     storage: {
       customReasoningApiKey: "sk-test-custom",
       preferredLanguage: "zh-CN",
-      customUnifiedPrompt: JSON.stringify("PROMPT::{{agentName}}::CUSTOM"),
+      customCleanupPrompt: JSON.stringify("PROMPT::CUSTOM"),
     },
     electronAPI: {
       getCustomReasoningKey: async () => "sk-test-custom",
@@ -323,7 +323,7 @@ test("custom reasoning prefers the main-process request proxy over renderer fetc
   });
 
   try {
-    const result = await service.processText("嗯，我上海没亲戚朋友。", "qwen3.5-flash", "AI", {
+    const result = await service.processText("嗯，我上海没亲戚朋友。", "qwen3.5-flash", {
       contextClassification: {
         context: "general",
         intent: "cleanup",
@@ -394,7 +394,7 @@ test("custom reasoning falls back to chat completions when responses times out",
   });
 
   try {
-    const result = await service.processText("嗯，我上海没亲戚朋友。", "qwen3.5-flash", "AI", {
+    const result = await service.processText("嗯，我上海没亲戚朋友。", "qwen3.5-flash", {
       contextClassification: {
         context: "general",
         intent: "cleanup",
@@ -464,7 +464,7 @@ test("custom reasoning honors explicit post-processing policy overrides in the s
     storage: {
       customReasoningApiKey: "sk-test-custom",
       preferredLanguage: "en",
-      customUnifiedPrompt: JSON.stringify("PROMPT::{{agentName}}::CUSTOM"),
+      customCleanupPrompt: JSON.stringify("PROMPT::CUSTOM"),
     },
     electronAPI: {
       getCustomReasoningKey: async () => "sk-test-custom",
@@ -472,7 +472,7 @@ test("custom reasoning honors explicit post-processing policy overrides in the s
   });
 
   try {
-    const result = await service.processText("user id is userIdValue", "qwen3.5-flash", "AI", {
+    const result = await service.processText("user id is userIdValue", "qwen3.5-flash", {
       contextClassification: {
         context: "general",
         intent: "cleanup",
@@ -547,7 +547,7 @@ test("custom reasoning preserves explicit policy overrides even when context cla
     storage: {
       customReasoningApiKey: "sk-test-custom",
       preferredLanguage: "en",
-      customUnifiedPrompt: JSON.stringify("PROMPT::{{agentName}}::CUSTOM"),
+      customCleanupPrompt: JSON.stringify("PROMPT::CUSTOM"),
     },
     electronAPI: {
       getCustomReasoningKey: async () => "sk-test-custom",
@@ -555,7 +555,7 @@ test("custom reasoning preserves explicit policy overrides even when context cla
   });
 
   try {
-    const result = await service.processText("keep readme formatting intact", "qwen3.5-flash", "AI", {
+    const result = await service.processText("keep readme formatting intact", "qwen3.5-flash", {
       postProcessingPolicy: {
         surfaceMode: "markdown",
         outputStrategy: "light_polish",
@@ -624,7 +624,7 @@ test("custom reasoning can explicitly enable thinking for chat completions", asy
   });
 
   try {
-    const result = await service.processText("嗯，我上海没亲戚朋友。", "qwen3.5-flash", "AI", {
+    const result = await service.processText("嗯，我上海没亲戚朋友。", "qwen3.5-flash", {
       contextClassification: {
         context: "general",
         intent: "cleanup",
@@ -691,7 +691,7 @@ test("custom reasoning honors explicit post-processing policy even without conte
     storage: {
       customReasoningApiKey: "sk-test-custom",
       preferredLanguage: "en",
-      customUnifiedPrompt: JSON.stringify("PROMPT::{{agentName}}::CUSTOM"),
+      customCleanupPrompt: JSON.stringify("PROMPT::CUSTOM"),
     },
     electronAPI: {
       getCustomReasoningKey: async () => "sk-test-custom",
@@ -699,7 +699,7 @@ test("custom reasoning honors explicit post-processing policy even without conte
   });
 
   try {
-    const result = await service.processText("keep userIdValue exactly", "qwen3.5-flash", "AI", {
+    const result = await service.processText("keep userIdValue exactly", "qwen3.5-flash", {
       postProcessingPolicy: {
         surfaceMode: "ide",
         outputStrategy: "raw_first",
@@ -763,7 +763,7 @@ test("custom reasoning keeps Chinese cleanup output when the API returns a polis
       customReasoningApiKey: "sk-test-custom",
       voiceAssistantEnabled: "true",
       preferredLanguage: "zh-CN",
-      customUnifiedPrompt: JSON.stringify("PROMPT::{{agentName}}::CUSTOM"),
+      customCleanupPrompt: JSON.stringify("PROMPT::CUSTOM"),
     },
     electronAPI: {
       getCustomReasoningKey: async () => "sk-test-custom",
@@ -771,7 +771,7 @@ test("custom reasoning keeps Chinese cleanup output when the API returns a polis
   });
 
   try {
-    const result = await service.processText("嗯，我上海没亲戚朋友。", "qwen3.5-flash", "AI", {
+    const result = await service.processText("嗯，我上海没亲戚朋友。", "qwen3.5-flash", {
       contextClassification: {
         context: "general",
         intent: "cleanup",
@@ -802,7 +802,7 @@ test("custom reasoning keeps Chinese cleanup output when the API returns a polis
       "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
     );
     assert.equal(requests[1].headers.Authorization, "Bearer sk-test-custom");
-    assert.match(requests[1].body.messages[0].content, /PROMPT::AI::CUSTOM/);
+    assert.match(requests[1].body.messages[0].content, /PROMPT::CUSTOM/);
     assert.equal(requests[1].body.messages[1].content, "嗯，我上海没亲戚朋友。");
   } finally {
     globalThis.fetch = previousFetch;
@@ -838,7 +838,7 @@ test("bailian reasoning goes straight to chat completions with thinking disabled
       reasoningProvider: "bailian",
       bailianApiKey: "sk-test-bailian",
       reasoningModel: "qwen3.5-flash",
-      customUnifiedPrompt: JSON.stringify("PROMPT::{{agentName}}::CUSTOM"),
+      customCleanupPrompt: JSON.stringify("PROMPT::CUSTOM"),
     },
     electronAPI: {
       getBailianKey: async () => "sk-test-bailian",
@@ -848,9 +848,7 @@ test("bailian reasoning goes straight to chat completions with thinking disabled
   try {
     const result = await service.processText(
       "请把这句话润色得更自然，但不要改变原意：现在这个胶囊的样式没有问题了，正常了。",
-      "qwen3.5-flash",
-      "AI",
-      {
+      "qwen3.5-flash", {
         contextClassification: {
           context: "general",
           intent: "cleanup",

@@ -1666,7 +1666,7 @@ class IPCHandlers {
       this._syncStartupEnv(setVars, clearVars);
     });
 
-    ipcMain.handle("process-local-reasoning", async (event, text, modelId, _agentName, config) => {
+    ipcMain.handle("process-local-reasoning", async (event, text, modelId, config) => {
       try {
         const LocalReasoningService = require("../services/localReasoningBridge").default;
         const result = await LocalReasoningService.processText(text, modelId, config);
@@ -1697,7 +1697,7 @@ class IPCHandlers {
 
     ipcMain.handle(
       "process-anthropic-reasoning",
-      async (event, text, modelId, _agentName, config) => {
+      async (event, text, modelId, config) => {
         try {
           const apiKey = this.environmentManager.getAnthropicKey();
 
@@ -2298,7 +2298,6 @@ class IPCHandlers {
           "Cloud reason request",
           {
             model: opts.model || "(default)",
-            agentName: opts.agentName || "(none)",
             textLength: text?.length || 0,
           },
           "cloud-api"
@@ -2313,7 +2312,6 @@ class IPCHandlers {
           body: JSON.stringify({
             text,
             model: opts.model,
-            agentName: opts.agentName,
             customDictionary: opts.customDictionary,
             customPrompt: opts.customPrompt,
             systemPrompt: opts.systemPrompt,

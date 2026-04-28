@@ -150,10 +150,9 @@ OpenWhispr is an Electron-based desktop dictation application that uses whisper.
 
 ### Services
 
-- **ReasoningService.ts**: AI processing for agent-addressed commands
-  - Detects when user addresses their named agent
-  - Routes to appropriate AI provider (OpenAI/Anthropic/Gemini)
-  - Removes agent name from final output
+- **ReasoningService.ts**: AI text cleanup and post-processing
+  - Routes transcribed text to the selected AI provider (OpenAI/Anthropic/Gemini/local)
+  - Applies cleanup-only prompts, strict transcript safety, dictionary hints, and post-processing policy
   - Supports GPT-5, Claude 4.6 (Opus/Sonnet/Haiku), and Gemini 3.1 Pro / 3 Flash models
 
 ### whisper.cpp Integration
@@ -252,7 +251,6 @@ Settings stored in localStorage with these keys:
 - `anthropicApiKey`: Encrypted API key
 - `geminiApiKey`: Encrypted API key
 - `language`: Selected language code
-- `agentName`: User's custom agent name
 - `reasoningModel`: Selected AI model for processing
 - `reasoningProvider`: AI provider (openai/anthropic/gemini/local)
 - `hotkey`: Custom hotkey configuration
@@ -270,12 +268,13 @@ Environment variables persisted to `.env` (via `saveAllKeysToEnvFile()`):
 - "auto" for automatic detection
 - Passed to whisper.cpp via -l parameter
 
-### 7. Agent Naming System
+### 7. AI Text Cleanup System
 
-- Agent name defaults to `Mouthpiece` and can be changed later in Settings.
-- Name stored in localStorage and synchronized into the custom dictionary
-- ReasoningService detects "Hey [AgentName]" patterns
-- AI processes command and removes agent reference from output
+- Reasoning is cleanup-only and runs after explicit dictation capture completes.
+- Dictation starts only through explicit user actions such as the global hotkey, floating button, or menu controls.
+- Spoken phrases are treated as transcript content and do not switch the app into a separate command mode.
+- Custom prompts are stored as cleanup prompts and unsafe legacy prompt variants are discarded during startup migration.
+- Text cleanup supports multiple AI providers (all models defined in `src/models/modelRegistryData.json`):
 - Supports multiple AI providers (all models defined in `src/models/modelRegistryData.json`):
   - **OpenAI** (Responses API):
     - GPT-5.2 (`gpt-5.2`) - Latest flagship reasoning model
@@ -484,7 +483,7 @@ const { t } = useTranslation();
 - [ ] Test with different audio input devices
 - [ ] Verify whisper.cpp binary detection
 - [ ] Test all Whisper models
-- [ ] Check agent naming functionality
+- [ ] Test AI text cleanup and Prompt Studio customization
 - [ ] Test custom dictionary with uncommon words
 - [ ] Verify Windows Push-to-Talk with compound hotkeys
 - [ ] Test GNOME Wayland hotkeys (if on GNOME + Wayland)
@@ -598,7 +597,7 @@ const { t } = useTranslation();
 ## Future Enhancements to Consider
 
 - Streaming transcription support
-- Custom wake word detection
+- Prompt Studio workflows for cleanup prompt testing
 - ~~Multi-language UI~~ (implemented — 9 languages via react-i18next)
 - Cloud model selection
 - Batch transcription

@@ -617,7 +617,6 @@
     },
     "title": "Reimposta la password"
   },
-  "fullPrompt": "Prompt completo",
   "hotkeyGuidance": {
     "blockedDescription": "Queste scorciatoie sono bloccate perché comunemente usate dal sistema.",
     "blockedTitle": "Scorciatoie bloccate",
@@ -786,7 +785,7 @@
     "edit": {
       "cautionLabel": "Attenzione",
       "placeholder": "Inserisci il tuo prompt di sistema personalizzato...",
-      "cautionText": "Questo prompt influisce solo sulla pulizia e rifinitura IA dopo l’ASR. Può cambiare stile, formulazione e fedeltà del testo trascritto ottimizzato."
+      "cautionText": "Questo prompt influisce solo sulla pulizia e rifinitura IA dopo l'ASR. Puo cambiare stile, formulazione e fedelta del testo ottimizzato."
     },
     "tabs": {
       "customize": "Personalizza",
@@ -794,7 +793,6 @@
       "view": "Visualizza"
     },
     "test": {
-      "addressHint": "Prova a rivolgerti a \"{{agentName}}\" per testare la modalità istruzione",
       "aiModels": "Modelli IA",
       "baseUrlMissing": "URL base di {{provider}} mancante. Aggiungilo nelle impostazioni Modelli IA.",
       "cleanup": "Correzione",
@@ -804,7 +802,6 @@
       "failed": "Test fallito: {{error}}",
       "inputLabel": "Input",
       "inputPlaceholder": "Inserisci il testo da testare...",
-      "instruction": "Istruzione",
       "modelLabel": "Modello",
       "noModelSelected": "Nessun modello selezionato",
       "none": "Nessuno",
@@ -818,16 +815,6 @@
     "view": {
       "customPrompt": "Prompt personalizzato",
       "defaultPrompt": "Prompt predefinito",
-      "modes": {
-        "agent": {
-          "description": "Attivato da \"{{agentName}}\" — esegue comandi, risponde a domande, compone contenuti",
-          "label": "Agente"
-        },
-        "cleanup": {
-          "description": "Percorso rapido — rimuove parole superflue, corregge grammatica e punteggiatura",
-          "label": "Correzione"
-        }
-      },
       "modified": "Modificato"
     }
   },
@@ -872,7 +859,7 @@
         "label": "Trascrizione"
       },
       "intelligence": {
-        "description": "Modelli IA, agente e prompt",
+        "description": "Modelli IA, pulizia testo e prompt",
         "label": "Intelligenza"
       },
       "privacyData": {
@@ -887,35 +874,10 @@
     "title": "Impostazioni"
   },
   "settingsPage": {
-    "agentConfig": {
-      "agentName": "Nome dell'agente",
-      "cleanupExample": "Correzione",
-      "cleanupMode": "Modalità correzione",
-      "description": "Dai un nome al tuo assistente IA per rivolgerti direttamente a lui durante la dettatura",
-      "dialogs": {
-        "updatedDescription": "Il tuo agente ora si chiama \"{{name}}\". Rivolgiti a lui dicendo \"Ehi {{name}}\" seguito dalle tue istruzioni.",
-        "updatedTitle": "Nome dell'agente aggiornato"
-      },
-      "examplesTitle": "Esempi",
-      "helper": "Scegli qualcosa di breve e naturale da dire ad alta voce",
-      "howItWorksDescription": "Quando dici \"Ehi {{agentName}}\" seguito da un'istruzione, l'IA passa dalla modalità correzione alla modalità istruzione. Senza la frase di attivazione, si limita a correggere la tua dettatura.",
-      "howItWorksTitle": "Come funziona",
-      "instructionMode": "Istruzione",
-      "placeholder": "es. Jarvis, Nova, Atlas...",
-      "save": "Salva",
-      "title": "Agente vocale",
-      "voiceAssistantToggle": "Abilita Assistente Vocale",
-      "voiceAssistantToggleDescription": "Quando abilitato, dì \"Hey {{agentName}}\" per attivare la modalità istruzioni AI; quando disabilitato, viene usata solo la pulizia del testo",
-      "examples": {
-        "formalEmail": "Hey {{agentName}}, scrivi un'email formale sul budget",
-        "professional": "Hey {{agentName}}, rendi questo più professionale",
-        "bulletPoints": "Hey {{agentName}}, converti questo in elenco puntato"
-      }
-    },
     "aiModels": {
       "customSetup": "Configurazione personalizzata",
       "customSetupDescription": "Usa il tuo provider e la tua chiave API.",
-      "description": "Correggi le trascrizioni, gestisci i comandi e risolvi gli errori preservando il tuo tono.",
+      "description": "Pulisce le trascrizioni e corregge errori di riconoscimento preservando il tuo tono.",
       "enableTextCleanup": "Attiva correzione testo",
       "enableTextCleanupDescription": "L'IA migliora la qualità della trascrizione",
       "mouthpieceCloud": "Mouthpiece Cloud",
@@ -974,7 +936,6 @@
       "clearDictionaryTitle": "Svuotare il dizionario?",
       "clearDictionaryDescription": "Verranno rimosse tutte le parole dal tuo dizionario personalizzato. Questa azione non può essere annullata.",
       "clearAll": "Cancella tutto",
-      "agentNameAutoManaged": "Gestito automaticamente — sincronizzato con il nome dell'agente",
       "removeWord": "Rimuovi parola",
       "noWords": "Nessuna parola ancora",
       "wordsAppearHere": "Le parole aggiunte appariranno qui",
@@ -1389,7 +1350,6 @@
     "clearAll": "Cancella tutto",
     "howItWorks": "Come funziona",
     "howItWorksDetail": "Le parole aggiunte vengono incluse nel prompt dell'IA, in modo che il modello sappia cercare e preservare questi termini durante la correzione della trascrizione.",
-    "autoManaged": "Gestito automaticamente",
     "inputHint": "Premi Invio per aggiungere",
     "title": "Dizionario personalizzato",
     "description": "Insegna all'IA il tuo vocabolario — nomi, gergo e termini che potrebbe altrimenti non riconoscere",

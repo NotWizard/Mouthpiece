@@ -1,4 +1,4 @@
-import type { ContextClassification, ReasoningIntent, ReasoningContext } from "./contextClassifier";
+import type { ContextClassification, ReasoningContext } from "./contextClassifier";
 
 export type OutputStrategy = "raw_first" | "light_polish" | "publishable" | "structured_rewrite";
 export type InputSurfaceMode =
@@ -70,16 +70,9 @@ function deriveSurfaceMode(contextClassification?: ContextClassification | null)
   return SURFACE_MODE_BY_CONTEXT[contextClassification.context] || FALLBACK_SURFACE_MODE;
 }
 
-function deriveOutputStrategy(
-  surfaceMode: InputSurfaceMode,
-  intent: ReasoningIntent = "cleanup"
-): OutputStrategy {
+function deriveOutputStrategy(surfaceMode: InputSurfaceMode): OutputStrategy {
   if (surfaceMode === "ide" || surfaceMode === "search" || surfaceMode === "form") {
     return "raw_first";
-  }
-
-  if (intent === "instruction" && (surfaceMode === "document" || surfaceMode === "email")) {
-    return "structured_rewrite";
   }
 
   if (surfaceMode === "email" || surfaceMode === "document") {
@@ -102,7 +95,7 @@ export function resolvePostProcessingPolicy({
     preferredSurfaceMode || deriveSurfaceMode(contextClassification)
   );
   const outputStrategy = normalizeOutputStrategy(
-    preferredOutputStrategy || deriveOutputStrategy(surfaceMode, contextClassification?.intent)
+    preferredOutputStrategy || deriveOutputStrategy(surfaceMode)
   );
 
   return {

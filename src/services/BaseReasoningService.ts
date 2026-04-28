@@ -34,7 +34,6 @@ export abstract class BaseReasoningService {
   }
 
   protected getSystemPrompt(
-    agentName: string | null,
     transcript?: string,
     contextClassification?: ContextClassification,
     postProcessingPolicy?: PostProcessingPolicy
@@ -42,7 +41,6 @@ export abstract class BaseReasoningService {
     const language = this.getPreferredLanguage();
     const uiLanguage = this.getUiLanguage();
     return getSystemPrompt(
-      agentName,
       this.getCustomDictionary(),
       language,
       transcript,
@@ -67,7 +65,6 @@ export abstract class BaseReasoningService {
   abstract processText(
     text: string,
     modelId: string,
-    agentName?: string | null,
     config?: ReasoningConfig
   ): Promise<string>;
 }

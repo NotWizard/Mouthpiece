@@ -41,7 +41,6 @@ test("context classifier detects IDE and markdown contexts conservatively", asyn
           source: "main-process",
           capturedAt: null,
         },
-        agentName: "Mouthpiece",
       })
     );
 
@@ -55,7 +54,6 @@ test("context classifier detects IDE and markdown contexts conservatively", asyn
           source: "main-process",
           capturedAt: null,
         },
-        agentName: "Mouthpiece",
       })
     );
 
@@ -65,6 +63,31 @@ test("context classifier detects IDE and markdown contexts conservatively", asyn
 
     assert.equal(markdownResult.context, "markdown");
     assert.match(markdownResult.signals.join(","), /text:markdown/);
+  } finally {
+    cleanup();
+  }
+});
+
+test("direct-address style text remains cleanup content", async () => {
+  const { module: mod, cleanup } = await importContextClassifier();
+
+  try {
+    const result = withLocalStorage({}, () =>
+      mod.classifyContext({
+        text: "Hey Mouthpiece, write a formal email about the budget.",
+        targetApp: {
+          appName: "Notes",
+          processId: 505,
+          platform: "darwin",
+          source: "main-process",
+          capturedAt: null,
+        },
+      })
+    );
+
+    assert.equal(result.intent, "cleanup");
+    assert.equal(result.strictMode, true);
+    assert.doesNotMatch(result.signals.join(","), /agent_direct_address/);
   } finally {
     cleanup();
   }

@@ -1,5 +1,4 @@
 import type { TargetAppInfo } from "../types/electron";
-import { hasAgentDirectAddress } from "./agentDirectAddress.mjs";
 import {
   resolveSensitiveAppPolicy,
   type SensitiveAppAction,
@@ -16,7 +15,7 @@ export type ReasoningContext =
   | "form"
   | "markdown"
   | "ide";
-export type ReasoningIntent = "cleanup" | "instruction";
+export type ReasoningIntent = "cleanup";
 
 export interface ContextClassification {
   context: ReasoningContext;
@@ -142,18 +141,6 @@ const readSensitiveAppProtectionOptions = () => {
   };
 };
 
-const detectInstructionIntent = (text: string, agentName: string | null, signals: string[]) => {
-  const trimmed = text.trim();
-  if (!trimmed) return false;
-
-  if (hasAgentDirectAddress(trimmed, agentName)) {
-    signals.push("intent:agent_direct_address");
-    return true;
-  }
-
-  return false;
-};
-
 const detectContextFromRules = (
   rules: Array<{ context: ReasoningContext; re: RegExp; signal: string }>,
   sourceText: string,
@@ -204,11 +191,9 @@ export async function getTargetAppInfo(): Promise<TargetAppInfo> {
 export function classifyContext({
   text,
   targetApp,
-  agentName,
 }: {
   text: string;
   targetApp: TargetAppInfo;
-  agentName?: string | null;
 }): ContextClassification {
   const normalizedText = typeof text === "string" ? text : "";
   const signals: string[] = [];
@@ -230,16 +215,14 @@ export function classifyContext({
   }
   const context = contentContext || appContext || "general";
 
-  const isInstruction = detectInstructionIntent(normalizedText, agentName || null, signals);
-  const intent: ReasoningIntent = isInstruction ? "instruction" : "cleanup";
+  const intent: ReasoningIntent = "cleanup";
 
   let confidence = 0.55;
   if (appContext) confidence += 0.2;
   if (contentContext) confidence += 0.2;
-  if (intent === "instruction") confidence += 0.05;
   confidence = Number(clamp(confidence, 0.5, 0.99).toFixed(2));
 
-  const strictModeEnabled = readStrictMode() && intent === "cleanup";
+  const strictModeEnabled = readStrictMode();
 
   return {
     context,

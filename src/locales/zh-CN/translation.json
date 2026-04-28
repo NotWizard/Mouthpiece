@@ -617,7 +617,6 @@
     },
     "title": "重置密码"
   },
-  "fullPrompt": "完整提示词",
   "hotkeyGuidance": {
     "blockedDescription": "以下快捷方式已被屏蔽，因为它们是常用的系统快捷键。",
     "blockedTitle": "被屏蔽的快捷方式",
@@ -786,7 +785,7 @@
     "edit": {
       "cautionLabel": "注意",
       "placeholder": "输入你的自定义系统提示词...",
-      "cautionText": "这个提示词只影响 ASR 后文本的智能优化和润色效果，可能改变优化后转录文本的风格、措辞与保真度。"
+      "cautionText": "这个提示词只影响 ASR 后文本的智能优化。它可能改变优化后转录文本的风格、措辞和忠实度。"
     },
     "tabs": {
       "customize": "自定义",
@@ -794,7 +793,6 @@
       "view": "查看"
     },
     "test": {
-      "addressHint": "试试说“{{agentName}}”来测试指令模式",
       "aiModels": "AI 模型",
       "baseUrlMissing": "{{provider}} 的 URL 缺失，请在 AI 模型设置中添加。",
       "cleanup": "文本整理",
@@ -804,7 +802,6 @@
       "failed": "测试失败：{{error}}",
       "inputLabel": "输入",
       "inputPlaceholder": "输入要测试的文本...",
-      "instruction": "指令",
       "modelLabel": "模型",
       "noModelSelected": "未选择模型",
       "none": "无",
@@ -818,16 +815,6 @@
     "view": {
       "customPrompt": "自定义提示词",
       "defaultPrompt": "默认提示词",
-      "modes": {
-        "agent": {
-          "description": "通过“{{agentName}}”触发——执行命令、回答问题、撰写内容",
-          "label": "语音助手"
-        },
-        "cleanup": {
-          "description": "快速通道——去除语气词，修正语法和标点",
-          "label": "文本整理"
-        }
-      },
       "modified": "已修改"
     }
   },
@@ -872,7 +859,7 @@
         "label": "转录"
       },
       "intelligence": {
-        "description": "AI 模型、助手与提示词",
+        "description": "AI 模型、文本整理与提示词",
         "label": "智能"
       },
       "privacyData": {
@@ -887,35 +874,10 @@
     "title": "设置"
   },
   "settingsPage": {
-    "agentConfig": {
-      "agentName": "助手名称",
-      "cleanupExample": "文本整理",
-      "cleanupMode": "整理模式",
-      "description": "为你的 AI 助手取个名字，这样你就能在听写时直接呼唤它",
-      "dialogs": {
-        "updatedDescription": "你的助手已命名为“{{name}}”。说“Hey {{name}}”然后说出指令即可使用。",
-        "updatedTitle": "助手名称已更新"
-      },
-      "examplesTitle": "示例",
-      "helper": "选一个简短、说起来自然的名字",
-      "howItWorksDescription": "当你说“Hey {{agentName}}”并跟上指令时，AI 会从整理模式切换到指令模式。没有触发短语时，它只会整理你的听写内容。",
-      "howItWorksTitle": "工作原理",
-      "instructionMode": "指令",
-      "placeholder": "例如 Jarvis、Nova、Atlas...",
-      "save": "保存",
-      "title": "语音助手",
-      "voiceAssistantToggle": "启用语音助手",
-      "voiceAssistantToggleDescription": "开启后，说「Hey {{agentName}}」可触发 AI 指令模式；关闭时仅使用文本整理功能",
-      "examples": {
-        "formalEmail": "Hey {{agentName}}，写一封关于预算的正式邮件",
-        "professional": "Hey {{agentName}}，让这个更专业",
-        "bulletPoints": "Hey {{agentName}}，把这个转换成要点列表"
-      }
-    },
     "aiModels": {
       "customSetup": "自定义设置",
       "customSetupDescription": "使用你自己的服务商和 API Key。",
-      "description": "整理转录文本、处理指令、修正错误，同时保留你的语气风格。",
+      "description": "整理转录文本并修正识别错误，同时保留你的语气。",
       "enableTextCleanup": "启用文本整理",
       "enableTextCleanupDescription": "AI 提升转录质量",
       "mouthpieceCloud": "Mouthpiece 云端",
@@ -974,7 +936,6 @@
       "clearDictionaryTitle": "清除词典？",
       "clearDictionaryDescription": "这将删除自定义词典中的所有词语。此操作无法撤消。",
       "clearAll": "全部清除",
-      "agentNameAutoManaged": "自动管理 — 与助手名称同步",
       "removeWord": "移除词语",
       "noWords": "暂无词语",
       "wordsAppearHere": "你添加的词语将显示在这里",
@@ -1389,7 +1350,6 @@
     "clearAll": "全部清除",
     "howItWorks": "工作原理",
     "howItWorksDetail": "你添加的词汇会被包含在 AI 提示词中，以便模型在转录整理时能够识别并保留这些词汇。",
-    "autoManaged": "助手名称（自动管理）",
     "inputHint": "按回车键添加",
     "title": "自定义词典",
     "description": "教 AI 学习你的词汇 — 名字、行话和它可能遗漏的术语",

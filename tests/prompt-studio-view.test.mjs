@@ -13,7 +13,9 @@ test("prompt studio view tab removes the cleanup quick lane and keeps the prompt
   assert.doesNotMatch(source, /promptStudio\.view\.modes\.cleanup\.label/);
   assert.match(source, /promptStudio\.view\.customPrompt/);
   assert.match(source, /promptStudio\.view\.defaultPrompt/);
-  assert.match(source, /getCurrentPrompt\(\)\.replace/);
+  assert.doesNotMatch(source, /getCurrentPrompt\(\)\.replace/);
+  assert.doesNotMatch(source, /useAgentName/);
+  assert.match(source, /CUSTOM_CLEANUP_PROMPT_KEY/);
 });
 
 test("prompt studio custom warning describes AI cleanup instead of agent detection", async () => {
@@ -26,6 +28,7 @@ test("prompt studio custom warning describes AI cleanup instead of agent detecti
   assert.doesNotMatch(source, /promptStudio\.edit\.cautionTextPrefix/);
   assert.doesNotMatch(source, /promptStudio\.edit\.cautionTextSuffix/);
   assert.doesNotMatch(source, /\{"\{\{agentName\}\}"\}/);
+  assert.doesNotMatch(source, /customUnifiedPrompt/);
   assert.match(zhCnLocale, /这个提示词只影响 ASR 后文本的智能优化/);
   assert.doesNotMatch(zhCnLocale, /保留 \{\{agentName\}\} 占位符以确保助手识别功能正常/);
 });

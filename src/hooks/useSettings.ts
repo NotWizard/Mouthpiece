@@ -36,7 +36,6 @@ export interface TranscriptionSettings {
 
 export interface ReasoningSettings {
   useReasoningModel: boolean;
-  voiceAssistantEnabled: boolean;
   reasoningModel: string;
   reasoningProvider: string;
   cloudReasoningBaseUrl?: string;
@@ -249,7 +248,6 @@ function useSettingsInternal() {
     setVoiceGateStrictness: store.setVoiceGateStrictness,
     setRealtimeEndpointingMode: store.setRealtimeEndpointingMode,
     useReasoningModel: store.useReasoningModel,
-    voiceAssistantEnabled: store.voiceAssistantEnabled,
     reasoningModel: store.reasoningModel,
     reasoningProvider: store.reasoningProvider,
     openaiApiKey: store.openaiApiKey,
@@ -285,7 +283,6 @@ function useSettingsInternal() {
     approveTerminologySuggestion: store.approveTerminologySuggestion,
     rejectTerminologySuggestion: store.rejectTerminologySuggestion,
     setUseReasoningModel: store.setUseReasoningModel,
-    setVoiceAssistantEnabled: store.setVoiceAssistantEnabled,
     setReasoningModel: store.setReasoningModel,
     setReasoningProvider: store.setReasoningProvider,
     setOpenaiApiKey: store.setOpenaiApiKey,

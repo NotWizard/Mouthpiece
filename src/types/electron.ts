@@ -487,7 +487,6 @@ declare global {
       processLocalReasoning: (
         text: string,
         modelId: string,
-        agentName: string | null,
         config: any
       ) => Promise<{ success: boolean; text?: string; error?: string }>;
       checkLocalReasoningAvailable: () => Promise<boolean>;
@@ -496,7 +495,6 @@ declare global {
       processAnthropicReasoning: (
         text: string,
         modelId: string,
-        agentName: string | null,
         config: any
       ) => Promise<{ success: boolean; text?: string; error?: string }>;
 
@@ -685,7 +683,6 @@ declare global {
         text: string,
         opts: {
           model?: string;
-          agentName?: string;
           customDictionary?: string[];
           customPrompt?: string;
           systemPrompt?: string;

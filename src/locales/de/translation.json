@@ -617,7 +617,6 @@
     },
     "title": "Passwort zurücksetzen"
   },
-  "fullPrompt": "Vollständiger Prompt",
   "hotkeyGuidance": {
     "blockedDescription": "Diese Tastenkombinationen sind blockiert, da sie häufig vom System verwendet werden.",
     "blockedTitle": "Blockierte Tastenkombinationen",
@@ -772,7 +771,7 @@
       "reset": "Zurücksetzen",
       "save": "Speichern"
     },
-    "defaultTestInput": "Ähm, verschiebe das Projekt-Review heute um 15 Uhr auf 16 Uhr und informiere Produkt und Design.",
+    "defaultTestInput": "Ah, verschiebe den heutigen Projekttermin von 15 Uhr auf 16 Uhr und informiere Produkt und Design.",
     "dialogs": {
       "reset": {
         "description": "Der Prompt wurde auf den Standardwert zurückgesetzt.",
@@ -786,7 +785,7 @@
     "edit": {
       "cautionLabel": "Vorsicht",
       "placeholder": "Geben Sie Ihren benutzerdefinierten System-Prompt ein...",
-      "cautionText": "Dieser Prompt beeinflusst nur die KI-Bereinigung und Nachbearbeitung nach ASR. Er kann Stil, Formulierung und Texttreue der optimierten Transkription verändern."
+      "cautionText": "Dieser Prompt betrifft nur die KI-Bereinigung und Politur nach ASR. Er kann Stil, Formulierung und Treue des optimierten Transkripttexts verandern."
     },
     "tabs": {
       "customize": "Anpassen",
@@ -794,7 +793,6 @@
       "view": "Ansicht"
     },
     "test": {
-      "addressHint": "Versuchen Sie, '{{agentName}}' anzusprechen, um den Anweisungsmodus zu testen",
       "aiModels": "KI-Modelle",
       "baseUrlMissing": "{{provider}} Basis-URL fehlt. Fügen Sie sie in den KI-Modelle-Einstellungen hinzu.",
       "cleanup": "Textbereinigung",
@@ -804,7 +802,6 @@
       "failed": "Test fehlgeschlagen: {{error}}",
       "inputLabel": "Eingabe",
       "inputPlaceholder": "Text zum Testen eingeben...",
-      "instruction": "Anweisung",
       "modelLabel": "Modell",
       "noModelSelected": "Kein Modell ausgewählt",
       "none": "Keine",
@@ -818,16 +815,6 @@
     "view": {
       "customPrompt": "Benutzerdefinierter Prompt",
       "defaultPrompt": "Standard-Prompt",
-      "modes": {
-        "agent": {
-          "description": "Ausgelöst durch '{{agentName}}' – führt Befehle aus, beantwortet Fragen, verfasst Inhalte",
-          "label": "Agent"
-        },
-        "cleanup": {
-          "description": "Schneller Pfad – entfernt Füllwörter, korrigiert Grammatik und Zeichensetzung",
-          "label": "Textbereinigung"
-        }
-      },
       "modified": "Geändert"
     }
   },
@@ -872,7 +859,7 @@
         "label": "Transkription"
       },
       "intelligence": {
-        "description": "KI-Modelle, Agent & Prompts",
+        "description": "KI-Modelle, Textbereinigung und Prompts",
         "label": "Intelligenz"
       },
       "privacyData": {
@@ -887,35 +874,10 @@
     "title": "Einstellungen"
   },
   "settingsPage": {
-    "agentConfig": {
-      "agentName": "Agent-Name",
-      "cleanupExample": "Textbereinigung",
-      "cleanupMode": "Bereinigungsmodus",
-      "description": "Benennen Sie Ihren KI-Assistenten, damit Sie ihn beim Diktieren direkt ansprechen können",
-      "dialogs": {
-        "updatedDescription": "Ihr Agent heißt jetzt '{{name}}'. Sprechen Sie ihn an, indem Sie 'Hey {{name}}' gefolgt von Ihren Anweisungen sagen.",
-        "updatedTitle": "Agent-Name aktualisiert"
-      },
-      "examplesTitle": "Beispiele",
-      "helper": "Wählen Sie etwas Kurzes und Natürliches zum Aussprechen",
-      "howItWorksDescription": "Wenn Sie 'Hey {{agentName}}' gefolgt von einer Anweisung sagen, wechselt die KI vom Bereinigungsmodus in den Anweisungsmodus. Ohne die Triggerphrase wird Ihr Diktat einfach bereinigt.",
-      "howItWorksTitle": "So funktioniert es",
-      "instructionMode": "Anweisung",
-      "placeholder": "z. B. Jarvis, Nova, Atlas...",
-      "save": "Speichern",
-      "title": "Sprachagent",
-      "voiceAssistantToggle": "Sprachassistent aktivieren",
-      "voiceAssistantToggleDescription": "Wenn aktiviert, sage \"Hey {{agentName}}\" um den KI-Anweisungsmodus auszulösen; wenn deaktiviert, wird nur die Textbereinigung verwendet",
-      "examples": {
-        "formalEmail": "Hey {{agentName}}, schreibe eine formelle E-Mail zum Thema Budget",
-        "professional": "Hey {{agentName}}, mach das professioneller",
-        "bulletPoints": "Hey {{agentName}}, wandle das in Stichpunkte um"
-      }
-    },
     "aiModels": {
       "customSetup": "Benutzerdefinierte Einrichtung",
       "customSetupDescription": "Verwenden Sie Ihren eigenen Anbieter und API-Schlüssel.",
-      "description": "Bereinigt Transkriptionen, verarbeitet Befehle und korrigiert Fehler unter Beibehaltung Ihres Stils.",
+      "description": "Bereinigt Transkriptionen und korrigiert Erkennungsfehler, ohne deinen Ton zu verlieren.",
       "enableTextCleanup": "Textbereinigung aktivieren",
       "enableTextCleanupDescription": "KI verbessert die Transkriptionsqualität",
       "mouthpieceCloud": "Mouthpiece Cloud",
@@ -974,7 +936,6 @@
       "clearDictionaryTitle": "Wörterbuch löschen?",
       "clearDictionaryDescription": "Dadurch werden alle Wörter aus Ihrem benutzerdefinierten Wörterbuch entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
       "clearAll": "Alles löschen",
-      "agentNameAutoManaged": "Automatisch verwaltet — synchronisiert mit dem Agentennamen",
       "removeWord": "Wort entfernen",
       "noWords": "Noch keine Wörter",
       "wordsAppearHere": "Hinzugefügte Wörter erscheinen hier",
@@ -1389,7 +1350,6 @@
     "clearAll": "Alle löschen",
     "howItWorks": "So funktioniert es",
     "howItWorksDetail": "Hinzugefügte Wörter werden in den KI-Prompt aufgenommen, damit das Modell diese Begriffe bei der Transkriptionsbereinigung erkennt und beibehält.",
-    "autoManaged": "Agent-Name (automatisch verwaltet)",
     "inputHint": "Enter drücken zum Hinzufügen",
     "title": "Benutzerdefiniertes Wörterbuch",
     "description": "Bringe der KI dein Vokabular bei – Namen, Fachbegriffe und Ausdrücke, die sie sonst übersehen könnte",
