@@ -98,7 +98,7 @@ test("supported UI locales come from a shared manifest instead of duplicated lis
   assert.match(settingsSource, /localeManifest/);
 });
 
-test("AGENTS and CLAUDE docs describe the current 3-step onboarding and simplified database schema", async () => {
+test("AGENTS and CLAUDE docs describe current onboarding and omit legacy agent naming", async () => {
   const [agentsDoc, claudeDoc] = await Promise.all([
     readRepoFile("AGENTS.md"),
     readRepoFile("CLAUDE.md"),
@@ -110,10 +110,10 @@ test("AGENTS and CLAUDE docs describe the current 3-step onboarding and simplifi
     assert.doesNotMatch(source, /processing_method TEXT DEFAULT 'none'/);
     assert.doesNotMatch(source, /agent_name TEXT/);
     assert.doesNotMatch(source, /User names their agent during onboarding \(step 6\/8\)/);
+    assert.doesNotMatch(source, /Agent name defaults to `Mouthpiece` and can be changed later in Settings\./);
 
     assert.match(source, /\*\*OnboardingFlow\.tsx\*\*: 3-step first-time setup wizard/);
     assert.match(source, /CREATE TABLE transcriptions \(\s*id INTEGER PRIMARY KEY AUTOINCREMENT,\s*text TEXT NOT NULL,/s);
     assert.match(source, /CREATE TABLE IF NOT EXISTS custom_dictionary|CREATE TABLE custom_dictionary/);
-    assert.match(source, /Agent name defaults to `Mouthpiece` and can be changed later in Settings\./);
   }
 });
