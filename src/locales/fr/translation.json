@@ -772,7 +772,7 @@
       "reset": "Réinitialiser",
       "save": "Enregistrer"
     },
-    "defaultTestInput": "Hey Whispr, quel temps fait-il aujourd'hui ?",
+    "defaultTestInput": "Euh, décale la revue projet d'aujourd'hui de 15 h à 16 h et préviens l'équipe produit et design.",
     "dialogs": {
       "reset": {
         "description": "Le prompt a été réinitialisé à la valeur par défaut.",

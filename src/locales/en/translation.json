@@ -772,7 +772,7 @@
       "reset": "Reset",
       "save": "Save"
     },
-    "defaultTestInput": "Hey Whispr, what's the weather like today?",
+    "defaultTestInput": "Um, move today's 3 PM project review to 4 PM and let product and design know.",
     "dialogs": {
       "reset": {
         "description": "Prompt has been reset to the default value.",

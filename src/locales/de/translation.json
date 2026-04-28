@@ -772,7 +772,7 @@
       "reset": "Zurücksetzen",
       "save": "Speichern"
     },
-    "defaultTestInput": "Hey Whispr, wie ist das Wetter heute?",
+    "defaultTestInput": "Ähm, verschiebe das Projekt-Review heute um 15 Uhr auf 16 Uhr und informiere Produkt und Design.",
     "dialogs": {
       "reset": {
         "description": "Der Prompt wurde auf den Standardwert zurückgesetzt.",

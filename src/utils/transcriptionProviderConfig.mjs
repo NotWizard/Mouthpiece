@@ -43,15 +43,12 @@ export function isDashScopeTranscriptionBaseUrl(value) {
 
 export function migrateLegacyBailianRealtimeModel(settings = {}) {
   const provider = toTrimmedString(settings.cloudTranscriptionProvider);
-  if (provider !== "bailian" || settings.bailianRealtimeEnabled !== true) {
+  if (provider !== "bailian") {
     return toTrimmedString(settings.cloudTranscriptionModel);
   }
 
   const normalizedModel = normalizeBailianQwenAsrModelId(settings.cloudTranscriptionModel);
   const mode = getBailianQwenAsrMode(normalizedModel);
-  if (!normalizedModel || mode === "batch" || normalizedModel === BAILIAN_QWEN_ASR_BATCH_MODEL) {
-    return BAILIAN_QWEN_ASR_REALTIME_MODEL;
-  }
   if (mode === "realtime") {
     return BAILIAN_QWEN_ASR_REALTIME_MODEL;
   }

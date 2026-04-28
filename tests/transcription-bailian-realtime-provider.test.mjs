@@ -128,6 +128,17 @@ test("audio manager routes Bailian realtime separately from Bailian batch transc
   assert.match(source, /const isByokBailianStreaming = this\.isByokBailianStreamingEnabled\(\);/);
 });
 
+test("Bailian realtime routing is selected from the model without renderer API key gating", async () => {
+  const source = await readRepoFile("src/helpers/audioManager.js");
+  const match = source.match(/isByokBailianStreamingEnabled\(\) \{(?<body>[\s\S]*?)\n  \}/);
+
+  assert.ok(match?.groups?.body, "expected isByokBailianStreamingEnabled method body");
+  assert.match(match.groups.body, /s\.cloudTranscriptionProvider === "bailian"/);
+  assert.match(match.groups.body, /getBailianQwenAsrMode\(s\.cloudTranscriptionModel\) === "realtime"/);
+  assert.doesNotMatch(match.groups.body, /s\.bailianApiKey/);
+  assert.doesNotMatch(match.groups.body, /isValidApiKey\([^)]*"bailian"[^)]*\)/);
+});
+
 test("main-process bridge exposes Bailian realtime IPC and dedicated realtime helper", async () => {
   const [preloadSource, ipcHandlersSource, electronTypes, realtimeHelperSource] = await Promise.all(
     [

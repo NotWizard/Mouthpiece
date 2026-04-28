@@ -759,7 +759,7 @@
       "reset": "Redefinir",
       "save": "Salvar"
     },
-    "defaultTestInput": "Ei Whispr, como está o tempo hoje?",
+    "defaultTestInput": "Hum, mova a revisão do projeto de hoje das 15h para as 16h e avise produto e design.",
     "dialogs": {
       "reset": {
         "description": "O prompt foi redefinido para o valor padrão.",

@@ -772,7 +772,7 @@
       "reset": "リセット",
       "save": "保存"
     },
-    "defaultTestInput": "ねぇ Whispr、今日の天気はどう？",
+    "defaultTestInput": "えっと、今日15時のプロジェクトレビューを16時に変更して、プロダクトとデザインに共有してください。",
     "dialogs": {
       "reset": {
         "description": "プロンプトをデフォルト値にリセットしました。",
