@@ -291,6 +291,7 @@ function initializeCoreManagers() {
     isPackaged: app.isPackaged,
     env: process.env,
     logger: debugLogger,
+    beforeInstall: () => windowManager?.prepareForUpdateInstall?.(),
   });
   windowsKeyManager = new WindowsKeyManager();
   textEditMonitor = new TextEditMonitor();

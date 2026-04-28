@@ -36,6 +36,7 @@ class UpdateManager extends EventEmitter {
     clearIntervalFn = clearInterval,
     intervalMs = DEFAULT_UPDATE_INTERVAL_MS,
     logger = console,
+    beforeInstall = null,
   } = {}) {
     super();
     this.autoUpdater = autoUpdater || getDefaultAutoUpdater();
@@ -50,6 +51,7 @@ class UpdateManager extends EventEmitter {
     this.clearIntervalFn = clearIntervalFn;
     this.intervalMs = intervalMs;
     this.logger = logger;
+    this.beforeInstall = typeof beforeInstall === "function" ? beforeInstall : null;
     this.pollTimer = null;
     this.started = false;
     this.checkInFlight = null;
@@ -198,7 +200,10 @@ class UpdateManager extends EventEmitter {
       this._setStatus({
         status: "installing",
       });
-      this.autoUpdater.quitAndInstall();
+      if (this.beforeInstall) {
+        await this.beforeInstall();
+      }
+      this.autoUpdater.quitAndInstall(...this._getQuitAndInstallArgs());
       return { success: true };
     } catch (error) {
       this._handleError(error);
@@ -270,6 +275,10 @@ class UpdateManager extends EventEmitter {
     this.autoUpdater.on("error", (error) => {
       this._handleError(error);
     });
+  }
+
+  _getQuitAndInstallArgs() {
+    return this.platform === "win32" ? [true, true] : [false, true];
   }
 
   _handleError(error) {

@@ -40,6 +40,11 @@ class WindowManager {
     });
   }
 
+  prepareForUpdateInstall() {
+    this.isQuitting = true;
+    this.unregisterDictationCancelShortcut();
+  }
+
   async createMainWindow() {
     const display = screen.getPrimaryDisplay();
     const position = WindowPositionUtil.getMainWindowPosition(display);

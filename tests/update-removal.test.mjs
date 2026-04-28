@@ -8,16 +8,25 @@ async function readRepoFile(relativePath) {
 }
 
 test("main process and preload expose updater wiring", async () => {
-  const [mainSource, preloadSource, ipcSource] = await Promise.all([
+  const [mainSource, preloadSource, ipcSource, windowManagerSource] = await Promise.all([
     readRepoFile("main.js"),
     readRepoFile("preload.js"),
     readRepoFile("src/helpers/ipcHandlers.js"),
+    readRepoFile("src/helpers/windowManager.js"),
   ]);
 
   assert.match(mainSource, /const UpdateManager = require\("\.\/src\/helpers\/updateManager"\);/);
   assert.match(mainSource, /let updateManager = null;/);
   assert.match(mainSource, /updateManager = new UpdateManager\(/);
+  assert.match(
+    mainSource,
+    /beforeInstall:\s*\(\)\s*=>\s*windowManager\?\.prepareForUpdateInstall\?\.\(\)/
+  );
   assert.match(mainSource, /updateManager\.start\(\);/);
+  assert.match(
+    windowManagerSource,
+    /prepareForUpdateInstall\(\)\s*\{[\s\S]*this\.isQuitting = true;[\s\S]*this\.unregisterDictationCancelShortcut\(\);[\s\S]*\}/
+  );
 
   assert.match(preloadSource, /getUpdateStatus: \(\) => ipcRenderer\.invoke\("get-update-status"\)/);
   assert.match(preloadSource, /installUpdate: \(\) => ipcRenderer\.invoke\("install-update"\)/);

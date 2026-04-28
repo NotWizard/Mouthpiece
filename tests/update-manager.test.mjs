@@ -12,6 +12,7 @@ class MockAutoUpdater extends EventEmitter {
     this.autoInstallOnAppQuit = true;
     this.checkCount = 0;
     this.quitAndInstallCount = 0;
+    this.quitAndInstallArgs = null;
   }
 
   async checkForUpdates() {
@@ -19,8 +20,9 @@ class MockAutoUpdater extends EventEmitter {
     return { checkCount: this.checkCount };
   }
 
-  quitAndInstall() {
+  quitAndInstall(...args) {
     this.quitAndInstallCount += 1;
+    this.quitAndInstallArgs = args;
   }
 }
 
@@ -73,6 +75,39 @@ test("downloaded updates become installable only after confirmation", async () =
   assert.deepEqual(result, { success: true });
   assert.equal(manager.getStatus().status, "installing");
   assert.equal(mockAutoUpdater.quitAndInstallCount, 1);
+  assert.deepEqual(mockAutoUpdater.quitAndInstallArgs, [true, true]);
+});
+
+test("installing an update prepares app shutdown before invoking the updater", async () => {
+  const UpdateManager = require("../src/helpers/updateManager");
+  const mockAutoUpdater = new MockAutoUpdater();
+  const installEvents = [];
+
+  const manager = new UpdateManager({
+    autoUpdater: mockAutoUpdater,
+    platform: "darwin",
+    isPackaged: true,
+    env: {},
+    setIntervalFn: () => 1,
+    clearIntervalFn: () => {},
+    beforeInstall: () => {
+      installEvents.push("prepare");
+    },
+  });
+
+  mockAutoUpdater.quitAndInstall = (...args) => {
+    installEvents.push("quitAndInstall");
+    MockAutoUpdater.prototype.quitAndInstall.apply(mockAutoUpdater, args);
+  };
+
+  await manager.start();
+  mockAutoUpdater.emit("update-downloaded", { version: "1.2.3", releaseName: "v1.2.3" });
+
+  const result = await manager.installUpdate();
+
+  assert.deepEqual(result, { success: true });
+  assert.deepEqual(installEvents, ["prepare", "quitAndInstall"]);
+  assert.deepEqual(mockAutoUpdater.quitAndInstallArgs, [false, true]);
 });
 
 test("unsupported environments do not start updater polling", async () => {
