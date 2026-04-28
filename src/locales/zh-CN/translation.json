@@ -730,15 +730,9 @@
       "title": "输入测试",
       "volume": "输入音量"
     },
-    "noBuiltInDetected": "未检测到内置麦克风，正在使用系统默认设备。",
-    "preferBuiltIn": {
-      "description": "外接麦克风可能导致延迟或降低转录质量",
-      "label": "优先使用内置麦克风"
-    },
     "selectPlaceholder": "选择麦克风",
     "systemDefault": "系统默认",
-    "unknownDevice": "未知设备",
-    "using": "当前使用："
+    "unknownDevice": "未知设备"
   },
   "pasteToolsInfo": {
     "checking": "正在检查系统功能...",

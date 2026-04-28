@@ -7,7 +7,6 @@ import {
 } from "../config/constants";
 import { getSystemPrompt } from "../config/prompts";
 import logger from "../utils/logger";
-import { isBuiltInMicrophone } from "../utils/audioDeviceUtils";
 import { isSecureEndpoint } from "../utils/urlUtils";
 import { withSessionRefresh } from "../lib/neonAuth";
 import { getBaseLanguageCode, validateLanguageForModel } from "../utils/languageSupport";
@@ -696,7 +695,6 @@ class AudioManager {
     this.streamingPartialText = "";
     this.streamingTextResolve = null;
     this.streamingTextDebounce = null;
-    this.cachedMicDeviceId = null;
     this.persistentAudioContext = null;
     this.workletModuleLoaded = false;
     this.workletBlobUrl = null;
@@ -1082,71 +1080,16 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   async getAudioConstraints() {
-    const {
-      preferBuiltInMic: preferBuiltIn,
-      selectedMicDeviceId: selectedDeviceId,
-      audioQualityMode,
-    } = getSettings();
+    const { selectedMicDeviceId: selectedDeviceId, audioQualityMode } = getSettings();
     const audioProcessing = getAudioProcessingConstraints(audioQualityMode);
 
-    if (preferBuiltIn) {
-      if (this.cachedMicDeviceId) {
-        logger.debug(
-          "Using cached microphone device ID",
-          { deviceId: this.cachedMicDeviceId },
-          "audio"
-        );
-        return { audio: { deviceId: { exact: this.cachedMicDeviceId }, ...audioProcessing } };
-      }
-
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const audioInputs = devices.filter((d) => d.kind === "audioinput");
-        const builtInMic = audioInputs.find((d) => isBuiltInMicrophone(d.label));
-
-        if (builtInMic) {
-          this.cachedMicDeviceId = builtInMic.deviceId;
-          logger.debug(
-            "Using built-in microphone (cached for next time)",
-            { deviceId: builtInMic.deviceId, label: builtInMic.label },
-            "audio"
-          );
-          return { audio: { deviceId: { exact: builtInMic.deviceId }, ...audioProcessing } };
-        }
-      } catch (error) {
-        logger.debug(
-          "Failed to enumerate devices for built-in mic detection",
-          { error: error.message },
-          "audio"
-        );
-      }
-    }
-
-    if (!preferBuiltIn && selectedDeviceId) {
+    if (selectedDeviceId) {
       logger.debug("Using selected microphone", { deviceId: selectedDeviceId }, "audio");
       return { audio: { deviceId: { exact: selectedDeviceId }, ...audioProcessing } };
     }
 
     logger.debug("Using default microphone", {}, "audio");
     return { audio: audioProcessing };
-  }
-
-  async cacheMicrophoneDeviceId() {
-    if (this.cachedMicDeviceId) return; // Already cached
-
-    if (!getSettings().preferBuiltInMic) return; // Only needed for built-in mic detection
-
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const audioInputs = devices.filter((d) => d.kind === "audioinput");
-      const builtInMic = audioInputs.find((d) => isBuiltInMicrophone(d.label));
-      if (builtInMic) {
-        this.cachedMicDeviceId = builtInMic.deviceId;
-        logger.debug("Microphone device ID pre-cached", { deviceId: builtInMic.deviceId }, "audio");
-      }
-    } catch (error) {
-      logger.debug("Failed to pre-cache microphone device ID", { error: error.message }, "audio");
-    }
   }
 
   async startRecording() {
@@ -3599,19 +3542,16 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     try {
       const provider = this.getStreamingProvider();
       const streamingRequestOptions = this.getStreamingRequestOptions();
-      const [, wsResult] = await Promise.all([
-        this.cacheMicrophoneDeviceId(),
-        this.runStreamingAction(async () => {
-          const res = await provider.warmup(streamingRequestOptions);
-          // Throw error to trigger retry if AUTH_EXPIRED
-          if (!res.success && res.code) {
-            const err = new Error(res.error || "Warmup failed");
-            err.code = res.code;
-            throw err;
-          }
-          return res;
-        }, isSignedInOverride),
-      ]);
+      const wsResult = await this.runStreamingAction(async () => {
+        const res = await provider.warmup(streamingRequestOptions);
+        // Throw error to trigger retry if AUTH_EXPIRED
+        if (!res.success && res.code) {
+          const err = new Error(res.error || "Warmup failed");
+          err.code = res.code;
+          throw err;
+        }
+        return res;
+      }, isSignedInOverride);
 
       if (wsResult.success) {
         // Pre-load AudioWorklet module so first recording is faster
@@ -3651,7 +3591,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
         logger.info(
           "Streaming connection warmed up",
-          { alreadyWarm: wsResult.alreadyWarm, micCached: !!this.cachedMicDeviceId },
+          { alreadyWarm: wsResult.alreadyWarm },
           "streaming"
         );
         return true;
@@ -3712,7 +3652,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             label: audioTrack.label,
             deviceId: settings.deviceId?.slice(0, 20) + "...",
             sampleRate: settings.sampleRate,
-            usedCachedId: !!this.cachedMicDeviceId,
             echoCancellation: settings.echoCancellation,
             noiseSuppression: settings.noiseSuppression,
             autoGainControl: settings.autoGainControl,

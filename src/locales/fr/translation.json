@@ -730,15 +730,9 @@
       "title": "Test d'entrée",
       "volume": "Volume d'entrée"
     },
-    "noBuiltInDetected": "Aucun microphone intégré détecté. Utilisation du réglage par défaut du système.",
-    "preferBuiltIn": {
-      "description": "Les microphones externes peuvent causer de la latence ou réduire la qualité de transcription",
-      "label": "Préférer le microphone intégré"
-    },
     "selectPlaceholder": "Sélectionnez un microphone",
     "systemDefault": "Par défaut du système",
-    "unknownDevice": "Appareil inconnu",
-    "using": "Utilisation :"
+    "unknownDevice": "Appareil inconnu"
   },
   "pasteToolsInfo": {
     "checking": "Vérification des capacités du système...",

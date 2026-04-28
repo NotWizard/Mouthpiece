@@ -108,6 +108,35 @@ test("microphone input test reserves stable space for dynamic status text", asyn
   assert.match(source, /INPUT_STATUS_UPDATE_INTERVAL_MS/);
 });
 
+test("microphone preferences expose device selection without built-in preference mode", async () => {
+  const [
+    settingsPageSource,
+    microphoneSettingsSource,
+    audioManagerSource,
+    settingsHookSource,
+    settingsStoreSource,
+  ] = await Promise.all([
+    readRepoFile("src/components/SettingsPage.tsx"),
+    readRepoFile("src/components/ui/MicrophoneSettings.tsx"),
+    readRepoFile("src/helpers/audioManager.js"),
+    readRepoFile("src/hooks/useSettings.ts"),
+    readRepoFile("src/stores/settingsStore.ts"),
+  ]);
+
+  assert.doesNotMatch(settingsPageSource, /preferBuiltInMic/);
+  assert.doesNotMatch(settingsPageSource, /setPreferBuiltInMic/);
+  assert.doesNotMatch(microphoneSettingsSource, /preferBuiltInMic/);
+  assert.doesNotMatch(microphoneSettingsSource, /onPreferBuiltInChange/);
+  assert.doesNotMatch(audioManagerSource, /preferBuiltInMic/);
+  assert.doesNotMatch(settingsHookSource, /preferBuiltInMic/);
+  assert.doesNotMatch(settingsHookSource, /setPreferBuiltInMic/);
+  assert.doesNotMatch(settingsStoreSource, /preferBuiltInMic: readBoolean/);
+  assert.doesNotMatch(settingsStoreSource, /setPreferBuiltInMic/);
+  assert.match(settingsStoreSource, /localStorage\.removeItem\("preferBuiltInMic"\)/);
+  assert.match(microphoneSettingsSource, /microphoneSettings\.inputDevice/);
+  assert.match(microphoneSettingsSource, /selectedMicDeviceId \|\| "default"/);
+});
+
 test("audio manager applies capture constraints and gates realtime frames before provider send", async () => {
   const source = await readRepoFile("src/helpers/audioManager.js");
 

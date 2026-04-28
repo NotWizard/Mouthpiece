@@ -49,7 +49,6 @@ export interface HotkeySettings {
 }
 
 export interface MicrophoneSettings {
-  preferBuiltInMic: boolean;
   selectedMicDeviceId: string;
 }
 
@@ -301,9 +300,7 @@ function useSettingsInternal() {
     setTheme: store.setTheme,
     audioCuesEnabled: store.audioCuesEnabled,
     setAudioCuesEnabled: store.setAudioCuesEnabled,
-    preferBuiltInMic: store.preferBuiltInMic,
     selectedMicDeviceId: store.selectedMicDeviceId,
-    setPreferBuiltInMic: store.setPreferBuiltInMic,
     setSelectedMicDeviceId: store.setSelectedMicDeviceId,
     autoLearnCorrections,
     setAutoLearnCorrections,

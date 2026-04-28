@@ -219,7 +219,6 @@ const BOOLEAN_SETTINGS = new Set([
   "useReasoningModel",
   "bailianReasoningEnableThinking",
   "customReasoningEnableThinking",
-  "preferBuiltInMic",
   "cloudBackupEnabled",
   "sensitiveAppProtectionEnabled",
   "sensitiveAppBlockInsertion",
@@ -304,7 +303,6 @@ export interface SettingsState
 
   setDictationKey: (key: string) => void;
 
-  setPreferBuiltInMic: (value: boolean) => void;
   setSelectedMicDeviceId: (value: string) => void;
 
   setTheme: (value: "light" | "dark" | "auto") => void;
@@ -539,7 +537,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
   dictationKey: readString("dictationKey", ""),
 
-  preferBuiltInMic: readBoolean("preferBuiltInMic", true),
   selectedMicDeviceId: readString("selectedMicDeviceId", ""),
 
   theme: (() => {
@@ -716,7 +713,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     }
   },
 
-  setPreferBuiltInMic: createBooleanSetter("preferBuiltInMic"),
   setSelectedMicDeviceId: createStringSetter("selectedMicDeviceId"),
 
   setTheme: (value: "light" | "dark" | "auto") => {
@@ -854,6 +850,7 @@ export async function initializeSettings(): Promise<void> {
 
   localStorage.removeItem("activationMode");
   localStorage.removeItem("floatingIconAutoHide");
+  localStorage.removeItem("preferBuiltInMic");
   migrateLegacyVoiceModeStorage(localStorage);
 
   const state = useSettingsStore.getState();

@@ -730,15 +730,9 @@
       "title": "入力テスト",
       "volume": "入力音量"
     },
-    "noBuiltInDetected": "内蔵マイクが検出されません。システムのデフォルトを使用しています。",
-    "preferBuiltIn": {
-      "description": "外部マイクは遅延や文字起こし品質の低下を引き起こす場合があります",
-      "label": "内蔵マイクを優先"
-    },
     "selectPlaceholder": "マイクを選択",
     "systemDefault": "システムデフォルト",
-    "unknownDevice": "不明なデバイス",
-    "using": "使用中:"
+    "unknownDevice": "不明なデバイス"
   },
   "pasteToolsInfo": {
     "checking": "システム機能を確認中...",

@@ -730,15 +730,9 @@
       "title": "Eingabetest",
       "volume": "Eingangspegel"
     },
-    "noBuiltInDetected": "Kein integriertes Mikrofon erkannt. Systemstandard wird verwendet.",
-    "preferBuiltIn": {
-      "description": "Externe Mikrofone können Latenz oder eine verringerte Transkriptionsqualität verursachen",
-      "label": "Integriertes Mikrofon bevorzugen"
-    },
     "selectPlaceholder": "Mikrofon auswählen",
     "systemDefault": "Systemstandard",
-    "unknownDevice": "Unbekanntes Gerät",
-    "using": "Verwendet:"
+    "unknownDevice": "Unbekanntes Gerät"
   },
   "pasteToolsInfo": {
     "checking": "Systemfähigkeiten werden geprüft...",

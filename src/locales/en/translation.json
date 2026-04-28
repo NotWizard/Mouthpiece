@@ -730,15 +730,9 @@
       "title": "Input test",
       "volume": "Input volume"
     },
-    "noBuiltInDetected": "No built-in microphone detected. Using system default.",
-    "preferBuiltIn": {
-      "description": "External microphones may cause latency or reduced transcription quality",
-      "label": "Prefer Built-in Microphone"
-    },
     "selectPlaceholder": "Select a microphone",
     "systemDefault": "System Default",
-    "unknownDevice": "Unknown Device",
-    "using": "Using:"
+    "unknownDevice": "Unknown Device"
   },
   "pasteToolsInfo": {
     "checking": "Checking system capabilities...",

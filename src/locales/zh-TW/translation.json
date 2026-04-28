@@ -730,15 +730,9 @@
       "title": "輸入測試",
       "volume": "輸入音量"
     },
-    "noBuiltInDetected": "未偵測到內建麥克風。使用系統預設裝置。",
-    "preferBuiltIn": {
-      "description": "外接麥克風可能造成延遲或降低轉錄品質",
-      "label": "優先使用內建麥克風"
-    },
     "selectPlaceholder": "選擇麥克風",
     "systemDefault": "系統預設",
-    "unknownDevice": "未知裝置",
-    "using": "使用中："
+    "unknownDevice": "未知裝置"
   },
   "pasteToolsInfo": {
     "checking": "正在檢查系統功能...",

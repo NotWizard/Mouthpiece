@@ -730,15 +730,9 @@
       "title": "Test ingresso",
       "volume": "Volume ingresso"
     },
-    "noBuiltInDetected": "Nessun microfono integrato rilevato. Verrà usato quello predefinito di sistema.",
-    "preferBuiltIn": {
-      "description": "I microfoni esterni possono causare latenza o ridurre la qualità della trascrizione",
-      "label": "Preferisci microfono integrato"
-    },
     "selectPlaceholder": "Seleziona un microfono",
     "systemDefault": "Predefinito di sistema",
-    "unknownDevice": "Dispositivo sconosciuto",
-    "using": "In uso:"
+    "unknownDevice": "Dispositivo sconosciuto"
   },
   "pasteToolsInfo": {
     "checking": "Verifica delle funzionalità di sistema...",

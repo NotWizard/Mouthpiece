@@ -731,9 +731,7 @@ export default function SettingsPage({
     audioQualityMode,
     voiceGateStrictness,
     realtimeEndpointingMode,
-    preferBuiltInMic,
     selectedMicDeviceId,
-    setPreferBuiltInMic,
     setSelectedMicDeviceId,
     setUseLocalWhisper,
     setUiLanguage,
@@ -1198,9 +1196,7 @@ export default function SettingsPage({
               <SettingsPanel>
                 <SettingsPanelRow>
                   <MicrophoneSettings
-                    preferBuiltInMic={preferBuiltInMic}
                     selectedMicDeviceId={selectedMicDeviceId}
-                    onPreferBuiltInChange={setPreferBuiltInMic}
                     onDeviceSelect={setSelectedMicDeviceId}
                   />
                 </SettingsPanelRow>
