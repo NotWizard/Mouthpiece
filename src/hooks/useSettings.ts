@@ -84,6 +84,7 @@ function useSettingsInternal() {
   const store = useSettingsStore();
   const setCustomDictionary = store.setCustomDictionary;
   const addTerminologySuggestions = store.addTerminologySuggestions;
+  const pruneExpiredTerminologySuggestions = store.pruneExpiredTerminologySuggestions;
 
   // One-time initialization: sync API keys, dictation key, UI language,
   // and dictionary from the main process / SQLite.
@@ -138,6 +139,18 @@ function useSettingsInternal() {
     );
     return unsubscribe;
   }, [addTerminologySuggestions]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    pruneExpiredTerminologySuggestions();
+    const intervalId = window.setInterval(
+      () => pruneExpiredTerminologySuggestions(),
+      60 * 60 * 1000
+    );
+
+    return () => window.clearInterval(intervalId);
+  }, [pruneExpiredTerminologySuggestions]);
 
   // Auto-learn corrections from user edits in external apps
   const [autoLearnCorrections, setAutoLearnCorrectionsRaw] = useLocalStorage(

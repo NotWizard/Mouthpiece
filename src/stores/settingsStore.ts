@@ -16,6 +16,7 @@ import {
 import {
   mergeTerminologySuggestions,
   normalizeTerminologyProfile,
+  pruneExpiredTerminologySuggestions as pruneExpiredTerminologySuggestionsFromProfile,
   terminologyProfileToDictionary,
   type TerminologyProfile,
   type TerminologySuggestion,
@@ -195,7 +196,17 @@ const INITIAL_TERMINOLOGY_PROFILE = migrateStoredTerminologyProfile(
   readJsonValue<TerminologyProfile | null>("terminologyProfile", null),
   LEGACY_CUSTOM_DICTIONARY
 );
-const INITIAL_CUSTOM_DICTIONARY = terminologyProfileToDictionary(INITIAL_TERMINOLOGY_PROFILE);
+const INITIAL_ACTIVE_TERMINOLOGY_PROFILE = pruneExpiredTerminologySuggestionsFromProfile(
+  INITIAL_TERMINOLOGY_PROFILE
+);
+const INITIAL_CUSTOM_DICTIONARY = terminologyProfileToDictionary(
+  INITIAL_ACTIVE_TERMINOLOGY_PROFILE
+);
+
+if (isBrowser) {
+  localStorage.setItem("terminologyProfile", JSON.stringify(INITIAL_ACTIVE_TERMINOLOGY_PROFILE));
+  localStorage.setItem("customDictionary", JSON.stringify(INITIAL_CUSTOM_DICTIONARY));
+}
 
 const BOOLEAN_SETTINGS = new Set([
   "useLocalWhisper",
@@ -268,6 +279,7 @@ export interface SettingsState
   addTerminologySuggestions: (suggestions: TerminologySuggestion[]) => void;
   approveTerminologySuggestion: (term: string) => void;
   rejectTerminologySuggestion: (term: string) => void;
+  pruneExpiredTerminologySuggestions: () => void;
   setAssemblyAiStreaming: (value: boolean) => void;
   setDeepgramStreamingEnabled: (value: boolean) => void;
   setSonioxRealtimeEnabled: (value: boolean) => void;
@@ -496,7 +508,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   cloudReasoningBaseUrl: readString("cloudReasoningBaseUrl", API_ENDPOINTS.OPENAI_BASE),
   bailianReasoningEnableThinking: readBoolean("bailianReasoningEnableThinking", false),
   customReasoningEnableThinking: readBoolean("customReasoningEnableThinking", false),
-  terminologyProfile: INITIAL_TERMINOLOGY_PROFILE,
+  terminologyProfile: INITIAL_ACTIVE_TERMINOLOGY_PROFILE,
   customDictionary: INITIAL_CUSTOM_DICTIONARY,
   assemblyAiStreaming: readBoolean("assemblyAiStreaming", true),
   deepgramStreamingEnabled: readBoolean("deepgramStreamingEnabled", false),
@@ -579,7 +591,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setReasoningProvider: createStringSetter("reasoningProvider"),
 
   setCustomDictionary: (words: string[]) => {
-    const terminologyProfile = normalizeTerminologyProfile({
+    const terminologyProfile = pruneExpiredTerminologySuggestionsFromProfile({
       ...useSettingsStore.getState().terminologyProfile,
       hotwords: words,
     });
@@ -598,7 +610,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     });
   },
   setTerminologyProfile: (profile: Partial<TerminologyProfile>) => {
-    const terminologyProfile = normalizeTerminologyProfile({
+    const terminologyProfile = pruneExpiredTerminologySuggestionsFromProfile({
       ...useSettingsStore.getState().terminologyProfile,
       ...profile,
     });
@@ -627,7 +639,9 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     set({ terminologyProfile: nextProfile });
   },
   approveTerminologySuggestion: (term: string) => {
-    const current = useSettingsStore.getState().terminologyProfile;
+    const current = pruneExpiredTerminologySuggestionsFromProfile(
+      useSettingsStore.getState().terminologyProfile
+    );
     const approved = current.pendingSuggestions.find((suggestion) => suggestion.term === term);
     const nextProfile = normalizeTerminologyProfile({
       ...current,
@@ -645,12 +659,23 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     window.electronAPI?.setDictionary(dictionary).catch(() => {});
   },
   rejectTerminologySuggestion: (term: string) => {
-    const nextProfile = normalizeTerminologyProfile({
+    const nextProfile = pruneExpiredTerminologySuggestionsFromProfile({
       ...useSettingsStore.getState().terminologyProfile,
       pendingSuggestions: useSettingsStore
         .getState()
         .terminologyProfile.pendingSuggestions.filter((suggestion) => suggestion.term !== term),
     });
+    if (isBrowser) {
+      localStorage.setItem("terminologyProfile", JSON.stringify(nextProfile));
+    }
+    set({ terminologyProfile: nextProfile });
+  },
+  pruneExpiredTerminologySuggestions: () => {
+    const current = useSettingsStore.getState().terminologyProfile;
+    const nextProfile = pruneExpiredTerminologySuggestionsFromProfile(current);
+    if (nextProfile.pendingSuggestions.length === current.pendingSuggestions.length) {
+      return;
+    }
     if (isBrowser) {
       localStorage.setItem("terminologyProfile", JSON.stringify(nextProfile));
     }
@@ -990,7 +1015,7 @@ export async function initializeSettings(): Promise<void> {
         if (dbWords.length === 0 && currentDictionary.length > 0) {
           await window.electronAPI.setDictionary(currentDictionary);
         } else if (dbWords.length > 0 && currentDictionary.length === 0) {
-          const terminologyProfile = normalizeTerminologyProfile({
+          const terminologyProfile = pruneExpiredTerminologySuggestionsFromProfile({
             ...useSettingsStore.getState().terminologyProfile,
             hotwords: dbWords,
           });
@@ -1044,7 +1069,7 @@ export async function initializeSettings(): Promise<void> {
     }
 
     if (key === "terminologyProfile") {
-      const terminologyProfile = normalizeTerminologyProfile(
+      const terminologyProfile = pruneExpiredTerminologySuggestionsFromProfile(
         (value as Partial<TerminologyProfile> | null | undefined) || {}
       );
       useSettingsStore.setState({

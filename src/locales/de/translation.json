@@ -969,7 +969,7 @@
       "add": "Hinzufügen",
       "pressEnterToAdd": "Enter drücken zum Hinzufügen",
       "autoLearnTitle": "Automatisch aus Korrekturen lernen",
-      "autoLearnDescription": "Wenn Sie eine Transkription in der Ziel-App korrigieren, wird das korrigierte Wort automatisch Ihrem Wörterbuch hinzugefügt.",
+      "autoLearnDescription": "Wenn du eine Transkription in der Ziel-App korrigierst, erstellt Mouthpiece Wörterbuchvorschläge zur Prüfung. Sie gelten erst nach Bestätigung und werden nach 24 Stunden ohne Bestätigung automatisch gelöscht.",
       "yourWords": "Ihre Wörter",
       "clearDictionaryTitle": "Wörterbuch löschen?",
       "clearDictionaryDescription": "Dadurch werden alle Wörter aus Ihrem benutzerdefinierten Wörterbuch entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
@@ -1023,8 +1023,9 @@
       "pendingSuggestionsTitle": "Pending Suggestions",
       "pendingSuggestionsEmpty": "No pending suggestions right now.",
       "pendingSuggestionSource": "Source: {{source}}",
-      "approve": "Approve",
-      "reject": "Reject"
+      "approve": "Bestätigen",
+      "reject": "Reject",
+      "pendingSuggestionsDescription": "Bestätige Vorschläge innerhalb von 24 Stunden, um sie zum Wörterbuch hinzuzufügen. Unbestätigte Vorschläge werden automatisch entfernt."
     },
     "general": {
       "appearance": {
@@ -1445,7 +1446,9 @@
         "description": "Die ausgewählte Tastenkombination konnte nicht registriert werden. Bitte wähle eine andere in den Einstellungen."
       },
       "addedToDict": "{{words}} zu deinem Wörterbuch hinzugefügt",
-      "undo": "Rückgängig"
+      "undo": "Rückgängig",
+      "dictionarySuggestionFound": "Wörterbuchvorschlag gefunden: {{words}}. Bestätige ihn im Wörterbuch, bevor er wirksam wird.",
+      "reviewLater": "Später prüfen"
     },
     "mic": {
       "hotkeyToSpeak": "{{hotkey}} drücken zum Sprechen",

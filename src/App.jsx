@@ -171,24 +171,15 @@ export default function App() {
       const wordList = learnedTerms.map((word) => `\u201c${word}\u201d`).join(", ");
       let toastId;
       toastId = showDictationOverlayToast({
-        title: t("app.toasts.addedToDict", { words: wordList }),
+        title: t("app.toasts.dictionarySuggestionFound", { words: wordList }),
         variant: "success",
         duration: 6000,
         action: (
           <button
-            onClick={async () => {
-              try {
-                const result = await window.electronAPI?.undoLearnedCorrections?.(learnedTerms);
-                if (result?.success) {
-                  dismiss(toastId);
-                }
-              } catch {
-                // Silently fail and keep the learned corrections.
-              }
-            }}
+            onClick={() => dismiss(toastId)}
             className="rounded-sm border border-emerald-400/20 bg-emerald-500/15 px-2.5 py-1 text-[10px] font-medium whitespace-nowrap text-emerald-100/90 transition-all duration-150 hover:border-emerald-400/35 hover:bg-emerald-500/25 hover:text-white"
           >
-            {t("app.toasts.undo")}
+            {t("app.toasts.reviewLater")}
           </button>
         ),
       });

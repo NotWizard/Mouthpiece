@@ -969,7 +969,7 @@
       "add": "追加",
       "pressEnterToAdd": "Enterキーで追加",
       "autoLearnTitle": "修正から自動学習",
-      "autoLearnDescription": "対象アプリで文字起こしを修正すると、修正された単語が自動的に辞書に追加されます。",
+      "autoLearnDescription": "対象アプリで文字起こしを修正すると、Mouthpiece は確認待ちの辞書候補を作成します。確認して追加した後にのみ有効になり、未確認の候補は 24 時間後に自動削除されます。",
       "yourWords": "あなたの単語",
       "clearDictionaryTitle": "辞書をクリアしますか？",
       "clearDictionaryDescription": "カスタム辞書からすべての単語が削除されます。この操作は元に戻せません。",
@@ -1210,8 +1210,9 @@
       "pendingSuggestionsTitle": "Pending Suggestions",
       "pendingSuggestionsEmpty": "No pending suggestions right now.",
       "pendingSuggestionSource": "Source: {{source}}",
-      "approve": "Approve",
-      "reject": "Reject"
+      "approve": "追加を確認",
+      "reject": "Reject",
+      "pendingSuggestionsDescription": "24 時間以内に候補を確認すると辞書に追加されます。未確認の候補は自動的に削除されます。"
     },
     "postProcessingStrategy": {
       "title": "Default Cleanup Style",
@@ -1445,7 +1446,9 @@
         "description": "選択したホットキーを登録できませんでした。設定から別のホットキーを選択してください。"
       },
       "addedToDict": "{{words}} を辞書に追加しました",
-      "undo": "元に戻す"
+      "undo": "元に戻す",
+      "dictionarySuggestionFound": "辞書候補を検出しました: {{words}}。有効にするには辞書で確認してください。",
+      "reviewLater": "後で確認"
     },
     "mic": {
       "hotkeyToSpeak": "{{hotkey}} を押して話す",

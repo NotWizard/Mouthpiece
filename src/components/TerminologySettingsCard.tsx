@@ -274,8 +274,13 @@ function TerminologySettingsCard({
         </div>
 
         <div className="space-y-2">
-          <div className="text-xs font-medium text-foreground">
-            {t("settingsPage.terminology.pendingSuggestionsTitle")}
+          <div>
+            <div className="text-xs font-medium text-foreground">
+              {t("settingsPage.terminology.pendingSuggestionsTitle")}
+            </div>
+            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground/70">
+              {t("settingsPage.terminology.pendingSuggestionsDescription")}
+            </p>
           </div>
           <div className="space-y-2">
             {terminologyProfile.pendingSuggestions.length > 0 ? (

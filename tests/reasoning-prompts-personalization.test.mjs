@@ -85,8 +85,9 @@ test("system prompt includes terminology personalization guidance for preferred 
     assert.match(prompt, /umm/);
     assert.match(prompt, /Homophone normalization candidates:/);
     assert.match(prompt, /race cast → Raycast/);
-    assert.match(prompt, /Pending terminology suggestions for review:/);
-    assert.match(prompt, /V R S S → WeRSS/);
+    assert.doesNotMatch(prompt, /Pending terminology suggestions for review:/);
+    assert.doesNotMatch(prompt, /V R S S → WeRSS/);
+    assert.doesNotMatch(prompt, /WeRSS/);
   } finally {
     cleanup();
   }

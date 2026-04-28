@@ -969,7 +969,7 @@
       "add": "Ajouter",
       "pressEnterToAdd": "Appuyez sur Entrée pour ajouter",
       "autoLearnTitle": "Apprentissage automatique à partir des corrections",
-      "autoLearnDescription": "Lorsque vous corrigez une transcription dans l'application cible, le mot corrigé est automatiquement ajouté à votre dictionnaire.",
+      "autoLearnDescription": "Quand vous corrigez une transcription dans l’application cible, Mouthpiece crée des suggestions de dictionnaire à valider. Elles ne prennent effet qu’après confirmation et sont supprimées après 24 heures sans validation.",
       "yourWords": "Vos mots",
       "clearDictionaryTitle": "Effacer le dictionnaire ?",
       "clearDictionaryDescription": "Cela supprimera tous les mots de votre dictionnaire personnalisé. Cette action est irréversible.",
@@ -1023,8 +1023,9 @@
       "pendingSuggestionsTitle": "Pending Suggestions",
       "pendingSuggestionsEmpty": "No pending suggestions right now.",
       "pendingSuggestionSource": "Source: {{source}}",
-      "approve": "Approve",
-      "reject": "Reject"
+      "approve": "Confirmer",
+      "reject": "Reject",
+      "pendingSuggestionsDescription": "Confirmez les suggestions sous 24 heures pour les ajouter au dictionnaire. Les suggestions non confirmées sont supprimées automatiquement."
     },
     "general": {
       "appearance": {
@@ -1445,7 +1446,9 @@
         "description": "Le raccourci sélectionné n’a pas pu être enregistré. Veuillez en choisir un autre dans les paramètres."
       },
       "addedToDict": "{{words}} ajouté à votre dictionnaire",
-      "undo": "Annuler"
+      "undo": "Annuler",
+      "dictionarySuggestionFound": "Suggestion de dictionnaire détectée : {{words}}. Confirmez-la dans le dictionnaire pour l’activer.",
+      "reviewLater": "Voir plus tard"
     },
     "mic": {
       "hotkeyToSpeak": "Appuyez sur {{hotkey}} pour parler",

@@ -969,7 +969,7 @@
       "add": "Add",
       "pressEnterToAdd": "Press Enter to add",
       "autoLearnTitle": "Auto-learn from corrections",
-      "autoLearnDescription": "When you correct a transcription in the target app, the corrected word is automatically added to your dictionary.",
+      "autoLearnDescription": "When you correct a transcription in the target app, Mouthpiece creates dictionary suggestions for review. Suggestions take effect only after you confirm them, and unconfirmed suggestions are cleared after 24 hours.",
       "yourWords": "Your words",
       "clearDictionaryTitle": "Clear dictionary?",
       "clearDictionaryDescription": "This will remove all words from your custom dictionary. This action cannot be undone.",
@@ -1023,8 +1023,9 @@
       "pendingSuggestionsTitle": "Pending Suggestions",
       "pendingSuggestionsEmpty": "No pending suggestions right now.",
       "pendingSuggestionSource": "Source: {{source}}",
-      "approve": "Approve",
-      "reject": "Reject"
+      "approve": "Confirm add",
+      "reject": "Reject",
+      "pendingSuggestionsDescription": "Confirm suggestions within 24 hours to add them to your dictionary. Unconfirmed suggestions are cleared automatically."
     },
     "general": {
       "appearance": {
@@ -1445,7 +1446,9 @@
         "description": "The selected hotkey could not be registered. Please choose a different one in settings."
       },
       "addedToDict": "Added {{words}} to your dictionary",
-      "undo": "Undo"
+      "undo": "Undo",
+      "dictionarySuggestionFound": "Dictionary suggestion found: {{words}}. Confirm it in the dictionary before it takes effect.",
+      "reviewLater": "Review later"
     },
     "mic": {
       "hotkeyToSpeak": "Press {{hotkey}} to speak",

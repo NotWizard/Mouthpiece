@@ -969,7 +969,7 @@
       "add": "新增",
       "pressEnterToAdd": "按 Enter 新增",
       "autoLearnTitle": "從校正中自動學習",
-      "autoLearnDescription": "當你在目標應用程式中校正轉錄時，校正後的字詞會自動新增到你的詞典中。",
+      "autoLearnDescription": "當你在目標應用程式中校正轉錄時，Mouthpiece 會產生待確認詞典建議。只有確認加入後才會生效，未確認建議會在 24 小時後自動清除。",
       "yourWords": "你的字詞",
       "clearDictionaryTitle": "清除詞典？",
       "clearDictionaryDescription": "這將移除自訂詞典中的所有字詞。此操作無法復原。",
@@ -1023,8 +1023,9 @@
       "pendingSuggestionsTitle": "待確認建議",
       "pendingSuggestionsEmpty": "目前沒有待確認建議。",
       "pendingSuggestionSource": "來源：{{source}}",
-      "approve": "採用",
-      "reject": "忽略"
+      "approve": "確認加入",
+      "reject": "忽略",
+      "pendingSuggestionsDescription": "請在 24 小時內確認建議，確認後才會加入詞典並生效。未確認建議會自動清除。"
     },
     "general": {
       "appearance": {
@@ -1445,7 +1446,9 @@
         "description": "無法註冊所選快捷鍵。請在設定中選擇其他快捷鍵。"
       },
       "addedToDict": "已將 {{words}} 加入到你的詞典",
-      "undo": "復原"
+      "undo": "復原",
+      "dictionarySuggestionFound": "發現詞典建議：{{words}}。確認加入後才會生效。",
+      "reviewLater": "稍後確認"
     },
     "mic": {
       "hotkeyToSpeak": "按 {{hotkey}} 開始說話",

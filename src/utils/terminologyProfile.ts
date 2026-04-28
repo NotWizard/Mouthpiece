@@ -7,6 +7,7 @@ export interface TerminologySuggestion {
   term: string;
   sourceTerm: string;
   source: string;
+  createdAt?: number;
 }
 
 export interface TerminologyProfile {
@@ -16,6 +17,8 @@ export interface TerminologyProfile {
   glossaryTerms: string[];
   pendingSuggestions: TerminologySuggestion[];
 }
+
+export const TERMINOLOGY_PENDING_SUGGESTION_TTL_MS = 24 * 60 * 60 * 1000;
 
 function normalizeTerm(value: unknown): string {
   return String(value || "")
@@ -57,9 +60,30 @@ function normalizeMappings(values: unknown[] = []): TerminologyMapping[] {
   return mappings;
 }
 
+function normalizeCreatedAt(value: unknown, fallback: number): number {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const numericValue = Number(value);
+    if (Number.isFinite(numericValue) && numericValue > 0) {
+      return numericValue;
+    }
+
+    const parsedDate = Date.parse(value);
+    if (Number.isFinite(parsedDate) && parsedDate > 0) {
+      return parsedDate;
+    }
+  }
+
+  return fallback;
+}
+
 function normalizeSuggestions(values: unknown[] = []): TerminologySuggestion[] {
   const seen = new Set();
   const suggestions: TerminologySuggestion[] = [];
+  const fallbackCreatedAt = Date.now();
 
   for (const value of values) {
     if (!value || typeof value !== "object") continue;
@@ -70,7 +94,12 @@ function normalizeSuggestions(values: unknown[] = []): TerminologySuggestion[] {
     const key = `${term.toLowerCase()}<=${sourceTerm.toLowerCase()}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    suggestions.push({ term, sourceTerm, source });
+    suggestions.push({
+      term,
+      sourceTerm,
+      source,
+      createdAt: normalizeCreatedAt((value as TerminologySuggestion).createdAt, fallbackCreatedAt),
+    });
   }
 
   return suggestions;
@@ -111,13 +140,36 @@ export function terminologyProfileToDictionary(
   return dedupeTerms([...normalized.hotwords, ...normalized.glossaryTerms]);
 }
 
+export function pruneExpiredTerminologySuggestions(
+  profile: Partial<TerminologyProfile> = {},
+  now = Date.now(),
+  ttlMs = TERMINOLOGY_PENDING_SUGGESTION_TTL_MS
+): TerminologyProfile {
+  const normalized = normalizeTerminologyProfile(profile);
+  const safeNow = Number.isFinite(now) ? now : Date.now();
+  const safeTtlMs =
+    Number.isFinite(ttlMs) && ttlMs > 0 ? ttlMs : TERMINOLOGY_PENDING_SUGGESTION_TTL_MS;
+
+  return normalizeTerminologyProfile({
+    ...normalized,
+    pendingSuggestions: normalized.pendingSuggestions.filter((suggestion) => {
+      const createdAt = normalizeCreatedAt(suggestion.createdAt, safeNow);
+      return safeNow - createdAt <= safeTtlMs;
+    }),
+  });
+}
+
 export function mergeTerminologySuggestions(
   profile: Partial<TerminologyProfile> = {},
   suggestions: TerminologySuggestion[] = []
 ): TerminologyProfile {
-  const normalized = normalizeTerminologyProfile(profile);
-  return normalizeTerminologyProfile({
-    ...normalized,
-    pendingSuggestions: [...normalized.pendingSuggestions, ...suggestions],
-  });
+  const now = Date.now();
+  const normalized = pruneExpiredTerminologySuggestions(profile, now);
+  return pruneExpiredTerminologySuggestions(
+    {
+      ...normalized,
+      pendingSuggestions: [...normalized.pendingSuggestions, ...suggestions],
+    },
+    now
+  );
 }

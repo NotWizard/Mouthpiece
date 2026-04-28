@@ -802,7 +802,7 @@ export default function SettingsPage({
       }),
       description: t("settingsPage.dictionary.autoLearnDescription", {
         defaultValue:
-          "When you correct a transcription in the target app, the corrected word is automatically added to your dictionary.",
+          "When you correct a transcription in the target app, Mouthpiece creates dictionary suggestions for review. Suggestions take effect only after you confirm them, and unconfirmed suggestions are cleared after 24 hours.",
       }),
     }),
     [t]

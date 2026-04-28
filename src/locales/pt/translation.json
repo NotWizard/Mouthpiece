@@ -956,7 +956,7 @@
       "add": "Adicionar",
       "pressEnterToAdd": "Pressione Enter para adicionar",
       "autoLearnTitle": "Aprender automaticamente com correções",
-      "autoLearnDescription": "Quando você corrige uma transcrição no aplicativo de destino, a palavra corrigida é adicionada automaticamente ao seu dicionário.",
+      "autoLearnDescription": "Quando você corrige uma transcrição no app de destino, o Mouthpiece cria sugestões de dicionário para revisão. Elas só entram em vigor após confirmação e são apagadas após 24 horas sem confirmação.",
       "yourWords": "Suas palavras",
       "clearDictionaryTitle": "Limpar dicionário?",
       "clearDictionaryDescription": "Isso removerá todas as palavras do seu dicionário personalizado. Esta ação não pode ser desfeita.",
@@ -1010,8 +1010,9 @@
       "pendingSuggestionsTitle": "Pending Suggestions",
       "pendingSuggestionsEmpty": "No pending suggestions right now.",
       "pendingSuggestionSource": "Source: {{source}}",
-      "approve": "Approve",
-      "reject": "Reject"
+      "approve": "Confirmar",
+      "reject": "Reject",
+      "pendingSuggestionsDescription": "Confirme as sugestões em até 24 horas para adicioná-las ao dicionário. Sugestões não confirmadas são removidas automaticamente."
     },
     "general": {
       "appearance": {
@@ -1445,7 +1446,9 @@
         "description": "Não foi possível registrar o atalho selecionado. Escolha outro nas configurações."
       },
       "addedToDict": "{{words}} adicionado ao seu dicionário",
-      "undo": "Desfazer"
+      "undo": "Desfazer",
+      "dictionarySuggestionFound": "Sugestão de dicionário encontrada: {{words}}. Confirme no dicionário para que tenha efeito.",
+      "reviewLater": "Revisar depois"
     },
     "mic": {
       "hotkeyToSpeak": "Pressione {{hotkey}} para falar",

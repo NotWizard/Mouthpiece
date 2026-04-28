@@ -969,7 +969,7 @@
       "add": "Добавить",
       "pressEnterToAdd": "Нажмите Enter для добавления",
       "autoLearnTitle": "Автоматическое обучение на исправлениях",
-      "autoLearnDescription": "Когда вы исправляете транскрипцию в целевом приложении, исправленное слово автоматически добавляется в ваш словарь.",
+      "autoLearnDescription": "Когда вы исправляете транскрипцию в целевом приложении, Mouthpiece создает предложения для словаря. Они начинают действовать только после подтверждения и удаляются через 24 часа без подтверждения.",
       "yourWords": "Ваши слова",
       "clearDictionaryTitle": "Очистить словарь?",
       "clearDictionaryDescription": "Все слова из вашего пользовательского словаря будут удалены. Это действие нельзя отменить.",
@@ -1023,8 +1023,9 @@
       "pendingSuggestionsTitle": "Pending Suggestions",
       "pendingSuggestionsEmpty": "No pending suggestions right now.",
       "pendingSuggestionSource": "Source: {{source}}",
-      "approve": "Approve",
-      "reject": "Reject"
+      "approve": "Подтвердить",
+      "reject": "Reject",
+      "pendingSuggestionsDescription": "Подтвердите предложения в течение 24 часов, чтобы добавить их в словарь. Неподтвержденные предложения удаляются автоматически."
     },
     "general": {
       "appearance": {
@@ -1445,7 +1446,9 @@
         "description": "Не удалось зарегистрировать выбранную комбинацию. Выберите другую в настройках."
       },
       "addedToDict": "{{words}} добавлено в ваш словарь",
-      "undo": "Отменить"
+      "undo": "Отменить",
+      "dictionarySuggestionFound": "Найдено предложение для словаря: {{words}}. Подтвердите его в словаре, чтобы оно начало действовать.",
+      "reviewLater": "Позже"
     },
     "mic": {
       "hotkeyToSpeak": "Нажмите {{hotkey}} для записи",

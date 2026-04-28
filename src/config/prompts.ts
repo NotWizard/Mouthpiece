@@ -165,9 +165,6 @@ function getTerminologyInstruction(
   const homophoneMappings = Array.isArray(terminologyProfile.homophoneMappings)
     ? terminologyProfile.homophoneMappings
     : [];
-  const pendingSuggestions = Array.isArray(terminologyProfile.pendingSuggestions)
-    ? terminologyProfile.pendingSuggestions
-    : [];
 
   const preferredTerms = [...hotwords, ...glossaryTerms].filter(Boolean);
   if (preferredTerms.length > 0) {
@@ -184,14 +181,6 @@ function getTerminologyInstruction(
     sections.push(
       `Homophone normalization candidates: ${homophoneMappings
         .map((mapping) => `${mapping.source} → ${mapping.target}`)
-        .join(", ")}`
-    );
-  }
-
-  if (pendingSuggestions.length > 0) {
-    sections.push(
-      `Pending terminology suggestions for review: ${pendingSuggestions
-        .map((suggestion) => `${suggestion.sourceTerm} → ${suggestion.term}`)
         .join(", ")}`
     );
   }

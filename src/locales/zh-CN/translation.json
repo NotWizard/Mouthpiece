@@ -969,7 +969,7 @@
       "add": "添加",
       "pressEnterToAdd": "按 Enter 添加",
       "autoLearnTitle": "从纠正中自动学习",
-      "autoLearnDescription": "当你在目标应用中纠正转录时，纠正后的词语会自动添加到你的词典中。",
+      "autoLearnDescription": "当你在目标应用中纠正转录时，Mouthpiece 会生成待确认词典建议。只有确认加入后才会生效，未确认建议会在 24 小时后自动清除。",
       "yourWords": "你的词语",
       "clearDictionaryTitle": "清除词典？",
       "clearDictionaryDescription": "这将删除自定义词典中的所有词语。此操作无法撤消。",
@@ -1023,8 +1023,9 @@
       "pendingSuggestionsTitle": "待确认建议",
       "pendingSuggestionsEmpty": "当前没有待确认建议。",
       "pendingSuggestionSource": "来源：{{source}}",
-      "approve": "批准",
-      "reject": "忽略"
+      "approve": "确认加入",
+      "reject": "忽略",
+      "pendingSuggestionsDescription": "请在 24 小时内确认建议，确认后才会加入词典并生效。未确认建议会自动清除。"
     },
     "general": {
       "appearance": {
@@ -1445,7 +1446,9 @@
         "description": "无法注册所选快捷键。请在设置中选择其他快捷键。"
       },
       "addedToDict": "已将 {{words}} 添加到你的词典",
-      "undo": "撤消"
+      "undo": "撤消",
+      "dictionarySuggestionFound": "发现词典建议：{{words}}。确认加入后才会生效。",
+      "reviewLater": "稍后确认"
     },
     "mic": {
       "hotkeyToSpeak": "按 {{hotkey}} 开始说话",
