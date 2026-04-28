@@ -772,7 +772,7 @@
       "reset": "Restablecer",
       "save": "Guardar"
     },
-    "defaultTestInput": "Hola Whispr, ¿cómo está el clima hoy?",
+    "defaultTestInput": "Eh, mueve la revisión del proyecto de hoy de las 3 p. m. a las 4 p. m. y avisa a producto y diseño.",
     "dialogs": {
       "reset": {
         "description": "El prompt ha sido restablecido al valor predeterminado.",

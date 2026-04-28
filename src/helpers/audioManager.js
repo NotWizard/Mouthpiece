@@ -2330,7 +2330,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       !s.useLocalWhisper &&
       s.cloudTranscriptionMode === "byok" &&
       s.cloudTranscriptionProvider === "bailian" &&
-      isValidApiKey(s.bailianApiKey, "bailian") &&
       isRealtimeModel
     );
   }

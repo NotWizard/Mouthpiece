@@ -772,7 +772,7 @@
       "reset": "重置",
       "save": "保存"
     },
-    "defaultTestInput": "你好 Whispr，今天天气怎么样？",
+    "defaultTestInput": "嗯，今天下午三点的项目评审改到四点，请同步给产品和设计同学。",
     "dialogs": {
       "reset": {
         "description": "提示词已重置为默认值。",

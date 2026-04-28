@@ -51,7 +51,7 @@ test("existing explicit Bailian selection keeps provider explicit and falls back
   assert.equal(normalized.didPromoteCustomDashScope, false);
 });
 
-test("legacy Bailian realtime toggle migrates the default batch model to the realtime model", async () => {
+test("legacy Bailian realtime toggle no longer overwrites the selected batch model", async () => {
   const { normalizeCloudTranscriptionProviderSettings } = await importHelper();
 
   const normalized = normalizeCloudTranscriptionProviderSettings({
@@ -64,7 +64,7 @@ test("legacy Bailian realtime toggle migrates the default batch model to the rea
   });
 
   assert.equal(normalized.cloudTranscriptionProvider, "bailian");
-  assert.equal(normalized.cloudTranscriptionModel, "qwen3-asr-flash-realtime");
+  assert.equal(normalized.cloudTranscriptionModel, "qwen3-asr-flash");
 });
 
 test("legacy Bailian realtime toggle preserves an explicit realtime model selection", async () => {
