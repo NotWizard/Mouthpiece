@@ -39,6 +39,32 @@
       "descriptionKey": "models.descriptions.parakeet.parakeet_tdt_0_6b_v3"
     }
   },
+  "qwenAsrModels": {
+    "qwen3-asr-0.6b-mlx": {
+      "name": "Qwen3-ASR 0.6B (MLX)",
+      "description": "Default local Qwen3-ASR model optimized for speed on Apple Silicon",
+      "descriptionKey": "models.descriptions.qwenAsr.qwen3_asr_0_6b_mlx",
+      "size": "1.2GB",
+      "sizeMb": 1200,
+      "expectedSizeBytes": 1200000000,
+      "hfModelId": "Qwen/Qwen3-ASR-0.6B",
+      "language": "multilingual",
+      "supportedLanguages": ["en", "zh"],
+      "recommended": true
+    },
+    "qwen3-asr-1.7b-mlx": {
+      "name": "Qwen3-ASR 1.7B (MLX)",
+      "description": "Higher quality local Qwen3-ASR model with higher memory and latency",
+      "descriptionKey": "models.descriptions.qwenAsr.qwen3_asr_1_7b_mlx",
+      "size": "3.4GB",
+      "sizeMb": 3400,
+      "expectedSizeBytes": 3400000000,
+      "hfModelId": "Qwen/Qwen3-ASR-1.7B",
+      "language": "multilingual",
+      "supportedLanguages": ["en", "zh"],
+      "recommended": false
+    }
+  },
   "whisperModels": {
     "tiny": {
       "name": "Tiny",

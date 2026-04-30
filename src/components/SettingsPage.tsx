@@ -268,6 +268,8 @@ interface TranscriptionSectionProps {
   setWhisperModel: (model: string) => void;
   parakeetModel: string;
   setParakeetModel: (model: string) => void;
+  qwenAsrModel: string;
+  setQwenAsrModel: (model: string) => void;
   openaiApiKey: string;
   setOpenaiApiKey: (key: string) => void;
   deepgramApiKey: string;
@@ -320,6 +322,8 @@ function TranscriptionSection({
   setWhisperModel,
   parakeetModel,
   setParakeetModel,
+  qwenAsrModel,
+  setQwenAsrModel,
   openaiApiKey,
   setOpenaiApiKey,
   deepgramApiKey,
@@ -451,10 +455,16 @@ function TranscriptionSection({
           selectedCloudModel={cloudTranscriptionModel}
           onCloudModelSelect={setCloudTranscriptionModel}
           selectedLocalModel={
-            localTranscriptionProvider === "nvidia" ? parakeetModel : whisperModel
+            localTranscriptionProvider === "qwen"
+              ? qwenAsrModel
+              : localTranscriptionProvider === "nvidia"
+                ? parakeetModel
+                : whisperModel
           }
           onLocalModelSelect={(modelId) => {
-            if (localTranscriptionProvider === "nvidia") {
+            if (localTranscriptionProvider === "qwen") {
+              setQwenAsrModel(modelId);
+            } else if (localTranscriptionProvider === "nvidia") {
               setParakeetModel(modelId);
             } else {
               setWhisperModel(modelId);
@@ -708,6 +718,7 @@ export default function SettingsPage({
     whisperModel,
     localTranscriptionProvider,
     parakeetModel,
+    qwenAsrModel,
     uiLanguage,
     preferredLanguage,
     cloudTranscriptionProvider,
@@ -738,6 +749,7 @@ export default function SettingsPage({
     setWhisperModel,
     setLocalTranscriptionProvider,
     setParakeetModel,
+    setQwenAsrModel,
     setCloudTranscriptionProvider,
     setCloudTranscriptionModel,
     setCloudTranscriptionBaseUrl,
@@ -1290,6 +1302,8 @@ export default function SettingsPage({
             setWhisperModel={setWhisperModel}
             parakeetModel={parakeetModel}
             setParakeetModel={setParakeetModel}
+            qwenAsrModel={qwenAsrModel}
+            setQwenAsrModel={setQwenAsrModel}
             openaiApiKey={openaiApiKey}
             setOpenaiApiKey={setOpenaiApiKey}
             deepgramApiKey={deepgramApiKey}

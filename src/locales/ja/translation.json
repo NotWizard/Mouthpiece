@@ -278,7 +278,8 @@
     "customProvider": "カスタム",
     "fallback": {
       "whisperModelDescription": "モデル",
-      "parakeetModelDescription": "NVIDIA Parakeet モデル"
+      "parakeetModelDescription": "NVIDIA Parakeet モデル",
+      "qwenAsrModelDescription": "Qwen ASR MLX モデル"
     },
     "whisperModels": "Whisper モデル",
     "deepgram": {
@@ -305,6 +306,14 @@
       "realtimeLabel": "リアルタイム文字起こしを有効にする",
       "realtimeEnabledDescription": "話している間は部分文字起こしをリアルタイム表示し、録音を止めると最終文字起こしを確定します。",
       "realtimeDisabledDescription": "録音停止後に音声をアップロードし、非同期のバッチ文字起こし結果を待ちます。"
+    },
+    "qwenAsr": {
+      "installRuntime": "MLX ランタイムをインストール",
+      "runtimeInstalling": "ランタイムをインストール中...",
+      "runtimeRequired": "MLX ランタイムが必要です",
+      "runtimeUnavailable": "Qwen3-ASR モデルをダウンロードする前に、ローカル MLX ランタイムをインストールしてください。",
+      "appleSiliconOnly": "Qwen ASR (MLX) には Apple Silicon macOS が必要です。",
+      "mlxLabel": "MLX"
     }
   },
   "hooks": {
@@ -1263,6 +1272,10 @@
         "openai_oss_gpt_oss_20b_mxfp4": "一般消費者向けハードウェア用 OpenAI オープンウェイトモデル",
         "gemma_gemma_3_4b_it_q4_k_m": "Google のオープンウェイトモデル、速度と品質の優れたバランス",
         "gemma_gemma_3_1b_it_q4_k_m": "超高速 Google モデル、短い口述のクリーンアップに最適"
+      },
+      "qwenAsr": {
+        "qwen3_asr_0_6b_mlx": "Apple Silicon での速度を重視した既定のローカル Qwen3-ASR モデル",
+        "qwen3_asr_1_7b_mlx": "品質重視のローカル Qwen3-ASR モデル。メモリ使用量とレイテンシは高めです"
       }
     }
   },

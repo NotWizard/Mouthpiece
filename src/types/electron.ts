@@ -1,7 +1,7 @@
 import type { InsertionIntent, InsertionOutcomeMode } from "../utils/insertionIntent";
 import type { TerminologySuggestion } from "../utils/terminologyProfile";
 
-export type LocalTranscriptionProvider = "whisper" | "nvidia";
+export type LocalTranscriptionProvider = "whisper" | "nvidia" | "qwen";
 
 export interface TranscriptionItem {
   id: number;
@@ -163,6 +163,81 @@ export interface ParakeetDiagnosticsResult {
   isPackaged: boolean;
   sherpaOnnx: { available: boolean; path: string | null };
   modelsDir: string;
+  models: string[];
+}
+
+export interface QwenAsrCheckResult {
+  supported: boolean;
+  installed: boolean;
+  working: boolean;
+  runtimeDir: string;
+  executablePath?: string | null;
+  pythonPath?: string | null;
+  error?: string;
+  message?: string;
+}
+
+export interface QwenAsrModelResult {
+  success: boolean;
+  model: string;
+  downloaded: boolean;
+  path?: string;
+  size_bytes?: number;
+  size_mb?: number;
+  error?: string;
+  code?: string;
+}
+
+export interface QwenAsrModelDeleteResult {
+  success: boolean;
+  model: string;
+  deleted: boolean;
+  freed_bytes?: number;
+  freed_mb?: number;
+  error?: string;
+}
+
+export interface QwenAsrModelsListResult {
+  success: boolean;
+  models: Array<{ model: string; downloaded: boolean; size_mb?: number }>;
+  cache_dir: string;
+}
+
+export interface QwenAsrDownloadProgressData {
+  type: "progress" | "installing" | "complete" | "error";
+  model: string;
+  percentage?: number;
+  downloaded_bytes?: number;
+  total_bytes?: number;
+  error?: string;
+  code?: string;
+}
+
+export interface QwenAsrTranscriptionResult {
+  success: boolean;
+  text?: string;
+  message?: string;
+  error?: string;
+}
+
+export interface QwenAsrServerStatus {
+  available: boolean;
+  running: boolean;
+  ready: boolean;
+  port: number | null;
+  modelName: string | null;
+  endpoint: string | null;
+}
+
+export interface QwenAsrDiagnosticsResult {
+  platform: string;
+  arch: string;
+  supported: boolean;
+  runtimeDir: string;
+  modelsDir: string;
+  executablePath: string | null;
+  pythonPath: string | null;
+  server: QwenAsrServerStatus;
   models: string[];
 }
 
@@ -451,6 +526,29 @@ declare global {
         error?: string;
       }>;
       getParakeetDiagnostics: () => Promise<ParakeetDiagnosticsResult>;
+
+      // Qwen ASR operations (MLX sidecar)
+      transcribeLocalQwenAsr: (
+        audioBlob: ArrayBuffer,
+        options?: { model?: string; language?: string; prompt?: string; context?: string }
+      ) => Promise<QwenAsrTranscriptionResult>;
+      checkQwenAsrInstallation: () => Promise<QwenAsrCheckResult>;
+      installQwenAsrRuntime: () => Promise<QwenAsrCheckResult & { success: boolean }>;
+      downloadQwenAsrModel: (modelName: string) => Promise<QwenAsrModelResult>;
+      onQwenAsrDownloadProgress?: (
+        callback: (event: any, data: QwenAsrDownloadProgressData) => void
+      ) => () => void;
+      listQwenAsrModels: () => Promise<QwenAsrModelsListResult>;
+      deleteQwenAsrModel: (modelName: string) => Promise<QwenAsrModelDeleteResult>;
+      cancelQwenAsrDownload: () => Promise<{
+        success: boolean;
+        message?: string;
+        error?: string;
+      }>;
+      qwenAsrServerStart: (modelName: string) => Promise<{ success: boolean; port?: number; reason?: string }>;
+      qwenAsrServerStop: () => Promise<void>;
+      qwenAsrServerStatus: () => Promise<QwenAsrServerStatus>;
+      getQwenAsrDiagnostics: () => Promise<QwenAsrDiagnosticsResult>;
 
       // Local AI model management
       modelGetAll: () => Promise<any[]>;

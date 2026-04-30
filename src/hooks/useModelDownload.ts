@@ -16,7 +16,7 @@ export interface DownloadProgress {
   eta?: number;
 }
 
-export type ModelType = "whisper" | "llm" | "parakeet";
+export type ModelType = "whisper" | "llm" | "parakeet" | "qwenAsr";
 
 interface UseModelDownloadOptions {
   modelType: ModelType;
@@ -165,6 +165,8 @@ export function useModelDownload({
       dispose = window.electronAPI?.onWhisperDownloadProgress(handleWhisperProgress);
     } else if (modelType === "parakeet") {
       dispose = window.electronAPI?.onParakeetDownloadProgress(handleWhisperProgress);
+    } else if (modelType === "qwenAsr") {
+      dispose = window.electronAPI?.onQwenAsrDownloadProgress?.(handleWhisperProgress);
     } else {
       dispose = window.electronAPI?.onModelDownloadProgress(handleLLMProgress);
     }
@@ -210,6 +212,23 @@ export function useModelDownload({
           }
         } else if (modelType === "parakeet") {
           const result = await window.electronAPI?.downloadParakeetModel(modelId);
+          if (!result?.success && !result?.error?.includes("interrupted by user")) {
+            const msg = getDownloadErrorMessage(
+              t,
+              result?.error || t("hooks.modelDownload.errors.unknown"),
+              result?.code
+            );
+            const title =
+              result?.code === "EXTRACTION_FAILED"
+                ? t("hooks.modelDownload.installationFailed.title")
+                : t("hooks.modelDownload.downloadFailed.title");
+            setDownloadError(msg);
+            showAlertDialog({ title, description: msg });
+          } else {
+            success = result?.success ?? false;
+          }
+        } else if (modelType === "qwenAsr") {
+          const result = await window.electronAPI?.downloadQwenAsrModel(modelId);
           if (!result?.success && !result?.error?.includes("interrupted by user")) {
             const msg = getDownloadErrorMessage(
               t,
@@ -301,6 +320,16 @@ export function useModelDownload({
               }),
             });
           }
+        } else if (modelType === "qwenAsr") {
+          const result = await window.electronAPI?.deleteQwenAsrModel(modelId);
+          if (result?.success) {
+            toast({
+              title: t("hooks.modelDownload.modelDeleted.title"),
+              description: t("hooks.modelDownload.modelDeleted.descriptionWithSpace", {
+                sizeMb: result.freed_mb,
+              }),
+            });
+          }
         } else {
           await window.electronAPI?.modelDelete?.(modelId);
           toast({
@@ -330,6 +359,8 @@ export function useModelDownload({
         await window.electronAPI?.cancelWhisperDownload();
       } else if (modelType === "parakeet") {
         await window.electronAPI?.cancelParakeetDownload();
+      } else if (modelType === "qwenAsr") {
+        await window.electronAPI?.cancelQwenAsrDownload();
       } else {
         await window.electronAPI?.modelCancelDownload?.(downloadingModel);
       }

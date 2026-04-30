@@ -260,6 +260,7 @@ export interface SettingsState
   setWhisperModel: (value: string) => void;
   setLocalTranscriptionProvider: (value: LocalTranscriptionProvider) => void;
   setParakeetModel: (value: string) => void;
+  setQwenAsrModel: (value: string) => void;
   setAllowOpenAIFallback: (value: boolean) => void;
   setAllowLocalFallback: (value: boolean) => void;
   setFallbackWhisperModel: (value: string) => void;
@@ -483,10 +484,14 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   uiLanguage: normalizeUiLanguage(readString("uiLanguage", "zh-CN")),
   useLocalWhisper: readBoolean("useLocalWhisper", false),
   whisperModel: readString("whisperModel", "base"),
-  localTranscriptionProvider: (readString("localTranscriptionProvider", "whisper") === "nvidia"
-    ? "nvidia"
-    : "whisper") as LocalTranscriptionProvider,
+  localTranscriptionProvider: (() => {
+    const provider = readString("localTranscriptionProvider", "whisper");
+    return (
+      provider === "nvidia" || provider === "qwen" ? provider : "whisper"
+    ) as LocalTranscriptionProvider;
+  })(),
   parakeetModel: readString("parakeetModel", ""),
+  qwenAsrModel: readString("qwenAsrModel", "qwen3-asr-0.6b-mlx"),
   allowOpenAIFallback: readBoolean("allowOpenAIFallback", false),
   allowLocalFallback: readBoolean("allowLocalFallback", false),
   fallbackWhisperModel: readString("fallbackWhisperModel", "base"),
@@ -560,6 +565,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     set({ localTranscriptionProvider: value });
   },
   setParakeetModel: createStringSetter("parakeetModel"),
+  setQwenAsrModel: createStringSetter("qwenAsrModel"),
   setAllowOpenAIFallback: createBooleanSetter("allowOpenAIFallback"),
   setAllowLocalFallback: createBooleanSetter("allowLocalFallback"),
   setFallbackWhisperModel: createStringSetter("fallbackWhisperModel"),
@@ -741,6 +747,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     if (settings.localTranscriptionProvider !== undefined)
       s.setLocalTranscriptionProvider(settings.localTranscriptionProvider);
     if (settings.parakeetModel !== undefined) s.setParakeetModel(settings.parakeetModel);
+    if (settings.qwenAsrModel !== undefined) s.setQwenAsrModel(settings.qwenAsrModel);
     if (settings.allowOpenAIFallback !== undefined)
       s.setAllowOpenAIFallback(settings.allowOpenAIFallback);
     if (settings.allowLocalFallback !== undefined)

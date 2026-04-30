@@ -94,8 +94,24 @@ export interface ParakeetModelInfo {
 
 export type ParakeetModelsMap = Record<string, ParakeetModelInfo>;
 
+export interface QwenAsrModelInfo {
+  name: string;
+  description: string;
+  descriptionKey?: string;
+  size: string;
+  sizeMb: number;
+  expectedSizeBytes?: number;
+  hfModelId: string;
+  language: string;
+  supportedLanguages: string[];
+  recommended?: boolean;
+}
+
+export type QwenAsrModelsMap = Record<string, QwenAsrModelInfo>;
+
 interface ModelRegistryData {
   parakeetModels: ParakeetModelsMap;
+  qwenAsrModels: QwenAsrModelsMap;
   whisperModels: WhisperModelsMap;
   transcriptionProviders: TranscriptionProviderData[];
   cloudProviders: CloudProviderData[];
@@ -340,6 +356,16 @@ export function getParakeetModelInfo(modelId: string): ParakeetModelInfo | undef
 }
 
 export const PARAKEET_MODEL_INFO = modelData.parakeetModels;
+
+export function getQwenAsrModels(): QwenAsrModelsMap {
+  return modelData.qwenAsrModels;
+}
+
+export function getQwenAsrModelInfo(modelId: string): QwenAsrModelInfo | undefined {
+  return modelData.qwenAsrModels[modelId];
+}
+
+export const QWEN_ASR_MODEL_INFO = modelData.qwenAsrModels;
 
 export function getWhisperModelConfig(modelId: string): WhisperModelConfig | null {
   const modelInfo = modelData.whisperModels[modelId];

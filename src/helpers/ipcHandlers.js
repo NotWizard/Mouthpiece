@@ -244,6 +244,7 @@ class IPCHandlers {
     this.clipboardManager = managers.clipboardManager;
     this.whisperManager = managers.whisperManager;
     this.parakeetManager = managers.parakeetManager;
+    this.qwenAsrManager = managers.qwenAsrManager;
     this.updateManager = managers.updateManager;
     this.windowManager = managers.windowManager;
     this.windowsKeyManager = managers.windowsKeyManager;
@@ -1101,6 +1102,140 @@ class IPCHandlers {
       return this.parakeetManager.getServerStatus();
     });
 
+    ipcMain.handle("transcribe-local-qwen-asr", async (event, audioBlob, options = {}) => {
+      debugLogger.log("transcribe-local-qwen-asr called", {
+        audioBlobType: typeof audioBlob,
+        audioBlobSize: audioBlob?.byteLength || audioBlob?.length || 0,
+        options,
+      });
+
+      try {
+        const result = await this.qwenAsrManager.transcribeLocalQwenAsr(audioBlob, options);
+
+        debugLogger.log("Qwen ASR result", {
+          success: result.success,
+          hasText: !!result.text,
+          message: result.message,
+          error: result.error,
+        });
+
+        if (!result.success && result.message === "No audio detected") {
+          debugLogger.log("Sending no-audio-detected event to renderer");
+          event.sender.send("no-audio-detected");
+        }
+
+        return result;
+      } catch (error) {
+        debugLogger.error("Local Qwen ASR transcription error", error);
+        const errorMessage = error.message || "Unknown error";
+
+        if (errorMessage.includes("Apple Silicon macOS")) {
+          return {
+            success: false,
+            error: "qwen_asr_platform_unavailable",
+            message: "Qwen ASR MLX is only available on Apple Silicon macOS.",
+          };
+        }
+        if (errorMessage.includes("runtime not found") || errorMessage.includes("mlx-qwen3-asr")) {
+          return {
+            success: false,
+            error: "qwen_asr_runtime_missing",
+            message: "Qwen ASR MLX runtime is missing. Install it from Settings.",
+          };
+        }
+        if (errorMessage.includes("model") && errorMessage.includes("not downloaded")) {
+          return {
+            success: false,
+            error: "model_not_found",
+            message: errorMessage,
+          };
+        }
+
+        throw error;
+      }
+    });
+
+    ipcMain.handle("check-qwen-asr-installation", async () => {
+      return this.qwenAsrManager.checkInstallation();
+    });
+
+    ipcMain.handle("install-qwen-asr-runtime", async (event) => {
+      try {
+        return await this.qwenAsrManager.installRuntime((progressData) => {
+          if (!event.sender.isDestroyed()) {
+            event.sender.send("qwen-asr-download-progress", progressData);
+          }
+        });
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("download-qwen-asr-model", async (event, modelName) => {
+      try {
+        const result = await this.qwenAsrManager.downloadQwenAsrModel(modelName, (progressData) => {
+          if (!event.sender.isDestroyed()) {
+            event.sender.send("qwen-asr-download-progress", progressData);
+          }
+        });
+        return result;
+      } catch (error) {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send("qwen-asr-download-progress", {
+            type: "error",
+            model: modelName,
+            error: error.message,
+            code: error.code || "DOWNLOAD_FAILED",
+          });
+        }
+        return {
+          success: false,
+          error: error.message,
+          code: error.code || "DOWNLOAD_FAILED",
+        };
+      }
+    });
+
+    ipcMain.handle("list-qwen-asr-models", async () => {
+      return this.qwenAsrManager.listQwenAsrModels();
+    });
+
+    ipcMain.handle("delete-qwen-asr-model", async (_event, modelName) => {
+      return this.qwenAsrManager.deleteQwenAsrModel(modelName);
+    });
+
+    ipcMain.handle("cancel-qwen-asr-download", async () => {
+      return this.qwenAsrManager.cancelDownload();
+    });
+
+    ipcMain.handle("qwen-asr-server-start", async (_event, modelName) => {
+      const result = await this.qwenAsrManager.startServer(modelName);
+      if (result?.success) {
+        process.env.LOCAL_TRANSCRIPTION_PROVIDER = "qwen";
+        process.env.QWEN_ASR_MODEL = modelName;
+        delete process.env.PARAKEET_MODEL;
+        delete process.env.LOCAL_WHISPER_MODEL;
+        await this.environmentManager.saveAllKeysToEnvFile();
+      }
+      return result;
+    });
+
+    ipcMain.handle("qwen-asr-server-stop", async () => {
+      const result = await this.qwenAsrManager.stopServer();
+      delete process.env.LOCAL_TRANSCRIPTION_PROVIDER;
+      delete process.env.QWEN_ASR_MODEL;
+      await this.environmentManager.saveAllKeysToEnvFile();
+      return result;
+    });
+
+    ipcMain.handle("qwen-asr-server-status", async () => {
+      return this.qwenAsrManager.getServerStatus();
+    });
+
+    ipcMain.handle("get-qwen-asr-diagnostics", async () => {
+      return this.qwenAsrManager.getDiagnostics();
+    });
+
     ipcMain.handle("cleanup-app", async (event) => {
       AppUtils.cleanup(this.windowManager.mainWindow);
       return { success: true, message: "Cleanup completed successfully" };
@@ -1617,27 +1752,60 @@ class IPCHandlers {
         setVars.LOCAL_TRANSCRIPTION_PROVIDER = prefs.localTranscriptionProvider;
         if (prefs.localTranscriptionProvider === "nvidia") {
           setVars.PARAKEET_MODEL = prefs.model;
-          clearVars.push("LOCAL_WHISPER_MODEL");
+          clearVars.push("LOCAL_WHISPER_MODEL", "QWEN_ASR_MODEL");
           this.whisperManager.stopServer().catch((err) => {
             debugLogger.error("Failed to stop whisper-server on provider switch", {
               error: err.message,
             });
           });
-        } else {
-          setVars.LOCAL_WHISPER_MODEL = prefs.model;
-          clearVars.push("PARAKEET_MODEL");
+          this.qwenAsrManager.stopServer().catch((err) => {
+            debugLogger.error("Failed to stop qwen-asr-server on provider switch", {
+              error: err.message,
+            });
+          });
+        } else if (prefs.localTranscriptionProvider === "qwen") {
+          setVars.QWEN_ASR_MODEL = prefs.model;
+          clearVars.push("PARAKEET_MODEL", "LOCAL_WHISPER_MODEL");
+          this.whisperManager.stopServer().catch((err) => {
+            debugLogger.error("Failed to stop whisper-server on provider switch", {
+              error: err.message,
+            });
+          });
           this.parakeetManager.stopServer().catch((err) => {
             debugLogger.error("Failed to stop parakeet-server on provider switch", {
+              error: err.message,
+            });
+          });
+        } else {
+          setVars.LOCAL_WHISPER_MODEL = prefs.model;
+          clearVars.push("PARAKEET_MODEL", "QWEN_ASR_MODEL");
+          this.parakeetManager.stopServer().catch((err) => {
+            debugLogger.error("Failed to stop parakeet-server on provider switch", {
+              error: err.message,
+            });
+          });
+          this.qwenAsrManager.stopServer().catch((err) => {
+            debugLogger.error("Failed to stop qwen-asr-server on provider switch", {
               error: err.message,
             });
           });
         }
       } else if (prefs.useLocalWhisper) {
         // Local mode enabled but no model selected - clear pre-warming vars
-        clearVars.push("LOCAL_TRANSCRIPTION_PROVIDER", "PARAKEET_MODEL", "LOCAL_WHISPER_MODEL");
+        clearVars.push(
+          "LOCAL_TRANSCRIPTION_PROVIDER",
+          "PARAKEET_MODEL",
+          "LOCAL_WHISPER_MODEL",
+          "QWEN_ASR_MODEL"
+        );
       } else {
         // Cloud mode - stop local servers to free RAM
-        clearVars.push("LOCAL_TRANSCRIPTION_PROVIDER", "PARAKEET_MODEL", "LOCAL_WHISPER_MODEL");
+        clearVars.push(
+          "LOCAL_TRANSCRIPTION_PROVIDER",
+          "PARAKEET_MODEL",
+          "LOCAL_WHISPER_MODEL",
+          "QWEN_ASR_MODEL"
+        );
         this.whisperManager.stopServer().catch((err) => {
           debugLogger.error("Failed to stop whisper-server on cloud switch", {
             error: err.message,
@@ -1645,6 +1813,11 @@ class IPCHandlers {
         });
         this.parakeetManager.stopServer().catch((err) => {
           debugLogger.error("Failed to stop parakeet-server on cloud switch", {
+            error: err.message,
+          });
+        });
+        this.qwenAsrManager.stopServer().catch((err) => {
+          debugLogger.error("Failed to stop qwen-asr-server on cloud switch", {
             error: err.message,
           });
         });
@@ -1695,64 +1868,59 @@ class IPCHandlers {
       });
     });
 
-    ipcMain.handle(
-      "process-anthropic-reasoning",
-      async (event, text, modelId, config) => {
-        try {
-          const apiKey = this.environmentManager.getAnthropicKey();
+    ipcMain.handle("process-anthropic-reasoning", async (event, text, modelId, config) => {
+      try {
+        const apiKey = this.environmentManager.getAnthropicKey();
 
-          if (!apiKey) {
-            throw new Error("Anthropic API key not configured");
-          }
-
-          const systemPrompt = config?.systemPrompt || "";
-          const userPrompt = text;
-
-          if (!modelId) {
-            throw new Error("No model specified for Anthropic API call");
-          }
-
-          const requestBody = {
-            model: modelId,
-            messages: [{ role: "user", content: userPrompt }],
-            system: systemPrompt,
-            max_tokens: config?.maxTokens || Math.max(100, Math.min(text.length * 2, 4096)),
-            temperature: config?.temperature || 0.3,
-          };
-
-          const response = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-API-Key": apiKey,
-              "anthropic-version": "2023-06-01",
-            },
-            body: JSON.stringify(requestBody),
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            let errorData = { error: response.statusText };
-            try {
-              errorData = JSON.parse(errorText);
-            } catch {
-              errorData = { error: errorText || response.statusText };
-            }
-            throw new Error(
-              errorData.error?.message ||
-                errorData.error ||
-                `Anthropic API error: ${response.status}`
-            );
-          }
-
-          const data = await response.json();
-          return { success: true, text: data.content[0].text.trim() };
-        } catch (error) {
-          debugLogger.error("Anthropic reasoning error:", error);
-          return { success: false, error: error.message };
+        if (!apiKey) {
+          throw new Error("Anthropic API key not configured");
         }
+
+        const systemPrompt = config?.systemPrompt || "";
+        const userPrompt = text;
+
+        if (!modelId) {
+          throw new Error("No model specified for Anthropic API call");
+        }
+
+        const requestBody = {
+          model: modelId,
+          messages: [{ role: "user", content: userPrompt }],
+          system: systemPrompt,
+          max_tokens: config?.maxTokens || Math.max(100, Math.min(text.length * 2, 4096)),
+          temperature: config?.temperature || 0.3,
+        };
+
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-Key": apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorData = { error: response.statusText };
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            errorData = { error: errorText || response.statusText };
+          }
+          throw new Error(
+            errorData.error?.message || errorData.error || `Anthropic API error: ${response.status}`
+          );
+        }
+
+        const data = await response.json();
+        return { success: true, text: data.content[0].text.trim() };
+      } catch (error) {
+        debugLogger.error("Anthropic reasoning error:", error);
+        return { success: false, error: error.message };
       }
-    );
+    });
 
     ipcMain.handle("check-local-reasoning-available", async () => {
       try {
