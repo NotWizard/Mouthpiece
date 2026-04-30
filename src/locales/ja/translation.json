@@ -861,8 +861,8 @@
         "label": "インテリジェンス"
       },
       "privacyData": {
-        "description": "プライバシー、権限、バックアップ",
-        "label": "プライバシーとデータ"
+        "description": "マイクとアクセシビリティの権限",
+        "label": "権限"
       },
       "system": {
         "description": "バージョン、ストレージ、開発者ツール",

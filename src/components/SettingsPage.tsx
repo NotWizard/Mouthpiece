@@ -490,7 +490,6 @@ function TranscriptionSection({
 }
 
 interface AiModelsSectionProps {
-  isSignedIn: boolean;
   cloudReasoningMode: string;
   setCloudReasoningMode: (mode: string) => void;
   useReasoningModel: boolean;
@@ -517,17 +516,9 @@ interface AiModelsSectionProps {
   setCustomReasoningApiKey: (key: string) => void;
   customReasoningEnableThinking: boolean;
   setCustomReasoningEnableThinking: (enabled: boolean) => void;
-  showAlertDialog: (dialog: { title: string; description: string }) => void;
-  toast: (opts: {
-    title: string;
-    description: string;
-    variant?: "default" | "destructive" | "success";
-    duration?: number;
-  }) => void;
 }
 
 function AiModelsSection({
-  isSignedIn,
   cloudReasoningMode,
   setCloudReasoningMode,
   useReasoningModel,
@@ -554,14 +545,17 @@ function AiModelsSection({
   setCustomReasoningApiKey,
   customReasoningEnableThinking,
   setCustomReasoningEnableThinking,
-  showAlertDialog,
-  toast,
 }: AiModelsSectionProps) {
   const { t } = useTranslation();
-  const isCustomMode = cloudReasoningMode === "byok";
 
   // NOTE: Mouthpiece Cloud option has been hidden as the cloud service is discontinued.
   // Only Custom Setup (BYOK) mode is now available for AI models.
+  useEffect(() => {
+    if (useReasoningModel && cloudReasoningMode !== "byok") {
+      setCloudReasoningMode("byok");
+      window.electronAPI?.llamaServerStop?.();
+    }
+  }, [cloudReasoningMode, setCloudReasoningMode, useReasoningModel]);
 
   return (
     <div className="space-y-4">
@@ -583,98 +577,30 @@ function AiModelsSection({
       </SettingsPanel>
 
       {useReasoningModel && (
-        <>
-          {/* Mode selector - NOTE: Mouthpiece Cloud option hidden, only Custom Setup shown */}
-          <SettingsPanel>
-            <SettingsPanelRow>
-              <button
-                onClick={() => {
-                  if (!isCustomMode) {
-                    setCloudReasoningMode("byok");
-                    window.electronAPI?.llamaServerStop?.();
-                    toast({
-                      title: t("settingsPage.aiModels.toasts.switchedCustom.title"),
-                      description: t("settingsPage.aiModels.toasts.switchedCustom.description"),
-                      variant: "success",
-                      duration: 3000,
-                    });
-                  }
-                }}
-                className="w-full flex items-center gap-3 text-left cursor-pointer group"
-              >
-                <div
-                  className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors ${
-                    isCustomMode
-                      ? "bg-accent/10 dark:bg-accent/15"
-                      : "bg-muted/60 dark:bg-surface-raised group-hover:bg-muted dark:group-hover:bg-surface-3"
-                  }`}
-                >
-                  <Key
-                    className={`w-4 h-4 transition-colors ${
-                      isCustomMode ? "text-accent" : "text-muted-foreground"
-                    }`}
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-foreground">
-                      {t("settingsPage.aiModels.customSetup")}
-                    </span>
-                    {isCustomMode && (
-                      <span className="text-xs font-medium text-accent bg-accent/10 dark:bg-accent/15 px-1.5 py-px rounded-sm">
-                        {t("common.active")}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground/80 mt-0.5">
-                    {t("settingsPage.aiModels.customSetupDescription")}
-                  </p>
-                </div>
-                <div
-                  className={`w-4 h-4 rounded-full border-2 shrink-0 transition-colors ${
-                    isCustomMode
-                      ? "border-accent bg-accent"
-                      : "border-border-hover dark:border-border-subtle"
-                  }`}
-                >
-                  {isCustomMode && (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <div className="w-1.5 h-1.5 rounded-full bg-accent-foreground" />
-                    </div>
-                  )}
-                </div>
-              </button>
-            </SettingsPanelRow>
-          </SettingsPanel>
-
-          {/* Custom Setup model picker — shown when Custom Setup is active or not signed in */}
-          {(isCustomMode || !isSignedIn) && (
-            <ReasoningModelSelector
-              reasoningModel={reasoningModel}
-              setReasoningModel={setReasoningModel}
-              localReasoningProvider={reasoningProvider}
-              setLocalReasoningProvider={setReasoningProvider}
-              cloudReasoningBaseUrl={cloudReasoningBaseUrl}
-              setCloudReasoningBaseUrl={setCloudReasoningBaseUrl}
-              openaiApiKey={openaiApiKey}
-              setOpenaiApiKey={setOpenaiApiKey}
-              anthropicApiKey={anthropicApiKey}
-              setAnthropicApiKey={setAnthropicApiKey}
-              geminiApiKey={geminiApiKey}
-              setGeminiApiKey={setGeminiApiKey}
-              groqApiKey={groqApiKey}
-              setGroqApiKey={setGroqApiKey}
-              bailianApiKey={bailianApiKey}
-              setBailianApiKey={setBailianApiKey}
-              bailianReasoningEnableThinking={bailianReasoningEnableThinking}
-              setBailianReasoningEnableThinking={setBailianReasoningEnableThinking}
-              customReasoningApiKey={customReasoningApiKey}
-              setCustomReasoningApiKey={setCustomReasoningApiKey}
-              customReasoningEnableThinking={customReasoningEnableThinking}
-              setCustomReasoningEnableThinking={setCustomReasoningEnableThinking}
-            />
-          )}
-        </>
+        <ReasoningModelSelector
+          reasoningModel={reasoningModel}
+          setReasoningModel={setReasoningModel}
+          localReasoningProvider={reasoningProvider}
+          setLocalReasoningProvider={setReasoningProvider}
+          cloudReasoningBaseUrl={cloudReasoningBaseUrl}
+          setCloudReasoningBaseUrl={setCloudReasoningBaseUrl}
+          openaiApiKey={openaiApiKey}
+          setOpenaiApiKey={setOpenaiApiKey}
+          anthropicApiKey={anthropicApiKey}
+          setAnthropicApiKey={setAnthropicApiKey}
+          geminiApiKey={geminiApiKey}
+          setGeminiApiKey={setGeminiApiKey}
+          groqApiKey={groqApiKey}
+          setGroqApiKey={setGroqApiKey}
+          bailianApiKey={bailianApiKey}
+          setBailianApiKey={setBailianApiKey}
+          bailianReasoningEnableThinking={bailianReasoningEnableThinking}
+          setBailianReasoningEnableThinking={setBailianReasoningEnableThinking}
+          customReasoningApiKey={customReasoningApiKey}
+          setCustomReasoningApiKey={setCustomReasoningApiKey}
+          customReasoningEnableThinking={customReasoningEnableThinking}
+          setCustomReasoningEnableThinking={setCustomReasoningEnableThinking}
+        />
       )}
     </div>
   );
@@ -1315,7 +1241,6 @@ export default function SettingsPage({
       case "aiModels":
         return (
           <AiModelsSection
-            isSignedIn={isSignedIn ?? false}
             cloudReasoningMode={cloudReasoningMode}
             setCloudReasoningMode={setCloudReasoningMode}
             useReasoningModel={useReasoningModel}
@@ -1345,8 +1270,6 @@ export default function SettingsPage({
             setCustomReasoningApiKey={setCustomReasoningApiKey}
             customReasoningEnableThinking={customReasoningEnableThinking}
             setCustomReasoningEnableThinking={setCustomReasoningEnableThinking}
-            showAlertDialog={showAlertDialog}
-            toast={toast}
           />
         );
 
@@ -1366,7 +1289,6 @@ export default function SettingsPage({
         return (
           <div className="space-y-6">
             <AiModelsSection
-              isSignedIn={isSignedIn ?? false}
               cloudReasoningMode={cloudReasoningMode}
               setCloudReasoningMode={setCloudReasoningMode}
               useReasoningModel={useReasoningModel}
@@ -1395,8 +1317,6 @@ export default function SettingsPage({
               setCustomReasoningApiKey={setCustomReasoningApiKey}
               customReasoningEnableThinking={customReasoningEnableThinking}
               setCustomReasoningEnableThinking={setCustomReasoningEnableThinking}
-              showAlertDialog={showAlertDialog}
-              toast={toast}
             />
             {/* System Prompt */}
             <div className="border-t border-border/40 pt-6">

@@ -861,8 +861,8 @@
         "label": "智慧功能"
       },
       "privacyData": {
-        "description": "隱私、權限與備份",
-        "label": "隱私與資料"
+        "description": "麥克風與輔助使用權限",
+        "label": "權限"
       },
       "system": {
         "description": "版本、儲存與開發者工具",

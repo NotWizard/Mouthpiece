@@ -861,8 +861,8 @@
         "label": "Intelligenz"
       },
       "privacyData": {
-        "description": "Datenschutz, Berechtigungen & Sicherung",
-        "label": "Datenschutz & Daten"
+        "description": "Mikrofon- und Bedienungshilfen-Berechtigungen",
+        "label": "Berechtigungen"
       },
       "system": {
         "description": "Version, Speicher & Entwicklertools",

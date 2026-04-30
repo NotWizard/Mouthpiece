@@ -861,8 +861,8 @@
         "label": "Inteligencia"
       },
       "privacyData": {
-        "description": "Privacidad, permisos y respaldo",
-        "label": "Privacidad y datos"
+        "description": "Permisos de micrófono y accesibilidad",
+        "label": "Permisos"
       },
       "system": {
         "description": "Versión, almacenamiento y herramientas de desarrollo",

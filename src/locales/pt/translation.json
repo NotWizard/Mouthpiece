@@ -848,8 +848,8 @@
         "label": "Inteligência"
       },
       "privacyData": {
-        "description": "Privacidade, permissões e backup",
-        "label": "Privacidade e dados"
+        "description": "Permissões de microfone e acessibilidade",
+        "label": "Permissões"
       },
       "system": {
         "description": "Versão, armazenamento e ferramentas de desenvolvimento",
