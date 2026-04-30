@@ -25,10 +25,26 @@ test("control panel uses the shared shell, sidebar, and content wrappers", async
   ]);
 
   assert.match(controlPanelSource, /control-panel-shell/);
+  assert.match(controlPanelSource, /control-panel-body/);
   assert.match(controlPanelSource, /control-panel-content-scroll/);
   assert.match(controlPanelSource, /const SIDEBAR_VIEW_CONTENT_CLASS_NAME = "control-panel-view-content";/);
   assert.match(sidebarSource, /control-panel-sidebar/);
   assert.match(sidebarSource, /control-panel-sidebar-item-active/);
+});
+
+test("control panel constrains page scrolling to the content pane", async () => {
+  const css = await readRepoFile("src/index.css");
+
+  assert.match(
+    css,
+    /\.control-panel-shell\s*\{[\s\S]*?height:\s*100vh;[\s\S]*?overflow:\s*hidden;[\s\S]*?\}/
+  );
+  assert.match(css, /\.control-panel-body\s*\{[\s\S]*?min-height:\s*0;[\s\S]*?\}/);
+  assert.match(css, /\.control-panel-main\s*\{[\s\S]*?min-height:\s*0;[\s\S]*?\}/);
+  assert.match(
+    css,
+    /\.control-panel-content-scroll\s*\{[\s\S]*?min-height:\s*0;[\s\S]*?overflow-y:\s*auto;[\s\S]*?\}/
+  );
 });
 
 test("settings page uses grouped list styling instead of card-heavy settings panels", async () => {

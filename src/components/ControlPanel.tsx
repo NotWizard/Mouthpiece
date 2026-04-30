@@ -345,7 +345,7 @@ export default function ControlPanel() {
         </Suspense>
       )}
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="control-panel-body flex flex-1 overflow-hidden">
         <ControlPanelSidebar
           activeView={activeView}
           onViewChange={setActiveView}

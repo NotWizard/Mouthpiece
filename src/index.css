@@ -383,7 +383,18 @@ a:hover {
   color: var(--color-foreground);
 }
 
+.control-panel-shell {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.control-panel-body {
+  min-height: 0;
+}
+
 .control-panel-main {
+  min-height: 0;
   min-width: 0;
   background: var(--mp-control-window-bg);
 }
@@ -453,6 +464,9 @@ a:hover {
 }
 
 .control-panel-content-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--mp-control-window-bg);
 }
 
