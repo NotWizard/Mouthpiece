@@ -282,7 +282,8 @@
     "customProvider": "自訂",
     "fallback": {
       "whisperModelDescription": "模型",
-      "parakeetModelDescription": "NVIDIA Parakeet 模型"
+      "parakeetModelDescription": "NVIDIA Parakeet 模型",
+      "qwenAsrModelDescription": "Qwen ASR MLX 模型"
     },
     "whisperModels": "Whisper 模型",
     "deepgram": {
@@ -309,6 +310,14 @@
       "realtimeLabel": "啟用即時轉錄",
       "realtimeEnabledDescription": "說話時即時串流顯示目前文字，並在停止錄音後完成最終轉錄。",
       "realtimeDisabledDescription": "停止錄音後再上傳音訊，並等待非同步批次轉錄結果。"
+    },
+    "qwenAsr": {
+      "installRuntime": "安裝 MLX runtime",
+      "runtimeInstalling": "正在安裝 runtime...",
+      "runtimeRequired": "需要 MLX runtime",
+      "runtimeUnavailable": "請先安裝本機 MLX runtime，再下載 Qwen3-ASR 模型。",
+      "appleSiliconOnly": "Qwen ASR (MLX) 需要 Apple Silicon macOS。",
+      "mlxLabel": "MLX"
     }
   },
   "hooks": {
@@ -1267,6 +1276,10 @@
         "openai_oss_gpt_oss_20b_mxfp4": "OpenAI 開放權重模型，適用於消費級硬體",
         "gemma_gemma_3_4b_it_q4_k_m": "Google 開放權重模型，速度與品質的絕佳平衡",
         "gemma_gemma_3_1b_it_q4_k_m": "超快 Google 模型，最適合短語音清理"
+      },
+      "qwenAsr": {
+        "qwen3_asr_0_6b_mlx": "預設本機 Qwen3-ASR 模型，針對 Apple Silicon 上的速度最佳化",
+        "qwen3_asr_1_7b_mlx": "更高品質的本機 Qwen3-ASR 模型，記憶體用量和延遲更高"
       }
     }
   },

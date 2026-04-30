@@ -282,7 +282,8 @@
     "customProvider": "Benutzerdefiniert",
     "fallback": {
       "whisperModelDescription": "Modell",
-      "parakeetModelDescription": "NVIDIA-Parakeet-Modell"
+      "parakeetModelDescription": "NVIDIA-Parakeet-Modell",
+      "qwenAsrModelDescription": "Qwen ASR MLX-Modell"
     },
     "whisperModels": "Whisper-Modelle",
     "deepgram": {
@@ -309,6 +310,14 @@
       "realtimeLabel": "Echtzeit-Transkription aktivieren",
       "realtimeEnabledDescription": "Zeigt live Teiltexte wahrend des Sprechens an und finalisiert das Transkript, wenn du die Aufnahme beendest.",
       "realtimeDisabledDescription": "Ladt die Aufnahme nach dem Stoppen hoch und wartet auf das asynchrone Batch-Transkript."
+    },
+    "qwenAsr": {
+      "installRuntime": "MLX-Runtime installieren",
+      "runtimeInstalling": "Runtime wird installiert...",
+      "runtimeRequired": "MLX-Runtime erforderlich",
+      "runtimeUnavailable": "Installiere zuerst die lokale MLX-Runtime, bevor du Qwen3-ASR Modelle herunterlädst.",
+      "appleSiliconOnly": "Qwen ASR (MLX) erfordert Apple Silicon macOS.",
+      "mlxLabel": "MLX"
     }
   },
   "hooks": {
@@ -1267,6 +1276,10 @@
         "openai_oss_gpt_oss_20b_mxfp4": "Open-Weight-Modell von OpenAI für Consumer-Hardware",
         "gemma_gemma_3_4b_it_q4_k_m": "Googles Open-Weight-Modell, gutes Gleichgewicht aus Geschwindigkeit und Qualität",
         "gemma_gemma_3_1b_it_q4_k_m": "Ultraschnelles Google-Modell, ideal für kurze Diktat-Bereinigung"
+      },
+      "qwenAsr": {
+        "qwen3_asr_0_6b_mlx": "Standardmäßiges lokales Qwen3-ASR Modell, optimiert für Geschwindigkeit auf Apple Silicon",
+        "qwen3_asr_1_7b_mlx": "Lokales Qwen3-ASR Modell mit höherer Qualität, aber mehr Speicherbedarf und Latenz"
       }
     }
   },

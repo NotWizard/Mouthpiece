@@ -1399,6 +1399,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const localProvider = s.localTranscriptionProvider;
       const whisperModel = s.whisperModel;
       const parakeetModel = s.parakeetModel || "parakeet-tdt-0.6b-v3";
+      const qwenAsrModel = s.qwenAsrModel || "qwen3-asr-0.6b-mlx";
 
       const cloudTranscriptionMode = s.cloudTranscriptionMode;
       const isSignedIn = s.isSignedIn;
@@ -1437,6 +1438,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           result = await this.processWithLocalParakeet(
             audioForTranscription,
             parakeetModel,
+            transcriptionMetadata
+          );
+        } else if (localProvider === "qwen") {
+          activeModel = qwenAsrModel;
+          result = await this.processWithLocalQwenAsr(
+            audioForTranscription,
+            qwenAsrModel,
             transcriptionMetadata
           );
         } else {
@@ -1674,6 +1682,86 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         }
       } else {
         throw new Error(`Parakeet failed: ${error.message}`);
+      }
+    }
+  }
+
+  async processWithLocalQwenAsr(audioBlob, model = "qwen3-asr-0.6b-mlx", metadata = {}) {
+    const timings = {};
+
+    try {
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const language = validateLanguageForModel(getSettings().preferredLanguage, model);
+      const options = { model };
+      if (language) {
+        options.language = language;
+      }
+
+      const dictionaryPrompt = this.getCustomDictionaryPrompt();
+      if (dictionaryPrompt) {
+        options.prompt = dictionaryPrompt;
+        options.context = dictionaryPrompt;
+      }
+
+      logger.debug(
+        "Qwen ASR transcription starting",
+        {
+          audioFormat: audioBlob.type,
+          audioSizeBytes: audioBlob.size,
+          model,
+          hasDictionaryPrompt: Boolean(dictionaryPrompt),
+        },
+        "performance"
+      );
+
+      const transcriptionStart = performance.now();
+      const result = await window.electronAPI.transcribeLocalQwenAsr(arrayBuffer, options);
+      timings.transcriptionProcessingDurationMs = Math.round(
+        performance.now() - transcriptionStart
+      );
+
+      logger.debug(
+        "Qwen ASR transcription complete",
+        {
+          transcriptionProcessingDurationMs: timings.transcriptionProcessingDurationMs,
+          success: result.success,
+        },
+        "performance"
+      );
+
+      if (result.success && result.text) {
+        const reasoningStart = performance.now();
+        const text = await this.processTranscription(result.text, "local-qwen-asr");
+        timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
+
+        if (text !== null && text !== undefined) {
+          return { success: true, text: text || result.text, source: "local-qwen-asr", timings };
+        } else {
+          throw new Error("No text transcribed");
+        }
+      } else if (result.success === false && result.message === "No audio detected") {
+        throw new Error("No audio detected");
+      } else {
+        throw new Error(result.message || result.error || "Qwen ASR transcription failed");
+      }
+    } catch (error) {
+      if (error.message === "No audio detected") {
+        throw error;
+      }
+
+      const { allowOpenAIFallback, useLocalWhisper: isLocalMode } = getSettings();
+
+      if (allowOpenAIFallback && isLocalMode) {
+        try {
+          const fallbackResult = await this.processWithOpenAIAPI(audioBlob, metadata);
+          return { ...fallbackResult, source: "openai-fallback" };
+        } catch (fallbackError) {
+          throw new Error(
+            `Qwen ASR failed: ${error.message}. OpenAI fallback also failed: ${fallbackError.message}`
+          );
+        }
+      } else {
+        throw new Error(`Qwen ASR failed: ${error.message}`);
       }
     }
   }

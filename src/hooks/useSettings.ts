@@ -15,6 +15,7 @@ export interface TranscriptionSettings {
   whisperModel: string;
   localTranscriptionProvider: LocalTranscriptionProvider;
   parakeetModel: string;
+  qwenAsrModel: string;
   allowOpenAIFallback: boolean;
   allowLocalFallback: boolean;
   fallbackWhisperModel: string;
@@ -180,6 +181,7 @@ function useSettingsInternal() {
     localTranscriptionProvider,
     whisperModel,
     parakeetModel,
+    qwenAsrModel,
     reasoningProvider,
     reasoningModel,
   } = store;
@@ -187,7 +189,12 @@ function useSettingsInternal() {
   useEffect(() => {
     if (typeof window === "undefined" || !window.electronAPI?.syncStartupPreferences) return;
 
-    const model = localTranscriptionProvider === "nvidia" ? parakeetModel : whisperModel;
+    const model =
+      localTranscriptionProvider === "qwen"
+        ? qwenAsrModel
+        : localTranscriptionProvider === "nvidia"
+          ? parakeetModel
+          : whisperModel;
     window.electronAPI
       .syncStartupPreferences({
         useLocalWhisper,
@@ -208,6 +215,7 @@ function useSettingsInternal() {
     localTranscriptionProvider,
     whisperModel,
     parakeetModel,
+    qwenAsrModel,
     reasoningProvider,
     reasoningModel,
   ]);
@@ -218,6 +226,7 @@ function useSettingsInternal() {
     uiLanguage: store.uiLanguage,
     localTranscriptionProvider: store.localTranscriptionProvider,
     parakeetModel: store.parakeetModel,
+    qwenAsrModel: store.qwenAsrModel,
     allowOpenAIFallback: store.allowOpenAIFallback,
     allowLocalFallback: store.allowLocalFallback,
     fallbackWhisperModel: store.fallbackWhisperModel,
@@ -264,6 +273,7 @@ function useSettingsInternal() {
     setUiLanguage: store.setUiLanguage,
     setLocalTranscriptionProvider: store.setLocalTranscriptionProvider,
     setParakeetModel: store.setParakeetModel,
+    setQwenAsrModel: store.setQwenAsrModel,
     setAllowOpenAIFallback: store.setAllowOpenAIFallback,
     setAllowLocalFallback: store.setAllowLocalFallback,
     setFallbackWhisperModel: store.setFallbackWhisperModel,

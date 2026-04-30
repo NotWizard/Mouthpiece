@@ -282,7 +282,8 @@
     "customProvider": "Пользовательский",
     "fallback": {
       "whisperModelDescription": "Модель",
-      "parakeetModelDescription": "Модель NVIDIA Parakeet"
+      "parakeetModelDescription": "Модель NVIDIA Parakeet",
+      "qwenAsrModelDescription": "Модель Qwen ASR MLX"
     },
     "whisperModels": "Модели Whisper",
     "deepgram": {
@@ -309,6 +310,14 @@
       "realtimeLabel": "Включить транскрибацию в реальном времени",
       "realtimeEnabledDescription": "Показывает промежуточный текст в реальном времени, пока вы говорите, и завершает транскрипт после остановки записи.",
       "realtimeDisabledDescription": "Загружает запись после остановки и ожидает асинхронную пакетную транскрибацию."
+    },
+    "qwenAsr": {
+      "installRuntime": "Установить среду MLX",
+      "runtimeInstalling": "Установка среды...",
+      "runtimeRequired": "Требуется среда MLX",
+      "runtimeUnavailable": "Установите локальную среду MLX перед загрузкой моделей Qwen3-ASR.",
+      "appleSiliconOnly": "Qwen ASR (MLX) требует macOS с Apple Silicon.",
+      "mlxLabel": "MLX"
     }
   },
   "hooks": {
@@ -1267,6 +1276,10 @@
         "openai_oss_gpt_oss_20b_mxfp4": "Открытая модель OpenAI для потребительского оборудования",
         "gemma_gemma_3_4b_it_q4_k_m": "Открытая модель Google, отличный баланс скорости и качества",
         "gemma_gemma_3_1b_it_q4_k_m": "Сверхбыстрая модель Google, лучшая для очистки коротких диктовок"
+      },
+      "qwenAsr": {
+        "qwen3_asr_0_6b_mlx": "Локальная модель Qwen3-ASR по умолчанию, оптимизированная для скорости на Apple Silicon",
+        "qwen3_asr_1_7b_mlx": "Локальная модель Qwen3-ASR более высокого качества с повышенными требованиями к памяти и задержкой"
       }
     }
   },

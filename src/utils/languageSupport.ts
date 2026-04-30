@@ -14,10 +14,13 @@ function buildLanguageSet(key: "whisper" | "parakeet" | "assemblyai"): Set<strin
 
 const WHISPER_LANGUAGES = buildLanguageSet("whisper");
 const PARAKEET_LANGUAGES = buildLanguageSet("parakeet");
+const QWEN_ASR_LANGUAGES = new Set(["en", "zh"]);
 const ASSEMBLYAI_UNIVERSAL3_PRO_LANGUAGES = buildLanguageSet("assemblyai");
 
 const MODEL_LANGUAGE_MAP: Record<string, Set<string>> = {
   "parakeet-tdt-0.6b-v3": PARAKEET_LANGUAGES,
+  "qwen3-asr-0.6b-mlx": QWEN_ASR_LANGUAGES,
+  "qwen3-asr-1.7b-mlx": QWEN_ASR_LANGUAGES,
 };
 
 const LANGUAGE_INSTRUCTIONS: Record<string, string> = Object.fromEntries(
@@ -57,4 +60,9 @@ function buildGenericInstruction(langCode: string): string {
   return template.replace("{{code}}", langCode);
 }
 
-export { WHISPER_LANGUAGES, PARAKEET_LANGUAGES, ASSEMBLYAI_UNIVERSAL3_PRO_LANGUAGES };
+export {
+  WHISPER_LANGUAGES,
+  PARAKEET_LANGUAGES,
+  QWEN_ASR_LANGUAGES,
+  ASSEMBLYAI_UNIVERSAL3_PRO_LANGUAGES,
+};

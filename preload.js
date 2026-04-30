@@ -158,6 +158,23 @@ contextBridge.exposeInMainWorld("electronAPI", {
   parakeetServerStop: () => ipcRenderer.invoke("parakeet-server-stop"),
   parakeetServerStatus: () => ipcRenderer.invoke("parakeet-server-status"),
 
+  // Local Qwen ASR (MLX) functions
+  transcribeLocalQwenAsr: (audioBlob, options) =>
+    ipcRenderer.invoke("transcribe-local-qwen-asr", audioBlob, options),
+  checkQwenAsrInstallation: () => ipcRenderer.invoke("check-qwen-asr-installation"),
+  installQwenAsrRuntime: () => ipcRenderer.invoke("install-qwen-asr-runtime"),
+  downloadQwenAsrModel: (modelName) => ipcRenderer.invoke("download-qwen-asr-model", modelName),
+  onQwenAsrDownloadProgress: registerListener("qwen-asr-download-progress"),
+  listQwenAsrModels: () => ipcRenderer.invoke("list-qwen-asr-models"),
+  deleteQwenAsrModel: (modelName) => ipcRenderer.invoke("delete-qwen-asr-model", modelName),
+  cancelQwenAsrDownload: () => ipcRenderer.invoke("cancel-qwen-asr-download"),
+  getQwenAsrDiagnostics: () => ipcRenderer.invoke("get-qwen-asr-diagnostics"),
+
+  // Qwen ASR server functions (faster repeated transcriptions)
+  qwenAsrServerStart: (modelName) => ipcRenderer.invoke("qwen-asr-server-start", modelName),
+  qwenAsrServerStop: () => ipcRenderer.invoke("qwen-asr-server-stop"),
+  qwenAsrServerStatus: () => ipcRenderer.invoke("qwen-asr-server-status"),
+
   // Window control functions
   windowMinimize: () => ipcRenderer.invoke("window-minimize"),
   windowMaximize: () => ipcRenderer.invoke("window-maximize"),
