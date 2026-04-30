@@ -1118,22 +1118,8 @@
       "title": "提示詞工作室"
     },
     "transcription": {
-      "customSetup": "自訂設定",
-      "customSetupDescription": "使用你自己的供應商和 API Key。",
       "description": "選擇 Mouthpiece 轉錄語音的方式",
-      "mouthpieceCloud": "Mouthpiece Cloud",
-      "mouthpieceCloudDescription": "即開即用，無需設定。",
       "title": "語音轉文字",
-      "toasts": {
-        "switchedCloud": {
-          "description": "轉錄將使用 Mouthpiece 雲端服務。",
-          "title": "已切換至 Mouthpiece Cloud"
-        },
-        "switchedCustom": {
-          "description": "設定你自己的供應商和 API Key。",
-          "title": "已切換至自訂設定"
-        }
-      },
       "audioQuality": {
         "advancedDescription": "只有在背景聲或短暫停頓仍會變成多餘文字時，才提高這些設定。",
         "advancedTitle": "進階誤啟動控制",
@@ -1191,9 +1177,7 @@
             }
           }
         }
-      },
-      "cloudDisabled": "已停用",
-      "cloudOffline": "離線"
+      }
     }
   },
   "models": {

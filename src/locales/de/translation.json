@@ -1118,22 +1118,8 @@
       "title": "Prompt-Studio"
     },
     "transcription": {
-      "customSetup": "Benutzerdefinierte Einrichtung",
-      "customSetupDescription": "Verwenden Sie Ihren eigenen Anbieter und API-Schlüssel.",
       "description": "Wählen Sie, wie Mouthpiece Ihre Stimme transkribiert",
-      "mouthpieceCloud": "Mouthpiece Cloud",
-      "mouthpieceCloudDescription": "Funktioniert sofort. Keine Konfiguration nötig.",
       "title": "Sprache-zu-Text",
-      "toasts": {
-        "switchedCloud": {
-          "description": "Transkription verwendet jetzt den Mouthpiece-Cloud-Dienst.",
-          "title": "Zu Mouthpiece Cloud gewechselt"
-        },
-        "switchedCustom": {
-          "description": "Konfigurieren Sie Ihren eigenen Anbieter und API-Schlüssel.",
-          "title": "Zu benutzerdefinierter Einrichtung gewechselt"
-        }
-      },
       "audioQuality": {
         "advancedDescription": "Erhöhen Sie diese Werte nur, wenn Hintergrundgeräusche oder kurze Pausen weiterhin unerwünschten Text erzeugen.",
         "advancedTitle": "Erweiterte Fehlstart-Kontrolle",
@@ -1191,9 +1177,7 @@
             }
           }
         }
-      },
-      "cloudDisabled": "Deaktiviert",
-      "cloudOffline": "Offline"
+      }
     }
   },
   "models": {

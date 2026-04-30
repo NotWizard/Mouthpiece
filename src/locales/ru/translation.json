@@ -1118,22 +1118,8 @@
       "title": "Студия промптов"
     },
     "transcription": {
-      "customSetup": "Пользовательская настройка",
-      "customSetupDescription": "Используйте собственного провайдера и API-ключ.",
       "description": "Выберите, как Mouthpiece будет транскрибировать вашу речь",
-      "mouthpieceCloud": "Mouthpiece Cloud",
-      "mouthpieceCloudDescription": "Просто работает. Настройка не требуется.",
       "title": "Распознавание речи",
-      "toasts": {
-        "switchedCloud": {
-          "description": "Транскрипция будет использовать облачный сервис Mouthpiece.",
-          "title": "Переключено на Mouthpiece Cloud"
-        },
-        "switchedCustom": {
-          "description": "Настройте собственного провайдера и API-ключ.",
-          "title": "Переключено на пользовательскую настройку"
-        }
-      },
       "audioQuality": {
         "advancedDescription": "Повышайте эти значения только если фоновые звуки или короткие паузы всё еще превращаются в нежелательный текст.",
         "advancedTitle": "Расширенный контроль ложных стартов",
@@ -1191,9 +1177,7 @@
             }
           }
         }
-      },
-      "cloudDisabled": "Отключено",
-      "cloudOffline": "Нет сети"
+      }
     }
   },
   "models": {

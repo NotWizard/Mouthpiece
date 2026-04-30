@@ -1118,22 +1118,8 @@
       "title": "Prompt Studio"
     },
     "transcription": {
-      "customSetup": "Custom Setup",
-      "customSetupDescription": "Use your own provider and API key.",
       "description": "Choose how Mouthpiece transcribes your voice",
-      "mouthpieceCloud": "Mouthpiece Cloud",
-      "mouthpieceCloudDescription": "Just works. No configuration needed.",
       "title": "Speech to Text",
-      "toasts": {
-        "switchedCloud": {
-          "description": "Transcription will use Mouthpiece's cloud service.",
-          "title": "Switched to Mouthpiece Cloud"
-        },
-        "switchedCustom": {
-          "description": "Configure your own provider and API key.",
-          "title": "Switched to Custom Setup"
-        }
-      },
       "audioQuality": {
         "advancedDescription": "Raise these only if background sounds or short pauses still become unwanted text.",
         "advancedTitle": "Advanced false-start controls",
@@ -1191,9 +1177,7 @@
             }
           }
         }
-      },
-      "cloudDisabled": "Disabled",
-      "cloudOffline": "Offline"
+      }
     }
   },
   "models": {

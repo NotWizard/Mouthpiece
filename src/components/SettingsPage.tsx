@@ -251,9 +251,6 @@ function AudioQualitySettingsCard({
 }
 
 interface TranscriptionSectionProps {
-  isSignedIn: boolean;
-  cloudAuthAvailable: boolean;
-  cloudTranscriptionMode: string;
   setCloudTranscriptionMode: (mode: string) => void;
   useLocalWhisper: boolean;
   setUseLocalWhisper: (value: boolean) => void;
@@ -294,18 +291,9 @@ interface TranscriptionSectionProps {
   setCustomTranscriptionApiKey: (key: string) => void;
   cloudTranscriptionBaseUrl?: string;
   setCloudTranscriptionBaseUrl: (url: string) => void;
-  toast: (opts: {
-    title: string;
-    description: string;
-    variant?: "default" | "destructive" | "success";
-    duration?: number;
-  }) => void;
 }
 
 function TranscriptionSection({
-  isSignedIn,
-  cloudAuthAvailable,
-  cloudTranscriptionMode,
   setCloudTranscriptionMode,
   useLocalWhisper,
   setUseLocalWhisper,
@@ -346,19 +334,8 @@ function TranscriptionSection({
   setCustomTranscriptionApiKey,
   cloudTranscriptionBaseUrl,
   setCloudTranscriptionBaseUrl,
-  toast,
 }: TranscriptionSectionProps) {
   const { t } = useTranslation();
-  const mouthpieceSelected =
-    (cloudTranscriptionMode === "mouthpiece" || cloudTranscriptionMode === "openwhispr") &&
-    !useLocalWhisper;
-  const mouthpieceLocked = !cloudAuthAvailable || !isSignedIn;
-  const isCloudMode = mouthpieceSelected && !mouthpieceLocked;
-  const isCustomMode = cloudTranscriptionMode === "byok" || useLocalWhisper;
-  const showCustomSetup = isCustomMode || mouthpieceLocked;
-  const cloudLockedLabel = !cloudAuthAvailable
-    ? t("settingsPage.transcription.cloudDisabled")
-    : t("settingsPage.transcription.cloudOffline");
 
   // NOTE: Mouthpiece Cloud option has been hidden as the cloud service is discontinued.
   // Only Custom Setup (BYOK) mode is now available for cloud transcription.
@@ -370,70 +347,6 @@ function TranscriptionSection({
         description={t("settingsPage.transcription.description")}
       />
 
-      {/* Mode selector - Only Custom Setup shown */}
-      <SettingsPanel>
-        <SettingsPanelRow>
-          <button
-            onClick={() => {
-              if (!isCustomMode) {
-                setCloudTranscriptionMode("byok");
-                setUseLocalWhisper(false);
-                updateTranscriptionSettings({ useLocalWhisper: false });
-                toast({
-                  title: t("settingsPage.transcription.toasts.switchedCustom.title"),
-                  description: t("settingsPage.transcription.toasts.switchedCustom.description"),
-                  variant: "success",
-                  duration: 3000,
-                });
-              }
-            }}
-            className="w-full flex items-center gap-3 text-left cursor-pointer group"
-          >
-            <div
-              className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors ${
-                isCustomMode
-                  ? "bg-accent/10 dark:bg-accent/15"
-                  : "bg-muted/60 dark:bg-surface-raised group-hover:bg-muted dark:group-hover:bg-surface-3"
-              }`}
-            >
-              <Key
-                className={`w-4 h-4 transition-colors ${
-                  isCustomMode ? "text-accent" : "text-muted-foreground"
-                }`}
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-foreground">
-                  {t("settingsPage.transcription.customSetup")}
-                </span>
-                {isCustomMode && (
-                  <span className="text-xs font-medium text-accent bg-accent/10 dark:bg-accent/15 px-1.5 py-px rounded-sm">
-                    {t("common.active")}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground/80 mt-0.5">
-                {t("settingsPage.transcription.customSetupDescription")}
-              </p>
-            </div>
-            <div
-              className={`w-4 h-4 rounded-full border-2 shrink-0 transition-colors ${
-                isCustomMode
-                  ? "border-accent bg-accent"
-                  : "border-border-hover dark:border-border-subtle"
-              }`}
-            >
-              {isCustomMode && (
-                <div className="w-full h-full flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-accent-foreground" />
-                </div>
-              )}
-            </div>
-          </button>
-        </SettingsPanelRow>
-      </SettingsPanel>
-
       <AudioQualitySettingsCard
         audioQualityMode={audioQualityMode}
         setAudioQualityMode={setAudioQualityMode}
@@ -443,56 +356,51 @@ function TranscriptionSection({
         setRealtimeEndpointingMode={setRealtimeEndpointingMode}
       />
 
-      {/* Custom Setup model picker — shown when Custom Setup is active or not signed in */}
-      {showCustomSetup && (
-        <TranscriptionModelPicker
-          selectedCloudProvider={cloudTranscriptionProvider}
-          onCloudProviderSelect={setCloudTranscriptionProvider}
-          selectedCloudModel={cloudTranscriptionModel}
-          onCloudModelSelect={setCloudTranscriptionModel}
-          selectedLocalModel={
-            localTranscriptionProvider === "nvidia" ? parakeetModel : whisperModel
+      <TranscriptionModelPicker
+        selectedCloudProvider={cloudTranscriptionProvider}
+        onCloudProviderSelect={setCloudTranscriptionProvider}
+        selectedCloudModel={cloudTranscriptionModel}
+        onCloudModelSelect={setCloudTranscriptionModel}
+        selectedLocalModel={localTranscriptionProvider === "nvidia" ? parakeetModel : whisperModel}
+        onLocalModelSelect={(modelId) => {
+          if (localTranscriptionProvider === "nvidia") {
+            setParakeetModel(modelId);
+          } else {
+            setWhisperModel(modelId);
           }
-          onLocalModelSelect={(modelId) => {
-            if (localTranscriptionProvider === "nvidia") {
-              setParakeetModel(modelId);
-            } else {
-              setWhisperModel(modelId);
-            }
-          }}
-          selectedLocalProvider={localTranscriptionProvider}
-          onLocalProviderSelect={setLocalTranscriptionProvider}
-          useLocalWhisper={useLocalWhisper}
-          onModeChange={(isLocal) => {
-            setUseLocalWhisper(isLocal);
-            updateTranscriptionSettings({ useLocalWhisper: isLocal });
-            if (isLocal) {
-              setCloudTranscriptionMode("byok");
-            }
-          }}
-          openaiApiKey={openaiApiKey}
-          setOpenaiApiKey={setOpenaiApiKey}
-          deepgramApiKey={deepgramApiKey}
-          setDeepgramApiKey={setDeepgramApiKey}
-          groqApiKey={groqApiKey}
-          setGroqApiKey={setGroqApiKey}
-          mistralApiKey={mistralApiKey}
-          setMistralApiKey={setMistralApiKey}
-          sonioxApiKey={sonioxApiKey}
-          setSonioxApiKey={setSonioxApiKey}
-          sonioxRealtimeEnabled={sonioxRealtimeEnabled}
-          setSonioxRealtimeEnabled={setSonioxRealtimeEnabled}
-          bailianApiKey={bailianApiKey}
-          setBailianApiKey={setBailianApiKey}
-          deepgramStreamingEnabled={deepgramStreamingEnabled}
-          setDeepgramStreamingEnabled={setDeepgramStreamingEnabled}
-          customTranscriptionApiKey={customTranscriptionApiKey}
-          setCustomTranscriptionApiKey={setCustomTranscriptionApiKey}
-          cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}
-          setCloudTranscriptionBaseUrl={setCloudTranscriptionBaseUrl}
-          variant="settings"
-        />
-      )}
+        }}
+        selectedLocalProvider={localTranscriptionProvider}
+        onLocalProviderSelect={setLocalTranscriptionProvider}
+        useLocalWhisper={useLocalWhisper}
+        onModeChange={(isLocal) => {
+          setUseLocalWhisper(isLocal);
+          updateTranscriptionSettings({ useLocalWhisper: isLocal });
+          if (isLocal) {
+            setCloudTranscriptionMode("byok");
+          }
+        }}
+        openaiApiKey={openaiApiKey}
+        setOpenaiApiKey={setOpenaiApiKey}
+        deepgramApiKey={deepgramApiKey}
+        setDeepgramApiKey={setDeepgramApiKey}
+        groqApiKey={groqApiKey}
+        setGroqApiKey={setGroqApiKey}
+        mistralApiKey={mistralApiKey}
+        setMistralApiKey={setMistralApiKey}
+        sonioxApiKey={sonioxApiKey}
+        setSonioxApiKey={setSonioxApiKey}
+        sonioxRealtimeEnabled={sonioxRealtimeEnabled}
+        setSonioxRealtimeEnabled={setSonioxRealtimeEnabled}
+        bailianApiKey={bailianApiKey}
+        setBailianApiKey={setBailianApiKey}
+        deepgramStreamingEnabled={deepgramStreamingEnabled}
+        setDeepgramStreamingEnabled={setDeepgramStreamingEnabled}
+        customTranscriptionApiKey={customTranscriptionApiKey}
+        setCustomTranscriptionApiKey={setCustomTranscriptionApiKey}
+        cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}
+        setCloudTranscriptionBaseUrl={setCloudTranscriptionBaseUrl}
+        variant="settings"
+      />
     </div>
   );
 }
@@ -1273,9 +1181,6 @@ export default function SettingsPage({
       case "transcription":
         return (
           <TranscriptionSection
-            isSignedIn={isSignedIn ?? false}
-            cloudAuthAvailable={Boolean(NEON_AUTH_URL)}
-            cloudTranscriptionMode={cloudTranscriptionMode}
             setCloudTranscriptionMode={setCloudTranscriptionMode}
             useLocalWhisper={useLocalWhisper}
             setUseLocalWhisper={setUseLocalWhisper}
@@ -1316,7 +1221,6 @@ export default function SettingsPage({
             setCustomTranscriptionApiKey={setCustomTranscriptionApiKey}
             cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}
             setCloudTranscriptionBaseUrl={setCloudTranscriptionBaseUrl}
-            toast={toast}
           />
         );
 

@@ -1074,22 +1074,8 @@
       "title": "プロンプトスタジオ"
     },
     "transcription": {
-      "customSetup": "カスタム設定",
-      "customSetupDescription": "独自のプロバイダーと API キーを使用。",
       "description": "Mouthpiece の音声文字起こし方法を選択",
-      "mouthpieceCloud": "Mouthpiece Cloud",
-      "mouthpieceCloudDescription": "設定不要ですぐに使えます。",
       "title": "音声テキスト変換",
-      "toasts": {
-        "switchedCloud": {
-          "description": "文字起こしに Mouthpiece のクラウドサービスを使用します。",
-          "title": "Mouthpiece Cloud に切り替えました"
-        },
-        "switchedCustom": {
-          "description": "独自のプロバイダーと API キーを設定してください。",
-          "title": "カスタム設定に切り替えました"
-        }
-      },
       "audioQuality": {
         "advancedDescription": "背景音や短い無音がまだ不要なテキストになる場合のみ、これらを強めてください。",
         "advancedTitle": "誤開始を抑える詳細設定",
@@ -1147,9 +1133,7 @@
             }
           }
         }
-      },
-      "cloudDisabled": "無効",
-      "cloudOffline": "オフライン"
+      }
     },
     "terminology": {
       "title": "Terminology Controls",

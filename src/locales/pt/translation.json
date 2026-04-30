@@ -1105,22 +1105,8 @@
       "title": "Estúdio de prompts"
     },
     "transcription": {
-      "customSetup": "Configuração personalizada",
-      "customSetupDescription": "Use seu próprio provedor e chave API.",
       "description": "Escolha como o Mouthpiece transcreve sua voz",
-      "mouthpieceCloud": "Mouthpiece Cloud",
-      "mouthpieceCloudDescription": "Funciona de imediato. Sem configuração necessária.",
       "title": "Fala para texto",
-      "toasts": {
-        "switchedCloud": {
-          "description": "A transcrição usará o serviço de nuvem do Mouthpiece.",
-          "title": "Mudou para Mouthpiece Cloud"
-        },
-        "switchedCustom": {
-          "description": "Configure seu próprio provedor e chave API.",
-          "title": "Mudou para configuração personalizada"
-        }
-      },
       "audioQuality": {
         "advancedDescription": "Aumente estes valores somente se sons de fundo ou pausas curtas ainda virarem texto indesejado.",
         "advancedTitle": "Controles avançados contra falsos inícios",
@@ -1178,9 +1164,7 @@
             }
           }
         }
-      },
-      "cloudDisabled": "Desabilitado",
-      "cloudOffline": "Offline"
+      }
     }
   },
   "models": {
