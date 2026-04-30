@@ -176,6 +176,10 @@
       "couldNotLoadDescription": "Ocorreu um erro ao carregar as transcrições. Feche e abra o app novamente.",
       "copiedTitle": "Copiado!",
       "copiedDescription": "Texto copiado para a área de transferência",
+      "copiedInline": "Copiado",
+      "copyRow": "Copiar transcrição",
+      "copyAction": "Copiar transcrição",
+      "deleteAction": "Excluir transcrição",
       "couldNotCopyTitle": "Não foi possível copiar",
       "couldNotCopyDescription": "Ocorreu um erro ao copiar para a área de transferência. Tente novamente.",
       "deleteTitle": "Excluir transcrição",
@@ -1352,7 +1356,7 @@
     "addPlaceholder": "Adicionar uma palavra ou frase..."
   },
   "sidebar": {
-    "home": "Início",
+    "home": "Histórico",
     "dictionary": "Dicionário",
     "referral": "Ganhe um mês grátis",
     "settings": "Configurações",

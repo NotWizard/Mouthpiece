@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { ChevronRight, ChevronLeft, Check, Mic, Shield, Command, UserCircle } from "lucide-react";
@@ -288,7 +287,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         return (
           <div className="space-y-4">
             {/* Header - compact */}
-            <div className="text-center">
+            <div className="text-left">
               <h2 className="text-lg font-semibold text-foreground tracking-tight">
                 {t("onboarding.permissions.title")}
               </h2>
@@ -358,14 +357,14 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   const renderHotkeySetupStep = () => (
     <div className="space-y-4">
-      <div className="text-center space-y-0.5">
+      <div className="text-left space-y-1">
         <h2 className="text-lg font-semibold text-foreground tracking-tight">
           {t("onboarding.hotkeySetup.title")}
         </h2>
         <p className="text-xs text-muted-foreground">{t("onboarding.hotkeySetup.description")}</p>
       </div>
 
-      <div className="rounded-lg border border-border-subtle bg-surface-1 overflow-hidden">
+      <div className="settings-group">
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -392,14 +391,14 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   const renderActivationStep = () => (
     <div className="space-y-4">
-      <div className="text-center space-y-0.5">
+      <div className="text-left space-y-1">
         <h2 className="text-lg font-semibold text-foreground tracking-tight">
           {t("onboarding.activation.title")}
         </h2>
         <p className="text-xs text-muted-foreground">{t("onboarding.activation.description")}</p>
       </div>
 
-      <div className="rounded-lg border border-border-subtle bg-surface-1 overflow-hidden">
+      <div className="settings-group">
         <div className="p-4 space-y-1.5">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             {t("onboarding.activation.hotkey")}
@@ -479,7 +478,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   return (
     <div
-      className="h-screen flex flex-col bg-background"
+      className="onboarding-shell h-screen flex flex-col"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <ConfirmDialog
@@ -503,7 +502,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       {/* Title Bar / drag region */}
       {currentStep === 0 ? (
         <div
-          className="flex items-center justify-end w-full h-10 shrink-0"
+          className="onboarding-titlebar flex items-center justify-end w-full h-10 shrink-0"
           style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
         >
           {onboardingPlatform !== "darwin" && (
@@ -516,37 +515,32 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         <div className="shrink-0 z-10">
           <TitleBar
             showTitle={true}
-            className="bg-background backdrop-blur-xl border-b border-border shadow-sm"
+            className="onboarding-titlebar border-b border-border/70 shadow-none"
             actions={hasCloudSession ? <SupportDropdown /> : undefined}
           ></TitleBar>
         </div>
       )}
 
-      {/* Progress Bar - hidden on welcome/auth step */}
-      {showProgress && (
-        <div className="shrink-0 bg-background/80 backdrop-blur-2xl border-b border-white/5 px-6 md:px-12 py-3 z-10">
-          <div className="max-w-3xl mx-auto">
-            <StepProgress steps={steps.slice(1)} currentStep={currentStep - 1} />
+      {currentStep === 0 ? (
+        <div className="wizard-auth-stage">
+          <div className="wizard-auth-panel">{renderStep()}</div>
+        </div>
+      ) : (
+        <div className="wizard-content">
+          <div className="wizard-layout">
+            {showProgress && (
+              <aside className="wizard-rail-panel">
+                <StepProgress steps={steps.slice(1)} currentStep={currentStep - 1} />
+              </aside>
+            )}
+            <section className="wizard-panel">{renderStep()}</section>
           </div>
         </div>
       )}
 
-      {/* Content - This will grow to fill available space */}
-      <div
-        className={`flex-1 px-6 md:px-12 overflow-y-auto ${currentStep === 0 ? "flex items-center" : "py-6"}`}
-      >
-        <div className={`w-full ${currentStep === 0 ? "max-w-sm" : "max-w-3xl"} mx-auto`}>
-          <Card className="bg-card/90 backdrop-blur-2xl border border-border/50 dark:border-white/5 shadow-lg rounded-xl overflow-hidden">
-            <CardContent className={currentStep === 0 ? "p-6" : "p-6 md:p-8"}>
-              {renderStep()}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
       {/* Footer Navigation - hidden on welcome/auth step */}
       {showProgress && (
-        <div className="shrink-0 bg-background/80 backdrop-blur-2xl border-t border-white/5 px-6 md:px-12 py-3 z-10">
+        <div className="wizard-footer shrink-0 px-6 md:px-12 py-3 z-10">
           <div className="max-w-3xl mx-auto flex items-center justify-between">
             {/* Hide back button on first step for signed-in users */}
             {!(currentStep === 1 && hasCloudSession && !skipAuth) && (
@@ -554,7 +548,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 onClick={prevStep}
                 variant="outline"
                 disabled={currentStep === 0}
-                className="h-8 px-5 rounded-full text-xs"
+                className="h-9 px-4 rounded-md text-xs"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
                 {t("common.back")}
@@ -570,7 +564,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   onClick={finishOnboarding}
                   disabled={!canProceed()}
                   variant="success"
-                  className="h-8 px-6 rounded-full text-xs"
+                  className="h-9 px-5 rounded-md text-xs"
                 >
                   <Check className="w-3.5 h-3.5" />
                   {t("common.complete")}
@@ -579,7 +573,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 <Button
                   onClick={nextStep}
                   disabled={!canProceed()}
-                  className="h-8 px-6 rounded-full text-xs"
+                  className="h-9 px-5 rounded-md text-xs"
                 >
                   {t("common.next")}
                   <ChevronRight className="w-3.5 h-3.5" />

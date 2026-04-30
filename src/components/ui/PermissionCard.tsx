@@ -24,11 +24,8 @@ export default function PermissionCard({
   return (
     <div
       className={cn(
-        "group relative rounded-md p-3 transition-colors duration-150",
-        "border",
-        granted
-          ? "bg-success/5 border-success/20 dark:bg-success/5 dark:border-success/15"
-          : "bg-surface-1 border-border hover:bg-surface-2 hover:border-border-hover"
+        "permission-card group relative p-3 transition-colors duration-150",
+        granted && "permission-card-granted"
       )}
     >
       <div className="flex items-center gap-3">
@@ -37,7 +34,7 @@ export default function PermissionCard({
           className={cn(
             "w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors duration-150",
             granted
-              ? "bg-success/10 dark:bg-success/15"
+              ? "bg-success/10 text-success dark:bg-success/15"
               : "bg-primary/10 dark:bg-primary/15 group-hover:bg-primary/15"
           )}
         >
@@ -57,11 +54,11 @@ export default function PermissionCard({
         {/* Actions - only when not granted */}
         {!granted && (
           <div className="flex items-center gap-1.5 shrink-0">
-            <Button onClick={onRequest} size="sm" className="h-7 px-3 text-xs">
+            <Button onClick={onRequest} size="sm" className="h-9 px-3 text-xs">
               {buttonText}
             </Button>
             {onOpenSettings && (
-              <Button onClick={onOpenSettings} size="sm" variant="ghost" className="h-7 w-7 p-0">
+              <Button onClick={onOpenSettings} size="sm" variant="ghost" className="h-9 w-9 p-0">
                 <Settings className="w-3.5 h-3.5" />
               </Button>
             )}

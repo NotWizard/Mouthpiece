@@ -189,6 +189,10 @@
       "couldNotLoadDescription": "加载转录记录时出错，请尝试关闭并重新打开应用。",
       "copiedTitle": "已复制！",
       "copiedDescription": "文本已复制到剪贴板",
+      "copiedInline": "已复制",
+      "copyRow": "复制转录记录",
+      "copyAction": "复制转录记录",
+      "deleteAction": "删除转录记录",
       "couldNotCopyTitle": "无法复制",
       "couldNotCopyDescription": "复制到剪贴板时出错，请重试。",
       "deleteTitle": "删除转录记录",
@@ -1352,7 +1356,7 @@
     "addPlaceholder": "添加词语或短语..."
   },
   "sidebar": {
-    "home": "首页",
+    "home": "历史记录",
     "dictionary": "词典",
     "referral": "获取免费一个月",
     "settings": "设置",

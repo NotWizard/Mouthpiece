@@ -24,7 +24,7 @@ const platform = getCachedPlatform();
 const ReferralModal = React.lazy(() => import("./ReferralModal"));
 const DictionaryView = React.lazy(() => import("./DictionaryView"));
 const SettingsPage = React.lazy(() => import("./SettingsPage"));
-const SIDEBAR_VIEW_CONTENT_CLASS_NAME = "px-6 pb-6";
+const SIDEBAR_VIEW_CONTENT_CLASS_NAME = "control-panel-view-content";
 
 export default function ControlPanel() {
   const { t } = useTranslation();
@@ -129,19 +129,24 @@ export default function ControlPanel() {
   const copyToClipboard = useCallback(
     async (text: string) => {
       try {
-        await navigator.clipboard.writeText(text);
-        toast({
-          title: t("controlPanel.history.copiedTitle"),
-          description: t("controlPanel.history.copiedDescription"),
-          variant: "success",
-          duration: 2000,
-        });
+        const electronCopyResult = await window.electronAPI?.writeClipboard?.(text);
+        if (electronCopyResult?.success) {
+          return true;
+        }
+
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+
+        throw new Error("Clipboard write failed");
       } catch (err) {
         toast({
           title: t("controlPanel.history.couldNotCopyTitle"),
           description: t("controlPanel.history.couldNotCopyDescription"),
           variant: "destructive",
         });
+        return false;
       }
     },
     [toast, t]
@@ -316,7 +321,7 @@ export default function ControlPanel() {
       : undefined;
 
   return (
-    <div className="h-screen bg-background flex flex-col">
+    <div className="control-panel-shell h-screen flex flex-col">
       <ConfirmDialog
         open={confirmDialog.open}
         onOpenChange={hideConfirmDialog}
@@ -352,9 +357,9 @@ export default function ControlPanel() {
           authLoaded={authLoaded}
           updateAction={updateAction}
         />
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main className="control-panel-main flex-1 flex flex-col overflow-hidden">
           <div
-            className="flex items-center justify-end w-full h-10 shrink-0"
+            className="control-panel-titlebar flex items-center justify-end w-full h-10 shrink-0"
             style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
           >
             {platform !== "darwin" && (
@@ -363,12 +368,12 @@ export default function ControlPanel() {
               </div>
             )}
           </div>
-          <div className="flex-1 overflow-y-auto pt-1">
+          <div className="control-panel-content-scroll flex-1 overflow-y-auto">
             {(gpuAccelAvailable.cuda || gpuAccelAvailable.vulkan) &&
               activeView === "home" &&
               !gpuBannerDismissed && (
-                <div className="max-w-3xl mx-auto w-full mb-3">
-                  <div className="rounded-lg border border-primary/20 dark:border-primary/15 bg-primary/5 p-3">
+                <div className="history-view pb-0!">
+                  <div className="control-panel-banner p-3">
                     <div className="flex items-start gap-3">
                       <div className="shrink-0 w-8 h-8 rounded-md bg-primary/10 dark:bg-primary/15 flex items-center justify-center">
                         <Zap size={16} className="text-primary" />

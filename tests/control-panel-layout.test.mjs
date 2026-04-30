@@ -10,7 +10,7 @@ async function readRepoFile(relativePath) {
 test("secondary control panel views use a shared padded content wrapper", async () => {
   const source = await readRepoFile("src/components/ControlPanel.tsx");
 
-  assert.match(source, /const SIDEBAR_VIEW_CONTENT_CLASS_NAME = "px-6 pb-6";/);
+  assert.match(source, /const SIDEBAR_VIEW_CONTENT_CLASS_NAME = "control-panel-view-content";/);
   assert.match(
     source,
     /activeView === "dictionary"[\s\S]*?<div className=\{SIDEBAR_VIEW_CONTENT_CLASS_NAME\}>[\s\S]*?<DictionaryView \/>/

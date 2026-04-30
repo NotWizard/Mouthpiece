@@ -26,8 +26,10 @@ const NOISY_NOISE_FLOOR_THRESHOLD = 0.07;
 const LOW_INPUT_LEVEL_THRESHOLD = 0.03;
 const GOOD_INPUT_LEVEL_THRESHOLD = 0.12;
 const INPUT_STATUS_UPDATE_INTERVAL_MS = 650;
-const MIC_TEST_STATUS_CARD_CLASS = "min-h-[72px] rounded-md bg-muted/40 p-2 dark:bg-surface-1/60";
-const MIC_TEST_DYNAMIC_TEXT_CLASS = "mt-1 min-h-[2rem] text-xs leading-snug text-muted-foreground";
+const MIC_TEST_STATUS_CARD_CLASS =
+  "min-h-[56px] rounded-md bg-muted/40 px-2.5 py-2 dark:bg-surface-1/60";
+const MIC_TEST_DYNAMIC_TEXT_CLASS =
+  "mt-0.5 min-h-[1.125rem] text-xs leading-snug text-muted-foreground";
 
 function getRmsLevel(data: Uint8Array<ArrayBuffer>) {
   let sum = 0;
@@ -332,7 +334,7 @@ export const MicrophoneSettings: React.FC<MicrophoneSettingsProps> = ({
 
         {inputTestError && <ErrorNotice message={inputTestError} compact />}
 
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 md:grid-cols-[minmax(118px,0.7fr)_minmax(150px,0.95fr)_minmax(220px,1.45fr)]">
           <div className={MIC_TEST_STATUS_CARD_CLASS}>
             <div className="mb-1 flex items-center justify-between gap-2">
               <span className="text-xs font-medium text-foreground">

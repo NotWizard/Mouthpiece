@@ -189,6 +189,10 @@
       "couldNotLoadDescription": "文字起こし履歴の読み込み中に問題が発生しました。アプリを閉じて再度開いてください。",
       "copiedTitle": "コピーしました！",
       "copiedDescription": "テキストをクリップボードにコピーしました",
+      "copiedInline": "コピーしました",
+      "copyRow": "文字起こしをコピー",
+      "copyAction": "文字起こしをコピー",
+      "deleteAction": "文字起こしを削除",
       "couldNotCopyTitle": "コピーできませんでした",
       "couldNotCopyDescription": "クリップボードへのコピー中に問題が発生しました。もう一度お試しください。",
       "deleteTitle": "文字起こしを削除",
@@ -1352,7 +1356,7 @@
     }
   },
   "sidebar": {
-    "home": "ホーム",
+    "home": "履歴",
     "dictionary": "辞書",
     "referral": "1か月無料を取得",
     "settings": "設定",

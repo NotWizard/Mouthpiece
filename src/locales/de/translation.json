@@ -189,6 +189,10 @@
       "couldNotLoadDescription": "Beim Laden der Transkriptionen ist ein Fehler aufgetreten. Bitte schließen Sie die App und öffnen Sie sie erneut.",
       "copiedTitle": "Kopiert!",
       "copiedDescription": "Text wurde in die Zwischenablage kopiert",
+      "copiedInline": "Kopiert",
+      "copyRow": "Transkription kopieren",
+      "copyAction": "Transkription kopieren",
+      "deleteAction": "Transkription löschen",
       "couldNotCopyTitle": "Kopieren fehlgeschlagen",
       "couldNotCopyDescription": "Beim Kopieren in die Zwischenablage ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
       "deleteTitle": "Transkription löschen",
@@ -1352,7 +1356,7 @@
     "addPlaceholder": "Ein Wort oder eine Phrase hinzufügen..."
   },
   "sidebar": {
-    "home": "Startseite",
+    "home": "Verlauf",
     "dictionary": "Wörterbuch",
     "referral": "Gratis-Monat erhalten",
     "settings": "Einstellungen",

@@ -189,6 +189,10 @@
       "couldNotLoadDescription": "載入轉錄記錄時發生錯誤。請嘗試關閉並重新開啟應用程式。",
       "copiedTitle": "已複製！",
       "copiedDescription": "文字已複製到剪貼簿",
+      "copiedInline": "已複製",
+      "copyRow": "複製轉錄記錄",
+      "copyAction": "複製轉錄記錄",
+      "deleteAction": "刪除轉錄記錄",
       "couldNotCopyTitle": "無法複製",
       "couldNotCopyDescription": "複製到剪貼簿時發生錯誤。請再試一次。",
       "deleteTitle": "刪除轉錄記錄",
@@ -1352,7 +1356,7 @@
     "addPlaceholder": "新增詞語或片語..."
   },
   "sidebar": {
-    "home": "首頁",
+    "home": "歷史記錄",
     "dictionary": "字典",
     "referral": "獲得一個月免費",
     "settings": "設定",

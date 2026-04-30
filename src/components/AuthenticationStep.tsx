@@ -360,11 +360,11 @@ export default function AuthenticationStep({
   if (!NEON_AUTH_URL || !authClient) {
     return (
       <div className="space-y-3">
-        <div className="text-center mb-4">
+        <div className="auth-setup-header text-center mb-4">
           <img
             src={logoIcon}
             alt="Mouthpiece"
-            className="w-12 h-12 mx-auto mb-2.5 rounded-lg shadow-sm"
+            className="w-11 h-11 mx-auto mb-3 rounded-lg"
           />
           <p className="text-lg font-semibold text-foreground tracking-tight leading-tight">
             {t("auth.welcomeTitle")}
@@ -380,7 +380,7 @@ export default function AuthenticationStep({
           </p>
         </div>
 
-        <Button onClick={onContinueWithoutAccount} className="w-full h-9">
+        <Button onClick={onContinueWithoutAccount} className="w-full h-10">
           <span className="text-sm font-medium">{t("auth.getStarted")}</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Button>
@@ -392,11 +392,11 @@ export default function AuthenticationStep({
   if (isLoaded && isSignedIn) {
     return (
       <div className="space-y-3">
-        <div className="text-center mb-4">
+        <div className="auth-setup-header text-center mb-4">
           <img
             src={logoIcon}
             alt="Mouthpiece"
-            className="w-12 h-12 mx-auto mb-2.5 rounded-lg shadow-sm"
+            className="w-11 h-11 mx-auto mb-3 rounded-lg"
           />
           <div className="w-5 h-5 mx-auto bg-success/10 rounded-full flex items-center justify-center mb-2">
             <Check className="w-3 h-3 text-success" />
@@ -410,7 +410,7 @@ export default function AuthenticationStep({
             {t("auth.signedIn.ready")}
           </p>
         </div>
-        <Button onClick={onAuthComplete} className="w-full h-9">
+        <Button onClick={onAuthComplete} className="w-full h-10">
           <span className="text-sm font-medium">{t("auth.common.continue")}</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Button>
@@ -447,7 +447,7 @@ export default function AuthenticationStep({
           {t("auth.common.back")}
         </button>
 
-        <div className="text-center mb-4">
+        <div className="auth-setup-header text-center mb-4">
           <p className="text-sm text-muted-foreground/70 mb-2 leading-tight">{email}</p>
           <p className="text-lg font-semibold text-foreground tracking-tight leading-tight">
             {authMode === "sign-in"
@@ -463,7 +463,7 @@ export default function AuthenticationStep({
               placeholder={t("auth.passwordForm.fullNamePlaceholder")}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="h-9 text-xs"
+              className="h-10 text-xs"
               disabled={isSubmitting}
               autoFocus
             />
@@ -477,7 +477,7 @@ export default function AuthenticationStep({
             }
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="h-9 text-xs"
+            className="h-10 text-xs"
             required
             minLength={authMode === "sign-up" ? 8 : undefined}
             disabled={isSubmitting}
@@ -503,7 +503,7 @@ export default function AuthenticationStep({
 
           {error && <ErrorNotice message={error} compact />}
 
-          <Button type="submit" disabled={isSubmitting || !password} className="w-full h-9">
+          <Button type="submit" disabled={isSubmitting || !password} className="w-full h-10">
             {isSubmitting ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -554,11 +554,11 @@ export default function AuthenticationStep({
   // Main welcome view
   return (
     <div className="space-y-3">
-      <div className="text-center mb-4">
+      <div className="auth-setup-header text-center mb-4">
         <img
           src={logoIcon}
           alt="Mouthpiece"
-          className="w-12 h-12 mx-auto mb-2.5 rounded-lg shadow-sm"
+          className="w-11 h-11 mx-auto mb-3 rounded-lg"
         />
         <p className="text-lg font-semibold text-foreground tracking-tight leading-tight">
           {t("auth.welcomeTitle")}
@@ -573,7 +573,7 @@ export default function AuthenticationStep({
         variant="social"
         onClick={() => handleSocialSignIn("google")}
         disabled={isSocialLoading !== null || isCheckingEmail}
-        className="w-full h-9"
+        className="w-full h-10"
       >
         {isSocialLoading === "google" ? (
           <>
@@ -610,7 +610,7 @@ export default function AuthenticationStep({
           placeholder={t("auth.emailStep.emailPlaceholder")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="h-9 text-sm"
+          className="h-10 text-sm"
           required
           disabled={isSocialLoading !== null || isCheckingEmail}
         />
@@ -618,7 +618,7 @@ export default function AuthenticationStep({
           type="submit"
           variant="outline"
           disabled={!email.trim() || isSocialLoading !== null || isCheckingEmail}
-          className="w-full h-9"
+          className="w-full h-10"
         >
           {isCheckingEmail ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />

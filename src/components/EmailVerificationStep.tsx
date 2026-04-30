@@ -122,11 +122,11 @@ export default function EmailVerificationStep({ email, onVerified }: EmailVerifi
   if (verified) {
     return (
       <div className="space-y-3">
-        <div className="text-center mb-4">
+        <div className="email-verification-header text-center mb-4">
           <img
             src={logoIcon}
             alt="Mouthpiece"
-            className="w-12 h-12 mx-auto mb-2.5 rounded-lg shadow-sm"
+            className="w-11 h-11 mx-auto mb-3 rounded-lg"
           />
           <div className="w-8 h-8 mx-auto bg-success/10 rounded-full flex items-center justify-center mb-2">
             <Check className="w-4 h-4 text-success" />
@@ -144,11 +144,11 @@ export default function EmailVerificationStep({ email, onVerified }: EmailVerifi
 
   return (
     <div className="space-y-3">
-      <div className="text-center mb-4">
+      <div className="email-verification-header text-center mb-4">
         <img
           src={logoIcon}
           alt="Mouthpiece"
-          className="w-12 h-12 mx-auto mb-2.5 rounded-lg shadow-sm"
+          className="w-11 h-11 mx-auto mb-3 rounded-lg"
         />
         <div className="w-8 h-8 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-3">
           <Mail className="w-4 h-4 text-primary" />
@@ -174,7 +174,7 @@ export default function EmailVerificationStep({ email, onVerified }: EmailVerifi
         variant="outline"
         onClick={handleResend}
         disabled={resendCooldown > 0 || isResending}
-        className="w-full h-9"
+        className="w-full h-10"
       >
         {isResending ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />

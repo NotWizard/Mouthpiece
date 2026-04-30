@@ -189,6 +189,10 @@
       "couldNotLoadDescription": "Si è verificato un errore nel caricamento delle trascrizioni. Chiudi e riapri l'app.",
       "copiedTitle": "Copiato!",
       "copiedDescription": "Testo copiato negli appunti",
+      "copiedInline": "Copiato",
+      "copyRow": "Copia la trascrizione",
+      "copyAction": "Copia la trascrizione",
+      "deleteAction": "Elimina trascrizione",
       "couldNotCopyTitle": "Impossibile copiare",
       "couldNotCopyDescription": "Si è verificato un errore durante la copia. Riprova.",
       "deleteTitle": "Elimina trascrizione",
@@ -1352,7 +1356,7 @@
     "addPlaceholder": "Aggiungi una parola o una frase..."
   },
   "sidebar": {
-    "home": "Home",
+    "home": "Cronologia",
     "dictionary": "Dizionario",
     "referral": "Ottieni un mese gratis",
     "settings": "Impostazioni",

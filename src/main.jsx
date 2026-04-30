@@ -4,7 +4,6 @@ import { I18nextProvider, useTranslation } from "react-i18next";
 import App from "./App.jsx";
 import AuthenticationStep from "./components/AuthenticationStep.tsx";
 import WindowControls from "./components/WindowControls.tsx";
-import { Card, CardContent } from "./components/ui/card.tsx";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import { ToastProvider } from "./components/ui/Toast.tsx";
 import { SettingsProvider } from "./hooks/useSettings";
@@ -364,11 +363,11 @@ function AppRouter() {
   if (isControlPanel && needsReauth) {
     return (
       <div
-        className="h-screen flex flex-col bg-background"
+        className="onboarding-shell h-screen flex flex-col"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div
-          className="flex items-center justify-end w-full h-10 shrink-0"
+          className="onboarding-titlebar flex items-center justify-end w-full h-10 shrink-0"
           style={{ WebkitAppRegion: "drag" }}
         >
           {window.electronAPI?.getPlatform?.() !== "darwin" && (
@@ -377,21 +376,17 @@ function AppRouter() {
             </div>
           )}
         </div>
-        <div className="flex-1 px-6 overflow-y-auto flex items-center">
-          <div className="w-full max-w-sm mx-auto">
-            <Card className="bg-card/90 backdrop-blur-2xl border border-border/50 dark:border-white/5 shadow-lg rounded-xl overflow-hidden">
-              <CardContent className="p-6">
-                <AuthenticationStep
-                  onContinueWithoutAccount={() => {
-                    localStorage.setItem("authenticationSkipped", "true");
-                    localStorage.setItem("skipAuth", "true");
-                    setNeedsReauth(false);
-                  }}
-                  onAuthComplete={() => setNeedsReauth(false)}
-                  onNeedsVerification={() => {}}
-                />
-              </CardContent>
-            </Card>
+        <div className="wizard-auth-stage">
+          <div className="wizard-auth-panel">
+            <AuthenticationStep
+              onContinueWithoutAccount={() => {
+                localStorage.setItem("authenticationSkipped", "true");
+                localStorage.setItem("skipAuth", "true");
+                setNeedsReauth(false);
+              }}
+              onAuthComplete={() => setNeedsReauth(false)}
+              onNeedsVerification={() => {}}
+            />
           </div>
         </div>
       </div>

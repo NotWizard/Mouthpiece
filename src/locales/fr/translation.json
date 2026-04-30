@@ -189,6 +189,10 @@
       "couldNotLoadDescription": "Un problème est survenu lors du chargement des transcriptions. Fermez puis rouvrez l'application.",
       "copiedTitle": "Copié !",
       "copiedDescription": "Texte copié dans le presse-papiers",
+      "copiedInline": "Copié",
+      "copyRow": "Copier la transcription",
+      "copyAction": "Copier la transcription",
+      "deleteAction": "Supprimer la transcription",
       "couldNotCopyTitle": "Impossible de copier",
       "couldNotCopyDescription": "Un problème est survenu pendant la copie. Réessayez.",
       "deleteTitle": "Supprimer la transcription",
@@ -1267,7 +1271,7 @@
     }
   },
   "sidebar": {
-    "home": "Accueil",
+    "home": "Historique",
     "dictionary": "Dictionnaire",
     "referral": "Obtenir un mois gratuit",
     "settings": "Paramètres",

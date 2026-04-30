@@ -16,7 +16,7 @@ interface HistoryViewProps {
   aiCTADismissed: boolean;
   setAiCTADismissed: (dismissed: boolean) => void;
   useReasoningModel: boolean;
-  copyToClipboard: (text: string) => void;
+  copyToClipboard: (text: string) => Promise<boolean>;
   deleteTranscription: (id: number) => void;
   onOpenSettings: (section?: string) => void;
 }
@@ -57,10 +57,10 @@ export default function HistoryView({
   }, [history, t]);
 
   return (
-    <div className="px-4 pt-4 pb-6">
-      <div className="max-w-3xl mx-auto">
+    <div className="history-view">
+      <div className="w-full">
         {showCloudMigrationBanner && (
-          <div className="mb-3 relative rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 p-3">
+          <div className="control-panel-banner mb-3 relative p-3">
             <button
               onClick={() => {
                 setShowCloudMigrationBanner(false);
@@ -100,7 +100,7 @@ export default function HistoryView({
         )}
 
         {!useReasoningModel && !aiCTADismissed && (
-          <div className="mb-3 relative rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 p-3">
+          <div className="control-panel-banner mb-3 relative p-3">
             <button
               onClick={() => {
                 localStorage.setItem("aiCTADismissed", "true");
@@ -136,19 +136,19 @@ export default function HistoryView({
         )}
 
         {isLoading ? (
-          <div className="rounded-lg border border-border bg-card/50 dark:bg-card/60 backdrop-blur-sm">
+          <div className="history-panel">
             <div className="flex items-center justify-center gap-2 py-8">
               <Loader2 size={14} className="animate-spin text-primary" />
               <span className="text-sm text-muted-foreground">{t("controlPanel.loading")}</span>
             </div>
           </div>
         ) : history.length === 0 ? (
-          <div className="rounded-lg border border-border bg-card/50 dark:bg-card/60 backdrop-blur-sm">
+          <div className="history-empty">
             <div className="flex flex-col items-center justify-center py-16 px-4">
               <svg
-                className="text-foreground dark:text-white mb-5"
-                width="64"
-                height="64"
+                className="text-foreground/45 dark:text-white/45 mb-5"
+                width="48"
+                height="48"
                 viewBox="0 0 64 64"
                 fill="none"
               >
@@ -242,15 +242,15 @@ export default function HistoryView({
             </div>
           </div>
         ) : (
-          <div>
-            {groupedHistory.map((group, index) => (
-              <div key={group.label} className={index > 0 ? "mt-4" : ""}>
-                <div className="sticky -top-1 z-10 -mx-4 px-5 pt-2 pb-2 bg-background">
+          <div className="history-panel">
+            {groupedHistory.map((group) => (
+              <div key={group.label}>
+                <div className="history-date-header sticky top-0 z-10 px-4 py-2">
                   <span className="text-[11px] font-semibold text-muted-foreground dark:text-muted-foreground uppercase tracking-wide">
                     {group.label}
                   </span>
                 </div>
-                <div className="space-y-1.5 relative z-0">
+                <div className="relative z-0">
                   {group.items.map((item) => (
                     <TranscriptionItem
                       key={item.id}

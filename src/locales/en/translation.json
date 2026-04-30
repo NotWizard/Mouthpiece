@@ -189,6 +189,10 @@
       "couldNotLoadDescription": "Something went wrong loading your transcriptions. Try closing and reopening the app.",
       "copiedTitle": "Copied!",
       "copiedDescription": "Text copied to your clipboard",
+      "copiedInline": "Copied",
+      "copyRow": "Copy transcription",
+      "copyAction": "Copy transcription",
+      "deleteAction": "Delete transcription",
       "couldNotCopyTitle": "Couldn't copy",
       "couldNotCopyDescription": "Something went wrong copying to your clipboard. Try again.",
       "deleteTitle": "Delete Transcription",
@@ -1267,7 +1271,7 @@
     }
   },
   "sidebar": {
-    "home": "Home",
+    "home": "History",
     "dictionary": "Dictionary",
     "referral": "Get a free month",
     "settings": "Settings",

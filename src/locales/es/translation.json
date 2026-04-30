@@ -189,6 +189,10 @@
       "couldNotLoadDescription": "Ocurrió un problema al cargar tus transcripciones. Cierra y abre la app de nuevo.",
       "copiedTitle": "¡Copiado!",
       "copiedDescription": "Texto copiado al portapapeles",
+      "copiedInline": "Copiado",
+      "copyRow": "Copiar transcripción",
+      "copyAction": "Copiar transcripción",
+      "deleteAction": "Eliminar transcripción",
       "couldNotCopyTitle": "No se pudo copiar",
       "couldNotCopyDescription": "Ocurrió un problema al copiar al portapapeles. Inténtalo de nuevo.",
       "deleteTitle": "Eliminar transcripción",
@@ -1352,7 +1356,7 @@
     "addPlaceholder": "Añadir una palabra o frase..."
   },
   "sidebar": {
-    "home": "Inicio",
+    "home": "Historial",
     "dictionary": "Diccionario",
     "referral": "Obtener un mes gratis",
     "settings": "Configuración",

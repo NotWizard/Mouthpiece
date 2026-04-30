@@ -67,14 +67,14 @@ export const SettingsRow: React.FC<SettingsRowProps> = ({
   className = "",
 }) => {
   return (
-    <div className={`flex items-center justify-between gap-4 ${className}`}>
+    <div className={`flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 ${className}`}>
       <div className="min-w-0 flex-1">
         <p className="text-xs font-medium text-foreground">{label}</p>
         {description && (
           <p className="text-xs text-muted-foreground/80 mt-0.5 leading-relaxed">{description}</p>
         )}
       </div>
-      <div className="shrink-0">{children}</div>
+      <div className="shrink-0 sm:text-right">{children}</div>
     </div>
   );
 };

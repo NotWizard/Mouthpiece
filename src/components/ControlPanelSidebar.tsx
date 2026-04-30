@@ -81,13 +81,13 @@ export default function ControlPanelSidebar({
   ];
 
   return (
-    <div className="w-48 shrink-0 border-r border-border/15 dark:border-white/6 flex flex-col bg-surface-1/60 dark:bg-surface-1">
+    <div className="control-panel-sidebar shrink-0 flex flex-col">
       <div
         className="w-full h-10 shrink-0"
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       />
 
-      <nav className="flex flex-col gap-0.5 px-2 pt-4 pb-2">
+      <nav className="control-panel-sidebar-nav">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeView === item.id;
@@ -97,31 +97,23 @@ export default function ControlPanelSidebar({
               key={item.id}
               onClick={() => onViewChange(item.id)}
               className={cn(
-                "group relative flex items-center gap-2.5 w-full h-8 px-2.5 rounded-md outline-none transition-colors duration-150 text-left",
-                "focus-visible:ring-1 focus-visible:ring-primary/30",
-                isActive
-                  ? "bg-primary/8 dark:bg-primary/10"
-                  : "hover:bg-foreground/4 dark:hover:bg-white/4 active:bg-foreground/6"
+                "control-panel-sidebar-item group transition-colors duration-150",
+                isActive && "control-panel-sidebar-item-active"
               )}
             >
-              {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-3.5 rounded-r-full bg-primary" />
-              )}
               <Icon
                 size={15}
                 className={cn(
                   "shrink-0 transition-colors duration-150",
                   isActive
-                    ? "text-primary"
-                    : "text-foreground/60 group-hover:text-foreground/75 dark:text-foreground/55 dark:group-hover:text-foreground/70"
+                    ? "text-current"
+                    : "text-foreground/55 group-hover:text-foreground/75"
                 )}
               />
               <span
                 className={cn(
                   "text-xs transition-colors duration-150",
-                  isActive
-                    ? "text-foreground font-medium"
-                    : "text-foreground/80 group-hover:text-foreground dark:text-foreground/75 dark:group-hover:text-foreground/90"
+                  isActive ? "font-medium text-current" : "text-current"
                 )}
               >
                 {item.label}
@@ -133,16 +125,15 @@ export default function ControlPanelSidebar({
 
       <div className="flex-1" />
 
-      <div className="px-2 pb-2 space-y-0.5">
+      <div className="control-panel-sidebar-footer space-y-1">
         {updateAction && (
           <button
             onClick={updateAction.onClick}
             disabled={updateAction.disabled}
             aria-label={t("controlPanel.update.availableButton")}
             className={cn(
-              "group flex items-center gap-2.5 w-full h-8 px-2.5 rounded-md text-left outline-none transition-colors duration-150",
-              "focus-visible:ring-1 focus-visible:ring-primary/30",
-              "bg-primary/8 text-primary hover:bg-primary/12 dark:bg-primary/12 dark:hover:bg-primary/16",
+              "control-panel-sidebar-item text-left text-primary",
+              "bg-primary/8 hover:bg-primary/12 dark:bg-primary/12 dark:hover:bg-primary/16",
               updateAction.disabled && "opacity-70"
             )}
           >
@@ -155,13 +146,13 @@ export default function ControlPanelSidebar({
           <button
             onClick={onOpenReferrals}
             aria-label={t("sidebar.referral")}
-            className="group flex items-center gap-2.5 w-full h-8 px-2.5 rounded-md text-left outline-none hover:bg-foreground/4 dark:hover:bg-white/4 focus-visible:ring-1 focus-visible:ring-primary/30 transition-colors duration-150"
+            className="control-panel-sidebar-item group transition-colors duration-150"
           >
             <Gift
               size={15}
-              className="shrink-0 text-foreground/60 group-hover:text-foreground/75 dark:text-foreground/50 dark:group-hover:text-foreground/65 transition-colors duration-150"
+              className="shrink-0 text-foreground/50 group-hover:text-foreground/75 transition-colors duration-150"
             />
-            <span className="text-xs text-foreground/80 group-hover:text-foreground dark:text-foreground/70 dark:group-hover:text-foreground/85 transition-colors duration-150">
+            <span className="text-xs text-current transition-colors duration-150">
               {t("sidebar.referral")}
             </span>
           </button>
@@ -171,13 +162,13 @@ export default function ControlPanelSidebar({
           trigger={
             <button
               aria-label={t("sidebar.support")}
-              className="group flex items-center gap-2.5 w-full h-8 px-2.5 rounded-md text-left outline-none hover:bg-foreground/4 dark:hover:bg-white/4 focus-visible:ring-1 focus-visible:ring-primary/30 transition-colors duration-150"
+              className="control-panel-sidebar-item group transition-colors duration-150"
             >
               <HelpCircle
                 size={15}
-                className="shrink-0 text-foreground/60 group-hover:text-foreground/75 dark:text-foreground/50 dark:group-hover:text-foreground/65 transition-colors duration-150"
+                className="shrink-0 text-foreground/50 group-hover:text-foreground/75 transition-colors duration-150"
               />
-              <span className="text-xs text-foreground/80 group-hover:text-foreground dark:text-foreground/70 dark:group-hover:text-foreground/85 transition-colors duration-150">
+              <span className="text-xs text-current transition-colors duration-150">
                 {t("sidebar.support")}
               </span>
             </button>
@@ -186,9 +177,9 @@ export default function ControlPanelSidebar({
 
         {shouldShowAccountSection && (
           <>
-            <div className="mx-1 h-px bg-border/10 dark:bg-white/6 my-1.5!" />
+            <div className="h-px bg-border/60 dark:bg-white/8 my-1.5!" />
 
-            <div className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md">
+            <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-md">
               {userImage ? (
                 <img
                   src={userImage}
