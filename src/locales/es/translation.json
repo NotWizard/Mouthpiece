@@ -451,6 +451,10 @@
         },
         "soundLabel": "Sonido",
         "privacyLabel": "Privacidad"
+      },
+      "permissionFlow": {
+        "fallbackTitle": "Finaliza en Configuración del sistema",
+        "fallbackDescription": "Configuración del sistema está abierta. Arrastra Mouthpiece a la lista de Accesibilidad y actívalo."
       }
     }
   },
@@ -1437,5 +1441,14 @@
     "manualEntryHelp": "Úsalo si el proveedor no devuelve un modelo o quieres probar un modelo recién lanzado.",
     "selectPlaceholder": "Selecciona un modelo...",
     "searchPlaceholder": "Buscar modelos..."
+  },
+  "permissionFlow": {
+    "accessibility": {
+      "title": "Accesibilidad",
+      "instruction": "Arrastra Mouthpiece a la lista superior para permitir el pegado automático."
+    },
+    "actions": {
+      "done": "Listo"
+    }
   }
 }

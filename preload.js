@@ -100,6 +100,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Clipboard functions
   checkAccessibilityPermission: (options) =>
     ipcRenderer.invoke("check-accessibility-permission", options),
+  startAccessibilityPermissionFlow: (options) =>
+    ipcRenderer.invoke("start-accessibility-permission-flow", options),
+  stopAccessibilityPermissionFlow: () => ipcRenderer.invoke("stop-accessibility-permission-flow"),
+  onAccessibilityPermissionFlowEvent: registerListener("accessibility-permission-flow-event"),
   resetAccessibilityPermissions: () => ipcRenderer.invoke("reset-accessibility-permissions"),
   readClipboard: () => ipcRenderer.invoke("read-clipboard"),
   writeClipboard: (text) => ipcRenderer.invoke("write-clipboard", text),

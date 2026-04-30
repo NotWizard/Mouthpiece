@@ -451,6 +451,10 @@
         },
         "soundLabel": "Son",
         "privacyLabel": "Confidentialité"
+      },
+      "permissionFlow": {
+        "fallbackTitle": "Terminer dans Réglages Système",
+        "fallbackDescription": "Réglages Système est ouvert. Faites glisser Mouthpiece dans la liste Accessibilité et activez-le."
       }
     }
   },
@@ -1437,5 +1441,14 @@
     "manualEntryHelp": "Utilisez ceci si le fournisseur ne renvoie pas de modèle ou si vous voulez essayer un modèle récent.",
     "selectPlaceholder": "Sélectionner un modèle...",
     "searchPlaceholder": "Rechercher des modèles..."
+  },
+  "permissionFlow": {
+    "accessibility": {
+      "title": "Accessibilité",
+      "instruction": "Faites glisser Mouthpiece dans la liste ci-dessus pour autoriser le collage automatique."
+    },
+    "actions": {
+      "done": "Terminé"
+    }
   }
 }

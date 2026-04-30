@@ -451,6 +451,10 @@
         },
         "soundLabel": "Sound",
         "privacyLabel": "Privacy"
+      },
+      "permissionFlow": {
+        "fallbackTitle": "Finish in System Settings",
+        "fallbackDescription": "System Settings is open. Drag Mouthpiece into the Accessibility list and enable it to allow automatic pasting."
       }
     }
   },
@@ -1437,5 +1441,14 @@
     "manualEntryHelp": "Use this if the provider does not return a model or you want to try a newly released model.",
     "selectPlaceholder": "Select a model...",
     "searchPlaceholder": "Search models..."
+  },
+  "permissionFlow": {
+    "accessibility": {
+      "title": "Accessibility",
+      "instruction": "Drag Mouthpiece to the list above to allow automatic pasting."
+    },
+    "actions": {
+      "done": "Done"
+    }
   }
 }

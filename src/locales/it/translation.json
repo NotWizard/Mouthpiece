@@ -451,6 +451,10 @@
         },
         "soundLabel": "Audio",
         "privacyLabel": "Privacy"
+      },
+      "permissionFlow": {
+        "fallbackTitle": "Completa nelle Impostazioni di Sistema",
+        "fallbackDescription": "Le Impostazioni di Sistema sono aperte. Trascina Mouthpiece nell’elenco Accessibilità e abilitalo."
       }
     }
   },
@@ -1437,5 +1441,14 @@
     "manualEntryHelp": "Usalo se il provider non restituisce un modello o vuoi provare un modello appena rilasciato.",
     "selectPlaceholder": "Seleziona un modello...",
     "searchPlaceholder": "Cerca modelli..."
+  },
+  "permissionFlow": {
+    "accessibility": {
+      "title": "Accessibilità",
+      "instruction": "Trascina Mouthpiece nell’elenco sopra per consentire l’incollaggio automatico."
+    },
+    "actions": {
+      "done": "Fine"
+    }
   }
 }

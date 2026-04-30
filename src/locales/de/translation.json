@@ -451,6 +451,10 @@
         },
         "soundLabel": "Ton",
         "privacyLabel": "Datenschutz"
+      },
+      "permissionFlow": {
+        "fallbackTitle": "In den Systemeinstellungen abschließen",
+        "fallbackDescription": "Die Systemeinstellungen sind geöffnet. Ziehen Sie Mouthpiece in die Bedienungshilfen-Liste und aktivieren Sie es."
       }
     }
   },
@@ -1437,5 +1441,14 @@
     "manualEntryHelp": "Nutzen Sie dies, wenn der Anbieter kein Modell zurückgibt oder Sie ein neues Modell testen möchten.",
     "selectPlaceholder": "Modell auswählen...",
     "searchPlaceholder": "Modelle suchen..."
+  },
+  "permissionFlow": {
+    "accessibility": {
+      "title": "Bedienungshilfen",
+      "instruction": "Ziehen Sie Mouthpiece in die Liste oben, um automatisches Einfügen zu erlauben."
+    },
+    "actions": {
+      "done": "Fertig"
+    }
   }
 }

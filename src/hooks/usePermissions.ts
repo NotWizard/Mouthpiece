@@ -14,6 +14,7 @@ export interface UsePermissionsReturn {
 
   requestMicPermission: () => Promise<void>;
   testAccessibilityPermission: () => Promise<void>;
+  startAccessibilityPermissionFlow: () => Promise<void>;
   checkPasteToolsAvailability: () => Promise<PasteToolsResult | null>;
   openMicPrivacySettings: () => Promise<void>;
   openSoundInputSettings: () => Promise<void>;
@@ -215,6 +216,57 @@ export const usePermissions = (
       });
     }
   }, [setAccessibilityPermissionGranted, showAlertDialog, t]);
+
+  const waitForAccessibilityPermission = useCallback(async (): Promise<boolean> => {
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const granted = await syncAccessibilityPermission();
+      if (granted) {
+        return true;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    return false;
+  }, [syncAccessibilityPermission]);
+
+  const startAccessibilityPermissionFlow = useCallback(async () => {
+    if (getPlatform() !== "darwin") {
+      setAccessibilityPermissionGranted(true);
+      return;
+    }
+
+    try {
+      const result = await window.electronAPI?.startAccessibilityPermissionFlow?.();
+
+      if (!result?.success && !result?.fallbackOpened) {
+        await openAccessibilitySettings();
+      }
+
+      const granted = await waitForAccessibilityPermission();
+      if (granted) {
+        await window.electronAPI?.stopAccessibilityPermissionFlow?.().catch(() => undefined);
+        return;
+      }
+
+      showAlertDialog?.({
+        title: t("hooks.permissions.permissionFlow.fallbackTitle"),
+        description: t("hooks.permissions.permissionFlow.fallbackDescription"),
+      });
+    } catch (error) {
+      console.error("Failed to start accessibility permission flow:", error);
+      await openAccessibilitySettings();
+      showAlertDialog?.({
+        title: t("hooks.permissions.titles.accessibilityNeeded"),
+        description: t("hooks.permissions.descriptions.accessibilityNeeded"),
+      });
+    }
+  }, [
+    openAccessibilitySettings,
+    setAccessibilityPermissionGranted,
+    showAlertDialog,
+    t,
+    waitForAccessibilityPermission,
+  ]);
 
   const requestMicPermission = useCallback(async () => {
     if (!navigator?.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
@@ -419,6 +471,7 @@ export const usePermissions = (
     isCheckingPasteTools,
     requestMicPermission,
     testAccessibilityPermission,
+    startAccessibilityPermissionFlow,
     checkPasteToolsAvailability,
     openMicPrivacySettings,
     openSoundInputSettings,

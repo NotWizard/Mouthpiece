@@ -1443,7 +1443,7 @@ export default function SettingsPage({
                   title={t("settingsPage.permissions.accessibilityTitle")}
                   description={t("settingsPage.permissions.accessibilityDescription")}
                   granted={permissionsHook.accessibilityPermissionGranted}
-                  onRequest={permissionsHook.testAccessibilityPermission}
+                  onRequest={permissionsHook.startAccessibilityPermissionFlow}
                   buttonText={t("settingsPage.permissions.testAndGrant")}
                   onOpenSettings={permissionsHook.openAccessibilitySettings}
                 />

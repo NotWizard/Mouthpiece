@@ -451,6 +451,10 @@
         },
         "soundLabel": "サウンド",
         "privacyLabel": "プライバシー"
+      },
+      "permissionFlow": {
+        "fallbackTitle": "システム設定で完了",
+        "fallbackDescription": "システム設定が開いています。Mouthpiece をアクセシビリティの一覧へドラッグして有効にしてください。"
       }
     }
   },
@@ -1437,5 +1441,14 @@
     "manualEntryHelp": "プロバイダーがモデルを返さない場合や、新しいモデルを試したい場合に使います。",
     "selectPlaceholder": "モデルを選択...",
     "searchPlaceholder": "モデルを検索..."
+  },
+  "permissionFlow": {
+    "accessibility": {
+      "title": "アクセシビリティ",
+      "instruction": "自動貼り付けを許可するには、Mouthpiece を上のリストへドラッグしてください。"
+    },
+    "actions": {
+      "done": "完了"
+    }
   }
 }

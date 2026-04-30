@@ -248,6 +248,7 @@ class IPCHandlers {
     this.windowManager = managers.windowManager;
     this.windowsKeyManager = managers.windowsKeyManager;
     this.textEditMonitor = managers.textEditMonitor;
+    this.macOSPermissionFlowManager = managers.macOSPermissionFlowManager;
     this.getTrayManager = managers.getTrayManager;
     this.whisperCudaManager = managers.whisperCudaManager;
     this.sessionId = crypto.randomUUID();
@@ -272,6 +273,12 @@ class IPCHandlers {
     if (this.updateManager?.on) {
       this.updateManager.on("status-changed", (status) => {
         this.broadcastToWindows("update-status-changed", status);
+      });
+    }
+
+    if (this.macOSPermissionFlowManager?.on) {
+      this.macOSPermissionFlowManager.on("event", (payload) => {
+        this.broadcastToWindows("accessibility-permission-flow-event", payload);
       });
     }
   }
@@ -1992,6 +1999,34 @@ class IPCHandlers {
     ipcMain.handle("open-microphone-settings", () => openSystemSettings("microphone"));
     ipcMain.handle("open-sound-input-settings", () => openSystemSettings("sound"));
     ipcMain.handle("open-accessibility-settings", () => openSystemSettings("accessibility"));
+
+    ipcMain.handle("start-accessibility-permission-flow", async (event, options = {}) => {
+      const result = this.macOSPermissionFlowManager?.start?.({
+        sourceFrame: options?.sourceFrame,
+        title: i18nMain.t("permissionFlow.accessibility.title"),
+        instruction: i18nMain.t("permissionFlow.accessibility.instruction"),
+        doneLabel: i18nMain.t("permissionFlow.actions.done"),
+      }) || {
+        success: false,
+        fallbackToSettings: true,
+        reason: "manager-unavailable",
+      };
+
+      if (!result.success && result.fallbackToSettings) {
+        const fallback = await openSystemSettings("accessibility");
+        return {
+          ...result,
+          fallbackOpened: fallback.success,
+          fallbackError: fallback.error,
+        };
+      }
+
+      return result;
+    });
+
+    ipcMain.handle("stop-accessibility-permission-flow", () => {
+      return this.macOSPermissionFlowManager?.stop?.() || { success: true };
+    });
 
     ipcMain.handle("request-microphone-access", async () => {
       if (process.platform !== "darwin") {

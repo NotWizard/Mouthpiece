@@ -451,6 +451,10 @@
         },
         "soundLabel": "声音",
         "privacyLabel": "隐私"
+      },
+      "permissionFlow": {
+        "fallbackTitle": "在系统设置中完成",
+        "fallbackDescription": "系统设置已打开。请将 Mouthpiece 拖入辅助功能列表并启用，以允许自动粘贴。"
       }
     }
   },
@@ -1437,5 +1441,14 @@
     "manualEntryHelp": "如果 provider 没返回模型，或你想试用刚发布的新模型，可以在这里手动填写。",
     "selectPlaceholder": "选择模型...",
     "searchPlaceholder": "搜索模型..."
+  },
+  "permissionFlow": {
+    "accessibility": {
+      "title": "辅助功能",
+      "instruction": "将 Mouthpiece 拖到上方列表中，以允许自动粘贴。"
+    },
+    "actions": {
+      "done": "完成"
+    }
   }
 }
