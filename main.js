@@ -195,6 +195,7 @@ const DevServerManager = require("./src/helpers/devServerManager");
 const WindowsKeyManager = require("./src/helpers/windowsKeyManager");
 const TextEditMonitor = require("./src/helpers/textEditMonitor");
 const WhisperCudaManager = require("./src/helpers/whisperCudaManager");
+const { MacOSPermissionFlowManager } = require("./src/helpers/macOSPermissionFlow");
 const { i18nMain, changeLanguage } = require("./src/helpers/i18nMain");
 const { ensureYdotool } = require("./src/helpers/ensureYdotool");
 
@@ -214,6 +215,7 @@ let globeKeyManager = null;
 let windowsKeyManager = null;
 let textEditMonitor = null;
 let whisperCudaManager = null;
+let macOSPermissionFlowManager = null;
 let ipcHandlers = null;
 let globeKeyAlertShown = false;
 let authBridgeServer = null;
@@ -298,6 +300,7 @@ function initializeCoreManagers() {
   });
   windowsKeyManager = new WindowsKeyManager();
   textEditMonitor = new TextEditMonitor();
+  macOSPermissionFlowManager = new MacOSPermissionFlowManager({ logger: debugLogger });
   windowManager.textEditMonitor = textEditMonitor;
 
   // IPC handlers must be registered before window content loads
@@ -313,6 +316,7 @@ function initializeCoreManagers() {
     windowsKeyManager,
     textEditMonitor,
     whisperCudaManager,
+    macOSPermissionFlowManager,
     getTrayManager: () => trayManager,
   });
 }
@@ -949,6 +953,9 @@ if (gotSingleInstanceLock) {
     }
     if (windowsKeyManager) {
       windowsKeyManager.stop();
+    }
+    if (macOSPermissionFlowManager) {
+      macOSPermissionFlowManager.stop();
     }
     if (ipcHandlers) {
       ipcHandlers._cleanupTextEditMonitor();

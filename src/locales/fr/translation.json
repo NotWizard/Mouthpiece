@@ -464,6 +464,10 @@
         },
         "soundLabel": "Son",
         "privacyLabel": "Confidentialité"
+      },
+      "permissionFlow": {
+        "fallbackTitle": "Terminer dans Réglages Système",
+        "fallbackDescription": "Réglages Système est ouvert. Faites glisser Mouthpiece dans la liste Accessibilité et activez-le."
       }
     }
   },
@@ -1127,22 +1131,8 @@
       "title": "Studio de prompts"
     },
     "transcription": {
-      "customSetup": "Configuration personnalisée",
-      "customSetupDescription": "Utilisez votre propre fournisseur et clé API.",
       "description": "Choisissez comment Mouthpiece transcrit votre voix",
-      "mouthpieceCloud": "Mouthpiece Cloud",
-      "mouthpieceCloudDescription": "Fonctionne directement. Aucune configuration requise.",
       "title": "Reconnaissance vocale",
-      "toasts": {
-        "switchedCloud": {
-          "description": "La transcription utilisera le service cloud Mouthpiece.",
-          "title": "Basculé vers Mouthpiece Cloud"
-        },
-        "switchedCustom": {
-          "description": "Configurez votre propre fournisseur et clé API.",
-          "title": "Basculé vers la configuration personnalisée"
-        }
-      },
       "audioQuality": {
         "advancedDescription": "Augmentez ces valeurs uniquement si les bruits de fond ou les courtes pauses produisent encore du texte indésirable.",
         "advancedTitle": "Contrôles avancés contre les faux départs",
@@ -1200,9 +1190,7 @@
             }
           }
         }
-      },
-      "cloudDisabled": "Désactivé",
-      "cloudOffline": "Hors ligne"
+      }
     }
   },
   "models": {
@@ -1454,5 +1442,14 @@
     "manualEntryHelp": "Utilisez ceci si le fournisseur ne renvoie pas de modèle ou si vous voulez essayer un modèle récent.",
     "selectPlaceholder": "Sélectionner un modèle...",
     "searchPlaceholder": "Rechercher des modèles..."
+  },
+  "permissionFlow": {
+    "accessibility": {
+      "title": "Accessibilité",
+      "instruction": "Faites glisser Mouthpiece dans la liste ci-dessus pour autoriser le collage automatique."
+    },
+    "actions": {
+      "done": "Terminé"
+    }
   }
 }

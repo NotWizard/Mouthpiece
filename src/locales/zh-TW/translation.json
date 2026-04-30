@@ -464,6 +464,10 @@
         },
         "soundLabel": "聲音",
         "privacyLabel": "隱私權"
+      },
+      "permissionFlow": {
+        "fallbackTitle": "在系統設定中完成",
+        "fallbackDescription": "系統設定已開啟。請將 Mouthpiece 拖入輔助使用列表並啟用，以允許自動貼上。"
       }
     }
   },
@@ -1127,22 +1131,8 @@
       "title": "提示詞工作室"
     },
     "transcription": {
-      "customSetup": "自訂設定",
-      "customSetupDescription": "使用你自己的供應商和 API Key。",
       "description": "選擇 Mouthpiece 轉錄語音的方式",
-      "mouthpieceCloud": "Mouthpiece Cloud",
-      "mouthpieceCloudDescription": "即開即用，無需設定。",
       "title": "語音轉文字",
-      "toasts": {
-        "switchedCloud": {
-          "description": "轉錄將使用 Mouthpiece 雲端服務。",
-          "title": "已切換至 Mouthpiece Cloud"
-        },
-        "switchedCustom": {
-          "description": "設定你自己的供應商和 API Key。",
-          "title": "已切換至自訂設定"
-        }
-      },
       "audioQuality": {
         "advancedDescription": "只有在背景聲或短暫停頓仍會變成多餘文字時，才提高這些設定。",
         "advancedTitle": "進階誤啟動控制",
@@ -1200,9 +1190,7 @@
             }
           }
         }
-      },
-      "cloudDisabled": "已停用",
-      "cloudOffline": "離線"
+      }
     }
   },
   "models": {
@@ -1454,5 +1442,14 @@
     "manualEntryHelp": "如果 provider 沒有回傳模型，或你想試用剛發布的新模型，可以在這裡手動填寫。",
     "selectPlaceholder": "選擇模型...",
     "searchPlaceholder": "搜尋模型..."
+  },
+  "permissionFlow": {
+    "accessibility": {
+      "title": "輔助使用",
+      "instruction": "將 Mouthpiece 拖到上方列表中，以允許自動貼上。"
+    },
+    "actions": {
+      "done": "完成"
+    }
   }
 }

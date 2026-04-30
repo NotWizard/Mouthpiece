@@ -464,6 +464,10 @@
         },
         "soundLabel": "Ton",
         "privacyLabel": "Datenschutz"
+      },
+      "permissionFlow": {
+        "fallbackTitle": "In den Systemeinstellungen abschließen",
+        "fallbackDescription": "Die Systemeinstellungen sind geöffnet. Ziehen Sie Mouthpiece in die Bedienungshilfen-Liste und aktivieren Sie es."
       }
     }
   },
@@ -1127,22 +1131,8 @@
       "title": "Prompt-Studio"
     },
     "transcription": {
-      "customSetup": "Benutzerdefinierte Einrichtung",
-      "customSetupDescription": "Verwenden Sie Ihren eigenen Anbieter und API-Schlüssel.",
       "description": "Wählen Sie, wie Mouthpiece Ihre Stimme transkribiert",
-      "mouthpieceCloud": "Mouthpiece Cloud",
-      "mouthpieceCloudDescription": "Funktioniert sofort. Keine Konfiguration nötig.",
       "title": "Sprache-zu-Text",
-      "toasts": {
-        "switchedCloud": {
-          "description": "Transkription verwendet jetzt den Mouthpiece-Cloud-Dienst.",
-          "title": "Zu Mouthpiece Cloud gewechselt"
-        },
-        "switchedCustom": {
-          "description": "Konfigurieren Sie Ihren eigenen Anbieter und API-Schlüssel.",
-          "title": "Zu benutzerdefinierter Einrichtung gewechselt"
-        }
-      },
       "audioQuality": {
         "advancedDescription": "Erhöhen Sie diese Werte nur, wenn Hintergrundgeräusche oder kurze Pausen weiterhin unerwünschten Text erzeugen.",
         "advancedTitle": "Erweiterte Fehlstart-Kontrolle",
@@ -1200,9 +1190,7 @@
             }
           }
         }
-      },
-      "cloudDisabled": "Deaktiviert",
-      "cloudOffline": "Offline"
+      }
     }
   },
   "models": {
@@ -1454,5 +1442,14 @@
     "manualEntryHelp": "Nutzen Sie dies, wenn der Anbieter kein Modell zurückgibt oder Sie ein neues Modell testen möchten.",
     "selectPlaceholder": "Modell auswählen...",
     "searchPlaceholder": "Modelle suchen..."
+  },
+  "permissionFlow": {
+    "accessibility": {
+      "title": "Bedienungshilfen",
+      "instruction": "Ziehen Sie Mouthpiece in die Liste oben, um automatisches Einfügen zu erlauben."
+    },
+    "actions": {
+      "done": "Fertig"
+    }
   }
 }

@@ -315,7 +315,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   title={t("onboarding.permissions.accessibilityTitle")}
                   description={t("onboarding.permissions.accessibilityDescription")}
                   granted={permissionsHook.accessibilityPermissionGranted}
-                  onRequest={permissionsHook.testAccessibilityPermission}
+                  onRequest={permissionsHook.startAccessibilityPermissionFlow}
                   buttonText={t("onboarding.permissions.testAndGrant")}
                   onOpenSettings={permissionsHook.openAccessibilitySettings}
                 />

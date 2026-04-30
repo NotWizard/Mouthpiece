@@ -464,6 +464,10 @@
         },
         "soundLabel": "Audio",
         "privacyLabel": "Privacy"
+      },
+      "permissionFlow": {
+        "fallbackTitle": "Completa nelle Impostazioni di Sistema",
+        "fallbackDescription": "Le Impostazioni di Sistema sono aperte. Trascina Mouthpiece nell’elenco Accessibilità e abilitalo."
       }
     }
   },
@@ -1127,22 +1131,8 @@
       "title": "Prompt Studio"
     },
     "transcription": {
-      "customSetup": "Configurazione personalizzata",
-      "customSetupDescription": "Usa il tuo provider e la tua chiave API.",
       "description": "Scegli come Mouthpiece trascrive la tua voce",
-      "mouthpieceCloud": "Mouthpiece Cloud",
-      "mouthpieceCloudDescription": "Funziona subito. Nessuna configurazione necessaria.",
       "title": "Riconoscimento vocale",
-      "toasts": {
-        "switchedCloud": {
-          "description": "La trascrizione userà il servizio cloud di Mouthpiece.",
-          "title": "Passato a Mouthpiece Cloud"
-        },
-        "switchedCustom": {
-          "description": "Configura il tuo provider e la tua chiave API.",
-          "title": "Passato a configurazione personalizzata"
-        }
-      },
       "audioQuality": {
         "advancedDescription": "Aumenta questi valori solo se i rumori di fondo o le pause brevi diventano ancora testo indesiderato.",
         "advancedTitle": "Controlli avanzati contro i falsi avvii",
@@ -1200,9 +1190,7 @@
             }
           }
         }
-      },
-      "cloudDisabled": "Disabilitato",
-      "cloudOffline": "Offline"
+      }
     }
   },
   "models": {
@@ -1454,5 +1442,14 @@
     "manualEntryHelp": "Usalo se il provider non restituisce un modello o vuoi provare un modello appena rilasciato.",
     "selectPlaceholder": "Seleziona un modello...",
     "searchPlaceholder": "Cerca modelli..."
+  },
+  "permissionFlow": {
+    "accessibility": {
+      "title": "Accessibilità",
+      "instruction": "Trascina Mouthpiece nell’elenco sopra per consentire l’incollaggio automatico."
+    },
+    "actions": {
+      "done": "Fine"
+    }
   }
 }

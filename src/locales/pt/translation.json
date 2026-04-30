@@ -451,6 +451,10 @@
         },
         "soundLabel": "Som",
         "privacyLabel": "Privacidade"
+      },
+      "permissionFlow": {
+        "fallbackTitle": "Concluir nos Ajustes do Sistema",
+        "fallbackDescription": "Os Ajustes do Sistema estão abertos. Arraste o Mouthpiece para a lista de Acessibilidade e ative-o."
       }
     }
   },
@@ -1114,22 +1118,8 @@
       "title": "Estúdio de prompts"
     },
     "transcription": {
-      "customSetup": "Configuração personalizada",
-      "customSetupDescription": "Use seu próprio provedor e chave API.",
       "description": "Escolha como o Mouthpiece transcreve sua voz",
-      "mouthpieceCloud": "Mouthpiece Cloud",
-      "mouthpieceCloudDescription": "Funciona de imediato. Sem configuração necessária.",
       "title": "Fala para texto",
-      "toasts": {
-        "switchedCloud": {
-          "description": "A transcrição usará o serviço de nuvem do Mouthpiece.",
-          "title": "Mudou para Mouthpiece Cloud"
-        },
-        "switchedCustom": {
-          "description": "Configure seu próprio provedor e chave API.",
-          "title": "Mudou para configuração personalizada"
-        }
-      },
       "audioQuality": {
         "advancedDescription": "Aumente estes valores somente se sons de fundo ou pausas curtas ainda virarem texto indesejado.",
         "advancedTitle": "Controles avançados contra falsos inícios",
@@ -1187,9 +1177,7 @@
             }
           }
         }
-      },
-      "cloudDisabled": "Desabilitado",
-      "cloudOffline": "Offline"
+      }
     }
   },
   "models": {
@@ -1454,5 +1442,14 @@
     "manualEntryHelp": "Use se o provedor não retornar um modelo ou se quiser testar um modelo recém-lançado.",
     "selectPlaceholder": "Selecionar um modelo...",
     "searchPlaceholder": "Buscar modelos..."
+  },
+  "permissionFlow": {
+    "accessibility": {
+      "title": "Acessibilidade",
+      "instruction": "Arraste o Mouthpiece para a lista acima para permitir a colagem automática."
+    },
+    "actions": {
+      "done": "Concluído"
+    }
   }
 }

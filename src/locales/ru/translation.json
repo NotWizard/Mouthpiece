@@ -464,6 +464,10 @@
         },
         "soundLabel": "Звук",
         "privacyLabel": "Конфиденциальность"
+      },
+      "permissionFlow": {
+        "fallbackTitle": "Завершите в системных настройках",
+        "fallbackDescription": "Системные настройки открыты. Перетащите Mouthpiece в список Универсального доступа и включите его."
       }
     }
   },
@@ -1127,22 +1131,8 @@
       "title": "Студия промптов"
     },
     "transcription": {
-      "customSetup": "Пользовательская настройка",
-      "customSetupDescription": "Используйте собственного провайдера и API-ключ.",
       "description": "Выберите, как Mouthpiece будет транскрибировать вашу речь",
-      "mouthpieceCloud": "Mouthpiece Cloud",
-      "mouthpieceCloudDescription": "Просто работает. Настройка не требуется.",
       "title": "Распознавание речи",
-      "toasts": {
-        "switchedCloud": {
-          "description": "Транскрипция будет использовать облачный сервис Mouthpiece.",
-          "title": "Переключено на Mouthpiece Cloud"
-        },
-        "switchedCustom": {
-          "description": "Настройте собственного провайдера и API-ключ.",
-          "title": "Переключено на пользовательскую настройку"
-        }
-      },
       "audioQuality": {
         "advancedDescription": "Повышайте эти значения только если фоновые звуки или короткие паузы всё еще превращаются в нежелательный текст.",
         "advancedTitle": "Расширенный контроль ложных стартов",
@@ -1200,9 +1190,7 @@
             }
           }
         }
-      },
-      "cloudDisabled": "Отключено",
-      "cloudOffline": "Нет сети"
+      }
     }
   },
   "models": {
@@ -1454,5 +1442,14 @@
     "manualEntryHelp": "Используйте это, если провайдер не вернул модель или вы хотите попробовать новую модель.",
     "selectPlaceholder": "Выберите модель...",
     "searchPlaceholder": "Поиск моделей..."
+  },
+  "permissionFlow": {
+    "accessibility": {
+      "title": "Универсальный доступ",
+      "instruction": "Перетащите Mouthpiece в список выше, чтобы разрешить автоматическую вставку."
+    },
+    "actions": {
+      "done": "Готово"
+    }
   }
 }

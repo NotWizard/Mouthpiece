@@ -328,6 +328,35 @@ export interface PasteResult {
   allowFallbackCopy?: boolean;
 }
 
+export interface AccessibilityPermissionFlowOptions {
+  sourceFrame?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
+
+export interface AccessibilityPermissionFlowResult {
+  success: boolean;
+  reused?: boolean;
+  appPath?: string;
+  fallbackToSettings?: boolean;
+  fallbackOpened?: boolean;
+  fallbackError?: string;
+  reason?: string;
+  error?: string;
+}
+
+export interface AccessibilityPermissionFlowEvent {
+  type: string;
+  appPath?: string;
+  code?: number | null;
+  signal?: string | null;
+  error?: string;
+  message?: string;
+}
+
 declare global {
   interface Window {
     electronAPI: {
@@ -454,6 +483,13 @@ declare global {
         promptOnFailure?: boolean;
         bypassCache?: boolean;
       }) => Promise<boolean>;
+      startAccessibilityPermissionFlow?: (
+        options?: AccessibilityPermissionFlowOptions
+      ) => Promise<AccessibilityPermissionFlowResult>;
+      stopAccessibilityPermissionFlow?: () => Promise<{ success: boolean }>;
+      onAccessibilityPermissionFlowEvent?: (
+        callback: (event: any, payload: AccessibilityPermissionFlowEvent) => void
+      ) => () => void;
       resetAccessibilityPermissions?: () => Promise<{ success: boolean; error?: string }>;
       readClipboard: () => Promise<string>;
       writeClipboard: (text: string) => Promise<{ success: boolean }>;
