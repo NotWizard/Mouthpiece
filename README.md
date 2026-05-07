@@ -2,216 +2,224 @@
   <img src="src/assets/icon.png" alt="Mouthpiece" width="120" />
 </p>
 
-<h1 align="center">Mouthpiece</h1>
+# Mouthpiece
 
-<p align="center">
-  开源桌面听写应用（macOS / Windows / Linux）<br/>
-  基于 OpenWhispr 与 VoiceInk 持续演进，面向中文/英文输入场景做了专项优化
-</p>
+开源桌面听写工作台，支持 macOS、Windows 与 Linux。<br/>
+它把“按下热键开始说话、把文本安全送回当前应用”这件事做成了一套完整的桌面流程：录音胶囊、转录引擎、词典、智能后处理、历史记录、权限引导、控制面板和系统更新都已经整合到同一个应用里。
 
-## Project Notice (Public Release)
+English README: [README.en.md](README.en.md)
 
-- This project is an **open-source desktop dictation app** that converts speech to text with local and cloud model options.
-- **Default mode is BYOK (Bring Your Own Key)**: users provide their own API key / endpoint for cloud providers, or use local models.
-- This repository is a **community fork inspired by and based on both OpenWhispr and VoiceInk**, with respect and thanks to both upstream projects. It is **not affiliated with Typeless, OpenWhispr official hosted services, or VoiceInk official services**.
-- Recent iterations focus on **explicit BYOK provider integrations** (Alibaba Bailian / Deepgram / Soniox), **realtime dictation UX polish**, and **desktop stability / update flow**.
+## 致敬与来源
 
----
+Mouthpiece 持续演进自 [OpenWhispr](https://github.com/OpenWhispr/openwhispr) 与 [VoiceInk](https://github.com/le-soleil-se-couche/VoiceInk)。<br/>
+感谢这两个上游项目提供的启发与基础。当前仓库的 README、功能说明和使用方式，均以本项目现在的代码实现为准。
 
-## 对外说明
+## 这是什么
 
-本项目基于 OpenWhispr（Open Whisper 社区项目）与 VoiceInk 持续演进，并向这两个上游项目致敬；在此基础上针对日常中文/英文输入体验做了增强。
+Mouthpiece 适合想把语音输入接到日常桌面工作流中的用户，例如：
 
-> 当前公开版本的“工程级优化”主要在 **Windows** 平台验证与打磨；macOS/Linux 以基础可用为目标。
+- 需要在任意应用里快速输入中文、英文或中英混合文本
+- 希望在本地模型和云端模型之间自由切换
+- 想要用自定义词典、术语和自动学习提升专有名词命中率
+- 需要在转录之后继续做清理、改写、格式化或轻量智能处理
+- 希望保留历史记录，并在自动插入失败时有可靠的剪贴板回退
 
-### 当前定位
+默认使用方式是 BYOK：<br/>
+你可以直接使用本地模型，也可以填写自己的 API Key 连接云端 provider。账号登录能力存在，但不是主流程必需项。
 
-- 开源桌面听写工具（非 SaaS）
-- 默认 BYOK 模式，不绑定订阅制
+## 它现在能做什么
 
----
+- 通过全局热键启动听写，并在短按/长按之间自动匹配合适的激活方式
+- 使用悬浮录音胶囊显示录音状态、音量反馈和实时文本
+- 在本地转录与云端转录之间切换，按隐私、速度和成本偏好选择
+- 通过自定义词典、术语、自动学习和后处理归一化改善识别结果
+- 在转录后接入可选智能层，通过 Prompt Studio 做清理、改写或格式整理
+- 把文本自动插入当前应用；如果自动插入失败，会回退到剪贴板并给出明确提示
+- 保存历史记录，支持回看、复制和再次使用
+- 提供权限引导、系统托盘、控制面板和打包版自动更新体验
 
-## 重点增强与优化
+## 三分钟上手
 
-1. **粘贴回退更稳**
-   - 当系统判断当前环境不适合直接自动粘贴时，不再强行输入。
-   - 文本会保留在复制面板或剪贴板中，用户可以直接 `Ctrl+V` / `Cmd+V` 手动粘贴，减少误输入。
+### 1. 安装或运行
 
-2. **智能词典能力更完整**
-   - 支持自定义词典、批量导入，并可把词典提示注入转录与后处理链路，提升术语、专有名词和中英文混输场景的命中率。
-   - 批量导入规则也做过针对性优化，实测可直接复制现有词库后快速整理成有效词条。
+- 安装包用户：从 [GitHub Releases](https://github.com/NotWizard/Mouthpiece/releases) 下载对应平台版本
+- 源码用户：见本文末尾的“从源码运行”
 
-3. **支持纠错后的持续学习**
-   - 用户手动修正识别结果后，可选择回流到词典，逐步改善后续识别效果。
-   - 这对高频术语、团队内部名词和个人习惯表达尤其有帮助。
+### 2. 首次启动
 
-4. **实时转录交互体验做了一轮重写**
-   - 悬浮录音胶囊更紧凑，录音波形会根据真实麦克风输入动态变化，不再只是装饰动画。
-   - 实时字幕现在支持单行连续滚动展示，录音结束后会自然切换到 `处理中...`，整体观感更顺滑。
-   - 同时补了一层流式语音门控，尽量减少刚开始监听但实际上没有说话时出现的伪文本。
+当前 onboarding 是 4 步：
 
-5. **云端转录 provider 更明确、切换更灵活**
-   - Alibaba Bailian 已升级为独立 provider，不再依赖 `Custom + DashScope Base URL` 这类隐式配置。
-   - 同时新增 Deepgram 与 Soniox 一等公民接入，都有独立入口、独立 API Key 和清晰说明。
-   - Bailian、Deepgram、Soniox 现在都支持更明确的批量 / 实时转录切换，更方便按延迟和稳定性偏好选择。
+1. `Welcome`
+2. `Permissions`
+3. `Hotkey Setup`
+4. `Activation`
 
-6. **自定义端点和智能层设置更顺手**
-   - 自定义转录 / 推理 API Key 支持边输入边保存，减少来回保存确认的操作成本。
-   - 自定义 OpenAI-compatible 推理与 Bailian 推理都增加了 `enable_thinking` 开关，方便在速度与思考链路之间自行取舍。
-   - 同时对智能层做了更严格的约束，尽量降低“模型开始回答问题而不是做转录整理”的风险。
+你可以在这里完成首轮授权、热键设置和听写测试。
 
-7. **桌面端稳定性与工程体验继续补强**
-   - 云端推理请求现在优先走 Electron 主进程代理，降低渲染进程直连时的兼容性和网络异常问题。
-   - 旧版通过 DashScope 自定义端点保存的配置会自动迁移到显式的 Alibaba Bailian provider，减少历史配置遗留问题。
-   - 打包版应用补齐了后台静默检查更新与控制面板安装提示，同时移除了公开版里不必要的 usage analytics 遗留开关。
+### 3. 授权权限
 
----
+至少要处理两类权限：
 
-## BYOK / 可选账号模式
+- 麦克风权限：用于录音和转录
+- 辅助功能权限：用于把结果自动插入其他应用
 
-### 自有渠道模式（通常称 BYOK）
+如果暂时不授予辅助功能权限，Mouthpiece 仍然可以工作，只是会更多依赖复制到剪贴板后手动粘贴。
 
-- 使用者提供自己的 API Key 与模型端点（或兼容网关）。
-- 额度与费用由使用者对应平台账号结算。
-- 本项目本身不承诺代付、代管、代计费。
+### 4. 选择转录模式
 
-### 可选账号模式（非默认）
+- 想优先本地隐私：选择本地转录
+- 想优先云端模型或实时 provider：选择云端转录
 
-- 仅在你自行部署兼容登录/鉴权/计费后端时启用。
-- 普通 BYOK / 本地模式不需要账号系统。
+之后再根据你的习惯决定是否开启智能后处理。
 
----
+### 5. 开始说话
 
-## 低延迟推荐链路（短文本实时润色）
+- 按下热键开始听写
+- 看悬浮胶囊中的状态和实时文本
+- 停止后让 Mouthpiece 自动插入文本，或从历史记录与剪贴板回退中取回结果
 
-> 以下速度与价格来自公开资料和第三方实测整理，可能随时间变化，请以官方页面为准。
-> 
-- **ASR**：阿里云百炼链路（Alibaba Bailian / DashScope compatible mode，默认推荐 `qwen3-asr-flash`）
-  - 在中文口语、方言和中文工作流场景通常更稳定，网络路径也较友好。
-  - 在 Mouthpiece 中可直接切换到 `qwen3-asr-flash-realtime`，用于边说边显示实时文字。
-- **LLM 润色**：Cerebras `gpt-oss-120b`（high）
+## 模式与能力
 
+### 转录模式
 
-### 可选润色模型
+| 模式 | 适合场景 | 当前支持 |
+| --- | --- | --- |
+| 本地转录 | 更注重隐私、离线能力、可控性 | OpenAI Whisper、NVIDIA Parakeet、Qwen ASR MLX |
+| 云端转录 | 更注重云端 provider 选择、部分实时链路和托管能力 | OpenAI、Groq、Deepgram、Mistral、Soniox、Alibaba Bailian |
 
-- Cerebras `gpt-oss-120b`（默认）：质量优先，速度也足够快
-- Mercury 2（Inception Labs）：低延迟实时润色表现突出
-- Cerebras `llama-3.1-8b`：极低成本 / 高吞吐
-- Groq `llama-3.3-70b-versatile`：一个 Key 覆盖 ASR + LLM，部署省事
+### 本地转录
 
-### 参考对比（短文本润色）
+- **OpenAI Whisper**：经典本地方案，模型选择最完整
+- **NVIDIA Parakeet**：基于 sherpa-onnx 的本地转录链路
+- **Qwen ASR MLX**：适合 Apple Silicon 本地部署的 Qwen ASR 路线
 
-| 推荐顺序 | 提供商 + 模型                | 速度/延迟（参考）     | 价格（参考）               | OpenAI 兼容 |
-| -------- | ---------------------------- | --------------------- | -------------------------- | ----------- |
-| 1        | Cerebras gpt-oss-120B (high) | ~2248 t/s             | $0.45/M tokens             | 是          |
-| 2        | Mercury 2                    | ~1196 t/s             | $0.25/M 输入, $0.75/M 输出 | 是          |
-| 3        | Groq Llama 3.3 70B           | ~276 t/s, TTFT ~0.22s | 按 token 计费              | 是          |
-| 4        | Cerebras Llama 3.1 8B        | 2200+ t/s             | $0.10/M tokens             | 是          |
+### 云端转录
 
-### 为什么默认推荐 gpt-oss-120B
+- **OpenAI**
+- **Groq**
+- **Deepgram**
+- **Mistral**
+- **Soniox**
+- **Alibaba Bailian**
 
-- 在本项目“全局润色”场景下，质量与稳定性更平衡。
-- 即使单价高于 8B，在免费额度范围内很多个人场景仍可低成本使用。
-- OpenAI 协议兼容，迁移成本低。
+其中部分 provider 支持更明确的实时/非实时切换。是否开启 realtime，取决于所选 provider 和当前设置。
 
-### Cerebras 定价层级（参考）
+### 可选智能层
 
-| 层级              | 费用                   | 额度                 |
-| ----------------- | ---------------------- | -------------------- |
-| Free              | $0                     | 每天约 100 万 tokens |
-| Developer (PayGo) | 最低充值 $10，按量计费 | 速率限制高于免费层   |
-| Enterprise        | 联系销售               | 最高速率 + 专属队列  |
+Mouthpiece 的智能层不是强制主流程，而是一个可选增强层。<br/>
+你可以把转录后的文本继续交给本地或云端推理模型做：
 
-### 兼容性说明
+- 清理口语化表达
+- 调整格式
+- 轻量改写
+- 固定风格输出
+- 按 Prompt Studio 模板做后处理
 
-- 阿里云百炼 / DashScope 支持 OpenAI compatible mode。
-- 在 Mouthpiece 的“转录设置”里，Alibaba Bailian 现在是独立的云端转录 provider，可直接单独填写 API Key，并在同一张 provider 卡片内切换批量/实时转录。
-- 开启 Bailian 实时转录时，应用会走 `qwen3-asr-flash-realtime` 的 WebSocket 流式链路，并在录音过程中显示单行实时文字；关闭时继续使用 `qwen3-asr-flash` 的常规批量转录。
-- `Custom` provider 保留给任意 OpenAI-compatible 转录端点，不再承担百炼的隐式入口职责。
-- 旧版通过 `Custom + DashScope Base URL` 保存的转录配置，会在应用启动时自动迁移到显式的 Alibaba Bailian provider。
-- 对支持自定义 OpenAI Base URL 的客户端，通常也可直接接入。
-- 常用 Base URL（北京）：`https://dashscope.aliyuncs.com/compatible-mode/v1`
+当前推理 provider 覆盖：
 
-### 参考端点与示例环境变量
+- 云端：OpenAI、Anthropic、Google Gemini、Groq、Alibaba Bailian
+- 本地：Qwen、Mistral、Meta Llama、OpenAI OSS、Gemma
 
-> Mouthpiece 桌面端优先建议直接在设置页选择 `Alibaba Bailian` provider。下面的环境变量示例主要用于其他兼容客户端、自建脚本，或需要显式声明端点的场景。
+### 词典、术语与自动学习
+
+词典系统已经不是单一的“手动加词”：
+
+- 支持自定义词典
+- 支持术语配置
+- 支持自动学习修正结果
+- 支持在后处理阶段做字典归一化
+
+如果你经常输入人名、产品名、内部术语或中英混合短语，这部分会明显改善稳定性。
+
+### 插入策略与回退
+
+Mouthpiece 的目标不是只生成文本，而是尽量把文本送回你当前正在使用的应用。
+
+- 优先尝试自动插入
+- 如果当前应用或系统环境不适合直接插入，会回退到剪贴板
+- 回退时会明确告诉你结果已经复制，可手动 `Cmd+V` / `Ctrl+V`
+
+这让它更适合浏览器、编辑器、聊天工具、文档工具和混合工作流，而不是只适用于单一输入框。
+
+### 历史记录与控制面板
+
+控制面板当前的主导航包括：
+
+- Home
+- Dictionary
+- General
+- Hotkeys
+- Transcription
+- Intelligence
+- Privacy & Data
+- System
+
+在这里你可以查看历史记录、管理词典、切换 provider、设置热键、调整权限、控制更新和修改系统级偏好。
+
+## 权限、隐私与边界
+
+### 权限
+
+- **麦克风权限**：必须，用于录音
+- **辅助功能权限**：用于自动插入文本
+- 某些平台可能还需要额外的系统设置或粘贴工具配合
+
+### 隐私
+
+- 本地转录时，音频在设备侧处理
+- 云端转录或云端推理时，数据会按你选择的 provider 路由和处理
+- 默认是 BYOK 模式，云端额度与费用由你自己的 provider 账号承担
+
+### 使用边界
+
+- 登录/账号是可选能力，不是 Mouthpiece 的默认使用前提
+- 智能后处理是可选能力，不是转录成功的前提
+- 语音识别与后处理都可能出错；涉及法律、医疗、金融等高风险场景时，请务必人工复核
+
+## 进阶文档
+
+| 文档 | 适合什么时候看 |
+| --- | --- |
+| [LOCAL_WHISPER_SETUP.md](LOCAL_WHISPER_SETUP.md) | 想详细了解本地 Whisper 模型、缓存和运行方式 |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | 遇到跨平台常见问题时 |
+| [WINDOWS_TROUBLESHOOTING.md](WINDOWS_TROUBLESHOOTING.md) | 遇到 Windows 专属问题时 |
+| [docs/macos-local-codesign.md](docs/macos-local-codesign.md) | 需要做 macOS 本地签名或稳定辅助功能授权时 |
+
+## 从源码运行
+
+### 开发环境
 
 ```bash
-# ASR (Alibaba Bailian / DashScope compatible mode)
-DASHSCOPE_API_KEY=your_dashscope_key
-DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-# model: qwen3-asr-flash
-
-# LLM polish (default recommendation)
-OPENAI_API_KEY=your_cerebras_key
-OPENAI_BASE_URL=https://api.cerebras.ai/v1
-# model: gpt-oss-120b
-
-# Alternative: Mercury 2
-# MERCURY_API_KEY=your_mercury_key
-# MERCURY_BASE_URL=https://api.inceptionlabs.ai/v1
-# MERCURY_MODEL=mercury-2
-```
-
----
-
-## Windows 启动方式
-
-**安装包用户（推荐）**：直接运行 NSIS 安装程序，安装器会自动在桌面和开始菜单创建 `Mouthpiece` 快捷方式，双击即可。
-
-**源码 / 便携版用户**：仓库提供了 `core/` 启动器，避免双击 `.bat` 时出现黑色命令行窗口：
-
-- `core/Mouthpiece-Launch.vbs`：推荐入口，静默启动（无黑框闪屏）。
-- `core/Mouthpiece-Launch.bat`：启动逻辑，优先找 `dist\win-unpacked\Mouthpiece.exe`，若不存在则回退到 `npm start`。
-- `core/Create-Mouthpiece-DesktopShortcut.ps1`：为源码用户创建桌面快捷方式。
-
-```powershell
-# 在仓库根目录执行（Windows PowerShell）
-powershell -ExecutionPolicy Bypass -File .\core\Create-Mouthpiece-DesktopShortcut.ps1
-```
-
-## Quick Start
-
-```bash
-git clone https://github.com/le-soleil-se-couche/Mouthpiece.git
+git clone https://github.com/NotWizard/Mouthpiece.git
 cd Mouthpiece
 npm install
 npm run dev
 ```
 
-Build:
+### 常用命令
 
 ```bash
-npm run build
+# 类型检查
+npm run typecheck
+
+# Lint
+npm run lint
+
+# 打包渲染层
+npm run build:renderer
+
+# 平台构建
+npm run build:mac
+npm run build:win
+npm run build:linux
 ```
 
-> 需要更多平台打包/本地模型说明，可查看仓库内 `LOCAL_WHISPER_SETUP.md`、`WINDOWS_TROUBLESHOOTING.md`、`TROUBLESHOOTING.md`。
+如果你只是在使用应用，而不是参与开发，优先建议直接从 Releases 下载打包版本。
 
----
+## Upstream
 
-## Legal & Risk Disclosure
-
-1. 本项目按 MIT License 提供，不附带任何明示或暗示担保。
-2. 使用云端模型时，数据将按你所选提供商策略处理；请自行确认其隐私政策与合规要求。
-3. 语音转文本和智能后处理可能出现误识别、误改写，涉及法律、医疗、财务等高风险场景请务必人工复核。
-4. 本项目不提供投资、医疗、法律等专业建议功能。
-
----
-
-## Upstream & References
-
-- OpenWhispr 原始仓库: https://github.com/OpenWhispr/openwhispr
-- VoiceInk 原始仓库: https://github.com/le-soleil-se-couche/VoiceInk
-- Cerebras 免费 Key: https://cloud.cerebras.ai
-- Cerebras 快速开始: https://inference-docs.cerebras.ai/quickstart
-- Cerebras 定价: https://www.cerebras.ai/pricing
-- Cerebras API 文档: https://inference-docs.cerebras.ai
-- Cerebras Playground: https://chat.cerebras.ai
-- Cerebras GitHub 示例: https://github.com/Cerebras/inference-examples
-- Artificial Analysis（Cerebras）: https://artificialanalysis.ai/providers/cerebras
-- 阿里云百炼控制台（DashScope compatible mode）: https://bailian.console.aliyun.com/
-
----
+- [OpenWhispr](https://github.com/OpenWhispr/openwhispr)
+- [VoiceInk](https://github.com/le-soleil-se-couche/VoiceInk)
 
 ## License
 
