@@ -199,6 +199,99 @@ export function getAssetNamesFromReleaseJson(releaseJsonText) {
     .filter((assetName) => typeof assetName === "string" && assetName.length > 0);
 }
 
+export function getAssetsFromReleaseJson(releaseJsonText) {
+  const parsed = JSON.parse(releaseJsonText);
+  const assets = Array.isArray(parsed) ? parsed : parsed?.assets;
+
+  if (!Array.isArray(assets)) {
+    throw new Error("Release JSON does not contain an assets array.");
+  }
+
+  return assets.filter((asset) => asset && typeof asset === "object");
+}
+
+function findReleaseAsset(assets, assetName) {
+  const asset = assets.find((candidate) => candidate?.name === assetName);
+  if (!asset) {
+    throw new Error(`Release assets are missing ${assetName}.`);
+  }
+  return asset;
+}
+
+function normalizeSha256Digest(asset) {
+  const digest = asset?.digest;
+  const assetName = asset?.name || "release asset";
+
+  if (typeof digest !== "string" || !digest.startsWith("sha256:")) {
+    throw new Error(`${assetName} is missing a sha256 digest.`);
+  }
+
+  const sha256 = digest.slice("sha256:".length).toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(sha256)) {
+    throw new Error(`${assetName} has an invalid sha256 digest.`);
+  }
+
+  return sha256;
+}
+
+export function getHomebrewCaskReleaseInfo({ releaseJsonText, version }) {
+  const normalizedVersion = String(version || "").replace(/^v/, "");
+  if (!/^\d+\.\d+\.\d+/.test(normalizedVersion)) {
+    throw new Error("A semantic release version is required.");
+  }
+
+  const assets = getAssetsFromReleaseJson(releaseJsonText);
+  const arm64AssetName = `Mouthpiece-${normalizedVersion}-arm64.dmg`;
+  const intelAssetName = `Mouthpiece-${normalizedVersion}.dmg`;
+  const arm64Asset = findReleaseAsset(assets, arm64AssetName);
+  const intelAsset = findReleaseAsset(assets, intelAssetName);
+
+  return {
+    version: normalizedVersion,
+    arm64AssetName,
+    arm64Sha256: normalizeSha256Digest(arm64Asset),
+    intelAssetName,
+    intelSha256: normalizeSha256Digest(intelAsset),
+  };
+}
+
+export function renderHomebrewCask(releaseInfo) {
+  return `cask "mouthpiece" do
+  on_arm do
+    version "${releaseInfo.version}"
+    sha256 "${releaseInfo.arm64Sha256}"
+
+    url "https://github.com/NotWizard/Mouthpiece/releases/download/v#{version}/Mouthpiece-#{version}-arm64.dmg"
+  end
+
+  on_intel do
+    version "${releaseInfo.version}"
+    sha256 "${releaseInfo.intelSha256}"
+
+    url "https://github.com/NotWizard/Mouthpiece/releases/download/v#{version}/Mouthpiece-#{version}.dmg"
+  end
+
+  name "Mouthpiece"
+  desc "Desktop dictation app using whisper.cpp"
+  homepage "https://github.com/NotWizard/Mouthpiece"
+
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  app "Mouthpiece.app"
+
+  zap trash: [
+    "~/Library/Application Support/Mouthpiece",
+    "~/Library/Caches/com.mouthpiece.app",
+    "~/Library/Logs/Mouthpiece",
+    "~/Library/Preferences/com.mouthpiece.app.plist",
+  ]
+end
+`;
+}
+
 export function validateReleaseAssets({
   assetNames,
   latestWindowsYaml = "",
