@@ -152,12 +152,12 @@ export function getRealtimeEndpointingConfig(
 
   if (provider === "bailian") {
     if (normalizedMode === "fast") {
-      return { silenceDurationMs: 650 };
+      return { silenceDurationMs: 800 };
     }
     if (normalizedMode === "patient") {
-      return { silenceDurationMs: 1100 };
+      return { silenceDurationMs: 1800 };
     }
-    return { silenceDurationMs: 800 };
+    return { silenceDurationMs: 1200 };
   }
 
   return {};

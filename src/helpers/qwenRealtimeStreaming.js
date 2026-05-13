@@ -13,8 +13,9 @@ const TERMINATION_TIMEOUT_MS = 5000;
 const PENDING_AUDIO_BUFFER_MAX = 3 * SAMPLE_RATE * 2;
 const QWEN_REALTIME_TURN_DETECTION = Object.freeze({
   type: "server_vad",
-  threshold: 0.35,
-  silence_duration_ms: 800,
+  threshold: 0.5,
+  silence_duration_ms: 1200,
+  prefix_padding_ms: 300,
 });
 const CJK_CHARACTER_RE = /[\u3400-\u9FFF\uF900-\uFAFF\u3040-\u30FF]/u;
 const NO_SPACE_BEFORE_RE = /[),.?!%:;}\]，。！？、；：）》」』】]/u;
@@ -32,6 +33,18 @@ function getLastCharacter(text) {
 
 function shouldUseCompactCjkJoin(language) {
   return typeof language === "string" && /^(zh|ja)(-|$)/i.test(language.trim());
+}
+
+function softenTurnBoundaryPunctuation(text) {
+  if (!text) return text;
+  const trimmed = text.trimEnd();
+  if (trimmed.endsWith("。")) {
+    return trimmed.slice(0, -1) + "，";
+  }
+  if (trimmed.endsWith(".") && !trimmed.endsWith("..")) {
+    return trimmed.slice(0, -1) + ",";
+  }
+  return text;
 }
 
 function joinTranscriptSegments(leftText, rightText, { language } = {}) {
@@ -581,6 +594,10 @@ class QwenRealtimeStreaming {
 
     if (itemId) {
       this.completedItemIds.add(itemId);
+    }
+
+    if (this.accumulatedText) {
+      this.accumulatedText = softenTurnBoundaryPunctuation(this.accumulatedText);
     }
 
     this.accumulatedText = joinTranscriptSegments(this.accumulatedText, trimmedTranscript, {
