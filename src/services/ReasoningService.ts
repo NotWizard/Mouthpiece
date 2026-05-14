@@ -46,8 +46,7 @@ class ReasoningService extends BaseReasoningService {
   }
 
   private resolveSystemPrompt(text: string, config: ReasoningConfig): string {
-    return config.systemPrompt ||
-      this.getSystemPrompt(text, config.contextClassification, config.postProcessingPolicy);
+    return config.systemPrompt || this.getSystemPrompt();
   }
 
   private getConfiguredOpenAIBase(): string {

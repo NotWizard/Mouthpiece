@@ -15,7 +15,6 @@ import { readCustomCleanupPrompt } from "../utils/promptStorage";
 import { normalizeAudioLevel } from "../utils/dictationWaveform.mjs";
 import { getReasoningAvailabilityCacheKey } from "../utils/reasoningAvailabilityCacheKey.mjs";
 import { resolveAsrFeatureFlags } from "../utils/asrFeatureFlags.mjs";
-import { resolvePostProcessingPolicy } from "../utils/postProcessingPolicy";
 import {
   advanceStreamingSpeechGate,
   createStreamingSpeechGateState,
@@ -1979,9 +1978,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   buildReasoningConfig(contextClassification) {
     return {
       contextClassification: contextClassification || undefined,
-      postProcessingPolicy: resolvePostProcessingPolicy({
-        contextClassification,
-      }),
     };
   }
 
@@ -2207,17 +2203,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
   async processTranscription(text, source) {
     const normalizedText = typeof text === "string" ? text.trim() : "";
-    const cleanedText = this.applyDictionaryNormalization(
-      this.basicDictationCleanup(normalizedText),
-      `${source}-cleanup`
-    );
 
     if (!normalizedText) {
       logger.logReasoning("TRANSCRIPTION_EMPTY_SKIPPING_REASONING", {
         source,
         reason: "Empty text after normalization",
       });
-      return cleanedText;
+      return normalizedText;
     }
 
     logger.logReasoning("TRANSCRIPTION_RECEIVED", {
@@ -2234,7 +2226,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       logger.logReasoning("REASONING_SKIPPED", {
         reason: "No reasoning model selected",
       });
-      return cleanedText;
+      return normalizedText;
     }
 
     const useReasoning = await this.isReasoningAvailable();
@@ -2263,7 +2255,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             matchedRuleId: sensitiveAppPolicy.ruleId,
             action: sensitiveAppPolicy.action,
           });
-          return cleanedText;
+          return normalizedText;
         }
         const result = await this.processWithReasoningModel(
           normalizedText,
@@ -2277,17 +2269,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           processingTime: new Date().toISOString(),
         });
 
-        const postProcessed = this.applyDictionaryNormalization(
-          this.basicDictationCleanup(result),
-          `${source}-reasoned`
-        );
-        if (postProcessed !== result) {
-          logger.logReasoning("REASONING_POST_CLEANUP_APPLIED", {
-            beforeLength: result.length,
-            afterLength: postProcessed.length,
-          });
-        }
-        return postProcessed;
+        return result;
       } catch (error) {
         logger.logReasoning("REASONING_FAILED", {
           error: error.message,
@@ -2302,7 +2284,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       reason: useReasoning ? "Reasoning failed" : "Reasoning not enabled",
     });
 
-    return cleanedText;
+    return normalizedText;
   }
 
   shouldStreamTranscription(model, provider) {
@@ -2646,11 +2628,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         const reasonResult = await withSessionRefresh(async () => {
           const systemPrompt = getSystemPrompt(
             settings.customDictionary,
-            settings.preferredLanguage || "auto",
-            processedText,
             settings.uiLanguage || "zh-CN",
-            contextClassification || undefined,
-            reasoningConfig.postProcessingPolicy,
             settings.terminologyProfile
           );
           const res = await window.electronAPI.cloudReason(processedText, {
@@ -2694,11 +2672,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       }
       timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
     }
-
-    processedText = this.applyDictionaryNormalization(
-      this.basicDictationCleanup(processedText),
-      "mouthpiece-cloud-final"
-    );
 
     return {
       success: true,
@@ -3785,7 +3758,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           streamingProviderName === "bailian" &&
           partialPayload &&
           typeof partialPayload === "object";
-        const cleanedText = isStructuredBailianPayload
+        const normalizedText = isStructuredBailianPayload
           ? typeof partialPayload.fullText === "string"
             ? partialPayload.fullText
             : ""
@@ -3793,9 +3766,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
               typeof partialPayload === "string" ? partialPayload : ""
             );
 
-        this.streamingPartialText = cleanedText;
+        this.streamingPartialText = normalizedText;
 
-        if (!cleanedText) {
+        if (!normalizedText) {
           this.streamingHeldPartialText = null;
           return;
         }
@@ -3805,11 +3778,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         }
 
         if (!this.streamingSpeechGateState.speechDetected) {
-          this.streamingHeldPartialText = isStructuredBailianPayload ? partialPayload : cleanedText;
+          this.streamingHeldPartialText = isStructuredBailianPayload ? partialPayload : normalizedText;
           return;
         }
 
-        this.onPartialTranscript?.(isStructuredBailianPayload ? partialPayload : cleanedText);
+        this.onPartialTranscript?.(isStructuredBailianPayload ? partialPayload : normalizedText);
       });
 
       const finalCleanup = provider.onFinal((text) => {
@@ -4183,11 +4156,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           const reasonResult = await withSessionRefresh(async () => {
             const systemPrompt = getSystemPrompt(
               stSettings.customDictionary,
-              stSettings.preferredLanguage || "auto",
-              finalText,
               stSettings.uiLanguage || "zh-CN",
-              contextClassification || undefined,
-              reasoningConfig.postProcessingPolicy,
               stSettings.terminologyProfile
             );
             const res = await window.electronAPI.cloudReason(finalText, {
@@ -4294,13 +4263,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     }
 
     if (finalText) {
-      if (!usedGenericStreamingProcessing) {
-        finalText = this.applyDictionaryNormalization(
-          this.basicDictationCleanup(finalText),
-          "streaming-final"
-        );
-      }
-
       if (shouldStopBeforeCompletion("before-completion-delivery")) {
         return true;
       }

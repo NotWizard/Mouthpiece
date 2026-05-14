@@ -1,7 +1,6 @@
 import { getSystemPrompt } from "../config/prompts";
 import { getSettings } from "../stores/settingsStore";
 import type { ContextClassification } from "../utils/contextClassifier";
-import type { PostProcessingPolicy } from "../utils/postProcessingPolicy";
 
 export interface ReasoningConfig {
   maxTokens?: number;
@@ -9,7 +8,6 @@ export interface ReasoningConfig {
   contextSize?: number;
   systemPrompt?: string;
   contextClassification?: ContextClassification;
-  postProcessingPolicy?: PostProcessingPolicy;
 }
 
 export abstract class BaseReasoningService {
@@ -23,28 +21,14 @@ export abstract class BaseReasoningService {
     return getSettings().terminologyProfile;
   }
 
-  protected getPreferredLanguage(): string {
-    return getSettings().preferredLanguage || "auto";
-  }
-
   protected getUiLanguage(): string {
     return getSettings().uiLanguage || "zh-CN";
   }
 
-  protected getSystemPrompt(
-    transcript?: string,
-    contextClassification?: ContextClassification,
-    postProcessingPolicy?: PostProcessingPolicy
-  ): string {
-    const language = this.getPreferredLanguage();
-    const uiLanguage = this.getUiLanguage();
+  protected getSystemPrompt(): string {
     return getSystemPrompt(
       this.getCustomDictionary(),
-      language,
-      transcript,
-      uiLanguage,
-      contextClassification,
-      postProcessingPolicy,
+      this.getUiLanguage(),
       this.getTerminologyProfile()
     );
   }
