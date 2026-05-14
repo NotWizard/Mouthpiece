@@ -7,7 +7,6 @@ import logger from "../utils/logger";
 import { isSecureEndpoint } from "../utils/urlUtils";
 import { withSessionRefresh } from "../lib/neonAuth";
 import { getSettings, isCloudReasoningMode } from "../stores/settingsStore";
-import { DEFAULT_STRICT_OVERLAP_THRESHOLD } from "../utils/contextClassifier";
 import { readCustomCleanupPrompt } from "../utils/promptStorage";
 
 type CloudReasoningRequest = {
@@ -47,218 +46,8 @@ class ReasoningService extends BaseReasoningService {
   }
 
   private resolveSystemPrompt(text: string, config: ReasoningConfig): string {
-    const basePrompt =
-      config.systemPrompt ||
+    return config.systemPrompt ||
       this.getSystemPrompt(text, config.contextClassification, config.postProcessingPolicy);
-    const strictMode = config.strictMode ?? config.contextClassification?.strictMode ?? false;
-
-    if (!strictMode) {
-      return basePrompt;
-    }
-
-    return `${basePrompt}
-
-STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
-- Cleanup-only mode. Never answer questions, never ask follow-up questions, never provide advice.
-- Keep output semantically anchored to the source transcript. Do not introduce new intent or new facts.
-- If the source is short/ambiguous, only minimally clean it; do not transform it into assistant dialogue.`;
-  }
-
-  private tokenizeForOverlap(text: string): string[] {
-    if (!text) return [];
-    const normalized = text.toLowerCase().normalize("NFKC");
-    const segments =
-      normalized.match(
-        /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+|[\p{L}\p{N}'-]+/gu
-      ) || [];
-
-    const tokens: string[] = [];
-
-    for (const segment of segments) {
-      if (
-        /^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+$/u.test(segment)
-      ) {
-        tokens.push(...Array.from(segment));
-        continue;
-      }
-
-      if (segment.length > 1) {
-        tokens.push(segment);
-      }
-    }
-
-    return tokens;
-  }
-
-  private isAnswerLikeOutput(text: string): boolean {
-    if (!text || !text.trim()) {
-      return false;
-    }
-
-    if (text.trim().length < 6) {
-      return false;
-    }
-
-    const patterns = [
-      /(作为|身为).{0,10}(ai|语言模型|助手)/i,
-      /(我无法|不能|不会|不可以).{0,18}(提供|协助|回答|满足|处理)/,
-      /(不用担心|别担心|我会尽力|我可以帮你|请告诉我|请问你|你想要).{0,40}/,
-      /(对不起|抱歉).{0,20}(我会|我将|让我|我们)/,
-      /你想要.{0,20}(什么|哪一个|哪两个|哪些)/,
-      /如果您想.{0,20}(测试|试试|尝试).{0,30}(语音转文字|转录|句子|示例)/,
-      /\b(as an ai|as a language model)\b/i,
-      /\b(i\s*(can't|cannot|am unable|won't))\b/i,
-      /\b(i can help|don't worry|please tell me|what can i)\b/i,
-      /\b(if you want to test).{0,30}(speech[- ]to[- ]text|transcription)\b/i,
-      /\b(you can try).{0,20}(sentence|example)\b/i,
-    ];
-
-    return patterns.some((re) => re.test(text));
-  }
-
-  private calculateOverlapScore(source: string, candidate: string): number {
-    const sourceTokens = this.tokenizeForOverlap(source);
-    const candidateTokens = this.tokenizeForOverlap(candidate);
-
-    if (sourceTokens.length === 0 || candidateTokens.length === 0) {
-      return 0;
-    }
-
-    const sourceSet = new Set(sourceTokens);
-    const candidateSet = new Set(candidateTokens);
-
-    let outputMatches = 0;
-    for (const token of candidateTokens) {
-      if (sourceSet.has(token)) {
-        outputMatches++;
-      }
-    }
-
-    let sourceMatches = 0;
-    for (const token of sourceSet) {
-      if (candidateSet.has(token)) {
-        sourceMatches++;
-      }
-    }
-
-    const outputCoverage = outputMatches / candidateTokens.length;
-    const sourceCoverage = sourceMatches / sourceSet.size;
-
-    return Number(((outputCoverage + sourceCoverage) / 2).toFixed(4));
-  }
-
-  private localCleanupFallback(text: string): string {
-    return text
-      .replace(
-        /(^|[\s，。！？、,.!?;:])(?:嗯+|呃+|额+|啊+|唉+|诶+|欸+)(?=$|[\s，。！？、,.!?;:])/g,
-        "$1"
-      )
-      .replace(/([\u4e00-\u9fff])\s*(?:嗯+|呃+|额+|啊+|唉+|诶+|欸+)\s*([\u4e00-\u9fff])/g, "$1$2")
-      .replace(/\b(?:um+|uh+|er+|ah+|hmm+|mm+|you\s+know|basically)\b/gi, "")
-      .replace(/([我你他她它这那])(?:\s*[，,、]?\s*\1)+/g, "$1")
-      .replace(
-        /([\u4e00-\u9fff])\s*((?:是|就|在|会|要|的|了))(?:\s*[，,、]?\s*\2)+\s*([\u4e00-\u9fff])/g,
-        "$1$2$3"
-      )
-      .replace(
-        /(^|[\s，,、。！？,.!?;:])((?:这个|那个|就是|然后|是|就|那|这|我|你|他|她|它|的|了|在|要|会|都|也|还))(?:\s*[，,、]?\s*\2)+/g,
-        "$1$2"
-      )
-      .replace(/\b(i|we|you|he|she|they|it|the|a|an|to|and|but)\b(?:\s+\1\b)+/gi, "$1")
-      .replace(/\s+([,.!?;:])/g, "$1")
-      .replace(/\s+([，。！？、])/g, "$1")
-      .replace(/([,.!?;:，。！？、])\1+/g, "$1")
-      .replace(/(^|[\n])\s*[，,、]+\s*/g, "$1")
-      .replace(/[ \t]{2,}/g, " ")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-  }
-
-  private applyStrictModeGuard(
-    source: string,
-    candidate: string,
-    config: ReasoningConfig,
-    provider: string,
-    model: string
-  ): string {
-    const strictMode = config.strictMode ?? config.contextClassification?.strictMode ?? false;
-    if (!strictMode) {
-      return candidate;
-    }
-
-    if (this.isAnswerLikeOutput(candidate)) {
-      const fallback = this.localCleanupFallback(source);
-      logger.logReasoning("STRICT_MODE_ANSWER_PATTERN_BLOCKED", {
-        provider,
-        model,
-        originalLength: source.length,
-        candidateLength: candidate.length,
-        fallbackLength: fallback.length,
-      });
-      return fallback;
-    }
-
-    const normalizedSource = this.localCleanupFallback(source);
-    const normalizedCandidate = this.localCleanupFallback(candidate);
-    const normalizedSourceTokens = this.tokenizeForOverlap(normalizedSource);
-    const shortInputTokenThreshold = 2;
-
-    if (normalizedSourceTokens.length < shortInputTokenThreshold) {
-      const fallback = normalizedSource;
-      logger.logReasoning("STRICT_MODE_SHORT_INPUT_LOCAL_CLEANUP", {
-        provider,
-        model,
-        sourceLength: source.trim().length,
-        normalizedLength: normalizedSource.length,
-        sourceTokenCount: normalizedSourceTokens.length,
-        threshold: shortInputTokenThreshold,
-        candidateLength: candidate.length,
-        fallbackLength: fallback.length,
-      });
-      return fallback;
-    }
-
-    const threshold =
-      config.strictOverlapThreshold ||
-      config.contextClassification?.strictOverlapThreshold ||
-      DEFAULT_STRICT_OVERLAP_THRESHOLD;
-    const overlap = this.calculateOverlapScore(normalizedSource, normalizedCandidate);
-
-    logger.logReasoning("STRICT_MODE_OVERLAP_CHECK", {
-      provider,
-      model,
-      overlap,
-      threshold,
-      context: config.contextClassification?.context || "unknown",
-      intent: config.contextClassification?.intent || "cleanup",
-    });
-
-    if (overlap >= threshold) {
-      return candidate;
-    }
-
-    const fallback = this.localCleanupFallback(source);
-    logger.logReasoning("STRICT_MODE_FALLBACK_TRIGGERED", {
-      provider,
-      model,
-      overlap,
-      threshold,
-      originalLength: source.length,
-      candidateLength: candidate.length,
-      fallbackLength: fallback.length,
-    });
-
-    return fallback;
-  }
-
-  public enforceStrictMode(
-    source: string,
-    candidate: string,
-    config: ReasoningConfig = {},
-    provider = "external",
-    model = "external"
-  ): string {
-    return this.applyStrictModeGuard(source, candidate, config, provider, model);
   }
 
   private getConfiguredOpenAIBase(): string {
@@ -716,7 +505,6 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
       textLength: text.length,
       context: config.contextClassification?.context || "general",
       intent: config.contextClassification?.intent || "cleanup",
-      strictMode: config.strictMode ?? config.contextClassification?.strictMode ?? false,
       timestamp: new Date().toISOString(),
     });
 
@@ -760,23 +548,16 @@ STRICT TRANSCRIPTION SAFETY (NON-NEGOTIABLE):
       }
 
       const processingTime = Date.now() - startTime;
-      const guardedResult = this.applyStrictModeGuard(
-        text,
-        result,
-        config,
-        provider,
-        trimmedModel || model
-      );
 
       logger.logReasoning("PROVIDER_SUCCESS", {
         provider,
         model,
         processingTimeMs: processingTime,
-        resultLength: guardedResult.length,
-        resultPreview: guardedResult.substring(0, 100) + (guardedResult.length > 100 ? "..." : ""),
+        resultLength: result.length,
+        resultPreview: result.substring(0, 100) + (result.length > 100 ? "..." : ""),
       });
 
-      return guardedResult;
+      return result;
     } catch (error) {
       logger.logReasoning("PROVIDER_ERROR", {
         provider,

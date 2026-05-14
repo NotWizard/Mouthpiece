@@ -1960,8 +1960,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         context: contextClassification.context,
         intent: contextClassification.intent,
         confidence: contextClassification.confidence,
-        strictMode: contextClassification.strictMode,
-        strictOverlapThreshold: contextClassification.strictOverlapThreshold,
         sensitiveAppAction: contextClassification.sensitiveAppAction || "allow_full_pipeline",
         sensitiveAppRuleId: contextClassification.sensitiveAppRuleId || null,
         targetApp: targetApp.appName || "unknown",
@@ -1979,18 +1977,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   buildReasoningConfig(contextClassification) {
-    const strictOverlapThreshold = Math.max(
-      Number(contextClassification?.strictOverlapThreshold) || 0.72,
-      0.86
-    );
-
     return {
       contextClassification: contextClassification || undefined,
       postProcessingPolicy: resolvePostProcessingPolicy({
         contextClassification,
       }),
-      strictMode: contextClassification?.strictMode ?? true,
-      strictOverlapThreshold,
     };
   }
 
@@ -2024,10 +2015,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   enforceCleanupOnlyReasoningContext(contextClassification) {
     if (!contextClassification) return null;
 
-    const strictThreshold = Math.max(
-      Number(contextClassification?.strictOverlapThreshold) || 0.72,
-      0.86
-    );
     const signals = Array.isArray(contextClassification.signals)
       ? [...contextClassification.signals]
       : [];
@@ -2038,16 +2025,12 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const normalized = {
       ...contextClassification,
       intent: "cleanup",
-      strictMode: true,
-      strictOverlapThreshold: strictThreshold,
       signals,
     };
 
     logger.logReasoning("REASONING_CONTEXT_FORCED_CLEANUP", {
       context: normalized.context,
       intent: normalized.intent,
-      strictMode: normalized.strictMode,
-      strictOverlapThreshold: normalized.strictOverlapThreshold,
       targetApp: normalized?.targetApp?.appName || "unknown",
       signals: normalized.signals,
     });
@@ -2120,7 +2103,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       textLength: text.length,
       context: config?.contextClassification?.context || "general",
       intent: config?.contextClassification?.intent || "cleanup",
-      strictMode: config?.strictMode ?? config?.contextClassification?.strictMode ?? false,
     });
 
     const startTime = Date.now();
@@ -2695,13 +2677,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         });
 
         if (reasonResult.success && reasonResult.text) {
-          processedText = ReasoningService.enforceStrictMode(
-            processedText,
-            reasonResult.text,
-            reasoningConfig,
-            "mouthpiece-cloud",
-            reasonResult.model || "mouthpiece-cloud"
-          );
+          processedText = reasonResult.text;
         }
       } else {
         const effectiveModel = getEffectiveReasoningModel();
@@ -4238,13 +4214,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           });
 
           if (reasonResult.success && reasonResult.text) {
-            finalText = ReasoningService.enforceStrictMode(
-              finalText,
-              reasonResult.text,
-              reasoningConfig,
-              "mouthpiece-cloud",
-              reasonResult.model || "mouthpiece-cloud"
-            );
+            finalText = reasonResult.text;
           }
           usedCloudReasoning = true;
 

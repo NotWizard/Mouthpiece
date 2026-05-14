@@ -10,8 +10,6 @@ export interface ReasoningConfig {
   systemPrompt?: string;
   contextClassification?: ContextClassification;
   postProcessingPolicy?: PostProcessingPolicy;
-  strictMode?: boolean;
-  strictOverlapThreshold?: number;
 }
 
 export abstract class BaseReasoningService {

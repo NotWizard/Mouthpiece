@@ -3,8 +3,6 @@ import {
   resolveSensitiveAppPolicy,
   type SensitiveAppAction,
 } from "../config/sensitiveAppPolicy.ts";
-export const DEFAULT_STRICT_OVERLAP_THRESHOLD = 0.72;
-
 export type ReasoningContext =
   | "general"
   | "code"
@@ -21,8 +19,6 @@ export interface ContextClassification {
   context: ReasoningContext;
   intent: ReasoningIntent;
   confidence: number;
-  strictMode: boolean;
-  strictOverlapThreshold: number;
   signals: string[];
   targetApp: TargetAppInfo;
   sensitiveAppAction?: SensitiveAppAction;
@@ -88,37 +84,6 @@ const CONTENT_CONTEXT_RULES: Array<{ context: ReasoningContext; re: RegExp; sign
 ];
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-
-const parseStrictThreshold = (): number => {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return DEFAULT_STRICT_OVERLAP_THRESHOLD;
-  }
-
-  const raw = window.localStorage.getItem("reasoningStrictOverlapThreshold");
-  if (!raw) {
-    return DEFAULT_STRICT_OVERLAP_THRESHOLD;
-  }
-
-  const parsed = Number(raw);
-  if (!Number.isFinite(parsed)) {
-    return DEFAULT_STRICT_OVERLAP_THRESHOLD;
-  }
-
-  return clamp(parsed, 0.4, 0.95);
-};
-
-const readStrictMode = (): boolean => {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return true;
-  }
-
-  const raw = window.localStorage.getItem("reasoningStrictMode");
-  if (raw === null) {
-    return true;
-  }
-
-  return raw !== "false";
-};
 
 const readSensitiveAppProtectionOptions = () => {
   if (typeof window === "undefined" || !window.localStorage) {
@@ -222,14 +187,10 @@ export function classifyContext({
   if (contentContext) confidence += 0.2;
   confidence = Number(clamp(confidence, 0.5, 0.99).toFixed(2));
 
-  const strictModeEnabled = readStrictMode();
-
   return {
     context,
     intent,
     confidence,
-    strictMode: strictModeEnabled,
-    strictOverlapThreshold: parseStrictThreshold(),
     signals,
     targetApp,
     sensitiveAppAction: sensitiveAppDecision.action,
