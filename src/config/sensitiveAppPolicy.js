@@ -5,7 +5,6 @@ const SENSITIVE_APP_RULES = [
     appMatchers: [/(1password|bitwarden|lastpass|dashlane|keeper|passwords|enpass|keychain)/i],
     restrictions: {
       cloudReasoning: true,
-      autoLearn: true,
       pasteMonitoring: true,
       injection: true,
     },
@@ -16,7 +15,6 @@ const SENSITIVE_APP_RULES = [
     appMatchers: [/(authy|okta|duo|microsoft authenticator|google authenticator)/i],
     restrictions: {
       cloudReasoning: true,
-      autoLearn: true,
       pasteMonitoring: true,
       injection: false,
     },
@@ -29,7 +27,6 @@ const SENSITIVE_APP_RULES = [
     ],
     restrictions: {
       cloudReasoning: true,
-      autoLearn: true,
       pasteMonitoring: true,
       injection: false,
     },
@@ -54,7 +51,6 @@ function getActionFromRestrictions(restrictions) {
   if (restrictions.injection) return "block_injection";
   if (restrictions.pasteMonitoring) return "block_paste_monitoring";
   if (restrictions.cloudReasoning) return "block_cloud_reasoning";
-  if (restrictions.autoLearn) return "block_auto_learn";
   return "allow_full_pipeline";
 }
 
@@ -66,7 +62,6 @@ function buildDecision(targetApp, rule, restrictions) {
     label: rule?.label || null,
     matchedAppName: targetApp?.appName || null,
     blocksCloudReasoning: restrictions.cloudReasoning,
-    blocksAutoLearn: restrictions.autoLearn,
     blocksPasteMonitoring: restrictions.pasteMonitoring,
     blocksInjection: restrictions.injection,
     targetApp,
@@ -77,7 +72,6 @@ function resolveSensitiveAppPolicy({
   targetApp,
   protectionsEnabled = true,
   allowCloudReasoning = false,
-  allowAutoLearn = false,
   allowPasteMonitoring = false,
   allowInjection = false,
 } = {}) {
@@ -87,7 +81,6 @@ function resolveSensitiveAppPolicy({
   if (!protectionsEnabled || !appName) {
     return buildDecision(normalizedTargetApp, null, {
       cloudReasoning: false,
-      autoLearn: false,
       pasteMonitoring: false,
       injection: false,
     });
@@ -99,7 +92,6 @@ function resolveSensitiveAppPolicy({
   if (!matchedRule) {
     return buildDecision(normalizedTargetApp, null, {
       cloudReasoning: false,
-      autoLearn: false,
       pasteMonitoring: false,
       injection: false,
     });
@@ -107,7 +99,6 @@ function resolveSensitiveAppPolicy({
 
   return buildDecision(normalizedTargetApp, matchedRule, {
     cloudReasoning: matchedRule.restrictions.cloudReasoning && !allowCloudReasoning,
-    autoLearn: matchedRule.restrictions.autoLearn && !allowAutoLearn,
     pasteMonitoring: matchedRule.restrictions.pasteMonitoring && !allowPasteMonitoring,
     injection: matchedRule.restrictions.injection && !allowInjection,
   });

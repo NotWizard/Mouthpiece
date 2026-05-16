@@ -941,8 +941,6 @@
       "placeholder": "Ajouter un mot ou une expression...",
       "add": "Ajouter",
       "pressEnterToAdd": "Appuyez sur Entrée pour ajouter",
-      "autoLearnTitle": "Apprentissage automatique à partir des corrections",
-      "autoLearnDescription": "Quand vous corrigez une transcription dans l’application cible, Mouthpiece crée des suggestions de dictionnaire à valider. Elles ne prennent effet qu’après confirmation et sont supprimées après 24 heures sans validation.",
       "yourWords": "Vos mots",
       "clearDictionaryTitle": "Effacer le dictionnaire ?",
       "clearDictionaryDescription": "Cela supprimera tous les mots de votre dictionnaire personnalisé. Cette action est irréversible.",
@@ -991,13 +989,7 @@
       "homophoneTitle": "Homophone Mappings",
       "homophoneEmpty": "No homophone mappings yet. Use source=target to correct recurring sound-alikes.",
       "homophonePlaceholder": "Add mapping like mode boat=mouthpiece",
-      "addMapping": "Add homophone mapping",
-      "pendingSuggestionsTitle": "Pending Suggestions",
-      "pendingSuggestionsEmpty": "No pending suggestions right now.",
-      "pendingSuggestionSource": "Source: {{source}}",
-      "approve": "Confirmer",
-      "reject": "Reject",
-      "pendingSuggestionsDescription": "Confirmez les suggestions sous 24 heures pour les ajouter au dictionnaire. Les suggestions non confirmées sont supprimées automatiquement."
+      "addMapping": "Add homophone mapping"
     },
     "general": {
       "appearance": {
@@ -1405,9 +1397,7 @@
         "description": "Le raccourci sélectionné n’a pas pu être enregistré. Veuillez en choisir un autre dans les paramètres."
       },
       "addedToDict": "{{words}} ajouté à votre dictionnaire",
-      "undo": "Annuler",
-      "dictionarySuggestionFound": "Suggestion de dictionnaire détectée : {{words}}. Confirmez-la dans le dictionnaire pour l’activer.",
-      "reviewLater": "Voir plus tard"
+      "undo": "Annuler"
     },
     "mic": {
       "hotkeyToSpeak": "Appuyez sur {{hotkey}} pour parler",

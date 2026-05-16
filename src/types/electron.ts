@@ -1,5 +1,4 @@
 import type { InsertionIntent, InsertionOutcomeMode } from "../utils/insertionIntent";
-import type { TerminologySuggestion } from "../utils/terminologyProfile";
 
 export type LocalTranscriptionProvider = "whisper" | "nvidia" | "qwen";
 
@@ -417,11 +416,6 @@ declare global {
       getDictionary: () => Promise<string[]>;
       setDictionary: (words: string[]) => Promise<{ success: boolean }>;
       onDictionaryUpdated?: (callback: (words: string[]) => void) => () => void;
-      setAutoLearnEnabled?: (enabled: boolean) => void;
-      onCorrectionsLearned?: (
-        callback: (entries: string[] | TerminologySuggestion[]) => void
-      ) => () => void;
-      undoLearnedCorrections?: (words: string[]) => Promise<{ success: boolean }>;
 
       // Database event listeners
       onTranscriptionAdded?: (callback: (item: TranscriptionItem) => void) => () => void;

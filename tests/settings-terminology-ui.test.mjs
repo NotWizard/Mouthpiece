@@ -12,6 +12,4 @@ test("dictionary view wires the terminology settings card to profile review acti
 
   assert.match(source, /TerminologySettingsCard/);
   assert.match(source, /terminologyProfile/);
-  assert.match(source, /approveTerminologySuggestion/);
-  assert.match(source, /rejectTerminologySuggestion/);
 });

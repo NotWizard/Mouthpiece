@@ -67,16 +67,6 @@ test("clipboard flow routes paste execution through the insertion planner", asyn
   assert.match(source, /(const|let) insertionPlan = createInsertionPlan\(/);
 });
 
-test("paste IPC passes planner-derived monitor metadata into text monitoring", async () => {
-  const source = await fs.readFile(
-    path.resolve(process.cwd(), "src/helpers/ipcHandlers.js"),
-    "utf8"
-  );
-
-  assert.match(source, /monitorMode:\s*normalizedResult\.monitorMode/);
-  assert.match(source, /intent:\s*normalizedOptions\.intent/);
-});
-
 test("save transcription IPC still returns the database result payload", async () => {
   const source = await fs.readFile(
     path.resolve(process.cwd(), "src/helpers/ipcHandlers.js"),

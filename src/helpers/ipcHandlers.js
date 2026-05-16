@@ -24,9 +24,6 @@ const SONIOX_ASYNC_TIMEOUT_MS = 120000;
 const HTTP_REQUEST_TIMEOUT_MS = 120000;
 const HTTP_TIMEOUT_ERROR_CODE = "REQUEST_TIMEOUT";
 
-// Debounce delay: wait for user to stop typing before processing corrections
-const AUTO_LEARN_DEBOUNCE_MS = 1500;
-
 function createTimeoutError(timeoutMs) {
   const err = new Error(`Request timed out after ${Math.round(timeoutMs / 1000)}s`);
   err.code = HTTP_TIMEOUT_ERROR_CODE;
@@ -248,7 +245,7 @@ class IPCHandlers {
     this.updateManager = managers.updateManager;
     this.windowManager = managers.windowManager;
     this.windowsKeyManager = managers.windowsKeyManager;
-    this.textEditMonitor = managers.textEditMonitor;
+    this.targetAppCapture = managers.targetAppCapture;
     this.macOSPermissionFlowManager = managers.macOSPermissionFlowManager;
     this.getTrayManager = managers.getTrayManager;
     this.whisperCudaManager = managers.whisperCudaManager;
@@ -257,12 +254,6 @@ class IPCHandlers {
     this.deepgramStreaming = null;
     this.bailianRealtimeStreaming = null;
     this.sonioxStreaming = null;
-    this._autoLearnEnabled = true; // Default on, synced from renderer
-    this._autoLearnDebounceTimer = null;
-    this._autoLearnLatestData = null;
-    this._lastPastePolicyContext = null;
-    this._textEditHandler = null;
-    this._setupTextEditMonitor();
     this.setupHandlers();
 
     if (this.whisperManager?.serverManager) {
@@ -281,124 +272,6 @@ class IPCHandlers {
       this.macOSPermissionFlowManager.on("event", (payload) => {
         this.broadcastToWindows("accessibility-permission-flow-event", payload);
       });
-    }
-  }
-
-  _getDictionarySafe() {
-    try {
-      return this.databaseManager.getDictionary();
-    } catch {
-      return [];
-    }
-  }
-
-  _cleanupTextEditMonitor() {
-    if (this._autoLearnDebounceTimer) {
-      clearTimeout(this._autoLearnDebounceTimer);
-      this._autoLearnDebounceTimer = null;
-    }
-    this._autoLearnLatestData = null;
-    if (this.textEditMonitor && this._textEditHandler) {
-      this.textEditMonitor.removeListener("text-edited", this._textEditHandler);
-      this._textEditHandler = null;
-    }
-  }
-
-  _setupTextEditMonitor() {
-    if (!this.textEditMonitor) return;
-
-    this._textEditHandler = (data) => {
-      if (
-        !data ||
-        typeof data.originalText !== "string" ||
-        typeof data.newFieldValue !== "string"
-      ) {
-        debugLogger.debug("[AutoLearn] Invalid event payload, skipping");
-        return;
-      }
-
-      const { originalText, newFieldValue } = data;
-      const policyContext = this._lastPastePolicyContext || null;
-
-      debugLogger.debug("[AutoLearn] text-edited event", {
-        originalPreview: originalText.substring(0, 80),
-        newValuePreview: newFieldValue.substring(0, 80),
-        targetApp: policyContext?.targetApp?.appName || "",
-      });
-
-      this._autoLearnLatestData = { originalText, newFieldValue, policyContext };
-
-      if (this._autoLearnDebounceTimer) {
-        clearTimeout(this._autoLearnDebounceTimer);
-      }
-
-      this._autoLearnDebounceTimer = setTimeout(() => {
-        this._processCorrections();
-      }, AUTO_LEARN_DEBOUNCE_MS);
-    };
-
-    this.textEditMonitor.on("text-edited", this._textEditHandler);
-  }
-
-  _processCorrections() {
-    this._autoLearnDebounceTimer = null;
-    if (!this._autoLearnLatestData) return;
-    if (!this._autoLearnEnabled) {
-      debugLogger.debug("[AutoLearn] Disabled, skipping correction processing");
-      this._autoLearnLatestData = null;
-      return;
-    }
-
-    const { originalText, newFieldValue, policyContext } = this._autoLearnLatestData;
-    this._autoLearnLatestData = null;
-
-    if (policyContext?.sensitiveAppDecision?.blocksAutoLearn) {
-      debugLogger.debug("[AutoLearn] Sensitive app policy skipped correction processing", {
-        matchedRuleId: policyContext.sensitiveAppDecision.ruleId,
-        action: policyContext.sensitiveAppDecision.action,
-        appName: policyContext.targetApp?.appName || "",
-      });
-      return;
-    }
-
-    try {
-      const { extractCorrectionSuggestions } = require("../utils/correctionLearner");
-      const currentDict = this._getDictionarySafe();
-      const corrections = extractCorrectionSuggestions(originalText, newFieldValue, currentDict);
-      const normalizeKey = (value) =>
-        String(value || "")
-          .trim()
-          .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "")
-          .toLowerCase();
-      const currentKeys = new Set(currentDict.map(normalizeKey).filter(Boolean));
-      const dedupedCorrections = [];
-      const dedupedKeys = new Set();
-      for (const correction of corrections) {
-        const cleaned = String(correction?.term || "").trim();
-        const key = normalizeKey(cleaned);
-        if (!cleaned || !key || !correction?.sourceTerm) continue;
-        if (currentKeys.has(key) || dedupedKeys.has(key)) continue;
-        dedupedCorrections.push({
-          term: cleaned,
-          sourceTerm: String(correction.sourceTerm || "").trim(),
-          source: String(correction.source || "auto_learn_edit").trim() || "auto_learn_edit",
-        });
-        dedupedKeys.add(key);
-      }
-
-      debugLogger.debug("[AutoLearn] Corrections result", {
-        corrections: dedupedCorrections,
-        dictSize: currentDict.length,
-      });
-
-      if (dedupedCorrections.length > 0) {
-        // Show the overlay so the toast is visible (it may have been hidden after dictation)
-        this.windowManager.showDictationPanel();
-        this.broadcastToWindows("corrections-learned", dedupedCorrections);
-        debugLogger.debug("[AutoLearn] Saved corrections", { corrections: dedupedCorrections });
-      }
-    } catch (error) {
-      debugLogger.debug("[AutoLearn] Error processing corrections", { error: error.message });
     }
   }
 
@@ -537,18 +410,6 @@ class IPCHandlers {
     });
 
     // Dictionary handlers
-    ipcMain.on("auto-learn-changed", (_event, enabled) => {
-      this._autoLearnEnabled = !!enabled;
-      if (!this._autoLearnEnabled) {
-        if (this._autoLearnDebounceTimer) {
-          clearTimeout(this._autoLearnDebounceTimer);
-          this._autoLearnDebounceTimer = null;
-        }
-        this._autoLearnLatestData = null;
-      }
-      debugLogger.debug("[AutoLearn] Setting changed", { enabled: this._autoLearnEnabled });
-    });
-
     ipcMain.handle("db-get-dictionary", async () => {
       return this.databaseManager.getDictionary();
     });
@@ -560,37 +421,9 @@ class IPCHandlers {
       return this.databaseManager.setDictionary(words);
     });
 
-    ipcMain.handle("undo-learned-corrections", async (_event, words) => {
-      try {
-        if (!Array.isArray(words) || words.length === 0) {
-          return { success: false };
-        }
-        const validWords = words.filter((w) => typeof w === "string" && w.trim().length > 0);
-        if (validWords.length === 0) {
-          return { success: false };
-        }
-        const currentDict = this._getDictionarySafe();
-        const removeSet = new Set(validWords.map((w) => w.toLowerCase()));
-        const updatedDict = currentDict.filter((w) => !removeSet.has(w.toLowerCase()));
-        const saveResult = this.databaseManager.setDictionary(updatedDict);
-        if (saveResult?.success === false) {
-          debugLogger.debug("[AutoLearn] Undo failed to save dictionary", {
-            error: saveResult.error,
-          });
-          return { success: false };
-        }
-        this.broadcastToWindows("dictionary-updated", updatedDict);
-        debugLogger.debug("[AutoLearn] Undo: removed words", { words: validWords });
-        return { success: true };
-      } catch (err) {
-        debugLogger.debug("[AutoLearn] Undo failed", { error: err.message });
-        return { success: false };
-      }
-    });
-
     ipcMain.handle("paste-text", async (event, text, options) => {
-      const targetPid = Number.isInteger(this.textEditMonitor?.lastTargetPid)
-        ? this.textEditMonitor.lastTargetPid
+      const targetPid = Number.isInteger(this.targetAppCapture?.lastTargetPid)
+        ? this.targetAppCapture.lastTargetPid
         : null;
       const normalizedOptions = {
         ...options,
@@ -604,7 +437,6 @@ class IPCHandlers {
       const privacyPreferences = {
         protectionsEnabled: options?.sensitiveAppProtectionEnabled !== false,
         allowCloudReasoning: options?.allowSensitiveAppCloudReasoning === true,
-        allowAutoLearn: options?.allowSensitiveAppAutoLearn === true,
         allowPasteMonitoring: options?.allowSensitiveAppPasteMonitoring === true,
         allowInjection: options?.sensitiveAppBlockInsertion === false,
       };
@@ -711,44 +543,6 @@ class IPCHandlers {
         this.windowManager?.showDictationPanel?.();
       }
 
-      this._lastPastePolicyContext = {
-        targetApp: normalizedOptions.targetApp,
-        sensitiveAppDecision: sensitiveAppPolicy,
-        privacyPreferences,
-      };
-
-      debugLogger.debug("[AutoLearn] Paste completed", {
-        autoLearnEnabled: this._autoLearnEnabled,
-        hasMonitor: !!this.textEditMonitor,
-        targetPid,
-      });
-      if (
-        this.textEditMonitor &&
-        this._autoLearnEnabled &&
-        !sensitiveAppPolicy.blocksAutoLearn &&
-        !sensitiveAppPolicy.blocksPasteMonitoring
-      ) {
-        setTimeout(() => {
-          try {
-            debugLogger.debug("[AutoLearn] Starting monitoring", {
-              textPreview: text.substring(0, 80),
-            });
-            this.textEditMonitor.startMonitoring(text, 30000, {
-              targetPid,
-              intent: normalizedOptions.intent,
-              monitorMode: normalizedResult.monitorMode,
-            });
-          } catch (err) {
-            debugLogger.debug("[AutoLearn] Failed to start monitoring", { error: err.message });
-          }
-        }, 500);
-      } else if (sensitiveAppPolicy.matched) {
-        debugLogger.debug("[AutoLearn] Sensitive app policy skipped monitoring", {
-          matchedRuleId: sensitiveAppPolicy.ruleId,
-          action: sensitiveAppPolicy.action,
-          appName: normalizedOptions.targetApp?.appName || "",
-        });
-      }
       return normalizedResult;
     });
 
@@ -773,7 +567,7 @@ class IPCHandlers {
     });
 
     ipcMain.handle("get-target-app-info", async () => {
-      const info = this.textEditMonitor?.getLastTargetAppInfo?.() || {};
+      const info = this.targetAppCapture?.getLastTargetAppInfo?.() || {};
       const hasMainProcessData = Boolean(info.appName) || Number.isInteger(info.processId);
 
       return {

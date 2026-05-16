@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > Note: Version numbering restarts at `1.0.0` for this standalone Mouthpiece repository. The `1.5.x` entries below are retained as inherited upstream reference only.
 
+## [1.2.0] - 2026-05-16
+
+### Removed
+
+- **Auto-Learn Correction Monitoring**: Removed the feature that monitored user edits in the target app after a paste and automatically appended corrected words to the custom dictionary. The required AppleScript `AXEnhancedUserInterface` flip caused 1-2 second freezes in Chromium-based target apps (Chrome, VS Code, Cursor, Slack, Discord, Notion, etc.) every time a paste finished, because each invocation forced the app to rebuild its accessibility tree on the main thread. Manual custom dictionary, glossary terms, blacklist, and homophone mappings remain available.
+- Removed dependent surfaces along with the feature: the `Auto-learn corrections` toggle in Settings → Dictionary, the pending-suggestions review panel inside the terminology card, the dictionary-suggestion overlay toast, the `setAutoLearnEnabled` / `onCorrectionsLearned` / `undoLearnedCorrections` IPC bridges, the `block_auto_learn` sensitive-app policy action, and the `allowSensitiveAppAutoLearn` privacy switch.
+- Removed the platform text-monitor binaries (`macos-text-monitor`, `linux-text-monitor`, `windows-text-monitor`), their compile / download scripts, and the matching GitHub Actions release workflows.
+
+### Changed
+
+- Renamed `src/helpers/textEditMonitor.js` to `src/helpers/targetAppCapture.js`, retaining only the foreground-app PID capture used by paste targeting at hotkey press.
+- Existing words that had previously been auto-learned into the user dictionary are kept as ordinary custom dictionary entries; no migration is required.
+
 ## [1.1.2] - 2026-03-19
 
 ### Added

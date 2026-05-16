@@ -292,7 +292,7 @@ class WindowManager {
       lastToggleTime = now;
 
       // Capture target app PID before the window might steal focus
-      if (this.textEditMonitor) this.textEditMonitor.captureTargetPid();
+      if (this.targetAppCapture) this.targetAppCapture.captureTargetPid();
 
       this.showDictationPanel();
       this.mainWindow.webContents.send("toggle-dictation");
@@ -306,7 +306,7 @@ class WindowManager {
 
     const requiredModifiers = this.getMacRequiredModifiers(hotkey);
     if (requiredModifiers.size === 0) {
-      if (this.textEditMonitor) this.textEditMonitor.captureTargetPid();
+      if (this.targetAppCapture) this.targetAppCapture.captureTargetPid();
       this.showDictationPanel();
       if (this.mainWindow && !this.mainWindow.isDestroyed()) {
         this.mainWindow.webContents.send("toggle-dictation");
@@ -327,7 +327,7 @@ class WindowManager {
       onPendingCancel: () => this.hideDictationPanel(),
     });
 
-    if (this.textEditMonitor) this.textEditMonitor.captureTargetPid();
+    if (this.targetAppCapture) this.targetAppCapture.captureTargetPid();
     session.keyDown();
 
     const safetyTimeoutId = setTimeout(() => {

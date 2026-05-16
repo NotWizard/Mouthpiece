@@ -1,6 +1,8 @@
 # Phase 5 to Phase 7 Hardening Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+>
+> **Status update (v1.2.0):** The auto-learn / pending-suggestion / TextEditMonitor pieces in this plan were implemented and later removed. Auto-learn caused 1-2 second freezes in Chromium-based target apps via accessibility tree rebuilds, and the cost outweighed the benefit. Manual dictionary entry, glossary, blacklist, homophone mapping, sensitive-app cloud-reasoning / paste-monitoring / injection blocking, and PID capture for paste targeting remain.
 
 **Goal:** Turn Phase 5, Phase 6, and Phase 7 of the ASR roadmap into an execution-ready plan that improves direct-send quality, cross-app insertion reliability, and release confidence without taking on local realtime ASR.
 

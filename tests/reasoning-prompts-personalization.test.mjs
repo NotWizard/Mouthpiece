@@ -61,21 +61,12 @@ test("system prompt includes terminology personalization guidance for preferred 
   const { module, cleanup } = await loadPromptsModule();
 
   try {
-    const prompt = module.getSystemPrompt(
-      ["Raycast"],
-      "en",
-      "open race cast",
-      "en",
-      undefined,
-      undefined,
-      {
-        preferredTerms: ["Raycast"],
-        blacklistedTerms: ["umm"],
-        homophoneMappings: [{ source: "race cast", target: "Raycast" }],
-        glossaryTerms: ["Project Atlas"],
-        pendingSuggestions: [{ term: "WeRSS", sourceTerm: "V R S S", source: "auto_learn_edit" }],
-      }
-    );
+    const prompt = module.getSystemPrompt(["Raycast"], "en", {
+      preferredTerms: ["Raycast"],
+      blacklistedTerms: ["umm"],
+      homophoneMappings: [{ source: "race cast", target: "Raycast" }],
+      glossaryTerms: ["Project Atlas"],
+    });
 
     assert.match(prompt, /Preferred terminology:/);
     assert.match(prompt, /Raycast/);
@@ -84,9 +75,6 @@ test("system prompt includes terminology personalization guidance for preferred 
     assert.match(prompt, /umm/);
     assert.match(prompt, /Homophone normalization candidates:/);
     assert.match(prompt, /race cast → Raycast/);
-    assert.doesNotMatch(prompt, /Pending terminology suggestions for review:/);
-    assert.doesNotMatch(prompt, /V R S S → WeRSS/);
-    assert.doesNotMatch(prompt, /WeRSS/);
   } finally {
     cleanup();
   }

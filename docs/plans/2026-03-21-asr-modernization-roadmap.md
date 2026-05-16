@@ -1,6 +1,8 @@
 # ASR Modernization Roadmap Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+>
+> **Status update (v1.2.0):** The auto-learn / pending-suggestion personalization items in this plan were implemented and later removed. Auto-learn caused 1-2 second freezes in Chromium-based target apps via accessibility tree rebuilds, and the cost outweighed the benefit. Manual dictionary entry, glossary terms, blacklist, and homophone mapping remain.
 
 **Goal:** Turn Mouthpiece from a strong dictation app with cloud realtime strengths into a measurable, low-latency, stable, publish-quality ASR system with durable local and cloud paths.
 

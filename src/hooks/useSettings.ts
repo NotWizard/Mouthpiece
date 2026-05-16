@@ -1,9 +1,8 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef } from "react";
+import React, { createContext, useContext, useEffect, useRef } from "react";
 import { useSettingsStore, initializeSettings } from "../stores/settingsStore";
 import logger from "../utils/logger";
-import { useLocalStorage } from "./useLocalStorage";
 import type { LocalTranscriptionProvider } from "../types/electron";
-import type { TerminologyProfile, TerminologySuggestion } from "../utils/terminologyProfile";
+import type { TerminologyProfile } from "../utils/terminologyProfile";
 
 export type AudioQualityMode = "noise_reduction" | "balanced" | "low_latency";
 export type VoiceGateStrictness = "relaxed" | "standard" | "strict";
@@ -71,7 +70,6 @@ export interface PrivacySettings {
   sensitiveAppProtectionEnabled: boolean;
   sensitiveAppBlockInsertion: boolean;
   allowSensitiveAppCloudReasoning: boolean;
-  allowSensitiveAppAutoLearn: boolean;
   allowSensitiveAppPasteMonitoring: boolean;
 }
 
@@ -82,8 +80,6 @@ export interface ThemeSettings {
 function useSettingsInternal() {
   const store = useSettingsStore();
   const setCustomDictionary = store.setCustomDictionary;
-  const addTerminologySuggestions = store.addTerminologySuggestions;
-  const pruneExpiredTerminologySuggestions = store.pruneExpiredTerminologySuggestions;
 
   // One-time initialization: sync API keys, dictation key, UI language,
   // and dictionary from the main process / SQLite.
@@ -100,7 +96,7 @@ function useSettingsInternal() {
     });
   }, []);
 
-  // Listen for dictionary updates from main process (auto-learn corrections)
+  // Listen for dictionary updates from main process
   useEffect(() => {
     if (typeof window === "undefined" || !window.electronAPI?.onDictionaryUpdated) return;
     const unsubscribe = window.electronAPI.onDictionaryUpdated((words: string[]) => {
@@ -110,70 +106,6 @@ function useSettingsInternal() {
     });
     return unsubscribe;
   }, [setCustomDictionary]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.electronAPI?.onCorrectionsLearned) return;
-    const unsubscribe = window.electronAPI.onCorrectionsLearned(
-      (entries: string[] | TerminologySuggestion[]) => {
-        if (!Array.isArray(entries) || entries.length === 0) {
-          return;
-        }
-
-        const suggestions = entries
-          .map((entry) =>
-            typeof entry === "string"
-              ? {
-                  term: entry,
-                  sourceTerm: entry,
-                  source: "auto_learn_edit",
-                }
-              : entry
-          )
-          .filter((entry): entry is TerminologySuggestion => Boolean(entry?.term));
-
-        if (suggestions.length > 0) {
-          addTerminologySuggestions(suggestions);
-        }
-      }
-    );
-    return unsubscribe;
-  }, [addTerminologySuggestions]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    pruneExpiredTerminologySuggestions();
-    const intervalId = window.setInterval(
-      () => pruneExpiredTerminologySuggestions(),
-      60 * 60 * 1000
-    );
-
-    return () => window.clearInterval(intervalId);
-  }, [pruneExpiredTerminologySuggestions]);
-
-  // Auto-learn corrections from user edits in external apps
-  const [autoLearnCorrections, setAutoLearnCorrectionsRaw] = useLocalStorage(
-    "autoLearnCorrections",
-    true,
-    {
-      serialize: String,
-      deserialize: (value: string) => value !== "false",
-    }
-  );
-
-  const setAutoLearnCorrections = useCallback(
-    (enabled: boolean) => {
-      setAutoLearnCorrectionsRaw(enabled);
-      window.electronAPI?.setAutoLearnEnabled?.(enabled);
-    },
-    [setAutoLearnCorrectionsRaw]
-  );
-
-  // Sync auto-learn state to main process on mount
-  useEffect(() => {
-    window.electronAPI?.setAutoLearnEnabled?.(autoLearnCorrections);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Sync startup pre-warming preferences to main process
   const {
@@ -288,9 +220,6 @@ function useSettingsInternal() {
     setCustomReasoningEnableThinking: store.setCustomReasoningEnableThinking,
     setCustomDictionary: store.setCustomDictionary,
     setTerminologyProfile: store.setTerminologyProfile,
-    addTerminologySuggestions: store.addTerminologySuggestions,
-    approveTerminologySuggestion: store.approveTerminologySuggestion,
-    rejectTerminologySuggestion: store.rejectTerminologySuggestion,
     setUseReasoningModel: store.setUseReasoningModel,
     setReasoningModel: store.setReasoningModel,
     setReasoningProvider: store.setReasoningProvider,
@@ -312,19 +241,15 @@ function useSettingsInternal() {
     setAudioCuesEnabled: store.setAudioCuesEnabled,
     selectedMicDeviceId: store.selectedMicDeviceId,
     setSelectedMicDeviceId: store.setSelectedMicDeviceId,
-    autoLearnCorrections,
-    setAutoLearnCorrections,
     cloudBackupEnabled: store.cloudBackupEnabled,
     sensitiveAppProtectionEnabled: store.sensitiveAppProtectionEnabled,
     sensitiveAppBlockInsertion: store.sensitiveAppBlockInsertion,
     allowSensitiveAppCloudReasoning: store.allowSensitiveAppCloudReasoning,
-    allowSensitiveAppAutoLearn: store.allowSensitiveAppAutoLearn,
     allowSensitiveAppPasteMonitoring: store.allowSensitiveAppPasteMonitoring,
     setCloudBackupEnabled: store.setCloudBackupEnabled,
     setSensitiveAppProtectionEnabled: store.setSensitiveAppProtectionEnabled,
     setSensitiveAppBlockInsertion: store.setSensitiveAppBlockInsertion,
     setAllowSensitiveAppCloudReasoning: store.setAllowSensitiveAppCloudReasoning,
-    setAllowSensitiveAppAutoLearn: store.setAllowSensitiveAppAutoLearn,
     setAllowSensitiveAppPasteMonitoring: store.setAllowSensitiveAppPasteMonitoring,
     updateTranscriptionSettings: store.updateTranscriptionSettings,
     updateReasoningSettings: store.updateReasoningSettings,

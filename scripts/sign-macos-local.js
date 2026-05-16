@@ -41,7 +41,6 @@ function defaultNestedCandidates(appPath) {
     path.join(appPath, "Contents", "Resources", "bin", "macos-permission-flow"),
     path.join(appPath, "Contents", "Resources", "bin", "macos-fast-paste"),
     path.join(appPath, "Contents", "Resources", "bin", "macos-globe-listener"),
-    path.join(appPath, "Contents", "Resources", "bin", "macos-text-monitor"),
   ];
 }
 

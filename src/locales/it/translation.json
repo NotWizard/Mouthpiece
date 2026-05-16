@@ -941,8 +941,6 @@
       "placeholder": "Aggiungi una parola o frase...",
       "add": "Aggiungi",
       "pressEnterToAdd": "Premi Invio per aggiungere",
-      "autoLearnTitle": "Apprendimento automatico dalle correzioni",
-      "autoLearnDescription": "Quando correggi una trascrizione nell’app di destinazione, Mouthpiece crea suggerimenti per il dizionario da rivedere. Hanno effetto solo dopo la conferma e vengono eliminati dopo 24 ore se non confermati.",
       "yourWords": "Le tue parole",
       "clearDictionaryTitle": "Svuotare il dizionario?",
       "clearDictionaryDescription": "Verranno rimosse tutte le parole dal tuo dizionario personalizzato. Questa azione non può essere annullata.",
@@ -991,13 +989,7 @@
       "homophoneTitle": "Homophone Mappings",
       "homophoneEmpty": "No homophone mappings yet. Use source=target to correct recurring sound-alikes.",
       "homophonePlaceholder": "Add mapping like mode boat=mouthpiece",
-      "addMapping": "Add homophone mapping",
-      "pendingSuggestionsTitle": "Pending Suggestions",
-      "pendingSuggestionsEmpty": "No pending suggestions right now.",
-      "pendingSuggestionSource": "Source: {{source}}",
-      "approve": "Conferma",
-      "reject": "Reject",
-      "pendingSuggestionsDescription": "Conferma i suggerimenti entro 24 ore per aggiungerli al dizionario. Quelli non confermati vengono eliminati automaticamente."
+      "addMapping": "Add homophone mapping"
     },
     "general": {
       "appearance": {
@@ -1405,9 +1397,7 @@
         "description": "Non è stato possibile registrare la scorciatoia selezionata. Scegline un’altra nelle impostazioni."
       },
       "addedToDict": "{{words}} aggiunto al tuo dizionario",
-      "undo": "Annulla",
-      "dictionarySuggestionFound": "Suggerimento dizionario trovato: {{words}}. Confermalo nel dizionario prima che abbia effetto.",
-      "reviewLater": "Rivedi dopo"
+      "undo": "Annulla"
     },
     "mic": {
       "hotkeyToSpeak": "Premi {{hotkey}} per parlare",

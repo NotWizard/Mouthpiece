@@ -54,16 +54,12 @@ test("macOS native helper mode can be forced back on with an explicit env overri
   assert.equal(forcedNative.reason, "env-forced-native");
 });
 
-test("clipboard and text monitor both route through the shared macOS helper policy and polling fallback", async () => {
-  const [clipboardSource, monitorSource] = await Promise.all([
-    fs.readFile(path.resolve(process.cwd(), "src/helpers/clipboard.js"), "utf8"),
-    fs.readFile(path.resolve(process.cwd(), "src/helpers/textEditMonitor.js"), "utf8"),
-  ]);
+test("clipboard routes through the shared macOS helper policy", async () => {
+  const clipboardSource = await fs.readFile(
+    path.resolve(process.cwd(), "src/helpers/clipboard.js"),
+    "utf8"
+  );
 
   assert.match(clipboardSource, /resolveMacOSAccessibilityMode/);
   assert.match(clipboardSource, /useNativePasteHelper/);
-  assert.match(monitorSource, /resolveMacOSAccessibilityMode/);
-  assert.match(monitorSource, /_fallbackMacOSNativeToPolling/);
-  assert.match(monitorSource, /NO_ELEMENT/);
-  assert.match(monitorSource, /NO_VALUE/);
 });

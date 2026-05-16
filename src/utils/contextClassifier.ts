@@ -90,7 +90,6 @@ const readSensitiveAppProtectionOptions = () => {
     return {
       protectionsEnabled: true,
       allowCloudReasoning: false,
-      allowAutoLearn: false,
       allowPasteMonitoring: false,
       allowInjection: false,
     };
@@ -99,7 +98,6 @@ const readSensitiveAppProtectionOptions = () => {
   return {
     protectionsEnabled: window.localStorage.getItem("sensitiveAppProtectionEnabled") !== "false",
     allowCloudReasoning: window.localStorage.getItem("allowSensitiveAppCloudReasoning") === "true",
-    allowAutoLearn: window.localStorage.getItem("allowSensitiveAppAutoLearn") === "true",
     allowPasteMonitoring:
       window.localStorage.getItem("allowSensitiveAppPasteMonitoring") === "true",
     allowInjection: window.localStorage.getItem("sensitiveAppBlockInsertion") === "false",

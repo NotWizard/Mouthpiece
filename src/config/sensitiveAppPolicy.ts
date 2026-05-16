@@ -2,7 +2,6 @@ import type { TargetAppInfo } from "../types/electron";
 
 export type SensitiveAppAction =
   | "allow_full_pipeline"
-  | "block_auto_learn"
   | "block_cloud_reasoning"
   | "block_paste_monitoring"
   | "block_injection";
@@ -13,7 +12,6 @@ export interface SensitiveAppRule {
   appMatchers: RegExp[];
   restrictions: {
     cloudReasoning: boolean;
-    autoLearn: boolean;
     pasteMonitoring: boolean;
     injection: boolean;
   };
@@ -26,7 +24,6 @@ export interface SensitiveAppDecision {
   label: string | null;
   matchedAppName: string | null;
   blocksCloudReasoning: boolean;
-  blocksAutoLearn: boolean;
   blocksPasteMonitoring: boolean;
   blocksInjection: boolean;
 }
@@ -38,7 +35,6 @@ const SENSITIVE_APP_RULES: SensitiveAppRule[] = [
     appMatchers: [/(1password|bitwarden|lastpass|dashlane|keeper|passwords|enpass|keychain)/i],
     restrictions: {
       cloudReasoning: true,
-      autoLearn: true,
       pasteMonitoring: true,
       injection: true,
     },
@@ -49,7 +45,6 @@ const SENSITIVE_APP_RULES: SensitiveAppRule[] = [
     appMatchers: [/(authy|okta|duo|microsoft authenticator|google authenticator)/i],
     restrictions: {
       cloudReasoning: true,
-      autoLearn: true,
       pasteMonitoring: true,
       injection: false,
     },
@@ -62,7 +57,6 @@ const SENSITIVE_APP_RULES: SensitiveAppRule[] = [
     ],
     restrictions: {
       cloudReasoning: true,
-      autoLearn: true,
       pasteMonitoring: true,
       injection: false,
     },
@@ -75,7 +69,6 @@ function getActionFromRestrictions(
   if (restrictions.injection) return "block_injection";
   if (restrictions.pasteMonitoring) return "block_paste_monitoring";
   if (restrictions.cloudReasoning) return "block_cloud_reasoning";
-  if (restrictions.autoLearn) return "block_auto_learn";
   return "allow_full_pipeline";
 }
 
@@ -87,7 +80,6 @@ function emptyDecision(targetApp?: Partial<TargetAppInfo> | null): SensitiveAppD
     label: null,
     matchedAppName: targetApp?.appName?.trim?.() || null,
     blocksCloudReasoning: false,
-    blocksAutoLearn: false,
     blocksPasteMonitoring: false,
     blocksInjection: false,
   };
@@ -97,14 +89,12 @@ export function resolveSensitiveAppPolicy({
   targetApp,
   protectionsEnabled = true,
   allowCloudReasoning = false,
-  allowAutoLearn = false,
   allowPasteMonitoring = false,
   allowInjection = false,
 }: {
   targetApp?: Partial<TargetAppInfo> | null;
   protectionsEnabled?: boolean;
   allowCloudReasoning?: boolean;
-  allowAutoLearn?: boolean;
   allowPasteMonitoring?: boolean;
   allowInjection?: boolean;
 } = {}): SensitiveAppDecision {
@@ -126,7 +116,6 @@ export function resolveSensitiveAppPolicy({
 
   const effectiveRestrictions = {
     cloudReasoning: rule.restrictions.cloudReasoning && !allowCloudReasoning,
-    autoLearn: rule.restrictions.autoLearn && !allowAutoLearn,
     pasteMonitoring: rule.restrictions.pasteMonitoring && !allowPasteMonitoring,
     injection: rule.restrictions.injection && !allowInjection,
   };
@@ -138,7 +127,6 @@ export function resolveSensitiveAppPolicy({
     label: rule.label,
     matchedAppName: appName,
     blocksCloudReasoning: effectiveRestrictions.cloudReasoning,
-    blocksAutoLearn: effectiveRestrictions.autoLearn,
     blocksPasteMonitoring: effectiveRestrictions.pasteMonitoring,
     blocksInjection: effectiveRestrictions.injection,
   };
