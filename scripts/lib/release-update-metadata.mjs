@@ -282,6 +282,15 @@ export function renderHomebrewCask(releaseInfo) {
 
   app "Mouthpiece.app"
 
+  # Mouthpiece is signed with a self-signed code-signing cert (no Apple Developer ID)
+  # so Gatekeeper marks downloads as quarantined. Stripping the quarantine attribute
+  # post-install lets users open the app on first launch without the right-click dance.
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-dr", "com.apple.quarantine", "#{appdir}/Mouthpiece.app"],
+                   sudo: false
+  end
+
   zap trash: [
     "~/Library/Application Support/Mouthpiece",
     "~/Library/Caches/com.mouthpiece.app",

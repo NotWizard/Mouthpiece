@@ -103,6 +103,9 @@ test("renderHomebrewCask builds the Mouthpiece cask from release asset digests",
   assert.match(cask, /sha256 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"/);
   assert.match(cask, /Mouthpiece-\#\{version\}-arm64\.dmg/);
   assert.match(cask, /Mouthpiece-\#\{version\}\.dmg/);
+  // Self-signed builds rely on this postflight to strip the Gatekeeper quarantine
+  // attribute so users can launch on first install without a right-click bypass.
+  assert.match(cask, /postflight do[\s\S]+xattr[\s\S]+com\.apple\.quarantine[\s\S]+Mouthpiece\.app/);
 });
 
 test("getHomebrewCaskReleaseInfo rejects DMG assets without GitHub sha256 digests", async () => {

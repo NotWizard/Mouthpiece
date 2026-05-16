@@ -212,7 +212,11 @@ jobs:
     needs: prepare
     runs-on: ${{ matrix.runner }}
     env:
-      APPLE_SIGNING_ENABLED: ${{ secrets.APPLE_CERTIFICATE_BASE64 != '' && secrets.APPLE_CERTIFICATE_PASSWORD != '' && secrets.APPLE_API_KEY_BASE64 != '' && secrets.APPLE_API_KEY_ID != '' && secrets.APPLE_API_ISSUER != '' && secrets.APPLE_TEAM_ID != '' }}
+      # We sign every macOS build with a self-signed code-signing certificate so
+      # the codesign Designated Requirement (and therefore TCC permissions) stays
+      # stable across releases. Without this, every update would force users to
+      # re-grant Accessibility / Microphone access. See docs/release/code-signing-runbook.md.
+      MAC_SIGNING_ENABLED: ${{ secrets.MAC_SELFSIGN_CERT_BASE64 != '' && secrets.MAC_SELFSIGN_CERT_PASSWORD != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -283,30 +287,25 @@ jobs:
           key: macos-${{ matrix.arch }}-electron-${{ hashFiles('**/package-lock.json') }}
           restore-keys: macos-${{ matrix.arch }}-electron-
 
-      - name: Setup macOS Code Signing
-        if: env.APPLE_SIGNING_ENABLED == 'true'
+      - name: Setup macOS Code Signing (self-signed)
+        if: env.MAC_SIGNING_ENABLED == 'true'
         env:
-          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
+          MAC_SELFSIGN_CERT_BASE64: ${{ secrets.MAC_SELFSIGN_CERT_BASE64 }}
+          MAC_SELFSIGN_CERT_PASSWORD: ${{ secrets.MAC_SELFSIGN_CERT_PASSWORD }}
         run: |
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
-          API_KEY_PATH=$RUNNER_TEMP/api_key.p8
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
 
-          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > $CERTIFICATE_PATH
-          echo "$APPLE_API_KEY_BASE64" | base64 --decode > $API_KEY_PATH
+          echo "$MAC_SELFSIGN_CERT_BASE64" | base64 --decode > $CERTIFICATE_PATH
 
           security create-keychain -p "runner" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "runner" $KEYCHAIN_PATH
 
-          security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security list-keychain -d user -s $KEYCHAIN_PATH
+          security import $CERTIFICATE_PATH -P "$MAC_SELFSIGN_CERT_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | tr -d ' "')
 
-          security set-key-partition-list -S apple-tool:,apple: -s -k "runner" $KEYCHAIN_PATH
-
-          echo "APPLE_API_KEY=$API_KEY_PATH" >> $GITHUB_ENV
+          security set-key-partition-list -S apple-tool:,apple:,codesign:- -s -k "runner" $KEYCHAIN_PATH
 
       - name: Build Application (${{ matrix.arch }})
         run: npm run build:mac -- --${{ matrix.arch }} --publish always
@@ -316,11 +315,33 @@ jobs:
           VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
           VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
           VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.APPLE_SIGNING_ENABLED == 'true' && 'true' || 'false' }}
-          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.MAC_SIGNING_ENABLED == 'true' && 'true' || 'false' }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_SELFSIGN_CERT_PASSWORD }}
+
+      - name: Verify Designated Requirement
+        if: env.MAC_SIGNING_ENABLED == 'true'
+        shell: bash
+        run: |
+          # The DR must reference the certificate leaf hash (stable across versions).
+          # If it shows `cdhash H"..."` instead, our self-signed identity didn't apply
+          # and TCC will treat the next release as a different app. Hard-fail.
+          APP_PATH=$(find dist -maxdepth 4 -name "Mouthpiece.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::Could not find built Mouthpiece.app under dist/"
+            exit 1
+          fi
+          echo "Inspecting $APP_PATH"
+          REQ=$(codesign -d -r- "$APP_PATH" 2>&1 | tr -d '\n' || true)
+          echo "DR: $REQ"
+          if echo "$REQ" | grep -q 'certificate leaf'; then
+            echo "✓ Designated Requirement uses certificate leaf — TCC grants will persist"
+          elif echo "$REQ" | grep -q 'certificate root'; then
+            echo "✓ Designated Requirement uses certificate root — TCC grants will persist"
+          else
+            echo "::error::DR is not certificate-anchored. TCC permissions will reset on update."
+            echo "::error::Got: $REQ"
+            exit 1
+          fi
 
       - name: Upload arch-specific update metadata
         env:
@@ -330,11 +351,10 @@ jobs:
           gh release upload "${{ needs.prepare.outputs.release_tag }}" "dist/latest-${{ matrix.arch }}-mac.yml" --clobber
 
       - name: Cleanup Certificates
-        if: always() && env.APPLE_SIGNING_ENABLED == 'true'
+        if: always() && env.MAC_SIGNING_ENABLED == 'true'
         run: |
           security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
           rm -f $RUNNER_TEMP/build_certificate.p12
-          rm -f $RUNNER_TEMP/api_key.p8
 
   finalize-update-metadata:
     needs:
