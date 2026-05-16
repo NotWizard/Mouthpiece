@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > Note: Version numbering restarts at `1.0.0` for this standalone Mouthpiece repository. The `1.5.x` entries below are retained as inherited upstream reference only.
 
+## [1.3.0] - 2026-05-16
+
+### ⚠️ One-time re-authorization required after this update
+
+After updating to v1.3.0 you will be asked to re-grant **Accessibility** (and **Microphone**, if you use voice dictation) **one final time**. macOS treats the new build as a different app because the code-signing identity changed. Once you re-grant, every future Mouthpiece update will retain your permissions automatically.
+
+### Changed
+
+- **Stable code-signing identity for persistent macOS permissions**: macOS releases are now signed with a 10-year self-signed code-signing certificate (CN `Mouthpiece Code Signing`) instead of ad-hoc signing. The codesign Designated Requirement is now anchored to that certificate, so TCC (the system that tracks Accessibility / Microphone grants) recognizes every future update as the same app and preserves your permissions across releases. No Apple Developer ID is involved; this works without notarization. See `docs/release/code-signing-runbook.md` for the full mechanism.
+- Homebrew cask now strips the Gatekeeper quarantine attribute on install via a `postflight` block, so first-launch from `brew install --cask` no longer needs the right-click → Open dance.
+
+### Internal
+
+- New `scripts/setup-self-signed-cert.sh` that generates the cert + .p12 (one-time, saved outside the repo at `~/.mouthpiece-signing/`).
+- Release workflow validates the Designated Requirement on every macOS build and hard-fails if signing silently fell back to ad-hoc.
+- New `MAC_SELFSIGN_CERT_BASE64`, `MAC_SELFSIGN_CERT_PASSWORD`, `MAC_SELFSIGN_IDENTITY` GitHub Actions secrets replace the previous Apple Developer ID gating.
+
 ## [1.2.0] - 2026-05-16
 
 ### Removed
