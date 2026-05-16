@@ -61,22 +61,6 @@ test("windows helper download scripts point at the current Mouthpiece repository
   }
 });
 
-test("text monitor download script points at the current Mouthpiece repository", () => {
-  const source = fs.readFileSync(
-    path.join(repoRoot, "scripts", "download-text-monitor.js"),
-    "utf8"
-  );
-
-  assert.ok(
-    source.includes('const REPO = "NotWizard/Mouthpiece"'),
-    "download-text-monitor.js should download releases from the current NotWizard/Mouthpiece repository"
-  );
-  assert.ok(
-    !source.includes('const REPO = "le-soleil-se-couche/Mouthpiece"'),
-    "download-text-monitor.js should not reference the removed le-soleil-se-couche/Mouthpiece fork"
-  );
-});
-
 test("llama download script skips the GitHub API when the current binary already exists", () => {
   const source = fs.readFileSync(
     path.join(repoRoot, "scripts", "download-llama-server.js"),
@@ -238,19 +222,3 @@ test("Release workflow validates that package.json matches the resolved release 
   );
 });
 
-test("Text monitor helper release workflows are manual-only", () => {
-  const workflows = [
-    ".github/workflows/build-linux-text-monitor.yml",
-    ".github/workflows/build-windows-text-monitor.yml",
-  ];
-
-  for (const relativePath of workflows) {
-    const source = fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
-
-    assert.ok(
-      source.includes("workflow_dispatch:"),
-      `${relativePath} should remain manually runnable`
-    );
-    assert.ok(!source.includes("\n  push:\n"), `${relativePath} should not auto-run on every push`);
-  }
-});

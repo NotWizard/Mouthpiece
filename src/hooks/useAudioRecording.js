@@ -532,7 +532,6 @@ export const useAudioRecording = (toast, options = {}) => {
           sensitiveAppProtectionEnabled: settings.sensitiveAppProtectionEnabled !== false,
           sensitiveAppBlockInsertion: settings.sensitiveAppBlockInsertion === true,
           allowSensitiveAppCloudReasoning: settings.allowSensitiveAppCloudReasoning === true,
-          allowSensitiveAppAutoLearn: settings.allowSensitiveAppAutoLearn === true,
           allowSensitiveAppPasteMonitoring: settings.allowSensitiveAppPasteMonitoring === true,
         });
         const pasteMode = pasteResult?.mode || (pasteResult?.success ? "pasted" : "failed");

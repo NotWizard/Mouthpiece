@@ -941,8 +941,6 @@
       "placeholder": "Wort oder Ausdruck hinzufügen...",
       "add": "Hinzufügen",
       "pressEnterToAdd": "Enter drücken zum Hinzufügen",
-      "autoLearnTitle": "Automatisch aus Korrekturen lernen",
-      "autoLearnDescription": "Wenn du eine Transkription in der Ziel-App korrigierst, erstellt Mouthpiece Wörterbuchvorschläge zur Prüfung. Sie gelten erst nach Bestätigung und werden nach 24 Stunden ohne Bestätigung automatisch gelöscht.",
       "yourWords": "Ihre Wörter",
       "clearDictionaryTitle": "Wörterbuch löschen?",
       "clearDictionaryDescription": "Dadurch werden alle Wörter aus Ihrem benutzerdefinierten Wörterbuch entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
@@ -991,13 +989,7 @@
       "homophoneTitle": "Homophone Mappings",
       "homophoneEmpty": "No homophone mappings yet. Use source=target to correct recurring sound-alikes.",
       "homophonePlaceholder": "Add mapping like mode boat=mouthpiece",
-      "addMapping": "Add homophone mapping",
-      "pendingSuggestionsTitle": "Pending Suggestions",
-      "pendingSuggestionsEmpty": "No pending suggestions right now.",
-      "pendingSuggestionSource": "Source: {{source}}",
-      "approve": "Bestätigen",
-      "reject": "Reject",
-      "pendingSuggestionsDescription": "Bestätige Vorschläge innerhalb von 24 Stunden, um sie zum Wörterbuch hinzuzufügen. Unbestätigte Vorschläge werden automatisch entfernt."
+      "addMapping": "Add homophone mapping"
     },
     "general": {
       "appearance": {
@@ -1405,9 +1397,7 @@
         "description": "Die ausgewählte Tastenkombination konnte nicht registriert werden. Bitte wähle eine andere in den Einstellungen."
       },
       "addedToDict": "{{words}} zu deinem Wörterbuch hinzugefügt",
-      "undo": "Rückgängig",
-      "dictionarySuggestionFound": "Wörterbuchvorschlag gefunden: {{words}}. Bestätige ihn im Wörterbuch, bevor er wirksam wird.",
-      "reviewLater": "Später prüfen"
+      "undo": "Rückgängig"
     },
     "mic": {
       "hotkeyToSpeak": "{{hotkey}} drücken zum Sprechen",

@@ -25,7 +25,6 @@ test("sensitive app policy blocks injection for password managers and cloud reas
   assert.equal(passwordManager.blocksInjection, true);
   assert.equal(financeSurface.matched, true);
   assert.equal(financeSurface.blocksCloudReasoning, true);
-  assert.equal(financeSurface.blocksAutoLearn, true);
   assert.equal(financeSurface.blocksPasteMonitoring, true);
 });
 
@@ -36,7 +35,6 @@ test("sensitive app policy honors explicit overrides", () => {
     targetApp: { appName: "1Password" },
     allowInjection: true,
     allowCloudReasoning: true,
-    allowAutoLearn: true,
     allowPasteMonitoring: true,
   });
 
@@ -54,6 +52,4 @@ test("audio manager and paste IPC consult sensitive app policy before cloud reas
   assert.match(audioManagerSource, /resolveSensitiveAppPolicy/);
   assert.match(audioManagerSource, /blocksCloudReasoning/);
   assert.match(ipcHandlersSource, /blocksInjection/);
-  assert.match(ipcHandlersSource, /blocksAutoLearn/);
-  assert.match(ipcHandlersSource, /blocksPasteMonitoring/);
 });

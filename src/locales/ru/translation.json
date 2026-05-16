@@ -941,8 +941,6 @@
       "placeholder": "Добавить слово или фразу...",
       "add": "Добавить",
       "pressEnterToAdd": "Нажмите Enter для добавления",
-      "autoLearnTitle": "Автоматическое обучение на исправлениях",
-      "autoLearnDescription": "Когда вы исправляете транскрипцию в целевом приложении, Mouthpiece создает предложения для словаря. Они начинают действовать только после подтверждения и удаляются через 24 часа без подтверждения.",
       "yourWords": "Ваши слова",
       "clearDictionaryTitle": "Очистить словарь?",
       "clearDictionaryDescription": "Все слова из вашего пользовательского словаря будут удалены. Это действие нельзя отменить.",
@@ -991,13 +989,7 @@
       "homophoneTitle": "Homophone Mappings",
       "homophoneEmpty": "No homophone mappings yet. Use source=target to correct recurring sound-alikes.",
       "homophonePlaceholder": "Add mapping like mode boat=mouthpiece",
-      "addMapping": "Add homophone mapping",
-      "pendingSuggestionsTitle": "Pending Suggestions",
-      "pendingSuggestionsEmpty": "No pending suggestions right now.",
-      "pendingSuggestionSource": "Source: {{source}}",
-      "approve": "Подтвердить",
-      "reject": "Reject",
-      "pendingSuggestionsDescription": "Подтвердите предложения в течение 24 часов, чтобы добавить их в словарь. Неподтвержденные предложения удаляются автоматически."
+      "addMapping": "Add homophone mapping"
     },
     "general": {
       "appearance": {
@@ -1405,9 +1397,7 @@
         "description": "Не удалось зарегистрировать выбранную комбинацию. Выберите другую в настройках."
       },
       "addedToDict": "{{words}} добавлено в ваш словарь",
-      "undo": "Отменить",
-      "dictionarySuggestionFound": "Найдено предложение для словаря: {{words}}. Подтвердите его в словаре, чтобы оно начало действовать.",
-      "reviewLater": "Позже"
+      "undo": "Отменить"
     },
     "mic": {
       "hotkeyToSpeak": "Нажмите {{hotkey}} для записи",

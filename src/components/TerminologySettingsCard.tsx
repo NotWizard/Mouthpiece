@@ -1,19 +1,12 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, CornerDownLeft, Languages, Trash2, X } from "lucide-react";
-import { Button } from "./ui/button";
+import { CornerDownLeft, Languages, X } from "lucide-react";
 import { Input } from "./ui/input";
 import { useSettings } from "../hooks/useSettings";
-import type {
-  TerminologyMapping,
-  TerminologyProfile,
-  TerminologySuggestion,
-} from "../utils/terminologyProfile";
+import type { TerminologyMapping, TerminologyProfile } from "../utils/terminologyProfile";
 
 interface TerminologySettingsCardProps {
   terminologyProfile: TerminologyProfile;
-  approveTerminologySuggestion: (term: string) => void;
-  rejectTerminologySuggestion: (term: string) => void;
 }
 
 function parseCommaSeparatedTerms(value: string): string[] {
@@ -44,11 +37,7 @@ function EmptyText({ children }: { children: React.ReactNode }) {
   return <p className="text-xs leading-relaxed text-muted-foreground/70">{children}</p>;
 }
 
-function TerminologySettingsCard({
-  terminologyProfile,
-  approveTerminologySuggestion,
-  rejectTerminologySuggestion,
-}: TerminologySettingsCardProps) {
+function TerminologySettingsCard({ terminologyProfile }: TerminologySettingsCardProps) {
   const { t } = useTranslation();
   const { setTerminologyProfile } = useSettings();
   const [glossaryInput, setGlossaryInput] = useState("");
@@ -87,42 +76,6 @@ function TerminologySettingsCard({
       ),
     });
   };
-
-  const renderSuggestion = (suggestion: TerminologySuggestion) => (
-    <div
-      key={`${suggestion.term}-${suggestion.sourceTerm}`}
-      className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-background/60 px-3 py-2"
-    >
-      <div>
-        <div className="text-xs font-medium text-foreground">
-          {suggestion.sourceTerm} → {suggestion.term}
-        </div>
-        <div className="mt-0.5 text-xs text-muted-foreground/70">
-          {t("settingsPage.terminology.pendingSuggestionSource", { source: suggestion.source })}
-        </div>
-      </div>
-      <div className="flex items-center gap-1">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => approveTerminologySuggestion(suggestion.term)}
-        >
-          <Check className="h-3 w-3" />
-          {t("settingsPage.terminology.approve")}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => rejectTerminologySuggestion(suggestion.term)}
-        >
-          <Trash2 className="h-3 w-3" />
-          {t("settingsPage.terminology.reject")}
-        </Button>
-      </div>
-    </div>
-  );
 
   return (
     <div className="rounded-lg border border-border/50 bg-card/50 backdrop-blur-sm">
@@ -273,23 +226,6 @@ function TerminologySettingsCard({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <div>
-            <div className="text-xs font-medium text-foreground">
-              {t("settingsPage.terminology.pendingSuggestionsTitle")}
-            </div>
-            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground/70">
-              {t("settingsPage.terminology.pendingSuggestionsDescription")}
-            </p>
-          </div>
-          <div className="space-y-2">
-            {terminologyProfile.pendingSuggestions.length > 0 ? (
-              terminologyProfile.pendingSuggestions.map(renderSuggestion)
-            ) : (
-              <EmptyText>{t("settingsPage.terminology.pendingSuggestionsEmpty")}</EmptyText>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );

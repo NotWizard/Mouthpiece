@@ -14,12 +14,9 @@ import {
   normalizeRealtimeEndpointingMode,
 } from "../utils/audioQualitySettings.mjs";
 import {
-  mergeTerminologySuggestions,
   normalizeTerminologyProfile,
-  pruneExpiredTerminologySuggestions as pruneExpiredTerminologySuggestionsFromProfile,
   terminologyProfileToDictionary,
   type TerminologyProfile,
-  type TerminologySuggestion,
 } from "../utils/terminologyProfile";
 import { migrateStoredTerminologyProfile } from "../utils/terminologyMigration";
 import logger from "../utils/logger";
@@ -196,15 +193,10 @@ const INITIAL_TERMINOLOGY_PROFILE = migrateStoredTerminologyProfile(
   readJsonValue<TerminologyProfile | null>("terminologyProfile", null),
   LEGACY_CUSTOM_DICTIONARY
 );
-const INITIAL_ACTIVE_TERMINOLOGY_PROFILE = pruneExpiredTerminologySuggestionsFromProfile(
-  INITIAL_TERMINOLOGY_PROFILE
-);
-const INITIAL_CUSTOM_DICTIONARY = terminologyProfileToDictionary(
-  INITIAL_ACTIVE_TERMINOLOGY_PROFILE
-);
+const INITIAL_CUSTOM_DICTIONARY = terminologyProfileToDictionary(INITIAL_TERMINOLOGY_PROFILE);
 
 if (isBrowser) {
-  localStorage.setItem("terminologyProfile", JSON.stringify(INITIAL_ACTIVE_TERMINOLOGY_PROFILE));
+  localStorage.setItem("terminologyProfile", JSON.stringify(INITIAL_TERMINOLOGY_PROFILE));
   localStorage.setItem("customDictionary", JSON.stringify(INITIAL_CUSTOM_DICTIONARY));
 }
 
@@ -223,7 +215,6 @@ const BOOLEAN_SETTINGS = new Set([
   "sensitiveAppProtectionEnabled",
   "sensitiveAppBlockInsertion",
   "allowSensitiveAppCloudReasoning",
-  "allowSensitiveAppAutoLearn",
   "allowSensitiveAppPasteMonitoring",
   "audioCuesEnabled",
   "isSignedIn",
@@ -275,10 +266,6 @@ export interface SettingsState
   setCustomReasoningEnableThinking: (value: boolean) => void;
   setCustomDictionary: (words: string[]) => void;
   setTerminologyProfile: (profile: Partial<TerminologyProfile>) => void;
-  addTerminologySuggestions: (suggestions: TerminologySuggestion[]) => void;
-  approveTerminologySuggestion: (term: string) => void;
-  rejectTerminologySuggestion: (term: string) => void;
-  pruneExpiredTerminologySuggestions: () => void;
   setAssemblyAiStreaming: (value: boolean) => void;
   setDeepgramStreamingEnabled: (value: boolean) => void;
   setSonioxRealtimeEnabled: (value: boolean) => void;
@@ -311,7 +298,6 @@ export interface SettingsState
   setSensitiveAppProtectionEnabled: (value: boolean) => void;
   setSensitiveAppBlockInsertion: (value: boolean) => void;
   setAllowSensitiveAppCloudReasoning: (value: boolean) => void;
-  setAllowSensitiveAppAutoLearn: (value: boolean) => void;
   setAllowSensitiveAppPasteMonitoring: (value: boolean) => void;
   setAudioCuesEnabled: (value: boolean) => void;
   setIsSignedIn: (value: boolean) => void;
@@ -509,7 +495,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   cloudReasoningBaseUrl: readString("cloudReasoningBaseUrl", API_ENDPOINTS.OPENAI_BASE),
   bailianReasoningEnableThinking: readBoolean("bailianReasoningEnableThinking", false),
   customReasoningEnableThinking: readBoolean("customReasoningEnableThinking", false),
-  terminologyProfile: INITIAL_ACTIVE_TERMINOLOGY_PROFILE,
+  terminologyProfile: INITIAL_TERMINOLOGY_PROFILE,
   customDictionary: INITIAL_CUSTOM_DICTIONARY,
   assemblyAiStreaming: readBoolean("assemblyAiStreaming", true),
   deepgramStreamingEnabled: readBoolean("deepgramStreamingEnabled", false),
@@ -553,7 +539,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   sensitiveAppProtectionEnabled: readBoolean("sensitiveAppProtectionEnabled", true),
   sensitiveAppBlockInsertion: readBoolean("sensitiveAppBlockInsertion", true),
   allowSensitiveAppCloudReasoning: readBoolean("allowSensitiveAppCloudReasoning", false),
-  allowSensitiveAppAutoLearn: readBoolean("allowSensitiveAppAutoLearn", false),
   allowSensitiveAppPasteMonitoring: readBoolean("allowSensitiveAppPasteMonitoring", false),
   audioCuesEnabled: readBoolean("audioCuesEnabled", true),
   isSignedIn: CLOUD_AUTH_AVAILABLE ? readBoolean("isSignedIn", false) : false,
@@ -590,7 +575,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setReasoningProvider: createStringSetter("reasoningProvider"),
 
   setCustomDictionary: (words: string[]) => {
-    const terminologyProfile = pruneExpiredTerminologySuggestionsFromProfile({
+    const terminologyProfile = normalizeTerminologyProfile({
       ...useSettingsStore.getState().terminologyProfile,
       preferredTerms: words,
     });
@@ -609,7 +594,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     });
   },
   setTerminologyProfile: (profile: Partial<TerminologyProfile>) => {
-    const terminologyProfile = pruneExpiredTerminologySuggestionsFromProfile({
+    const terminologyProfile = normalizeTerminologyProfile({
       ...useSettingsStore.getState().terminologyProfile,
       ...profile,
     });
@@ -626,61 +611,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
         "settings"
       );
     });
-  },
-  addTerminologySuggestions: (suggestions: TerminologySuggestion[]) => {
-    const nextProfile = mergeTerminologySuggestions(
-      useSettingsStore.getState().terminologyProfile,
-      suggestions
-    );
-    if (isBrowser) {
-      localStorage.setItem("terminologyProfile", JSON.stringify(nextProfile));
-    }
-    set({ terminologyProfile: nextProfile });
-  },
-  approveTerminologySuggestion: (term: string) => {
-    const current = pruneExpiredTerminologySuggestionsFromProfile(
-      useSettingsStore.getState().terminologyProfile
-    );
-    const approved = current.pendingSuggestions.find((suggestion) => suggestion.term === term);
-    const nextProfile = normalizeTerminologyProfile({
-      ...current,
-      preferredTerms: approved
-        ? [...current.preferredTerms, approved.term]
-        : current.preferredTerms,
-      pendingSuggestions: current.pendingSuggestions.filter(
-        (suggestion) => suggestion.term !== term
-      ),
-    });
-    const dictionary = terminologyProfileToDictionary(nextProfile);
-    if (isBrowser) {
-      localStorage.setItem("terminologyProfile", JSON.stringify(nextProfile));
-      localStorage.setItem("customDictionary", JSON.stringify(dictionary));
-    }
-    set({ terminologyProfile: nextProfile, customDictionary: dictionary });
-    window.electronAPI?.setDictionary(dictionary).catch(() => {});
-  },
-  rejectTerminologySuggestion: (term: string) => {
-    const nextProfile = pruneExpiredTerminologySuggestionsFromProfile({
-      ...useSettingsStore.getState().terminologyProfile,
-      pendingSuggestions: useSettingsStore
-        .getState()
-        .terminologyProfile.pendingSuggestions.filter((suggestion) => suggestion.term !== term),
-    });
-    if (isBrowser) {
-      localStorage.setItem("terminologyProfile", JSON.stringify(nextProfile));
-    }
-    set({ terminologyProfile: nextProfile });
-  },
-  pruneExpiredTerminologySuggestions: () => {
-    const current = useSettingsStore.getState().terminologyProfile;
-    const nextProfile = pruneExpiredTerminologySuggestionsFromProfile(current);
-    if (nextProfile.pendingSuggestions.length === current.pendingSuggestions.length) {
-      return;
-    }
-    if (isBrowser) {
-      localStorage.setItem("terminologyProfile", JSON.stringify(nextProfile));
-    }
-    set({ terminologyProfile: nextProfile });
   },
 
   setUiLanguage: (language: string) => {
@@ -730,7 +660,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setSensitiveAppProtectionEnabled: createBooleanSetter("sensitiveAppProtectionEnabled"),
   setSensitiveAppBlockInsertion: createBooleanSetter("sensitiveAppBlockInsertion"),
   setAllowSensitiveAppCloudReasoning: createBooleanSetter("allowSensitiveAppCloudReasoning"),
-  setAllowSensitiveAppAutoLearn: createBooleanSetter("allowSensitiveAppAutoLearn"),
   setAllowSensitiveAppPasteMonitoring: createBooleanSetter("allowSensitiveAppPasteMonitoring"),
   setAudioCuesEnabled: createBooleanSetter("audioCuesEnabled"),
 
@@ -1016,7 +945,7 @@ export async function initializeSettings(): Promise<void> {
         if (dbWords.length === 0 && currentDictionary.length > 0) {
           await window.electronAPI.setDictionary(currentDictionary);
         } else if (dbWords.length > 0 && currentDictionary.length === 0) {
-          const terminologyProfile = pruneExpiredTerminologySuggestionsFromProfile({
+          const terminologyProfile = normalizeTerminologyProfile({
             ...useSettingsStore.getState().terminologyProfile,
             preferredTerms: dbWords,
           });
@@ -1068,7 +997,7 @@ export async function initializeSettings(): Promise<void> {
     }
 
     if (key === "terminologyProfile") {
-      const terminologyProfile = pruneExpiredTerminologySuggestionsFromProfile(
+      const terminologyProfile = normalizeTerminologyProfile(
         (value as Partial<TerminologyProfile> | null | undefined) || {}
       );
       useSettingsStore.setState({

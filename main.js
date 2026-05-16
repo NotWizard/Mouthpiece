@@ -193,7 +193,7 @@ const UpdateManager = require("./src/helpers/updateManager");
 const GlobeKeyManager = require("./src/helpers/globeKeyManager");
 const DevServerManager = require("./src/helpers/devServerManager");
 const WindowsKeyManager = require("./src/helpers/windowsKeyManager");
-const TextEditMonitor = require("./src/helpers/textEditMonitor");
+const TargetAppCapture = require("./src/helpers/targetAppCapture");
 const WhisperCudaManager = require("./src/helpers/whisperCudaManager");
 const { MacOSPermissionFlowManager } = require("./src/helpers/macOSPermissionFlow");
 const { i18nMain, changeLanguage } = require("./src/helpers/i18nMain");
@@ -213,10 +213,9 @@ let trayManager = null;
 let updateManager = null;
 let globeKeyManager = null;
 let windowsKeyManager = null;
-let textEditMonitor = null;
+let targetAppCapture = null;
 let whisperCudaManager = null;
 let macOSPermissionFlowManager = null;
-let ipcHandlers = null;
 let globeKeyAlertShown = false;
 let authBridgeServer = null;
 let globeKeyRestartTimer = null;
@@ -299,12 +298,12 @@ function initializeCoreManagers() {
     beforeInstall: () => windowManager?.prepareForUpdateInstall?.(),
   });
   windowsKeyManager = new WindowsKeyManager();
-  textEditMonitor = new TextEditMonitor();
+  targetAppCapture = new TargetAppCapture();
   macOSPermissionFlowManager = new MacOSPermissionFlowManager({ logger: debugLogger });
-  windowManager.textEditMonitor = textEditMonitor;
+  windowManager.targetAppCapture = targetAppCapture;
 
   // IPC handlers must be registered before window content loads
-  ipcHandlers = new IPCHandlers({
+  new IPCHandlers({
     environmentManager,
     databaseManager,
     clipboardManager,
@@ -314,7 +313,7 @@ function initializeCoreManagers() {
     updateManager,
     windowManager,
     windowsKeyManager,
-    textEditMonitor,
+    targetAppCapture,
     whisperCudaManager,
     macOSPermissionFlowManager,
     getTrayManager: () => trayManager,
@@ -651,7 +650,7 @@ async function startApp() {
             debugLogger?.debug("[Globe] Ignored — cooldown active");
             return;
           }
-          if (textEditMonitor) textEditMonitor.captureTargetPid();
+          if (targetAppCapture) targetAppCapture.captureTargetPid();
           globeAutoSession.keyDown();
         } else {
           debugLogger?.debug("[Globe] Ignored — mainWindow not live");
@@ -707,7 +706,7 @@ async function startApp() {
 
       const now = Date.now();
       if (now - rightModLastStopTime < POST_STOP_COOLDOWN_MS) return;
-      if (textEditMonitor) textEditMonitor.captureTargetPid();
+      if (targetAppCapture) targetAppCapture.captureTargetPid();
       rightModifierAutoSession.keyDown();
     });
 
@@ -767,7 +766,7 @@ async function startApp() {
     windowsKeyManager.on("key-down", (_key) => {
       if (!isLiveWindow(windowManager.mainWindow)) return;
 
-      windowManager.textEditMonitor?.captureTargetPid?.();
+      windowManager.targetAppCapture?.captureTargetPid?.();
       windowManager.startWindowsPushToTalk();
     });
 
@@ -957,14 +956,8 @@ if (gotSingleInstanceLock) {
     if (macOSPermissionFlowManager) {
       macOSPermissionFlowManager.stop();
     }
-    if (ipcHandlers) {
-      ipcHandlers._cleanupTextEditMonitor();
-    }
     if (updateManager) {
       updateManager.dispose();
-    }
-    if (textEditMonitor) {
-      textEditMonitor.stopMonitoring();
     }
     // Stop whisper server if running
     if (whisperManager) {

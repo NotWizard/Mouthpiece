@@ -44,13 +44,7 @@ const DictionaryRow = memo(function DictionaryRow({
 
 function DictionaryView() {
   const { t } = useTranslation();
-  const {
-    customDictionary,
-    terminologyProfile,
-    setCustomDictionary,
-    approveTerminologySuggestion,
-    rejectTerminologySuggestion,
-  } = useSettings();
+  const { customDictionary, terminologyProfile, setCustomDictionary } = useSettings();
   const [newWord, setNewWord] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -193,11 +187,7 @@ function DictionaryView() {
           </div>
 
           <div className="px-5 pb-5">
-            <TerminologySettingsCard
-              terminologyProfile={terminologyProfile}
-              approveTerminologySuggestion={approveTerminologySuggestion}
-              rejectTerminologySuggestion={rejectTerminologySuggestion}
-            />
+            <TerminologySettingsCard terminologyProfile={terminologyProfile} />
           </div>
         </div>
       ) : (
@@ -295,11 +285,7 @@ function DictionaryView() {
           </div>
 
           <div className="px-5 pb-5">
-            <TerminologySettingsCard
-              terminologyProfile={terminologyProfile}
-              approveTerminologySuggestion={approveTerminologySuggestion}
-              rejectTerminologySuggestion={rejectTerminologySuggestion}
-            />
+            <TerminologySettingsCard terminologyProfile={terminologyProfile} />
           </div>
         </>
       )}

@@ -607,8 +607,6 @@ export default function SettingsPage({
     deepgramStreamingEnabled,
     setDeepgramStreamingEnabled,
     setDictationKey,
-    autoLearnCorrections,
-    setAutoLearnCorrections,
     updateTranscriptionSettings,
     updateReasoningSettings,
     cloudTranscriptionMode,
@@ -632,19 +630,6 @@ export default function SettingsPage({
   const checkWhisperInstallation = whisperHook.checkWhisperInstallation;
   const permissionsHook = usePermissions(showAlertDialog);
   useClipboard(showAlertDialog);
-
-  const dictionaryAutoLearnCopy = useMemo(
-    () => ({
-      title: t("settingsPage.dictionary.autoLearnTitle", {
-        defaultValue: "Auto-learn from corrections",
-      }),
-      description: t("settingsPage.dictionary.autoLearnDescription", {
-        defaultValue:
-          "When you correct a transcription in the target app, Mouthpiece creates dictionary suggestions for review. Suggestions take effect only after you confirm them, and unconfirmed suggestions are cleared after 24 hours.",
-      }),
-    }),
-    [t]
-  );
 
   const themeOptions = useMemo(
     () =>
@@ -1043,20 +1028,6 @@ export default function SettingsPage({
               </SettingsPanel>
             </div>
 
-            {/* Dictionary */}
-            <div>
-              <SectionHeader title={dictionaryAutoLearnCopy.title} />
-              <SettingsPanel>
-                <SettingsPanelRow>
-                  <SettingsRow
-                    label={dictionaryAutoLearnCopy.title}
-                    description={dictionaryAutoLearnCopy.description}
-                  >
-                    <Toggle checked={autoLearnCorrections} onChange={setAutoLearnCorrections} />
-                  </SettingsRow>
-                </SettingsPanelRow>
-              </SettingsPanel>
-            </div>
           </div>
         );
 

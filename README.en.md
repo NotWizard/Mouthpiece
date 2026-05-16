@@ -20,7 +20,7 @@ Mouthpiece is built for people who want speech input to fit naturally into every
 
 - dictate into many different apps during the day
 - want to choose between local and cloud transcription
-- need dictionaries, terminology, and auto-learning for proper nouns
+- need dictionaries and terminology for proper nouns
 - want optional AI cleanup, rewriting, or formatting after transcription
 - expect history, clipboard fallback, and reliable desktop integration
 
@@ -32,7 +32,7 @@ You can use local models, or bring your own API key for cloud providers. Account
 - Start dictation from a global hotkey, with tap/hold behavior matched to platform support
 - Show a floating recording capsule with state, audio feedback, and live text
 - Switch between local transcription and cloud transcription depending on privacy, latency, and cost needs
-- Improve results with dictionaries, terminology, auto-learned corrections, and post-processing normalization
+- Improve results with dictionaries, terminology, and post-processing normalization
 - Run optional AI post-processing through Prompt Studio for cleanup, rewriting, and formatting
 - Insert text back into the current app automatically, with clipboard fallback when direct insertion is not safe or available
 - Save transcription history for review, copy, and reuse
@@ -121,13 +121,12 @@ Current reasoning coverage includes:
 - Cloud: OpenAI, Anthropic, Google Gemini, Groq, Alibaba Bailian
 - Local: Qwen, Mistral, Meta Llama, OpenAI OSS, Gemma
 
-### Dictionary, terminology, and auto-learning
+### Dictionary and terminology
 
-The dictionary system is more than a manual word list:
+The dictionary system supports:
 
 - custom dictionary support
 - terminology management
-- auto-learning from user corrections
 - dictionary-based post-processing normalization
 
 This is especially useful for names, product terms, internal jargon, and mixed Chinese/English dictation.

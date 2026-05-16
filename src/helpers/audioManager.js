@@ -1987,7 +1987,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       targetApp,
       protectionsEnabled: settings.sensitiveAppProtectionEnabled !== false,
       allowCloudReasoning: settings.allowSensitiveAppCloudReasoning === true,
-      allowAutoLearn: settings.allowSensitiveAppAutoLearn === true,
       allowPasteMonitoring: settings.allowSensitiveAppPasteMonitoring === true,
       allowInjection: settings.sensitiveAppBlockInsertion === false,
     });

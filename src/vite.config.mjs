@@ -24,7 +24,6 @@ const APP_DICTATION_PATTERNS = [
   '/src/hooks/useAudioRecording.js',
   '/src/helpers/clipboard.js',
   '/src/helpers/insertionPlan.js',
-  '/src/helpers/textEditMonitor.js',
   '/src/utils/asrSessionTimeline.mjs',
   '/src/utils/streamingSpeechGate.mjs',
 ]
