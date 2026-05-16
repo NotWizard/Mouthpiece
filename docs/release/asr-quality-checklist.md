@@ -17,7 +17,7 @@
 ## Sensitive app review
 
 - Confirm sensitive-app rules cover finance, password, admin, and authentication-heavy surfaces.
-- Confirm auto-learn, paste monitoring, and cloud routing respect the current sensitive-app policy.
+- Confirm paste monitoring and cloud routing respect the current sensitive-app policy.
 - Confirm debug logs redact dictated text, clipboard payloads, and API keys.
 - Confirm privacy-facing copy matches the actual runtime behavior for blocked or downgraded flows.
 
