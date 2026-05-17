@@ -1,9 +1,7 @@
-"use strict";
-
-const DEFAULT_MAX_CHARS = 600;
+export const DEFAULT_MAX_CHARS = 600;
 const SEPARATOR = ", ";
 
-function buildCustomDictionaryPrompt(words, { maxChars = DEFAULT_MAX_CHARS } = {}) {
+export function buildCustomDictionaryPrompt(words, { maxChars = DEFAULT_MAX_CHARS } = {}) {
   if (!Array.isArray(words) || words.length === 0) return null;
 
   // Keep the most recently added words first so users who add a new term mid-
@@ -23,8 +21,3 @@ function buildCustomDictionaryPrompt(words, { maxChars = DEFAULT_MAX_CHARS } = {
   if (kept.length === 0) return null;
   return kept.reverse().join(SEPARATOR);
 }
-
-module.exports = {
-  buildCustomDictionaryPrompt,
-  DEFAULT_MAX_CHARS,
-};

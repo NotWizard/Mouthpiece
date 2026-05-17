@@ -2,16 +2,19 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
+import { pathToFileURL } from "node:url";
 
 async function readRepoFile(rel) {
   return fs.readFile(path.resolve(process.cwd(), rel), "utf8");
 }
 
-function loadDictionaryHelper() {
-  return require(path.resolve(process.cwd(), "src/helpers/customDictionaryPrompt.js"));
+async function loadDictionaryHelper() {
+  // The helper is an ES module (.mjs) so Vite/Rollup can statically analyze
+  // its named exports for renderer bundling — load it via dynamic import.
+  const modulePath = pathToFileURL(
+    path.resolve(process.cwd(), "src/helpers/customDictionaryPrompt.mjs")
+  ).href;
+  return import(modulePath);
 }
 
 test("will-quit awaits server / streaming shutdown via Promise.allSettled (no fire-and-forget)", async () => {
@@ -75,8 +78,8 @@ test("authBridgeServer shutdown destroys active sockets so quit doesn't hang on 
   );
 });
 
-test("customDictionary helper exists and is bounded by character count, keeping the most recently added words", () => {
-  const mod = loadDictionaryHelper();
+test("customDictionary helper exists and is bounded by character count, keeping the most recently added words", async () => {
+  const mod = await loadDictionaryHelper();
   assert.equal(typeof mod.buildCustomDictionaryPrompt, "function");
 
   // Long array of words; helper must keep the most recent ones until the
@@ -90,8 +93,8 @@ test("customDictionary helper exists and is bounded by character count, keeping 
   );
 });
 
-test("customDictionary helper returns empty / null for empty input", () => {
-  const mod = loadDictionaryHelper();
+test("customDictionary helper returns empty / null for empty input", async () => {
+  const mod = await loadDictionaryHelper();
   assert.equal(mod.buildCustomDictionaryPrompt([]), null);
   assert.equal(mod.buildCustomDictionaryPrompt(null), null);
   assert.equal(mod.buildCustomDictionaryPrompt(undefined), null);

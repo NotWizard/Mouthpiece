@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > Note: Version numbering restarts at `1.0.0` for this standalone Mouthpiece repository. The `1.5.x` entries below are retained as inherited upstream reference only.
 
+### Fixed
+
+- **Renderer build no longer fails on `buildCustomDictionaryPrompt`.** The custom-dictionary helper was authored as CommonJS (`module.exports`) but imported by the Vite-bundled `audioManager`, which Rollup's static analyzer rejected with `"buildCustomDictionaryPrompt" is not exported`. The helper is now an ES module (`customDictionaryPrompt.mjs` with `export`), the `audioManager` import points at the new extension, and the unit test loads it via dynamic `import()` to match.
+
 ## [1.3.1] - 2026-05-17
 
 ### Fixed
