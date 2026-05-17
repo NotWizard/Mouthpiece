@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > Note: Version numbering restarts at `1.0.0` for this standalone Mouthpiece repository. The `1.5.x` entries below are retained as inherited upstream reference only.
 
+## [1.3.1] - 2026-05-17
+
 ### Fixed
 
 - **Globe / right-side modifier hotkey now self-heals after a TCC reset.** When macOS revokes Accessibility (e.g. on the v1.2 → v1.3 self-signing migration), the Swift `macos-globe-listener` exits with `Failed to create event tap` and stays dead. The app now retries the spawn whenever the user brings a window back to focus or activates the app from the dock, so once Accessibility is re-granted the `RightCommand` / `Globe` hotkey resumes without the user needing to manually toggle the hotkey in Settings.
