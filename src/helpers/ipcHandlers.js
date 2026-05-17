@@ -1729,7 +1729,7 @@ class IPCHandlers {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-API-Key": apiKey,
+            "x-api-key": apiKey,
             "anthropic-version": "2023-06-01",
           },
           body: JSON.stringify(requestBody),
@@ -1749,7 +1749,25 @@ class IPCHandlers {
         }
 
         const data = await response.json();
-        return { success: true, text: data.content[0].text.trim() };
+        // Refusal / safety / length-truncation responses can return content: [].
+        // Reading data.content[0].text on those would throw a confusing TypeError
+        // through the outer catch — return a structured failure with an
+        // actionable message instead.
+        const textBlock = Array.isArray(data?.content)
+          ? data.content.find((b) => b?.type === "text")
+          : null;
+        const text = typeof textBlock?.text === "string" ? textBlock.text.trim() : "";
+        if (!text) {
+          const stopReason = data?.stop_reason || "unknown";
+          return {
+            success: false,
+            error:
+              stopReason === "refusal"
+                ? "Anthropic refused to process this request"
+                : `Anthropic returned no text (stop_reason: ${stopReason})`,
+          };
+        }
+        return { success: true, text };
       } catch (error) {
         debugLogger.error("Anthropic reasoning error:", error);
         return { success: false, error: error.message };

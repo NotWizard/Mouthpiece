@@ -135,6 +135,9 @@ class LlamaServerManager {
 
     this.port = await this.findAvailablePort();
     this.modelPath = modelPath;
+    // Cache so inference() can lazily restart with the same configuration after
+    // a crash / OOM / sleep without forcing the user to re-toggle the model.
+    this.lastOptions = options;
 
     const baseArgs = [
       "--model",
@@ -410,7 +413,20 @@ class LlamaServerManager {
 
   async inference(messages, options = {}) {
     if (!this.ready || !this.process) {
-      throw new Error("llama-server is not running");
+      if (!this.modelPath) {
+        throw new Error("llama-server is not configured (no model path cached)");
+      }
+      debugLogger.warn("[LlamaServer] inference() found server dead, attempting lazy restart", {
+        modelPath: this.modelPath,
+      });
+      try {
+        await this.start(this.modelPath, this.lastOptions || {});
+      } catch (err) {
+        throw new Error(`llama-server failed to restart: ${err.message}`);
+      }
+      if (!this.ready || !this.process) {
+        throw new Error("llama-server failed to become ready after lazy restart");
+      }
     }
 
     const body = JSON.stringify({

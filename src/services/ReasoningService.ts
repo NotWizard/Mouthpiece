@@ -816,7 +816,11 @@ class ReasoningService extends BaseReasoningService {
           originalTextLength: text.length,
           reason: "Empty response from API",
         });
-        return text;
+        // Surface the empty response as an explicit failure so the caller's
+        // catch-and-fall-back-to-raw path runs (and any toast / metric fires).
+        // Returning the raw input here would silently masquerade as a successful
+        // cleanup, dropping any signal that the API call actually failed.
+        throw new Error("OpenAI returned an empty response");
       }
 
       return responseText;
