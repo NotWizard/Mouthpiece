@@ -12,6 +12,7 @@ import { withSessionRefresh } from "../lib/neonAuth";
 import { getBaseLanguageCode, validateLanguageForModel } from "../utils/languageSupport";
 import { classifyContext, getTargetAppInfo } from "../utils/contextClassifier";
 import { readCustomCleanupPrompt } from "../utils/promptStorage";
+import { buildCustomDictionaryPrompt } from "./customDictionaryPrompt";
 import { normalizeAudioLevel } from "../utils/dictationWaveform.mjs";
 import { getReasoningAvailabilityCacheKey } from "../utils/reasoningAvailabilityCacheKey.mjs";
 import { resolveAsrFeatureFlags } from "../utils/asrFeatureFlags.mjs";
@@ -768,8 +769,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   getCustomDictionaryPrompt() {
-    const words = getSettings().customDictionary;
-    return words.length > 0 ? words.join(", ") : null;
+    return buildCustomDictionaryPrompt(getSettings().customDictionary);
   }
 
   setCallbacks({

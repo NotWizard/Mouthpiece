@@ -219,8 +219,10 @@ let windowsKeyManager = null;
 let targetAppCapture = null;
 let whisperCudaManager = null;
 let macOSPermissionFlowManager = null;
+let ipcHandlersInstance = null;
 let globeKeyAlertShown = false;
 let authBridgeServer = null;
+const authBridgeSockets = new Set();
 let globeKeyRestartTimer = null;
 let lastGlobeRecoveryAttempt = 0;
 let lastWindowsRecoveryAttempt = 0;
@@ -384,7 +386,7 @@ function initializeCoreManagers() {
   windowManager.targetAppCapture = targetAppCapture;
 
   // IPC handlers must be registered before window content loads
-  new IPCHandlers({
+  ipcHandlersInstance = new IPCHandlers({
     environmentManager,
     databaseManager,
     clipboardManager,
@@ -582,6 +584,14 @@ function startAuthBridgeServer() {
     if (debugLogger) {
       debugLogger.error("OAuth auth bridge server failed:", error);
     }
+  });
+
+  // Track active sockets so will-quit can destroy them. http.Server.close()
+  // alone only stops accepting new connections; existing keep-alive sockets
+  // would otherwise keep the listener alive and stall app exit.
+  authBridgeServer.on("connection", (socket) => {
+    authBridgeSockets.add(socket);
+    socket.on("close", () => authBridgeSockets.delete(socket));
   });
 
   authBridgeServer.listen(AUTH_BRIDGE_PORT, AUTH_BRIDGE_HOST, () => {
@@ -1060,42 +1070,83 @@ if (gotSingleInstanceLock) {
     tryRecoverWindowsKeyListener("activate");
   });
 
-  app.on("will-quit", () => {
-    if (authBridgeServer) {
-      authBridgeServer.close();
-      authBridgeServer = null;
-    }
+  let willQuitInProgress = false;
+  app.on("will-quit", (event) => {
+    if (willQuitInProgress) return;
+    willQuitInProgress = true;
+    event.preventDefault();
+
+    // Synchronous teardown that has no I/O — safe to do up front.
     if (hotkeyManager) {
       hotkeyManager.unregisterAll();
     } else {
       globalShortcut.unregisterAll();
     }
-    if (globeKeyManager) {
-      globeKeyManager.stop();
+    if (globeKeyManager) globeKeyManager.stop();
+    if (windowsKeyManager) windowsKeyManager.stop();
+    if (macOSPermissionFlowManager) macOSPermissionFlowManager.stop();
+    if (updateManager) updateManager.dispose();
+
+    // Drop in-flight HTTP sockets so authBridgeServer.close() doesn't hang on
+    // keep-alive connections from a mid-flight OAuth callback.
+    if (authBridgeServer) {
+      for (const socket of authBridgeSockets) {
+        try { socket.destroy(); } catch {}
+      }
+      authBridgeSockets.clear();
+      try { authBridgeServer.closeAllConnections?.(); } catch {}
     }
-    if (windowsKeyManager) {
-      windowsKeyManager.stop();
+
+    const shutdownTasks = [];
+    const swallow = (label) => (err) =>
+      debugLogger?.warn?.(`[will-quit] ${label} failed`, { error: err?.message });
+
+    if (authBridgeServer) {
+      shutdownTasks.push(
+        new Promise((resolve) => {
+          try {
+            authBridgeServer.close(() => resolve());
+          } catch {
+            resolve();
+          }
+        })
+      );
     }
-    if (macOSPermissionFlowManager) {
-      macOSPermissionFlowManager.stop();
+    if (whisperManager) shutdownTasks.push(whisperManager.stopServer().catch(swallow("whisper")));
+    if (parakeetManager) shutdownTasks.push(parakeetManager.stopServer().catch(swallow("parakeet")));
+    if (qwenAsrManager) shutdownTasks.push(qwenAsrManager.stopServer().catch(swallow("qwenAsr")));
+    try {
+      const modelManager = require("./src/helpers/modelManagerBridge").default;
+      shutdownTasks.push(modelManager.stopServer().catch(swallow("llama-server")));
+    } catch {}
+
+    // Streaming helpers each own a WebSocket / keep-alive interval. Without
+    // disposing them here, a hard quit during an active session leaves the
+    // sockets and timers around until the OS reaps the process.
+    if (ipcHandlersInstance) {
+      const streams = [
+        ["assemblyAiStreaming", "cleanupAll"],
+        ["deepgramStreaming", "cleanupAll"],
+        ["sonioxStreaming", "disconnect"],
+        ["bailianRealtimeStreaming", "disconnect"],
+      ];
+      for (const [prop, method] of streams) {
+        const helper = ipcHandlersInstance[prop];
+        if (!helper || typeof helper[method] !== "function") continue;
+        try {
+          const result = helper[method]();
+          if (result && typeof result.catch === "function") {
+            shutdownTasks.push(result.catch(swallow(prop)));
+          }
+        } catch (err) {
+          swallow(prop)(err);
+        }
+      }
     }
-    if (updateManager) {
-      updateManager.dispose();
-    }
-    // Stop whisper server if running
-    if (whisperManager) {
-      whisperManager.stopServer().catch(() => {});
-    }
-    // Stop parakeet WS server if running
-    if (parakeetManager) {
-      parakeetManager.stopServer().catch(() => {});
-    }
-    // Stop Qwen ASR MLX server if running
-    if (qwenAsrManager) {
-      qwenAsrManager.stopServer().catch(() => {});
-    }
-    // Stop llama-server if running
-    const modelManager = require("./src/helpers/modelManagerBridge").default;
-    modelManager.stopServer().catch(() => {});
+
+    Promise.allSettled(shutdownTasks).finally(() => {
+      authBridgeServer = null;
+      app.exit(0);
+    });
   });
 }
