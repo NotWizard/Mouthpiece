@@ -14,6 +14,7 @@ const SonioxStreaming = require("./sonioxStreaming");
 const { buildSonioxAsyncPayload } = require("./sonioxShared");
 const { shouldRestoreDictationPanelAfterPaste } = require("./pasteUiState");
 const { resolveSensitiveAppPolicy } = require("../config/sensitiveAppPolicy.js");
+const { computeReasoningEnvUpdate } = require("./reasoningEnvUpdate");
 
 const MISTRAL_TRANSCRIPTION_URL = "https://api.mistral.ai/v1/audio/transcriptions";
 const SONIOX_API_BASE_URL = "https://api.soniox.com/v1";
@@ -1624,11 +1625,13 @@ class IPCHandlers {
         });
       }
 
-      if (prefs.reasoningProvider === "local" && prefs.reasoningModel) {
-        setVars.REASONING_PROVIDER = "local";
-        setVars.LOCAL_REASONING_MODEL = prefs.reasoningModel;
-      } else if (prefs.reasoningProvider && prefs.reasoningProvider !== "local") {
-        clearVars.push("REASONING_PROVIDER", "LOCAL_REASONING_MODEL");
+      const reasoningUpdate = computeReasoningEnvUpdate({
+        reasoningProvider: prefs.reasoningProvider,
+        reasoningModel: prefs.reasoningModel,
+      });
+      Object.assign(setVars, reasoningUpdate.setVars);
+      clearVars.push(...reasoningUpdate.clearVars);
+      if (reasoningUpdate.stopLlamaServer) {
         const modelManager = require("./modelManagerBridge").default;
         modelManager.stopServer().catch((err) => {
           debugLogger.error("Failed to stop llama-server on provider switch", {

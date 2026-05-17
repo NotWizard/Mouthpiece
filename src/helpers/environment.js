@@ -3,6 +3,7 @@ const fs = require("fs");
 const fsPromises = require("fs/promises");
 const { app } = require("electron");
 const { normalizeUiLanguage } = require("./i18nMain");
+const { mergeEnvFile } = require("./envFile");
 
 const PERSISTED_KEYS = [
   "OPENAI_API_KEY",
@@ -18,6 +19,7 @@ const PERSISTED_KEYS = [
   "LOCAL_TRANSCRIPTION_PROVIDER",
   "PARAKEET_MODEL",
   "LOCAL_WHISPER_MODEL",
+  "QWEN_ASR_MODEL",
   "REASONING_PROVIDER",
   "LOCAL_REASONING_MODEL",
   "LLAMA_GPU_BACKEND",
@@ -33,7 +35,9 @@ class EnvironmentManager {
   }
 
   loadEnvironmentVariables() {
-    // Loaded in priority order - dotenv won't override, so first file wins per variable.
+    // userData/.env is the single source of truth for user-edited keys. Loading any
+    // dev / packaged .env earlier than this would let dotenv (no-override semantics)
+    // shadow values the user typed in the UI.
     const userDataEnv = path.join(app.getPath("userData"), ".env");
     try {
       if (fs.existsSync(userDataEnv)) {
@@ -41,14 +45,15 @@ class EnvironmentManager {
       }
     } catch {}
 
-    const fallbackPaths = [
-      path.join(__dirname, "..", "..", ".env"), // Development
-      path.join(process.resourcesPath, ".env"),
-      path.join(process.resourcesPath, "app.asar.unpacked", ".env"),
-      path.join(process.resourcesPath, "app", ".env"), // Legacy
-    ];
+    const packagedFallbacks = process.resourcesPath
+      ? [
+          path.join(process.resourcesPath, ".env"),
+          path.join(process.resourcesPath, "app.asar.unpacked", ".env"),
+          path.join(process.resourcesPath, "app", ".env"),
+        ]
+      : [];
 
-    for (const envPath of fallbackPaths) {
+    for (const envPath of packagedFallbacks) {
       try {
         if (fs.existsSync(envPath)) {
           require("dotenv").config({ path: envPath });
@@ -184,16 +189,21 @@ OPENAI_API_KEY=${apiKey}
   async saveAllKeysToEnvFile() {
     const envPath = path.join(app.getPath("userData"), ".env");
 
-    let envContent = "# Mouthpiece Environment Variables\n";
-
-    for (const key of PERSISTED_KEYS) {
-      if (process.env[key]) {
-        envContent += `${key}=${process.env[key]}\n`;
-      }
+    let existingContent = "";
+    try {
+      existingContent = await fsPromises.readFile(envPath, "utf8");
+    } catch (err) {
+      if (err && err.code !== "ENOENT") throw err;
     }
 
+    const envContent = mergeEnvFile({
+      existingContent: existingContent || "# Mouthpiece Environment Variables\n",
+      processEnv: process.env,
+      persistedKeys: PERSISTED_KEYS,
+    });
+
     await fsPromises.writeFile(envPath, envContent, "utf8");
-    require("dotenv").config({ path: envPath });
+    require("dotenv").config({ path: envPath, override: true });
 
     return { success: true, path: envPath };
   }

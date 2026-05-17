@@ -2,7 +2,6 @@ const { app, globalShortcut, BrowserWindow, dialog, ipcMain, session } = require
 const path = require("path");
 const fs = require("fs");
 const http = require("http");
-require("dotenv").config({ path: path.join(__dirname, ".env") });
 const { createAutomaticActivationSession } = require("./src/helpers/automaticActivation");
 const productIdentity = require("./src/config/productIdentity");
 const { resolveUserDataPath } = require("./src/helpers/userDataPathResolver");
