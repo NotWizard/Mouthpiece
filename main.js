@@ -191,6 +191,10 @@ const TrayManager = require("./src/helpers/tray");
 const IPCHandlers = require("./src/helpers/ipcHandlers");
 const UpdateManager = require("./src/helpers/updateManager");
 const GlobeKeyManager = require("./src/helpers/globeKeyManager");
+const {
+  isGlobeLikeHotkey: isGlobeLikeHotkeyForRecovery,
+  isRightSideModifier: isRightSideModifierForRecovery,
+} = require("./src/helpers/hotkeyManager");
 const DevServerManager = require("./src/helpers/devServerManager");
 const WindowsKeyManager = require("./src/helpers/windowsKeyManager");
 const TargetAppCapture = require("./src/helpers/targetAppCapture");
@@ -219,6 +223,35 @@ let macOSPermissionFlowManager = null;
 let globeKeyAlertShown = false;
 let authBridgeServer = null;
 let globeKeyRestartTimer = null;
+let lastGlobeRecoveryAttempt = 0;
+const GLOBE_RECOVERY_MIN_INTERVAL_MS = 2000;
+
+// CGEvent.tapCreate fails permanently when Accessibility is revoked — there is
+// no event to listen for re-grant. Re-spawn on app focus so the listener
+// self-heals when the user returns from System Settings after authorizing.
+function tryRecoverGlobeKeyListener(reason) {
+  if (process.platform !== "darwin") return;
+  if (!globeKeyManager || globeKeyManager.process) return;
+
+  const currentHotkey = hotkeyManager?.getCurrentHotkey?.();
+  if (!currentHotkey) return;
+  if (
+    !isGlobeLikeHotkeyForRecovery(currentHotkey) &&
+    !isRightSideModifierForRecovery(currentHotkey)
+  ) {
+    return;
+  }
+
+  const now = Date.now();
+  if (now - lastGlobeRecoveryAttempt < GLOBE_RECOVERY_MIN_INTERVAL_MS) return;
+  lastGlobeRecoveryAttempt = now;
+
+  debugLogger?.debug("[Globe] Listener appears dead, attempting recovery", {
+    reason,
+    currentHotkey,
+  });
+  globeKeyManager.start();
+}
 
 function parseAuthBridgePort() {
   const raw = (
@@ -893,7 +926,7 @@ if (gotSingleInstanceLock) {
     // On macOS, keep the app running even without windows
   });
 
-  app.on("browser-window-focus", (event, window) => {
+  app.on("browser-window-focus", (_event, window) => {
     // Only apply always-on-top to the dictation window, not the control panel
     if (windowManager && isLiveWindow(windowManager.mainWindow)) {
       // Check if the focused window is the dictation window
@@ -902,8 +935,7 @@ if (gotSingleInstanceLock) {
       }
     }
 
-    // Control panel doesn't need any special handling on focus
-    // It should behave like a normal window
+    tryRecoverGlobeKeyListener("browser-window-focus");
   });
 
   app.on("activate", () => {
@@ -935,6 +967,8 @@ if (gotSingleInstanceLock) {
         windowManager.enforceMainWindowOnTop();
       }
     }
+
+    tryRecoverGlobeKeyListener("activate");
   });
 
   app.on("will-quit", () => {
