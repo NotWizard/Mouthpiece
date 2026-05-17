@@ -279,14 +279,38 @@ class GnomeShortcutManager {
       return "";
     }
 
+    // GNOME's gsettings keybindings don't distinguish left/right modifiers and
+    // can't bind modifier-only hotkeys (they only fire on a non-modifier key
+    // press combined with modifiers). Returning "" lets hotkeyManager fall back
+    // to X11 globalShortcut for those cases instead of registering nonsense.
+    const isModifierName = (token) => {
+      const t = token.toLowerCase().replace(/^right/, "");
+      return (
+        t === "control" ||
+        t === "ctrl" ||
+        t === "commandorcontrol" ||
+        t === "alt" ||
+        t === "option" ||
+        t === "shift" ||
+        t === "super" ||
+        t === "meta" ||
+        t === "command" ||
+        t === "cmd"
+      );
+    };
+
     const key = parts.pop();
+    if (isModifierName(key)) {
+      return "";
+    }
+
     const modifiers = parts
       .map((mod) => {
-        const m = mod.toLowerCase();
+        const m = mod.toLowerCase().replace(/^right/, "");
         if (m === "commandorcontrol" || m === "control" || m === "ctrl") return "<Control>";
-        if (m === "alt") return "<Alt>";
+        if (m === "alt" || m === "option") return "<Alt>";
         if (m === "shift") return "<Shift>";
-        if (m === "super" || m === "meta") return "<Super>";
+        if (m === "super" || m === "meta" || m === "command" || m === "cmd") return "<Super>";
         return "";
       })
       .filter(Boolean)

@@ -97,6 +97,21 @@ function resolveUserDataPath({
     return { selectedPath: currentCandidate.dirPath, reason: "fresh-current" };
   }
 
+  // If current exists with any meaningful state, ALWAYS pick it. Without this
+  // guard, score-based ranking can hand the user back to a legacy directory
+  // (e.g. an old OpenWhispr install with a fat WAL) that the user already
+  // migrated away from, making recently-saved keys / DB writes "vanish".
+  const currentExisting = existingCandidates.find((c) => c.isCurrent);
+  if (currentExisting) {
+    const currentScore = getUserDataStateScore(currentExisting.dirPath);
+    if (currentScore > 0) {
+      return {
+        selectedPath: currentExisting.dirPath,
+        reason: existingCandidates.length === 1 ? "current-only" : "current-prioritized",
+      };
+    }
+  }
+
   const rankedCandidates = existingCandidates
     .map((candidate) => ({
       ...candidate,
@@ -117,19 +132,32 @@ function resolveUserDataPath({
   const selectedCandidate = rankedCandidates[0];
 
   if (existingCandidates.length === 1) {
+    if (selectedCandidate.isCurrent) {
+      return { selectedPath: selectedCandidate.dirPath, reason: "current-only" };
+    }
+    // Only legacy exists — the caller should treat this as a migration cue.
     return {
       selectedPath: selectedCandidate.dirPath,
-      reason: selectedCandidate.isCurrent
-        ? "current-only"
-        : `legacy-only:${selectedCandidate.baseName}`,
+      reason: `legacy-only:${selectedCandidate.baseName}`,
+      migratedFrom: selectedCandidate.baseName,
+      migrationTarget: currentCandidate.dirPath,
+    };
+  }
+
+  // Multi-existing path with a non-zero current would have been handled above;
+  // reaching here means current is empty (score 0) and legacy beat it.
+  if (!selectedCandidate.isCurrent) {
+    return {
+      selectedPath: selectedCandidate.dirPath,
+      reason: `legacy-higher-score:${selectedCandidate.baseName}`,
+      migratedFrom: selectedCandidate.baseName,
+      migrationTarget: currentCandidate.dirPath,
     };
   }
 
   return {
     selectedPath: selectedCandidate.dirPath,
-    reason: selectedCandidate.isCurrent
-      ? "current-higher-or-equal-score"
-      : `legacy-higher-score:${selectedCandidate.baseName}`,
+    reason: "current-higher-or-equal-score",
   };
 }
 

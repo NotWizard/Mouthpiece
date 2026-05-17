@@ -78,7 +78,10 @@ test("current userData with a persisted env file still outranks legacy Chromium-
     });
 
     assert.equal(result.selectedPath, currentDir);
-    assert.equal(result.reason, "current-higher-or-equal-score");
+    // Either "current-higher-or-equal-score" (legacy logic) or "current-prioritized"
+    // (the strict-current-wins logic that prevents legacy directories from
+    // outranking real current state) is acceptable.
+    assert.match(result.reason, /^current-(higher-or-equal-score|prioritized)$/);
   });
 });
 
