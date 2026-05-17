@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Internal
 
+- `CLAUDE.md` now requires every commit that touches user-visible behavior, fixes a bug, or alters developer workflow to update `CHANGELOG.md` in the same commit (Keep a Changelog format under `[Unreleased]`).
 - New pure helper modules with focused unit tests, all callable outside Electron: `src/helpers/envFile.js` (mergeEnvFile), `src/helpers/reasoningEnvUpdate.js` (computeReasoningEnvUpdate), `src/helpers/fastPasteCache.js` (createFastPasteCache), `src/helpers/customDictionaryPrompt.js` (buildCustomDictionaryPrompt).
 - `HotkeyManager` now extends `EventEmitter`, emitting `hotkey-changed` after every successful `updateHotkey` and a one-shot `hotkey-ready` once `loadSavedHotkeyOrDefault` settles.
 - `IPCHandlers` exposes a `getGlobeKeyManager` accessor so `set-hotkey-listening-mode` can manipulate the macOS Globe listener without circular imports.
