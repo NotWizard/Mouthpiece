@@ -6,6 +6,7 @@ const fs = require("fs");
 const os = require("os");
 const { buildMacOSAccessibilityResetCommand } = require("./accessibilityRepair");
 const { resolveMacOSAccessibilityMode } = require("./macOSAccessibilityMode");
+const { createFastPasteCache } = require("./fastPasteCache");
 const debugLogger = require("./debugLogger");
 const { createInsertionPlan, resolveInsertionOutcomeMode } = require("./insertionPlan");
 const {
@@ -192,6 +193,11 @@ class ClipboardManager {
     this.winFastPasteChecked = false;
     this.linuxFastPastePath = null;
     this.linuxFastPasteChecked = false;
+    // Negative-cache (TTL) is separate from binary-path resolution: a runtime
+    // failure (e.g. CGEvent denied because Accessibility was revoked) marks the
+    // helper unavailable for a short window so we fall through to osascript,
+    // but the resolved binary path stays cached so we can retry after TTL.
+    this.fastPasteCache = createFastPasteCache();
   }
 
   async attemptAutoPaste(runPaste, { attempts = 1, retryDelayMs = 0, onRetry } = {}) {
@@ -1019,7 +1025,8 @@ class ClipboardManager {
   async pasteMacOS(originalClipboard, options = {}) {
     const { useNativePasteHelper } = resolveMacOSAccessibilityMode();
     const fastPasteBinary = this.resolveFastPasteBinary();
-    const useFastPaste = useNativePasteHelper && !!fastPasteBinary;
+    const useFastPaste =
+      useNativePasteHelper && !!fastPasteBinary && !this.fastPasteCache.isUnavailable();
     const shouldRestoreClipboard = !options?.preserveClipboard;
     const pasteDelay = options.fromStreaming ? (useFastPaste ? 15 : 50) : PASTE_DELAYS.darwin;
 
@@ -1061,8 +1068,7 @@ class ClipboardManager {
                 ? "CGEvent binary lacks accessibility trust, falling back to osascript"
                 : `CGEvent paste failed (code ${code}), falling back to osascript`
             );
-            this.fastPasteChecked = true;
-            this.fastPastePath = null;
+            this.fastPasteCache.markUnavailable();
             this.pasteMacOSWithOsascript(originalClipboard, options).then(resolve).catch(reject);
           } else {
             this.accessibilityCache = { value: null, expiresAt: 0 };
@@ -1078,8 +1084,7 @@ class ClipboardManager {
 
           if (useFastPaste) {
             this.safeLog("CGEvent paste error, falling back to osascript");
-            this.fastPasteChecked = true;
-            this.fastPastePath = null;
+            this.fastPasteCache.markUnavailable();
             this.pasteMacOSWithOsascript(originalClipboard, options).then(resolve).catch(reject);
           } else {
             const errorMsg = `Paste command failed: ${error.message}. Text is copied to clipboard - please paste manually with Cmd+V.`;
@@ -1965,11 +1970,19 @@ class ClipboardManager {
       return this.accessibilityCache.value;
     }
 
+    const previousValue = this.accessibilityCache.value;
     const allowed = systemPreferences.isTrustedAccessibilityClient(false);
     this.accessibilityCache = {
       value: allowed,
       expiresAt: Date.now() + ACCESSIBILITY_CHECK_TTL_MS,
     };
+
+    // AX flipped from denied to granted: a previous CGEvent failure may have
+    // marked fast-paste unavailable. Clear that negative cache so the next
+    // paste retries the fast path immediately instead of waiting out the TTL.
+    if (allowed && previousValue === false) {
+      this.fastPasteCache.invalidate();
+    }
 
     if (!allowed && promptOnFailure) {
       this.showAccessibilityDialog("not allowed assistive access");

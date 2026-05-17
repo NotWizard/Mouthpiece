@@ -249,6 +249,7 @@ class IPCHandlers {
     this.targetAppCapture = managers.targetAppCapture;
     this.macOSPermissionFlowManager = managers.macOSPermissionFlowManager;
     this.getTrayManager = managers.getTrayManager;
+    this.getGlobeKeyManager = managers.getGlobeKeyManager;
     this.whisperCudaManager = managers.whisperCudaManager;
     this.sessionId = crypto.randomUUID();
     this.assemblyAiStreaming = null;
@@ -1082,6 +1083,20 @@ class IPCHandlers {
           this.windowsKeyManager.stop();
         }
 
+        // On macOS, the Swift Globe listener is what would otherwise fire dictation
+        // when the user presses Fn or a right-side modifier while trying to record
+        // a new hotkey. Stop it during capture; we restart it on capture exit.
+        if (
+          process.platform === "darwin" &&
+          (isGlobeLikeHotkey(currentHotkey) || isRightSideModifier(currentHotkey))
+        ) {
+          const globeKeyManager = this.getGlobeKeyManager?.();
+          if (globeKeyManager) {
+            debugLogger.log("[IPC] Stopping macOS Globe listener for hotkey capture mode");
+            globeKeyManager.stop();
+          }
+        }
+
         // On GNOME Wayland, unregister the keybinding during capture
         if (hotkeyManager.isUsingGnome() && hotkeyManager.gnomeManager) {
           debugLogger.log("[IPC] Unregistering GNOME keybinding for hotkey capture mode");
@@ -1116,6 +1131,21 @@ class IPCHandlers {
           if (needsListener) {
             debugLogger.log(`[IPC] Restarting Windows key listener for hotkey: ${effectiveHotkey}`);
             this.windowsKeyManager.start(effectiveHotkey);
+          }
+        }
+
+        // Restart the macOS Globe listener so Fn / right-modifier hotkeys resume.
+        if (
+          process.platform === "darwin" &&
+          effectiveHotkey &&
+          (isGlobeLikeHotkey(effectiveHotkey) || isRightSideModifier(effectiveHotkey))
+        ) {
+          const globeKeyManager = this.getGlobeKeyManager?.();
+          if (globeKeyManager) {
+            debugLogger.log(
+              `[IPC] Restarting macOS Globe listener after capture for hotkey: ${effectiveHotkey}`
+            );
+            globeKeyManager.start();
           }
         }
 

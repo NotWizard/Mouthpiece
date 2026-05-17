@@ -1,4 +1,5 @@
 const { globalShortcut } = require("electron");
+const EventEmitter = require("events");
 const debugLogger = require("./debugLogger");
 const GnomeShortcutManager = require("./gnomeShortcut");
 const { getDefaultHotkeyForPlatform, resolvePersistedHotkey } = require("./hotkeyPersistence");
@@ -57,8 +58,9 @@ const SUGGESTED_HOTKEYS = {
   compound: ["Control+K", "Alt+F7", "Shift+F9", "Alt+M"],
 };
 
-class HotkeyManager {
+class HotkeyManager extends EventEmitter {
   constructor() {
+    super();
     this.currentHotkey = getDefaultHotkeyForPlatform(process.platform);
     this.isInitialized = false;
     this.isListeningMode = false;
@@ -563,6 +565,10 @@ class HotkeyManager {
             "[HotkeyManager] GNOME hotkey registered but failed to persist to localStorage"
           );
         }
+        // Emit so main.js can restart native listeners regardless of whether
+        // the renderer subsequently calls notifyHotkeyChanged. Decouples
+        // listener restart from renderer cooperation.
+        this.emit("hotkey-changed", hotkey);
         return {
           success: true,
           message: `Hotkey updated to: ${hotkey} (via GNOME native shortcut)`,
@@ -577,6 +583,7 @@ class HotkeyManager {
             "[HotkeyManager] Hotkey registered but failed to persist to localStorage"
           );
         }
+        this.emit("hotkey-changed", hotkey);
         return { success: true, message: `Hotkey updated to: ${hotkey}` };
       } else {
         return {

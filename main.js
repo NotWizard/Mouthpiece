@@ -223,7 +223,9 @@ let globeKeyAlertShown = false;
 let authBridgeServer = null;
 let globeKeyRestartTimer = null;
 let lastGlobeRecoveryAttempt = 0;
+let lastWindowsRecoveryAttempt = 0;
 const GLOBE_RECOVERY_MIN_INTERVAL_MS = 2000;
+const WINDOWS_RECOVERY_MIN_INTERVAL_MS = 2000;
 
 // CGEvent.tapCreate fails permanently when Accessibility is revoked — there is
 // no event to listen for re-grant. Re-spawn on app focus so the listener
@@ -250,6 +252,28 @@ function tryRecoverGlobeKeyListener(reason) {
     currentHotkey,
   });
   globeKeyManager.start();
+}
+
+// The Windows low-level keyboard hook can be detached by AV / sleep / UAC; like
+// the macOS Globe listener there is no event to subscribe to for "hook restored".
+// Re-spawn on app focus so PTT recovers when the user comes back to the window.
+function tryRecoverWindowsKeyListener(reason) {
+  if (process.platform !== "win32") return;
+  if (!windowsKeyManager || windowsKeyManager.process) return;
+
+  const currentHotkey = hotkeyManager?.getCurrentHotkey?.();
+  if (!currentHotkey) return;
+  if (isGlobeLikeHotkeyForRecovery(currentHotkey)) return;
+
+  const now = Date.now();
+  if (now - lastWindowsRecoveryAttempt < WINDOWS_RECOVERY_MIN_INTERVAL_MS) return;
+  lastWindowsRecoveryAttempt = now;
+
+  debugLogger?.debug("[Win] Listener appears dead, attempting recovery", {
+    reason,
+    currentHotkey,
+  });
+  windowsKeyManager.start(currentHotkey);
 }
 
 function parseAuthBridgePort() {
@@ -349,6 +373,7 @@ function initializeCoreManagers() {
     whisperCudaManager,
     macOSPermissionFlowManager,
     getTrayManager: () => trayManager,
+    getGlobeKeyManager: () => globeKeyManager,
   });
 }
 
@@ -764,8 +789,11 @@ async function startApp() {
 
     globeKeyManager.start();
 
-    // Reset native key state when hotkey changes
-    ipcMain.on("hotkey-changed", (_event, newHotkey) => {
+    // Reset native key state when hotkey changes. Subscribed via BOTH the
+    // legacy renderer-driven IPC path AND the in-process hotkeyManager event,
+    // so update-hotkey alone is enough — callers don't need to also fire
+    // notifyHotkeyChanged for the listener to refresh.
+    const handleMacHotkeyChanged = (newHotkey) => {
       globeAutoSession.abort();
       globeLastStopTime = 0;
       rightModifierAutoSession.abort();
@@ -784,7 +812,9 @@ async function startApp() {
           globeKeyManager?.start();
         }, 100);
       }
-    });
+    };
+    ipcMain.on("hotkey-changed", (_event, newHotkey) => handleMacHotkeyChanged(newHotkey));
+    hotkeyManager.on("hotkey-changed", handleMacHotkeyChanged);
   }
 
   // Set up Windows automatic activation handling
@@ -852,6 +882,9 @@ async function startApp() {
     setTimeout(() => restartWindowsKeyListener(), STARTUP_DELAY_MS);
 
     ipcMain.on("hotkey-changed", (_event, hotkey) => {
+      restartWindowsKeyListener(hotkey);
+    });
+    hotkeyManager.on("hotkey-changed", (hotkey) => {
       restartWindowsKeyListener(hotkey);
     });
 
@@ -935,6 +968,7 @@ if (gotSingleInstanceLock) {
     }
 
     tryRecoverGlobeKeyListener("browser-window-focus");
+    tryRecoverWindowsKeyListener("browser-window-focus");
   });
 
   app.on("activate", () => {
@@ -968,6 +1002,7 @@ if (gotSingleInstanceLock) {
     }
 
     tryRecoverGlobeKeyListener("activate");
+    tryRecoverWindowsKeyListener("activate");
   });
 
   app.on("will-quit", () => {

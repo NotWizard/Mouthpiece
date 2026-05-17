@@ -19,6 +19,7 @@ class WindowsKeyManager extends EventEmitter {
     this.hasReportedError = false;
     this.currentKey = null;
     this.isReady = false;
+    this._isStopping = false;
   }
 
   /**
@@ -45,6 +46,7 @@ class WindowsKeyManager extends EventEmitter {
       return;
     }
 
+    this._isStopping = false;
     this.hasReportedError = false;
     this.isReady = false;
     this.currentKey = key;
@@ -54,8 +56,9 @@ class WindowsKeyManager extends EventEmitter {
       binaryPath: listenerPath,
     });
 
+    let child;
     try {
-      this.process = spawn(listenerPath, [key], {
+      child = spawn(listenerPath, [key], {
         stdio: ["ignore", "pipe", "pipe"],
         windowsHide: true,
       });
@@ -64,9 +67,11 @@ class WindowsKeyManager extends EventEmitter {
       this.reportError(error);
       return;
     }
+    this.process = child;
 
-    this.process.stdout.setEncoding("utf8");
-    this.process.stdout.on("data", (chunk) => {
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      if (this.process !== child) return;
       chunk
         .split(/\r?\n/)
         .map((line) => line.trim())
@@ -89,8 +94,9 @@ class WindowsKeyManager extends EventEmitter {
         });
     });
 
-    this.process.stderr.setEncoding("utf8");
-    this.process.stderr.on("data", (data) => {
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", (data) => {
+      if (this.process !== child) return;
       const message = data.toString().trim();
       if (message.length > 0) {
         // Native binary logs to stderr for info messages, don't treat as error
@@ -98,14 +104,20 @@ class WindowsKeyManager extends EventEmitter {
       }
     });
 
-    this.process.on("error", (error) => {
+    child.on("error", (error) => {
+      if (this.process !== child) return;
       this.reportError(error);
       this.process = null;
     });
 
-    this.process.on("exit", (code, signal) => {
+    child.on("exit", (code, signal) => {
+      // Identity check: if a newer child has replaced this one, the OLD process's
+      // async exit must not poison the NEW process's state — reportError would
+      // otherwise emit 'error' and disable the just-spawned listener.
+      if (this.process !== child) return;
       this.process = null;
       this.isReady = false;
+      if (this._isStopping) return;
       if (code !== 0) {
         const error = new Error(
           `Windows key listener exited with code ${code ?? "null"} signal ${signal ?? "null"}`
@@ -121,6 +133,7 @@ class WindowsKeyManager extends EventEmitter {
   stop() {
     if (this.process) {
       debugLogger.debug("[WindowsKeyManager] Stopping key listener");
+      this._isStopping = true;
       try {
         this.process.kill();
       } catch {
