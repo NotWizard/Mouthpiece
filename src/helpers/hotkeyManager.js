@@ -334,6 +334,7 @@ class HotkeyManager extends EventEmitter {
         const result = await this._registerStartupHotkey(resolvedHotkey.hotkey, callback);
         if (result.success) {
           debugLogger.log(`[HotkeyManager] Restored saved hotkey: "${resolvedHotkey.hotkey}"`);
+          this._signalHotkeyReady(resolvedHotkey.hotkey);
           return;
         }
         if (result.gnomeFailed) {
@@ -353,6 +354,7 @@ class HotkeyManager extends EventEmitter {
         this.currentHotkey = "GLOBE";
         debugLogger.log("[HotkeyManager] Using GLOBE key as default on macOS");
         await this._persistHotkeyToEnvFile("GLOBE");
+        this._signalHotkeyReady("GLOBE");
         return;
       }
 
@@ -361,6 +363,7 @@ class HotkeyManager extends EventEmitter {
         debugLogger.log(
           `[HotkeyManager] Default hotkey "${defaultHotkey}" registered successfully`
         );
+        this._signalHotkeyReady(defaultHotkey);
         return;
       }
       if (result.gnomeFailed) {
@@ -380,6 +383,7 @@ class HotkeyManager extends EventEmitter {
           debugLogger.log(`[HotkeyManager] Fallback hotkey "${fallback}" registered successfully`);
           await this.saveHotkeyToRenderer(fallback);
           this.notifyHotkeyFallback(defaultHotkey, fallback);
+          this._signalHotkeyReady(fallback);
           return;
         }
         if (fallbackResult.gnomeFailed) {
@@ -393,9 +397,28 @@ class HotkeyManager extends EventEmitter {
 
       debugLogger.log("[HotkeyManager] All hotkey fallbacks failed");
       this.notifyHotkeyFailure(defaultHotkey, result);
+      // Even after exhausting fallbacks, we still need to fire hotkey-ready so
+      // downstream listeners (Globe / Windows native) can come up — they each
+      // check their own hotkey relevance and no-op if unsuitable.
+      this._signalHotkeyReady(this.currentHotkey);
     } catch (err) {
       debugLogger.error("Failed to initialize hotkey", { error: err.message }, "hotkey");
+      // Last-ditch fallback: even when reading renderer localStorage / env throws,
+      // we still owe downstream callers SOMETHING — try the env value or the
+      // platform default so the session is not left without any hotkey.
+      try {
+        const envHotkey = (process.env.DICTATION_KEY || "").trim();
+        const fallback = envHotkey || getDefaultHotkeyForPlatform(process.platform);
+        await this._registerStartupHotkey(fallback, callback).catch(() => {});
+        this._signalHotkeyReady(fallback);
+      } catch {}
     }
+  }
+
+  _signalHotkeyReady(hotkey) {
+    if (this._hotkeyReadyEmitted) return;
+    this._hotkeyReadyEmitted = true;
+    this.emit("hotkey-ready", hotkey);
   }
 
   async _persistHotkeyToEnvFile(hotkey) {

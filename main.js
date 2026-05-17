@@ -227,6 +227,31 @@ let lastWindowsRecoveryAttempt = 0;
 const GLOBE_RECOVERY_MIN_INTERVAL_MS = 2000;
 const WINDOWS_RECOVERY_MIN_INTERVAL_MS = 2000;
 
+// startupReadyPromise resolves when startApp() finishes its core wiring so
+// handlers that arrive early (second-instance, OAuth open-url) can wait for
+// windowManager / hotkeyManager to exist before acting. Without this gate,
+// macOS open-url and a second-instance launch racing against startApp() would
+// silently drop their payload.
+let resolveStartupReady;
+const startupReadyPromise = new Promise((resolve) => {
+  resolveStartupReady = resolve;
+});
+
+// OAuth deep links arriving before windowManager is ready (cold launch via
+// mouthpiece://) are queued here and flushed once the control panel exists.
+const pendingOAuthDeepLinks = [];
+
+function flushPendingOAuthDeepLinks() {
+  while (pendingOAuthDeepLinks.length > 0) {
+    const url = pendingOAuthDeepLinks.shift();
+    try {
+      handleOAuthDeepLink(url);
+    } catch (err) {
+      debugLogger?.error?.("Failed to flush queued OAuth deep link", { error: err?.message });
+    }
+  }
+}
+
 // CGEvent.tapCreate fails permanently when Accessibility is revoked — there is
 // no event to listen for re-grant. Re-spawn on app focus so the listener
 // self-heals when the user returns from System Settings after authorizing.
@@ -422,9 +447,17 @@ app.on("open-url", (event, url) => {
   event.preventDefault();
   if (!url.startsWith(`${OAUTH_PROTOCOL}://`)) return;
 
+  // macOS delivers open-url before app.whenReady() during cold launch.
+  // windowManager doesn't exist yet at that point, so handleOAuthDeepLink
+  // would silently drop the verifier. Queue and flush after startApp finishes.
+  if (!windowManager || !isLiveWindow(windowManager.controlPanelWindow)) {
+    pendingOAuthDeepLinks.push(url);
+    return;
+  }
+
   handleOAuthDeepLink(url);
 
-  if (windowManager && isLiveWindow(windowManager.controlPanelWindow)) {
+  if (isLiveWindow(windowManager.controlPanelWindow)) {
     windowManager.controlPanelWindow.show();
     windowManager.controlPanelWindow.focus();
   }
@@ -787,7 +820,17 @@ async function startApp() {
       }
     });
 
-    globeKeyManager.start();
+    // Wait for hotkeyManager to resolve the saved hotkey BEFORE spawning the
+    // Globe listener. Otherwise the listener observes a ~1-second window where
+    // currentHotkey is still the platform default ("GLOBE"), and Fn presses
+    // there fire dictation even when the user has actually saved a different
+    // hotkey — a startup-only false trigger.
+    hotkeyManager.once("hotkey-ready", () => {
+      debugLogger?.debug("[Globe] hotkey-ready received, starting native listener", {
+        hotkey: hotkeyManager.getCurrentHotkey?.(),
+      });
+      globeKeyManager?.start();
+    });
 
     // Reset native key state when hotkey changes. Subscribed via BOTH the
     // legacy renderer-driven IPC path AND the in-process hotkeyManager event,
@@ -878,8 +921,13 @@ async function startApp() {
       }
     };
 
-    const STARTUP_DELAY_MS = 3000;
-    setTimeout(() => restartWindowsKeyListener(), STARTUP_DELAY_MS);
+    // Drive initial listener bind off hotkey-ready instead of a 3-second wall
+    // clock. On slow disks the 3s timer used to fire before the renderer's
+    // localStorage read completed, binding the default hotkey instead of the
+    // user's saved one.
+    hotkeyManager.once("hotkey-ready", () => {
+      restartWindowsKeyListener();
+    });
 
     ipcMain.on("hotkey-changed", (_event, hotkey) => {
       restartWindowsKeyListener(hotkey);
@@ -893,12 +941,19 @@ async function startApp() {
       windowsKeyManager.stop();
     });
   }
+
+  // All wiring is in place — let queued startup-dependent handlers proceed.
+  flushPendingOAuthDeepLinks();
+  resolveStartupReady();
 }
 
 // App event handlers
 if (gotSingleInstanceLock) {
   app.on("second-instance", async (_event, commandLine) => {
     await app.whenReady();
+    // Wait for startApp() to finish wiring windowManager / hotkeyManager so a
+    // second launch arriving during the first ~300ms doesn't get silently dropped.
+    await startupReadyPromise;
     if (!windowManager) {
       return;
     }
