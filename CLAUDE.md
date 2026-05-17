@@ -33,6 +33,15 @@ English
   Verification:
     1. Relevant verification notes.
 
+### Changelog Updates
+
+- Every commit that adds, changes, or removes user-visible behavior, fixes a bug, or alters developer workflow must update `CHANGELOG.md` in the same commit.
+- Place new entries under the `[Unreleased]` section until a version is bumped, then move them under the new version header on release.
+- Follow the Keep a Changelog format already in use: categorize each entry under `Added`, `Changed`, `Fixed`, `Removed`, or `Internal`.
+- Each entry must describe the user-visible symptom or behavior change in plain prose. Reference file paths or function names only when they help the reader locate the fix.
+- Pure refactors, test-only changes, or build-tooling tweaks belong under `Internal`. Skipping the changelog is acceptable only for trivial documentation typos and changes purely inside `tests/` that document existing behavior — when in doubt, add the entry.
+- Changelog text is written in English to match the existing format. The commit message itself remains bilingual per the rule above.
+
 ### Git Worktree Confirmation
 
 - Before any feature addition, feature change, or code modification, first ask the user whether the task should be done in a Git worktree.
