@@ -403,7 +403,10 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             {t("onboarding.activation.hotkey")}
           </span>
-          <p className="text-sm font-semibold text-foreground">{readableHotkey}</p>
+          <div className="activation-hero">
+            <div className="activation-halo" aria-hidden="true" />
+            <kbd className="activation-keycap">{readableHotkey}</kbd>
+          </div>
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             {t("onboarding.activation.mode")}
           </span>
