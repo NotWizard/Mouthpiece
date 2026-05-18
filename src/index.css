@@ -426,17 +426,28 @@ a:hover {
   color: var(--color-foreground);
 }
 
-.control-panel-shell {
+.control-panel-shell,
+.onboarding-shell {
   position: relative;
   isolation: isolate;
+}
+
+.control-panel-shell {
   height: 100vh;
   min-height: 0;
   overflow: hidden;
 }
 
+/* Onboarding leans into a more vivid atmosphere because users only see
+   this flow once — first impression deserves a heavier glass moment. */
+.onboarding-shell {
+  --glass-orb-opacity: 0.55;
+}
+
 /* Liquid Glass atmosphere layer — colored orbs that sidebar/cards refract.
-   Lives behind everything in the shell via document order; pointer-events
-   off so it can never block clicks. */
+   Mounted as the first child of both .control-panel-shell and .onboarding-shell.
+   Lives behind everything via document order; pointer-events off so it can
+   never block clicks. */
 .control-panel-atmosphere {
   position: absolute;
   inset: 0;
@@ -847,12 +858,25 @@ a:hover {
 }
 
 .wizard-auth-panel {
+  position: relative;
   width: min(100%, 380px);
   border: 1px solid var(--mp-control-border);
-  border-radius: 8px;
+  border-radius: 14px;
   background: var(--mp-control-panel-bg);
-  box-shadow: var(--mp-control-shadow);
+  box-shadow: var(--mp-card-shadow);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   padding: 24px;
+  overflow: hidden;
+}
+
+.wizard-auth-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--glass-highlight), transparent 60%);
+  pointer-events: none;
 }
 
 .wizard-content {
@@ -872,10 +896,25 @@ a:hover {
 
 .wizard-rail-panel,
 .wizard-panel {
+  position: relative;
   border: 1px solid var(--mp-control-border);
-  border-radius: 8px;
+  border-radius: 14px;
   background: var(--mp-control-panel-bg);
-  box-shadow: var(--mp-control-shadow);
+  box-shadow: var(--mp-card-shadow);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  overflow: hidden;
+}
+
+.wizard-rail-panel::before,
+.wizard-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--glass-highlight), transparent 60%);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .wizard-rail-panel {
@@ -889,10 +928,11 @@ a:hover {
 }
 
 .wizard-footer {
+  position: relative;
   border-top: 1px solid var(--mp-control-border);
-  background: color-mix(in srgb, var(--mp-control-window-bg) 92%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: color-mix(in srgb, var(--mp-control-panel-bg) 70%, transparent);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
 }
 
 .wizard-step-rail {

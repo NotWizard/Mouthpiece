@@ -481,6 +481,12 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       className="onboarding-shell h-screen flex flex-col"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
+      <div className="control-panel-atmosphere" aria-hidden="true">
+        <span className="glass-orb glass-orb-1" />
+        <span className="glass-orb glass-orb-2" />
+        <span className="glass-orb glass-orb-3" />
+        <span className="glass-orb glass-orb-4" />
+      </div>
       <ConfirmDialog
         open={confirmDialog.open}
         onOpenChange={(open) => !open && hideConfirmDialog()}
