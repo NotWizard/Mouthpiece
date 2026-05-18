@@ -1006,54 +1006,129 @@ a:hover {
 .wizard-step-rail {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .wizard-step-pill {
+  position: relative;
   display: flex;
-  min-height: 34px;
+  min-height: 44px;
   align-items: center;
-  gap: 9px;
-  border-radius: 8px;
-  padding: 0 9px;
-  color: var(--mp-control-text-muted);
+  gap: 12px;
+  border-radius: 10px;
+  padding: 6px 10px;
+  color: var(--color-foreground);
+  font-size: 13px;
 }
 
 .wizard-step-pill-active {
   background: var(--mp-control-selected-bg);
   color: var(--mp-control-selected-text);
+  box-shadow: inset 0 0 0 0.5px var(--mp-control-selected-border);
 }
 
 .wizard-step-pill-completed {
-  color: color-mix(in srgb, var(--color-success) 62%, var(--mp-control-text-muted));
+  color: color-mix(in srgb, var(--color-success) 62%, var(--color-foreground));
 }
 
 .wizard-step-icon {
   display: flex;
-  height: 20px;
-  width: 20px;
+  height: 32px;
+  width: 32px;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
+  border-radius: 9px;
   background: var(--mp-control-panel-muted);
-  color: inherit;
+  color: var(--color-foreground);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition:
+    box-shadow 200ms cubic-bezier(0.4, 0.6, 0.2, 1),
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.wizard-step-pill-active .wizard-step-icon {
-  background: var(--mp-control-selected-text);
-  color: var(--color-primary-foreground);
+.wizard-step-icon svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* Per-step identity gradients — pills sit at nth-child(1)/(3)/(5) because
+   wizard-step-connector elements are interleaved between them. */
+.wizard-step-rail > .wizard-step-pill:nth-child(1) .wizard-step-icon {
+  /* Permissions / Shield — blue→purple, "security" */
+  background: linear-gradient(160deg, #5b8df8 0%, #7b6cff 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 4px 14px -4px rgba(80, 130, 235, 0.5);
+}
+
+.wizard-step-rail > .wizard-step-pill:nth-child(3) .wizard-step-icon {
+  /* HotkeySetup / Command — orange→amber, "action" */
+  background: linear-gradient(160deg, #ffa15e 0%, #ff7245 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 4px 14px -4px rgba(255, 140, 60, 0.5);
+}
+
+.wizard-step-rail > .wizard-step-pill:nth-child(5) .wizard-step-icon {
+  /* Activation / Mic — green→teal, "voice ready" */
+  background: linear-gradient(160deg, #4dd49e 0%, #2db872 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 4px 14px -4px rgba(45, 200, 120, 0.5);
+}
+
+/* Active step: amplify the existing per-step shadow with an extra glow ring.
+   Box-shadow replaces wholesale, so we re-declare the inset highlight + drop
+   plus add the outer ring. */
+.wizard-step-rail > .wizard-step-pill-active:nth-child(1) .wizard-step-icon {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 0 0 3px rgba(80, 130, 235, 0.22),
+    0 6px 18px -4px rgba(80, 130, 235, 0.55);
+  transform: scale(1.04);
+}
+
+.wizard-step-rail > .wizard-step-pill-active:nth-child(3) .wizard-step-icon {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 0 0 3px rgba(255, 140, 60, 0.22),
+    0 6px 18px -4px rgba(255, 140, 60, 0.55);
+  transform: scale(1.04);
+}
+
+.wizard-step-rail > .wizard-step-pill-active:nth-child(5) .wizard-step-icon {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 0 0 3px rgba(45, 200, 120, 0.22),
+    0 6px 18px -4px rgba(45, 200, 120, 0.55);
+  transform: scale(1.04);
+}
+
+/* Completed step: muted success-green ring around the still-gradient icon. */
+.wizard-step-pill-completed .wizard-step-icon {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 0 0 2px color-mix(in srgb, var(--color-success) 35%, transparent),
+    0 4px 14px -4px rgba(45, 200, 120, 0.4);
 }
 
 .wizard-step-connector {
-  height: 12px;
+  height: 16px;
   width: 1px;
-  margin-left: 19px;
+  margin-left: 26px;
   background: var(--mp-control-border);
 }
 
 .wizard-step-connector-completed {
-  background: color-mix(in srgb, var(--color-success) 35%, var(--mp-control-border));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-success) 50%, transparent),
+    color-mix(in srgb, var(--color-success) 25%, var(--mp-control-border))
+  );
 }
 
 .permission-card {
