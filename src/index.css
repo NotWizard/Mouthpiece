@@ -80,9 +80,9 @@
 
   /* Control panel and onboarding surfaces */
   --mp-control-window-bg: #eef0f6;
-  --mp-control-sidebar-bg: rgba(255, 255, 255, 0.55);
-  --mp-control-panel-bg: rgba(255, 255, 255, 0.74);
-  --mp-control-panel-muted: rgba(248, 250, 253, 0.65);
+  --mp-control-sidebar-bg: rgba(255, 255, 255, 0.62);
+  --mp-control-panel-bg: rgba(255, 255, 255, 0.62);
+  --mp-control-panel-muted: rgba(248, 250, 253, 0.5);
   --mp-control-border: rgba(13, 18, 30, 0.08);
   --mp-control-border-soft: rgba(13, 18, 30, 0.05);
   --mp-control-selected-bg: #e8f1ff;
@@ -92,16 +92,28 @@
   --mp-control-danger: #dc2626;
   --mp-control-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 
+  /* Unified card elevation — applied to every glass card surface so they all
+     read at the same z-level. 4 layers:
+       1. inset top specular (the rim catching light)
+       2. 0.5 px hairline edge
+       3. 1 px close lift
+       4. 18 px diffuse drop */
+  --mp-card-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 0 0 0.5px var(--mp-control-border-soft),
+    0 1px 2px rgba(13, 18, 30, 0.04),
+    0 18px 40px -22px rgba(13, 18, 30, 0.18);
+
   /* Liquid Glass tokens (Phase 1 — atmosphere + future glass surfaces) */
   --glass-blur: 36px;
-  --glass-saturate: 180%;
+  --glass-saturate: 135%;
   --glass-highlight: rgba(255, 255, 255, 0.85);
   --glass-edge: rgba(255, 255, 255, 0.6);
   --glass-orb-1: #ffd1b3; /* peach */
   --glass-orb-2: #c2d8ff; /* lavender-blue */
   --glass-orb-3: #e3d2ff; /* lavender */
   --glass-orb-4: #bdf2e0; /* mint */
-  --glass-orb-opacity: 0.78;
+  --glass-orb-opacity: 0.42;
 }
 
 .dark {
@@ -160,9 +172,9 @@
   --shadow-card-hover-subtle: 0 2px 8px -2px rgba(0, 0, 0, 0.12);
 
   --mp-control-window-bg: #0d0f15;
-  --mp-control-sidebar-bg: rgba(22, 25, 33, 0.55);
-  --mp-control-panel-bg: rgba(30, 33, 41, 0.62);
-  --mp-control-panel-muted: rgba(24, 27, 34, 0.6);
+  --mp-control-sidebar-bg: rgba(22, 25, 33, 0.5);
+  --mp-control-panel-bg: rgba(30, 33, 41, 0.48);
+  --mp-control-panel-muted: rgba(24, 27, 34, 0.4);
   --mp-control-border: rgba(255, 255, 255, 0.07);
   --mp-control-border-soft: rgba(255, 255, 255, 0.05);
   --mp-control-selected-bg: rgba(122, 166, 255, 0.18);
@@ -172,6 +184,14 @@
   --mp-control-danger: #f87171;
   --mp-control-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
 
+  /* Dark variant of the unified card shadow — heavier black so depth
+     is visible against the charcoal/atmosphere bg. */
+  --mp-card-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 0 0 0.5px var(--mp-control-border-soft),
+    0 1px 2px rgba(0, 0, 0, 0.35),
+    0 24px 48px -22px rgba(0, 0, 0, 0.55);
+
   /* Liquid Glass tokens — dark mode atmosphere */
   --glass-highlight: rgba(255, 255, 255, 0.07);
   --glass-edge: rgba(255, 255, 255, 0.05);
@@ -179,7 +199,7 @@
   --glass-orb-2: #0d3a55; /* deep teal */
   --glass-orb-3: #421b46; /* wine */
   --glass-orb-4: #0a3f3a; /* dark mint */
-  --glass-orb-opacity: 0.6;
+  --glass-orb-opacity: 0.32;
 }
 
 @layer base {
@@ -428,43 +448,47 @@ a:hover {
 .control-panel-atmosphere .glass-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px) saturate(160%);
+  /* saturate(100%) — let the source orb color speak as-is, no amplification.
+     The glass surfaces already carry their own saturate boost. */
+  filter: blur(90px) saturate(100%);
   opacity: var(--glass-orb-opacity);
   will-change: transform;
 }
 
+/* Capped sizes via min(vw, px) so a 1920+ Electron window doesn't get a
+   1100px peach blob dominating the entire sidebar. */
 .control-panel-atmosphere .glass-orb-1 {
-  width: 60vw;
-  height: 60vw;
-  top: -22vw;
-  left: -12vw;
+  width: min(36vw, 540px);
+  height: min(36vw, 540px);
+  top: -8vw;
+  left: -6vw;
   background: var(--glass-orb-1);
   animation: mp-orb-drift-1 32s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
 }
 
 .control-panel-atmosphere .glass-orb-2 {
-  width: 55vw;
-  height: 55vw;
-  top: -10vw;
-  right: -18vw;
+  width: min(32vw, 480px);
+  height: min(32vw, 480px);
+  top: -4vw;
+  right: -10vw;
   background: var(--glass-orb-2);
   animation: mp-orb-drift-2 28s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
 }
 
 .control-panel-atmosphere .glass-orb-3 {
-  width: 48vw;
-  height: 48vw;
-  bottom: -18vw;
-  left: 18vw;
+  width: min(28vw, 440px);
+  height: min(28vw, 440px);
+  bottom: -8vw;
+  left: 22vw;
   background: var(--glass-orb-3);
   animation: mp-orb-drift-3 36s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
 }
 
 .control-panel-atmosphere .glass-orb-4 {
-  width: 34vw;
-  height: 34vw;
-  bottom: -10vw;
-  right: 6vw;
+  width: min(22vw, 360px);
+  height: min(22vw, 360px);
+  bottom: -4vw;
+  right: 8vw;
   background: var(--glass-orb-4);
   animation: mp-orb-drift-4 30s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
 }
@@ -524,7 +548,7 @@ a:hover {
 
 .control-panel-titlebar,
 .onboarding-titlebar {
-  background: color-mix(in srgb, var(--mp-control-window-bg) 92%, transparent);
+  background: transparent;
 }
 
 .control-panel-sidebar {
@@ -548,15 +572,18 @@ a:hover {
   pointer-events: none;
 }
 
-/* Soft diagonal gloss — the lateral fall of light across the glass. */
+/* Soft diagonal gloss — the lateral fall of light across the glass.
+   No mix-blend-mode: overlay tends to amplify hue contrast against
+   atmosphere orbs, which made the sidebar read as a saturated peach
+   slab on the demo / production gap report. Plain alpha gradient keeps
+   the highlight subtle. */
 .control-panel-sidebar::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, var(--glass-edge) 0%, transparent 35%);
+  background: linear-gradient(135deg, var(--glass-edge) 0%, transparent 40%);
   pointer-events: none;
-  mix-blend-mode: overlay;
-  opacity: 0.4;
+  opacity: 0.18;
 }
 
 .control-panel-sidebar-nav {
@@ -631,10 +658,8 @@ a:hover {
   position: relative;
   border: 1px solid var(--mp-control-selected-border);
   background: color-mix(in srgb, var(--mp-control-selected-bg) 72%, var(--mp-control-panel-bg));
-  border-radius: 12px;
-  box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
-    var(--mp-control-shadow);
+  border-radius: 14px;
+  box-shadow: var(--mp-card-shadow);
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   overflow: hidden;
@@ -662,11 +687,7 @@ a:hover {
   background: var(--mp-control-panel-bg);
   border: 1px solid var(--mp-control-border);
   border-radius: 14px;
-  box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
-    0 0 0 0.5px var(--mp-control-border-soft),
-    0 1px 2px rgba(13, 18, 30, 0.04),
-    0 18px 40px -22px rgba(13, 18, 30, 0.18);
+  box-shadow: var(--mp-card-shadow);
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   overflow: hidden;
@@ -692,6 +713,31 @@ a:hover {
   border-bottom: 1px solid var(--mp-control-border-soft);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+/* DictionaryView populated-state wrapper — anchors the loose header / input /
+   chips / hint cluster as a single glass surface. The original layout left
+   them floating directly on the main scroll area, which read fine on a flat
+   bg but not on the new atmospheric one. */
+.dictionary-loose-card {
+  position: relative;
+  border-radius: 14px;
+  border: 1px solid var(--mp-control-border);
+  background: var(--mp-control-panel-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  box-shadow: var(--mp-card-shadow);
+  overflow: hidden;
+}
+
+.dictionary-loose-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--glass-highlight), transparent 60%);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .transcription-list-item {
@@ -732,11 +778,7 @@ a:hover {
   border: 1px solid var(--mp-control-border);
   border-radius: 14px;
   background: var(--mp-control-panel-bg);
-  box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
-    0 0 0 0.5px var(--mp-control-border-soft),
-    0 1px 2px rgba(13, 18, 30, 0.04),
-    0 18px 40px -22px rgba(13, 18, 30, 0.18);
+  box-shadow: var(--mp-card-shadow);
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
@@ -909,12 +951,9 @@ a:hover {
 .permission-card {
   position: relative;
   border: 1px solid var(--mp-control-border);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--mp-control-panel-bg);
-  box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
-    0 0 0 0.5px var(--mp-control-border-soft),
-    0 1px 2px rgba(13, 18, 30, 0.04);
+  box-shadow: var(--mp-card-shadow);
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   overflow: hidden;
@@ -965,6 +1004,32 @@ a:hover {
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+/* Phase 5 polish — unify card translucency across components.
+   Many settings cards (SettingsGroup, DeveloperSection, PromptStudio,
+   TerminologySettingsCard, MicrophoneSettings) use inline Tailwind
+   `bg-card`, `bg-card/50`, `bg-card/40`, `dark:bg-surface-2`, etc. directly,
+   each one ending up with a different translucency and most lacking
+   `backdrop-filter`. The end result was the demo→prod gap the user flagged:
+   "some cards still look fully opaque white, the transparency is uneven".
+
+   This rule scopes to .control-panel-shell descendants and forces every
+   bg-card / bg-surface-2 variant to the same `--mp-control-panel-bg` glass
+   surface plus the standard glass blur+saturate. We exclude:
+     - absolute-positioned indicator pills (ProviderTabs, TranscriptionModelPicker
+       mode toggle, etc.) — they need to read solid against translucent siblings.
+     - Radix/shadcn tab `[data-state="active"]` highlights — same reason.
+   Dialog / popover / dropdown content portal outside the shell, so this rule
+   never affects them. */
+.control-panel-shell [class*="bg-card"]:not([class*="absolute"]):not([data-state="active"]),
+.control-panel-shell [class*="bg-surface-2"]:not([class*="absolute"]):not([data-state="active"]) {
+  background-color: var(--mp-control-panel-bg);
+  border-color: var(--mp-control-border);
+  border-radius: 14px;
+  box-shadow: var(--mp-card-shadow);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 .auth-setup-header img,

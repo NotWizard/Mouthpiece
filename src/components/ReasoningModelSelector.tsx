@@ -836,7 +836,7 @@ export default function ReasoningModelSelector({
 
       {selectedMode === "cloud" ? (
         <div className="space-y-2">
-          <div className="border border-border rounded-lg overflow-visible">
+          <div className="border border-border rounded-lg overflow-visible bg-card/40">
             <ProviderTabs
               providers={cloudProviders}
               selectedId={selectedCloudProvider}
