@@ -592,7 +592,10 @@ a:hover {
 .control-panel-sidebar-item-active {
   background: var(--mp-control-selected-bg);
   color: var(--mp-control-selected-text);
-  box-shadow: inset 0 0 0 1px var(--mp-control-selected-border);
+  box-shadow:
+    inset 0 0 0 0.5px var(--mp-control-selected-border),
+    inset 0 1px 0 var(--glass-highlight),
+    0 1px 2px color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 
 .control-panel-sidebar-item-active:hover {
@@ -694,6 +697,11 @@ a:hover {
 .transcription-list-item {
   border-bottom: 1px solid var(--mp-control-border-soft);
   background: transparent;
+  transition: background-color 0.15s cubic-bezier(0.4, 0.6, 0.2, 1);
+}
+
+.transcription-list-item:hover {
+  background: color-mix(in srgb, var(--color-foreground) 4%, transparent);
 }
 
 .transcription-list-item:last-child {
@@ -768,16 +776,23 @@ a:hover {
 .onboarding-shell [data-slot="select-trigger"] {
   background: var(--mp-control-panel-bg);
   border-color: var(--mp-control-border);
+  border-radius: 9px;
   color: var(--color-foreground);
-  box-shadow: none;
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
 }
 
 .control-panel-shell input:focus,
 .control-panel-shell textarea:focus,
+.control-panel-shell [data-slot="select-trigger"]:focus,
+.control-panel-shell [data-slot="select-trigger"][data-state="open"],
 .onboarding-shell input:focus,
 .onboarding-shell textarea:focus {
   border-color: color-mix(in srgb, var(--color-primary) 62%, var(--mp-control-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 14%, transparent);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 0 0 3px color-mix(in srgb, var(--color-primary) 14%, transparent);
 }
 
 .wizard-auth-stage {
