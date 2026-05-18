@@ -80,11 +80,11 @@
 
   /* Control panel and onboarding surfaces */
   --mp-control-window-bg: #eef0f6;
-  --mp-control-sidebar-bg: rgba(240, 242, 245, 0.86);
-  --mp-control-panel-bg: #ffffff;
-  --mp-control-panel-muted: #f8f9fb;
-  --mp-control-border: #dfe3e8;
-  --mp-control-border-soft: #eceff3;
+  --mp-control-sidebar-bg: rgba(255, 255, 255, 0.55);
+  --mp-control-panel-bg: rgba(255, 255, 255, 0.74);
+  --mp-control-panel-muted: rgba(248, 250, 253, 0.65);
+  --mp-control-border: rgba(13, 18, 30, 0.08);
+  --mp-control-border-soft: rgba(13, 18, 30, 0.05);
   --mp-control-selected-bg: #e8f1ff;
   --mp-control-selected-text: #145fcf;
   --mp-control-selected-border: #c9dcff;
@@ -528,11 +528,35 @@ a:hover {
 }
 
 .control-panel-sidebar {
+  position: relative;
   width: 232px;
   background: var(--mp-control-sidebar-bg);
   border-right: 1px solid var(--mp-control-border);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  overflow: hidden;
+}
+
+/* Specular top edge — the highlight that makes the sidebar feel like a real
+   pane of glass catching light at its rim. */
+.control-panel-sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--glass-highlight), transparent 70%);
+  pointer-events: none;
+}
+
+/* Soft diagonal gloss — the lateral fall of light across the glass. */
+.control-panel-sidebar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--glass-edge) 0%, transparent 35%);
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.4;
 }
 
 .control-panel-sidebar-nav {
@@ -601,10 +625,25 @@ a:hover {
 }
 
 .control-panel-banner {
+  position: relative;
   border: 1px solid var(--mp-control-selected-border);
   background: color-mix(in srgb, var(--mp-control-selected-bg) 72%, var(--mp-control-panel-bg));
-  border-radius: 8px;
-  box-shadow: var(--mp-control-shadow);
+  border-radius: 12px;
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--mp-control-shadow);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  overflow: hidden;
+}
+
+.control-panel-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--glass-highlight), transparent 60%);
+  pointer-events: none;
 }
 
 .history-view {
@@ -616,17 +655,40 @@ a:hover {
 
 .history-panel,
 .history-empty {
+  position: relative;
   background: var(--mp-control-panel-bg);
   border: 1px solid var(--mp-control-border);
-  border-radius: 8px;
-  box-shadow: var(--mp-control-shadow);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 0 0 0.5px var(--mp-control-border-soft),
+    0 1px 2px rgba(13, 18, 30, 0.04),
+    0 18px 40px -22px rgba(13, 18, 30, 0.18);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  overflow: hidden;
+}
+
+.history-panel::before,
+.history-empty::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--glass-highlight), transparent 60%);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .history-date-header {
-  background: color-mix(in srgb, var(--mp-control-window-bg) 88%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--mp-control-panel-bg) 96%, transparent),
+    color-mix(in srgb, var(--mp-control-panel-bg) 80%, transparent)
+  );
   border-bottom: 1px solid var(--mp-control-border-soft);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
 
 .transcription-list-item {
@@ -657,11 +719,28 @@ a:hover {
 }
 
 .settings-group {
+  position: relative;
   overflow: hidden;
   border: 1px solid var(--mp-control-border);
-  border-radius: 8px;
+  border-radius: 14px;
   background: var(--mp-control-panel-bg);
-  box-shadow: var(--mp-control-shadow);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 0 0 0.5px var(--mp-control-border-soft),
+    0 1px 2px rgba(13, 18, 30, 0.04),
+    0 18px 40px -22px rgba(13, 18, 30, 0.18);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+.settings-group::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--glass-highlight), transparent 60%);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .settings-group-row {
@@ -675,8 +754,10 @@ a:hover {
 
 .settings-inline-card {
   border: 1px solid var(--mp-control-border-soft);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--mp-control-panel-muted);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
 }
 
 .control-panel-shell input,

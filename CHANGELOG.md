@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Control Panel sidebar and panels now refract the atmosphere as Liquid Glass.** The sidebar bumps from `blur(18px) saturate(140%)` to `blur(36px) saturate(180%)` and gains a 1 px specular top-edge highlight plus a soft diagonal gloss. The history panel, settings groups, settings inline cards, banner and date headers now all use `backdrop-filter` with the same blur/saturate, with semi-transparent fills so the atmosphere's color shows through. Card corner radius was lifted from 8 px to 14 px (12 px for banners, 10 px for inline cards) and a soft layered shadow replaces the previous flat `0 1px 2px`. No view, sidebar order, copy, or component structure changed — this is Phase 2 of the Liquid Glass restyle.
 - **Control Panel now sits on a Liquid Glass atmosphere layer.** The window background gained four slowly-drifting pastel orbs (peach / lavender / blue / mint in light mode, deep purple / teal / wine in dark mode) sitting behind the sidebar and main content. The main scroll area is now transparent so cards float over the atmosphere instead of a flat slab. New `--glass-*` design tokens were added for use by subsequent Liquid Glass passes. The atmosphere respects `prefers-reduced-motion` and uses `pointer-events: none` so it can never block interactions. This is Phase 1 of a larger Liquid Glass restyle that preserves all existing UI structure, naming, and ordering.
 
 ### Fixed
