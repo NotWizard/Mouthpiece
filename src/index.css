@@ -907,9 +907,26 @@ a:hover {
 }
 
 .permission-card {
+  position: relative;
   border: 1px solid var(--mp-control-border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--mp-control-panel-bg);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 0 0 0.5px var(--mp-control-border-soft),
+    0 1px 2px rgba(13, 18, 30, 0.04);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  overflow: hidden;
+}
+
+.permission-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--glass-highlight), transparent 60%);
+  pointer-events: none;
 }
 
 .permission-card:hover {
@@ -919,6 +936,35 @@ a:hover {
 .permission-card-granted {
   border-color: color-mix(in srgb, var(--color-success) 26%, var(--mp-control-border));
   background: color-mix(in srgb, var(--color-success) 7%, var(--mp-control-panel-bg));
+}
+
+/* Phase 4 — drag the inline Tailwind surface utilities into the glass system
+   when they live inside the Control Panel shell. Scope-limited so dialogs,
+   shadcn components, and onboarding wizard surfaces are unaffected. */
+.control-panel-shell .bg-surface-raised,
+.control-panel-shell .dark\:bg-surface-1 {
+  background-color: rgba(120, 130, 150, 0.08);
+  box-shadow: inset 0 0 0 0.5px var(--mp-control-border-soft);
+}
+
+.dark .control-panel-shell .bg-surface-raised,
+.dark .control-panel-shell .dark\:bg-surface-1 {
+  background-color: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 0.5px var(--mp-control-border);
+}
+
+.control-panel-shell .bg-surface-1 {
+  background-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.dark .control-panel-shell .bg-surface-1 {
+  background-color: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
 }
 
 .auth-setup-header img,
