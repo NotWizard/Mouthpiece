@@ -79,7 +79,7 @@
   --shadow-card-hover-subtle: 0 2px 8px -2px rgba(0, 0, 0, 0.1);
 
   /* Control panel and onboarding surfaces */
-  --mp-control-window-bg: #f5f6f8;
+  --mp-control-window-bg: #eef0f6;
   --mp-control-sidebar-bg: rgba(240, 242, 245, 0.86);
   --mp-control-panel-bg: #ffffff;
   --mp-control-panel-muted: #f8f9fb;
@@ -91,6 +91,17 @@
   --mp-control-text-muted: #697381;
   --mp-control-danger: #dc2626;
   --mp-control-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+
+  /* Liquid Glass tokens (Phase 1 — atmosphere + future glass surfaces) */
+  --glass-blur: 36px;
+  --glass-saturate: 180%;
+  --glass-highlight: rgba(255, 255, 255, 0.85);
+  --glass-edge: rgba(255, 255, 255, 0.6);
+  --glass-orb-1: #ffd1b3; /* peach */
+  --glass-orb-2: #c2d8ff; /* lavender-blue */
+  --glass-orb-3: #e3d2ff; /* lavender */
+  --glass-orb-4: #bdf2e0; /* mint */
+  --glass-orb-opacity: 0.78;
 }
 
 .dark {
@@ -148,18 +159,27 @@
     inset 0 0 0 1px oklch(0.65 0.2 260 / 0.2), 0 0 16px -4px oklch(0.65 0.2 260 / 0.2);
   --shadow-card-hover-subtle: 0 2px 8px -2px rgba(0, 0, 0, 0.12);
 
-  --mp-control-window-bg: #171a20;
-  --mp-control-sidebar-bg: rgba(28, 31, 38, 0.88);
-  --mp-control-panel-bg: #20242b;
-  --mp-control-panel-muted: #1b1f26;
-  --mp-control-border: #343a45;
-  --mp-control-border-soft: #2b313a;
-  --mp-control-selected-bg: rgba(72, 132, 255, 0.18);
+  --mp-control-window-bg: #0d0f15;
+  --mp-control-sidebar-bg: rgba(22, 25, 33, 0.55);
+  --mp-control-panel-bg: rgba(30, 33, 41, 0.62);
+  --mp-control-panel-muted: rgba(24, 27, 34, 0.6);
+  --mp-control-border: rgba(255, 255, 255, 0.07);
+  --mp-control-border-soft: rgba(255, 255, 255, 0.05);
+  --mp-control-selected-bg: rgba(122, 166, 255, 0.18);
   --mp-control-selected-text: #8bb5ff;
   --mp-control-selected-border: rgba(120, 164, 255, 0.28);
   --mp-control-text-muted: #99a2b0;
   --mp-control-danger: #f87171;
   --mp-control-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+
+  /* Liquid Glass tokens — dark mode atmosphere */
+  --glass-highlight: rgba(255, 255, 255, 0.07);
+  --glass-edge: rgba(255, 255, 255, 0.05);
+  --glass-orb-1: #3a205a; /* deep purple */
+  --glass-orb-2: #0d3a55; /* deep teal */
+  --glass-orb-3: #421b46; /* wine */
+  --glass-orb-4: #0a3f3a; /* dark mint */
+  --glass-orb-opacity: 0.6;
 }
 
 @layer base {
@@ -210,6 +230,9 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  .control-panel-atmosphere .glass-orb {
+    animation: none !important;
   }
 }
 
@@ -384,9 +407,109 @@ a:hover {
 }
 
 .control-panel-shell {
+  position: relative;
+  isolation: isolate;
   height: 100vh;
   min-height: 0;
   overflow: hidden;
+}
+
+/* Liquid Glass atmosphere layer — colored orbs that sidebar/cards refract.
+   Lives behind everything in the shell via document order; pointer-events
+   off so it can never block clicks. */
+.control-panel-atmosphere {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.control-panel-atmosphere .glass-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px) saturate(160%);
+  opacity: var(--glass-orb-opacity);
+  will-change: transform;
+}
+
+.control-panel-atmosphere .glass-orb-1 {
+  width: 60vw;
+  height: 60vw;
+  top: -22vw;
+  left: -12vw;
+  background: var(--glass-orb-1);
+  animation: mp-orb-drift-1 32s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
+}
+
+.control-panel-atmosphere .glass-orb-2 {
+  width: 55vw;
+  height: 55vw;
+  top: -10vw;
+  right: -18vw;
+  background: var(--glass-orb-2);
+  animation: mp-orb-drift-2 28s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
+}
+
+.control-panel-atmosphere .glass-orb-3 {
+  width: 48vw;
+  height: 48vw;
+  bottom: -18vw;
+  left: 18vw;
+  background: var(--glass-orb-3);
+  animation: mp-orb-drift-3 36s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
+}
+
+.control-panel-atmosphere .glass-orb-4 {
+  width: 34vw;
+  height: 34vw;
+  bottom: -10vw;
+  right: 6vw;
+  background: var(--glass-orb-4);
+  animation: mp-orb-drift-4 30s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
+}
+
+@keyframes mp-orb-drift-1 {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(40px, 30px) scale(1.05);
+  }
+}
+
+@keyframes mp-orb-drift-2 {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(-30px, 35px) scale(0.96);
+  }
+}
+
+@keyframes mp-orb-drift-3 {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(20px, -25px) scale(1.04);
+  }
+}
+
+@keyframes mp-orb-drift-4 {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(-20px, -20px) scale(1.02);
+  }
+}
+
+/* Lift body above atmosphere via natural document order;
+   explicit position: relative for safety in case of future stacking issues. */
+.control-panel-body {
+  position: relative;
+  z-index: 1;
 }
 
 .control-panel-body {
@@ -396,7 +519,7 @@ a:hover {
 .control-panel-main {
   min-height: 0;
   min-width: 0;
-  background: var(--mp-control-window-bg);
+  background: transparent;
 }
 
 .control-panel-titlebar,
@@ -467,7 +590,7 @@ a:hover {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: var(--mp-control-window-bg);
+  background: transparent;
 }
 
 .control-panel-view-content {

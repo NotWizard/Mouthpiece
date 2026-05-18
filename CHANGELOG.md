@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > Note: Version numbering restarts at `1.0.0` for this standalone Mouthpiece repository. The `1.5.x` entries below are retained as inherited upstream reference only.
 
+### Changed
+
+- **Control Panel now sits on a Liquid Glass atmosphere layer.** The window background gained four slowly-drifting pastel orbs (peach / lavender / blue / mint in light mode, deep purple / teal / wine in dark mode) sitting behind the sidebar and main content. The main scroll area is now transparent so cards float over the atmosphere instead of a flat slab. New `--glass-*` design tokens were added for use by subsequent Liquid Glass passes. The atmosphere respects `prefers-reduced-motion` and uses `pointer-events: none` so it can never block interactions. This is Phase 1 of a larger Liquid Glass restyle that preserves all existing UI structure, naming, and ordering.
+
 ### Fixed
 
 - **Renderer build no longer fails on `buildCustomDictionaryPrompt`.** The custom-dictionary helper was authored as CommonJS (`module.exports`) but imported by the Vite-bundled `audioManager`, which Rollup's static analyzer rejected with `"buildCustomDictionaryPrompt" is not exported`. The helper is now an ES module (`customDictionaryPrompt.mjs` with `export`), the `audioManager` import points at the new extension, and the unit test loads it via dynamic `import()` to match.
