@@ -85,9 +85,9 @@
   --mp-control-panel-muted: rgba(248, 250, 253, 0.5);
   --mp-control-border: rgba(13, 18, 30, 0.08);
   --mp-control-border-soft: rgba(13, 18, 30, 0.05);
-  --mp-control-selected-bg: #e8f1ff;
-  --mp-control-selected-text: #145fcf;
-  --mp-control-selected-border: #c9dcff;
+  --mp-control-selected-bg: rgba(56, 116, 240, 0.14);
+  --mp-control-selected-text: #1e54d4;
+  --mp-control-selected-border: rgba(80, 130, 255, 0.22);
   --mp-control-text-muted: #697381;
   --mp-control-danger: #dc2626;
   --mp-control-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
@@ -600,26 +600,32 @@ a:hover {
 .control-panel-sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 14px 10px 8px;
+  gap: 1px;
+  padding: 6px 10px 8px;
 }
 
 .control-panel-sidebar-item {
   position: relative;
   display: flex;
-  min-height: 34px;
+  min-height: 32px;
   width: 100%;
   align-items: center;
   gap: 10px;
   border-radius: 8px;
   padding: 0 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
   color: color-mix(in srgb, var(--color-foreground) 78%, transparent);
   text-align: left;
   outline: none;
+  transition:
+    background-color 180ms cubic-bezier(0.4, 0.6, 0.2, 1),
+    color 150ms cubic-bezier(0.4, 0.6, 0.2, 1);
 }
 
 .control-panel-sidebar-item:hover {
-  background: color-mix(in srgb, var(--color-foreground) 5%, transparent);
+  background: rgba(125, 135, 160, 0.1);
   color: var(--color-foreground);
 }
 
@@ -637,18 +643,24 @@ a:hover {
 }
 
 .control-panel-sidebar-item-active:hover {
-  background: color-mix(in srgb, var(--mp-control-selected-bg) 86%, white);
+  background: color-mix(in srgb, var(--mp-control-selected-bg) 80%, var(--color-foreground) 4%);
   color: var(--mp-control-selected-text);
 }
 
 .dark .control-panel-sidebar-item-active:hover {
-  background: color-mix(in srgb, var(--mp-control-selected-bg) 84%, black);
+  background: color-mix(in srgb, var(--mp-control-selected-bg) 84%, white 4%);
 }
 
+/* Footer aligns to the bottom of the sidebar via flex; nav-rail uses
+   `flex: 1` to push it down. Keeps the sparse-footer state from looking
+   awkwardly half-empty when only Support is rendered. */
 .control-panel-sidebar-footer {
   border-top: 1px solid var(--mp-control-border-soft);
   margin: 0 10px 10px;
   padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
 .control-panel-content-scroll {
@@ -781,6 +793,31 @@ a:hover {
   color: var(--mp-control-text-muted);
   font-size: 12px;
   line-height: 1.45;
+}
+
+/* Page-level header — sits above any in-page SectionHeaders.
+   Establishes a clear "you are on the Foo settings page" anchor that the
+   wizard previously lacked: every case in SettingsPage routed straight
+   into a SectionHeader as if it were the page title. */
+.settings-page-header {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--mp-control-border-soft);
+}
+
+.settings-page-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--color-foreground);
+}
+
+.settings-page-header p {
+  margin-top: 5px;
+  color: var(--mp-control-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .settings-group {

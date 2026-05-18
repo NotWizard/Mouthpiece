@@ -103,6 +103,15 @@ function SectionHeader({ title, description }: { title: string; description?: st
   );
 }
 
+function PageHeader({ title, description }: { title: string; description?: string }) {
+  return (
+    <div className="settings-page-header">
+      <h2>{title}</h2>
+      {description && <p>{description}</p>}
+    </div>
+  );
+}
+
 function AudioQualityCompactSelect<TValue extends string>({
   value,
   options,
@@ -899,6 +908,10 @@ export default function SettingsPage({
       case "general":
         return (
           <div className="space-y-6">
+            <PageHeader
+              title={t("settingsModal.sections.general.label")}
+              description={t("settingsModal.sections.general.description")}
+            />
             {/* Appearance */}
             <div>
               <SectionHeader
@@ -1034,6 +1047,10 @@ export default function SettingsPage({
       case "hotkeys":
         return (
           <div className="space-y-6">
+            <PageHeader
+              title={t("settingsModal.sections.hotkeys.label")}
+              description={t("settingsModal.sections.hotkeys.description")}
+            />
             {/* Dictation Hotkey */}
             <div>
               <SectionHeader
@@ -1083,8 +1100,13 @@ export default function SettingsPage({
 
       case "transcription":
         return (
-          <TranscriptionSection
-            setCloudTranscriptionMode={setCloudTranscriptionMode}
+          <div className="space-y-6">
+            <PageHeader
+              title={t("settingsModal.sections.transcription.label")}
+              description={t("settingsModal.sections.transcription.description")}
+            />
+            <TranscriptionSection
+              setCloudTranscriptionMode={setCloudTranscriptionMode}
             useLocalWhisper={useLocalWhisper}
             setUseLocalWhisper={setUseLocalWhisper}
             updateTranscriptionSettings={updateTranscriptionSettings}
@@ -1126,7 +1148,8 @@ export default function SettingsPage({
             setCustomTranscriptionApiKey={setCustomTranscriptionApiKey}
             cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}
             setCloudTranscriptionBaseUrl={setCloudTranscriptionBaseUrl}
-          />
+            />
+          </div>
         );
 
       case "aiModels":
@@ -1179,6 +1202,10 @@ export default function SettingsPage({
       case "intelligence":
         return (
           <div className="space-y-6">
+            <PageHeader
+              title={t("settingsModal.sections.intelligence.label")}
+              description={t("settingsModal.sections.intelligence.description")}
+            />
             <AiModelsSection
               cloudReasoningMode={cloudReasoningMode}
               setCloudReasoningMode={setCloudReasoningMode}
@@ -1224,9 +1251,9 @@ export default function SettingsPage({
         // NOTE: Privacy module has been removed. Redirect to system section.
         return (
           <div className="space-y-6">
-            <SectionHeader
-              title={t("settingsPage.permissions.title")}
-              description={t("settingsPage.permissions.description")}
+            <PageHeader
+              title={t("settingsModal.sections.privacyData.label")}
+              description={t("settingsModal.sections.privacyData.description")}
             />
 
             <div className="space-y-3">
@@ -1301,6 +1328,10 @@ export default function SettingsPage({
       case "system":
         return (
           <div className="space-y-6">
+            <PageHeader
+              title={t("settingsModal.sections.system.label")}
+              description={t("settingsModal.sections.system.description")}
+            />
             {/* App Version */}
             <div>
               <SectionHeader
