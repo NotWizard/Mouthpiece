@@ -859,14 +859,14 @@ a:hover {
 
 .wizard-auth-panel {
   position: relative;
-  width: min(100%, 380px);
+  width: min(100%, 480px);
   border: 1px solid var(--mp-control-border);
-  border-radius: 14px;
+  border-radius: 18px;
   background: var(--mp-control-panel-bg);
   box-shadow: var(--mp-card-shadow);
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  padding: 24px;
+  padding: 36px 32px 28px;
   overflow: hidden;
 }
 
@@ -877,6 +877,74 @@ a:hover {
   height: 1px;
   background: linear-gradient(90deg, var(--glass-highlight), transparent 60%);
   pointer-events: none;
+}
+
+/* Soft accent glow leaking from the upper-right corner of the auth panel —
+   amplifies the "first impression" feel without overwhelming the form. */
+.wizard-auth-panel::after {
+  content: "";
+  position: absolute;
+  inset: -40% -30% auto auto;
+  width: 70%;
+  height: 80%;
+  background: radial-gradient(closest-side, rgba(168, 125, 255, 0.18), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dark .wizard-auth-panel::after {
+  background: radial-gradient(closest-side, rgba(168, 125, 255, 0.14), transparent 70%);
+}
+
+/* Hero treatment for the auth / verification step header.
+   Single CSS block covers .auth-setup-header (4 branches in AuthenticationStep)
+   and .email-verification-header (2 branches in EmailVerificationStep). */
+.auth-setup-header,
+.email-verification-header {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 24px !important;
+}
+
+.auth-setup-header img,
+.email-verification-header img {
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 16px !important;
+  margin-bottom: 18px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 12px 28px -12px rgba(80, 130, 235, 0.45),
+    0 4px 10px -4px rgba(13, 18, 30, 0.18);
+}
+
+/* Gradient hero title — blue → purple sweep matching the atmosphere palette.
+   Targets the first <p> inside each header (the title); the second <p>
+   is the subtitle and stays muted. */
+.auth-setup-header > p:first-of-type,
+.email-verification-header > p:first-of-type {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  background: linear-gradient(135deg, #3974ff 0%, #a87dff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.dark .auth-setup-header > p:first-of-type,
+.dark .email-verification-header > p:first-of-type {
+  background: linear-gradient(135deg, #6fa8ff 0%, #c2a4ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.auth-setup-header > p:nth-of-type(2),
+.email-verification-header > p:nth-of-type(2) {
+  font-size: 13.5px;
+  margin-top: 8px !important;
 }
 
 .wizard-content {
