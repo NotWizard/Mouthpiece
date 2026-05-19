@@ -5,19 +5,16 @@ import { cn } from "../lib/utils";
 
 const alertVariants = cva(
   [
-    "alert-premium relative w-full rounded-[18px] border px-4 py-3.5 text-sm",
-    "backdrop-blur-xl [&>svg+div]:translate-y-[-2px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg~*]:pl-8",
+    "alert-premium relative w-full rounded-[14px] px-4 py-3.5 text-sm",
+    "[&>svg+div]:translate-y-[-2px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg~*]:pl-8",
   ].join(" "),
   {
     variants: {
       variant: {
-        default: "text-foreground/90 [&>svg]:text-muted-foreground",
-        destructive:
-          "alert-premium-destructive text-[rgba(86,39,34,0.96)] dark:text-[rgba(255,236,230,0.96)] [&>svg]:text-[rgba(176,88,67,0.84)] dark:[&>svg]:text-[rgba(255,186,162,0.88)]",
-        success:
-          "border-emerald-500/18 bg-[linear-gradient(180deg,rgba(243,253,247,0.96),rgba(225,248,235,0.92))] text-emerald-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.84),0_18px_40px_-32px_rgba(22,163,74,0.28)] dark:border-emerald-400/16 dark:bg-[linear-gradient(180deg,rgba(25,52,39,0.92),rgba(18,35,28,0.9))] dark:text-emerald-50 [&>svg]:text-emerald-600 dark:[&>svg]:text-emerald-300",
-        warning:
-          "border-amber-500/20 bg-[linear-gradient(180deg,rgba(255,251,235,0.96),rgba(254,243,199,0.92))] text-amber-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.84),0_18px_40px_-32px_rgba(217,119,6,0.26)] dark:border-amber-400/16 dark:bg-[linear-gradient(180deg,rgba(60,42,18,0.92),rgba(38,27,14,0.9))] dark:text-amber-50 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-300",
+        default: "text-foreground [&>svg]:text-muted-foreground",
+        destructive: "alert-premium-destructive [&>svg]:text-destructive",
+        success: "alert-premium-success [&>svg]:text-success",
+        warning: "alert-premium-warning [&>svg]:text-warning",
       },
     },
     defaultVariants: {

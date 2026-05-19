@@ -203,16 +203,16 @@ const ToastViewport: React.FC<{
 
 const variantConfig = {
   default: {
-    accentClass: "bg-white/20",
-    progressClass: "bg-white/15",
+    accentClass: "bg-primary/55",
+    progressClass: "bg-primary/35",
   },
   destructive: {
-    accentClass: "bg-[linear-gradient(180deg,rgba(251,146,60,0.95),rgba(244,114,182,0.86))]",
-    progressClass: "bg-[linear-gradient(90deg,rgba(249,115,22,0.55),rgba(244,114,182,0.45))]",
+    accentClass: "bg-destructive/70",
+    progressClass: "bg-destructive/40",
   },
   success: {
-    accentClass: "bg-emerald-400",
-    progressClass: "bg-emerald-400/30",
+    accentClass: "bg-emerald-500/70",
+    progressClass: "bg-emerald-500/35",
   },
 };
 
@@ -242,10 +242,10 @@ const Toast: React.FC<
   const hasDetail = Boolean(title && description);
   const closeButtonAlwaysVisible = isToastCloseButtonAlwaysVisible({ variant, duration });
   const closeButtonClassName = isDestructive
-    ? "border border-[rgba(171,90,70,0.12)] bg-white/58 text-[rgba(116,54,41,0.62)] hover:border-[rgba(171,90,70,0.22)] hover:bg-white/76 hover:text-[rgba(77,34,25,0.88)] dark:border-[rgba(255,173,144,0.12)] dark:bg-white/6 dark:text-[rgba(255,214,198,0.62)] dark:hover:bg-white/10 dark:hover:text-[rgba(255,239,232,0.9)]"
+    ? "border border-border bg-card/60 text-muted-foreground hover:bg-card/85 hover:text-foreground dark:bg-white/6 dark:hover:bg-white/10"
     : closeButtonAlwaysVisible
-      ? "text-white/55 hover:text-white/85 bg-white/6 hover:bg-white/10"
-      : "text-white/0 group-hover:text-white/50 hover:!text-white/80 hover:bg-white/6";
+      ? "text-muted-foreground/70 hover:text-foreground bg-foreground/5 hover:bg-foreground/10"
+      : "text-foreground/0 group-hover:text-muted-foreground/70 hover:!text-foreground hover:bg-foreground/5";
 
   const handleMouseEnter = () => {
     pausedAtRef.current = Date.now();
@@ -308,8 +308,8 @@ const Toast: React.FC<
             <div
               className={cn(
                 isDestructive
-                  ? "pr-9 text-[13px] font-semibold leading-[1.35] tracking-[-0.01em] text-[rgba(72,31,21,0.92)] dark:text-[rgba(255,241,236,0.94)]"
-                  : "text-xs font-medium leading-tight text-white/90"
+                  ? "pr-9 text-[13px] font-semibold leading-[1.35] tracking-[-0.01em] text-foreground"
+                  : "text-xs font-medium leading-tight text-foreground"
               )}
             >
               {message}
@@ -323,17 +323,17 @@ const Toast: React.FC<
                   "shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_10px_24px_-16px_rgba(91,37,23,0.18)]"
                 )}
               >
-                <div className="flex items-center justify-between gap-3 border-b border-[rgba(171,90,70,0.12)] px-3 py-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgba(150,78,60,0.78)] dark:text-[rgba(255,198,178,0.72)]">
+                <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                     {t("developerSection.whatGetsLogged.items.errorDetails")}
                   </span>
                   <button
                     type="button"
                     onClick={handleCopyError}
                     className={cn(
-                      "shrink-0 rounded-[9px] border border-[rgba(171,90,70,0.14)] bg-white/55 p-1.5",
-                      "text-[rgba(124,58,45,0.6)] hover:border-[rgba(171,90,70,0.22)] hover:bg-white/76 hover:text-[rgba(88,40,29,0.86)]",
-                      "transition-colors duration-150 dark:border-[rgba(255,173,144,0.12)] dark:bg-white/6 dark:text-[rgba(255,214,198,0.62)] dark:hover:bg-white/10 dark:hover:text-[rgba(255,238,230,0.86)]"
+                      "shrink-0 rounded-[9px] border border-border bg-card/60 p-1.5",
+                      "text-muted-foreground hover:bg-card/85 hover:text-foreground",
+                      "transition-colors duration-150 dark:bg-white/6 dark:hover:bg-white/10"
                     )}
                     aria-label={t("referral.inviteLink.copy")}
                   >
@@ -343,7 +343,7 @@ const Toast: React.FC<
                 <div
                   className={cn(
                     "overflow-y-auto px-3 py-2.5",
-                    "font-mono text-[13px] leading-6 text-[rgba(90,39,30,0.82)] whitespace-pre-wrap break-all dark:text-[rgba(255,236,230,0.82)]"
+                    "font-mono text-[13px] leading-6 text-foreground/85 whitespace-pre-wrap break-all"
                   )}
                   style={{ maxHeight: ERROR_SURFACE_LAYOUT.dictationToast.detailMaxHeightPx }}
                 >
@@ -351,7 +351,7 @@ const Toast: React.FC<
                 </div>
               </div>
             ) : (
-              <div className="text-xs leading-snug mt-0.5 text-white/45">{detail}</div>
+              <div className="text-xs leading-snug mt-0.5 text-muted-foreground">{detail}</div>
             ))}
         </div>
 
@@ -366,7 +366,7 @@ const Toast: React.FC<
             "absolute right-2 top-2 z-10 pointer-events-auto p-1.5 rounded-[8px]",
             closeButtonClassName,
             "transition-colors duration-150",
-            "focus:outline-none focus-visible:ring-1 focus-visible:ring-white/20"
+            "focus:outline-none focus-visible:ring-1 focus-visible:ring-foreground/20"
           )}
           aria-label={t("common.close")}
         >

@@ -1643,13 +1643,57 @@ a:hover {
 }
 
 /* Toast — opaque dark HUD surface, same in light & dark mode */
-.toast-surface {
-  background: oklch(0.15 0.006 260);
-  border: 1px solid oklch(0.25 0.006 260);
+/* Liquid Glass surface for popovers, tooltips, dropdown menus — same DNA as
+   .dialog-premium-shell but lighter elevation since these are anchored to
+   triggers rather than centered floating dialogs. Used by tooltip.tsx and
+   dropdown-menu.tsx. */
+.popover-glass-surface {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--mp-control-border);
   box-shadow:
-    inset 0 1px 0 oklch(1 0 0 / 0.04),
-    0 8px 24px -4px oklch(0 0 0 / 0.5),
-    0 2px 8px -2px oklch(0 0 0 / 0.3);
+    inset 0 1px 0 var(--glass-highlight),
+    0 0 0 0.5px var(--mp-control-border-soft),
+    0 12px 32px -12px rgba(13, 18, 30, 0.22),
+    0 4px 12px -4px rgba(13, 18, 30, 0.14);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+}
+
+.dark .popover-glass-surface {
+  background: rgba(36, 40, 52, 0.88);
+  border-color: var(--mp-control-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 0.5px var(--mp-control-border-soft),
+    0 12px 32px -12px rgba(0, 0, 0, 0.55),
+    0 4px 12px -4px rgba(0, 0, 0, 0.4);
+}
+
+/* Default toast — repainted from the legacy dark HUD to a glass surface so it
+   shares the same Liquid Glass language as dialogs and popovers. Toast.tsx no
+   longer assumes a dark bg for the default variant; text inherits foreground. */
+.toast-surface {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--mp-control-border);
+  color: var(--color-foreground);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 0 0 0.5px var(--mp-control-border-soft),
+    0 14px 32px -10px rgba(13, 18, 30, 0.24),
+    0 4px 12px -4px rgba(13, 18, 30, 0.14);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+}
+
+.dark .toast-surface {
+  background: rgba(36, 40, 52, 0.88);
+  border-color: var(--mp-control-border);
+  color: var(--color-foreground);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 0.5px var(--mp-control-border-soft),
+    0 14px 32px -10px rgba(0, 0, 0, 0.55),
+    0 4px 12px -4px rgba(0, 0, 0, 0.4);
 }
 
 /* Premium error surfaces */
@@ -1889,16 +1933,19 @@ a:hover {
   min-height: 0;
 }
 
+/* Destructive toast surface — same Liquid Glass elevation as the default toast,
+   but with a destructive-tinted border + shadow so the role reads at a glance. */
 .toast-error-surface {
-  background: linear-gradient(180deg, rgba(255, 249, 245, 0.98), rgba(255, 241, 236, 0.94));
-  border: 1px solid rgba(198, 105, 79, 0.18);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(220, 38, 38, 0.22);
+  color: var(--color-foreground);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.86),
-    0 22px 48px -34px rgba(122, 52, 34, 0.42),
-    0 12px 24px -20px rgba(15, 23, 42, 0.22);
-  color: rgba(80, 33, 24, 0.96);
-  backdrop-filter: blur(22px) saturate(140%);
-  -webkit-backdrop-filter: blur(22px) saturate(140%);
+    inset 0 1px 0 var(--glass-highlight),
+    0 0 0 0.5px rgba(220, 38, 38, 0.14),
+    0 14px 32px -10px rgba(220, 38, 38, 0.22),
+    0 4px 12px -4px rgba(13, 18, 30, 0.16);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
 }
 
 .toast-error-surface::before {
@@ -1906,12 +1953,7 @@ a:hover {
   position: absolute;
   inset: 0 0 auto 0;
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.82),
-    rgba(255, 255, 255, 0.26),
-    transparent 72%
-  );
+  background: linear-gradient(90deg, var(--glass-highlight), transparent 70%);
   pointer-events: none;
 }
 
@@ -1919,63 +1961,60 @@ a:hover {
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 88% 12%, rgba(255, 181, 148, 0.3), transparent 32%),
-    radial-gradient(circle at 8% 0%, rgba(255, 255, 255, 0.76), transparent 34%);
-  opacity: 0.92;
+  background: radial-gradient(circle at 88% 12%, rgba(248, 113, 113, 0.08), transparent 36%);
+  opacity: 0.9;
   pointer-events: none;
 }
 
 .toast-error-detail {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 243, 238, 0.68));
-  border: 1px solid rgba(171, 90, 70, 0.14);
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--mp-control-border);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.48),
-    0 12px 24px -20px rgba(91, 37, 23, 0.24);
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 1px 2px rgba(13, 18, 30, 0.04);
 }
 
 .dark .toast-error-surface {
-  background: linear-gradient(180deg, rgba(49, 33, 28, 0.96), rgba(31, 20, 18, 0.94));
-  border-color: rgba(255, 164, 134, 0.16);
-  color: rgba(255, 239, 232, 0.94);
+  background: rgba(36, 40, 52, 0.88);
+  border-color: rgba(248, 113, 113, 0.24);
+  color: var(--color-foreground);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 24px 52px -32px rgba(0, 0, 0, 0.76),
-    0 12px 22px -18px rgba(0, 0, 0, 0.52);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 0.5px rgba(248, 113, 113, 0.16),
+    0 14px 32px -10px rgba(0, 0, 0, 0.55),
+    0 4px 12px -4px rgba(248, 113, 113, 0.18);
 }
 
 .dark .toast-error-surface::before {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.16),
-    rgba(255, 255, 255, 0.04),
-    transparent 72%
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.02),
+    transparent 74%
   );
 }
 
 .dark .toast-error-surface::after {
-  background:
-    radial-gradient(circle at 90% 10%, rgba(255, 168, 132, 0.2), transparent 30%),
-    radial-gradient(circle at 8% 0%, rgba(255, 255, 255, 0.08), transparent 28%);
+  background: radial-gradient(circle at 88% 12%, rgba(248, 113, 113, 0.12), transparent 32%);
 }
 
 .dark .toast-error-detail {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 164, 134, 0.05));
-  border-color: rgba(255, 173, 144, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--mp-control-border);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .error-code-panel {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 243, 238, 0.7));
-  border: 1px solid rgba(171, 90, 70, 0.14);
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--mp-control-border);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.48),
-    0 12px 24px -20px rgba(91, 37, 23, 0.22);
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 1px 2px rgba(13, 18, 30, 0.04);
 }
 
 .dark .error-code-panel {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 164, 134, 0.05));
-  border-color: rgba(255, 173, 144, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--mp-control-border);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
