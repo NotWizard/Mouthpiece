@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect, useCallback, useRef } from "react";
+import React, { Suspense, useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Zap } from "lucide-react";
@@ -44,7 +44,6 @@ export default function ControlPanel() {
   const [gpuBannerDismissed, setGpuBannerDismissed] = useState(
     () => localStorage.getItem("gpuBannerDismissedUnified") === "true"
   );
-  const promptedDownloadedUpdateRef = useRef<string | null>(null);
   const { hotkey } = useHotkey();
   const { toast } = useToast();
   const { useLocalWhisper, localTranscriptionProvider, useReasoningModel } = useSettings();
@@ -249,15 +248,7 @@ export default function ControlPanel() {
       }
 
       if (status.status === "downloaded") {
-        const updateKey =
-          status.updateInfo?.version || status.updateInfo?.releaseName || "downloaded";
-
-        if (
-          promptedDownloadedUpdateRef.current === updateKey ||
-          updateStatus?.status === "downloaded"
-        ) {
-          handleInstallUpdate();
-        }
+        handleInstallUpdate();
         return;
       }
 
@@ -278,35 +269,7 @@ export default function ControlPanel() {
             : t("settingsModal.updates.dialogs.checkFailed.description"),
       });
     }
-  }, [handleInstallUpdate, showAlertDialog, t, updateStatus?.status]);
-
-  useEffect(() => {
-    if (updateStatus?.status !== "downloaded") {
-      return;
-    }
-
-    const updateKey =
-      updateStatus.updateInfo?.version || updateStatus.updateInfo?.releaseName || "downloaded";
-    if (promptedDownloadedUpdateRef.current === updateKey) {
-      return;
-    }
-
-    promptedDownloadedUpdateRef.current = updateKey;
-    showConfirmDialog({
-      title: t("controlPanel.update.readyTitle"),
-      description: t("controlPanel.update.readyDescription"),
-      confirmText: t("controlPanel.update.installButton"),
-      cancelText: t("common.cancel"),
-      onConfirm: performInstallUpdate,
-    });
-  }, [
-    performInstallUpdate,
-    showConfirmDialog,
-    t,
-    updateStatus?.status,
-    updateStatus?.updateInfo?.releaseName,
-    updateStatus?.updateInfo?.version,
-  ]);
+  }, [handleInstallUpdate, showAlertDialog, t]);
 
   const updateAction =
     updateStatus?.status === "downloaded" || updateStatus?.status === "installing"
