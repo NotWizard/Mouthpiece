@@ -19,16 +19,16 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup MSVC
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
 
       - name: Setup MSVC environment
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: "npm"
@@ -37,7 +37,7 @@ jobs:
         run: npm ci
 
       - name: Cache native binaries
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: resources/bin
           key: windows-x64-bin-${{ hashFiles('scripts/download-*.js') }}
@@ -73,7 +73,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Cache Electron
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/AppData/Local/electron/Cache
           key: windows-electron-${{ hashFiles('**/package-lock.json') }}
@@ -107,10 +107,10 @@ jobs:
           - arch: arm64
             runner: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: "npm"
@@ -123,7 +123,7 @@ jobs:
         run: npm_config_arch=x64 node node_modules/ffmpeg-static/install.js
 
       - name: Cache native binaries
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: resources/bin
           key: macos-${{ matrix.arch }}-bin-${{ hashFiles('scripts/download-*.js', 'scripts/build-globe-listener.js', 'resources/macos-globe-listener.swift', 'scripts/build-macos-fast-paste.js', 'resources/macos-fast-paste.swift') }}
@@ -144,7 +144,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
 
       - name: Cache Electron
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/electron
           key: macos-${{ matrix.arch }}-electron-${{ hashFiles('**/package-lock.json') }}

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal
+
+- **Bumped GitHub Actions to Node.js 24-compatible major versions to clear the June 2026 deprecation.** Across `release.yml`, `build-and-notarize.yml`, `build-windows-fast-paste.yml`, `build-windows-key-listener.yml` and `download-fallback-smoke.yml`: `actions/checkout@v4` → `@v6`, `actions/setup-node@v4` → `@v6`, `actions/cache@v4` → `@v5`, `microsoft/setup-msbuild@v2` → `@v3`. Two action references left intentionally on their current pin: `ilammy/msvc-dev-cmd@v1` (no v2 published upstream yet — still v1.13.0; the deprecation warning will remain for this single action until the maintainer ships a Node 24 release) and `actions/upload-artifact@v4` (not flagged in the v1.4.0 release-run deprecation annotations, kept on v4 to avoid scope creep). No workflow logic, job topology, env, secret, cache key, or step ordering was changed — purely a `uses:` version bump.
+
 ## [1.4.0] - 2026-05-19
 
 > Note: Version numbering restarts at `1.0.0` for this standalone Mouthpiece repository. The `1.5.x` entries below are retained as inherited upstream reference only.
