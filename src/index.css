@@ -730,69 +730,62 @@ a:hover {
   z-index: 1;
 }
 
-/* History — sticky glass date pill + left vertical rail per day group. */
+/* History — full-width sticky scrim per day group, with a tinted glass pill
+   inside it. The scrim is the actual sticky element, so transcription rows
+   cannot scroll through (or alongside) the date label area. */
 .history-day-group {
   position: relative;
-  padding: 14px 16px 4px;
 }
 
-.history-day-group:first-child {
-  padding-top: 12px;
-}
-
-.history-day-group:last-child {
-  padding-bottom: 14px;
-}
-
-.history-day-group + .history-day-group {
-  padding-top: 6px;
-}
-
-.history-date-pill {
+.history-date-row {
   position: sticky;
-  top: 8px;
+  top: 0;
   z-index: 12;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 11px 5px 9px;
-  margin-bottom: 10px;
-  border-radius: 999px;
-  width: fit-content;
-  max-width: 100%;
-  white-space: nowrap;
-  /* Two-layer background — blue tint on TOP, opaque card base BELOW — so
-     transcription rows scrolling underneath the sticky pill cannot bleed
-     through. Pure blur is not enough; we need real opacity. */
-  background:
-    linear-gradient(
-      180deg,
-      rgba(56, 116, 240, 0.18),
-      rgba(56, 116, 240, 0.08)
-    ),
-    rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(56, 116, 240, 0.28);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    0 1px 2px rgba(40, 90, 200, 0.08),
-    0 4px 12px -4px rgba(15, 23, 42, 0.1);
+  padding: 12px 16px 10px;
+  /* Opaque scrim — content rows scrolling underneath are fully covered. */
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
 
-.dark .history-date-pill {
-  background:
-    linear-gradient(
-      180deg,
-      rgba(122, 166, 255, 0.22),
-      rgba(122, 166, 255, 0.10)
-    ),
-    rgba(28, 32, 44, 0.94);
-  border-color: rgba(122, 166, 255, 0.32);
+.history-day-group:first-child .history-date-row {
+  padding-top: 14px;
+}
+
+.dark .history-date-row {
+  background: rgba(28, 32, 44, 0.96);
+}
+
+.history-date-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 11px 5px 9px;
+  border-radius: 999px;
+  width: fit-content;
+  max-width: 100%;
+  white-space: nowrap;
+  background: linear-gradient(
+    180deg,
+    rgba(56, 116, 240, 0.16),
+    rgba(56, 116, 240, 0.07)
+  );
+  border: 1px solid rgba(56, 116, 240, 0.24);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.25),
-    0 4px 12px -4px rgba(0, 0, 0, 0.3);
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 1px 2px rgba(40, 90, 200, 0.06);
+}
+
+.dark .history-date-pill {
+  background: linear-gradient(
+    180deg,
+    rgba(122, 166, 255, 0.20),
+    rgba(122, 166, 255, 0.10)
+  );
+  border-color: rgba(122, 166, 255, 0.30);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .history-date-pill .dot {
@@ -819,13 +812,17 @@ a:hover {
 
 .history-day-items {
   position: relative;
-  padding-left: 16px;
+  padding: 0 16px 0 32px;
+}
+
+.history-day-group:last-child .history-day-items {
+  padding-bottom: 14px;
 }
 
 .history-day-items::before {
   content: "";
   position: absolute;
-  left: 0;
+  left: 16px;
   top: 4px;
   bottom: 4px;
   width: 2px;

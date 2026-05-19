@@ -255,12 +255,14 @@ export default function HistoryView({
           <div className="history-panel">
             {groupedHistory.map((group) => (
               <div key={group.key} className="history-day-group">
-                <div className="history-date-pill">
-                  <span className="dot" aria-hidden="true" />
-                  <span className="primary">{group.primary}</span>
-                  {group.secondary && (
-                    <span className="secondary">{group.secondary}</span>
-                  )}
+                <div className="history-date-row">
+                  <div className="history-date-pill">
+                    <span className="dot" aria-hidden="true" />
+                    <span className="primary">{group.primary}</span>
+                    {group.secondary && (
+                      <span className="secondary">{group.secondary}</span>
+                    )}
+                  </div>
                 </div>
                 <div className="history-day-items">
                   {group.items.map((item) => (
