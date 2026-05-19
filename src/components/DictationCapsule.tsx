@@ -17,6 +17,7 @@ import {
   getDictationCapsuleLayout,
   getDictationCapsuleVisualState,
 } from "../utils/dictationCapsuleTransition.mjs";
+import mouthpieceIcon from "../assets/mouthpiece-icon.png";
 
 const WAVEFORM_DOT_COUNT = 29;
 const LIVE_PREVIEW_RENDER_MAX_CHARS = 160;
@@ -65,26 +66,49 @@ interface DictationCapsuleProps {
 
 function AssistantGlyph() {
   return (
-    <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-[14px] border border-white/70 bg-white/85 shadow-[0_6px_14px_rgba(15,23,42,0.12)]">
-      <div className="absolute inset-[3px] rounded-[10px] bg-[radial-gradient(circle_at_30%_25%,rgba(255,255,255,0.95),rgba(255,255,255,0.2)_45%,transparent_70%),linear-gradient(135deg,rgba(115,126,255,0.98),rgba(66,92,255,0.88))]" />
-      <div className="relative flex items-center gap-1">
-        <span className="block h-2 w-2 rounded-full bg-white/92 shadow-[0_0_8px_rgba(255,255,255,0.65)]" />
-        <span className="block h-2 w-3 rounded-full bg-white/78 shadow-[0_0_8px_rgba(255,255,255,0.45)]" />
-      </div>
+    <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-[14px] border border-white/70 bg-white shadow-[0_6px_14px_rgba(15,23,42,0.12)]">
+      <img
+        src={mouthpieceIcon}
+        alt=""
+        draggable={false}
+        className="pointer-events-none h-full w-full select-none object-cover"
+      />
     </div>
   );
 }
 
-function BrandGlyph() {
+const BRAND_GLYPH_BASELINE = [0.42, 0.58, 0.45] as const;
+const BRAND_GLYPH_GAIN = [0.95, 1.45, 0.78] as const;
+const BRAND_GLYPH_MAX_PX = 11;
+const BRAND_GLYPH_MIN_PX = 3;
+
+function BrandGlyph({ level, isActive }: { level: number; isActive: boolean }) {
+  const safeLevel = isActive ? Math.max(0, Math.min(1, level)) : 0;
+
   return (
-    <div className="flex items-center gap-1 text-[rgba(43,43,43,0.62)]">
-      {[0.65, 1, 0.72].map((height, index) => (
-        <span
-          key={index}
-          className="block w-[3px] rounded-full bg-current"
-          style={{ height: `${Math.round(height * 11)}px` }}
-        />
-      ))}
+    <div
+      className="flex items-end gap-1 text-[rgba(43,43,43,0.62)]"
+      style={{ height: `${BRAND_GLYPH_MAX_PX}px` }}
+    >
+      {BRAND_GLYPH_BASELINE.map((base, index) => {
+        const amplified = isActive
+          ? Math.min(1, base + safeLevel * BRAND_GLYPH_GAIN[index])
+          : 0.5;
+        const px = Math.max(
+          BRAND_GLYPH_MIN_PX,
+          Math.round(amplified * BRAND_GLYPH_MAX_PX)
+        );
+        return (
+          <span
+            key={index}
+            className="block w-[3px] rounded-full bg-current"
+            style={{
+              height: `${px}px`,
+              transition: "height 110ms cubic-bezier(0.22, 1, 0.36, 1)",
+            }}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -489,7 +513,7 @@ export default function DictationCapsule({
               </div>
 
               <div className="flex shrink-0 items-center justify-end">
-                <BrandGlyph />
+                <BrandGlyph level={audioLevel} isActive={isRecording} />
               </div>
             </div>
 
@@ -590,7 +614,7 @@ export default function DictationCapsule({
               </div>
 
               <div className="flex shrink-0 items-center gap-1.5">
-                <BrandGlyph />
+                <BrandGlyph level={audioLevel} isActive={isRecording} />
                 <div className="text-[11px] font-semibold tracking-[-0.03em] text-[rgba(116,116,116,0.82)]">
                   {brandLabel}
                 </div>
