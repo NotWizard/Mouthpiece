@@ -1073,65 +1073,7 @@
     },
     "transcription": {
       "description": "Wählen Sie, wie Mouthpiece Ihre Stimme transkribiert",
-      "title": "Sprache-zu-Text",
-      "audioQuality": {
-        "advancedDescription": "Erhöhen Sie diese Werte nur, wenn Hintergrundgeräusche oder kurze Pausen weiterhin unerwünschten Text erzeugen.",
-        "advancedTitle": "Erweiterte Fehlstart-Kontrolle",
-        "description": "Priorisieren Sie weniger versehentliche Aufnahmen oder tauschen Sie etwas Filterung gegen Geschwindigkeit.",
-        "modeDescription": "Legt Aufnahmebeschränkungen und das Standardprofil der Sprachschwelle fest.",
-        "modeLabel": "Audioqualitätsmodus",
-        "modes": {
-          "balanced": {
-            "description": "Gleicht Genauigkeit, Reaktionsgeschwindigkeit und Rauschunterdrückung aus.",
-            "label": "Ausgewogen"
-          },
-          "low_latency": {
-            "description": "Startet und beendet schneller mit leichterer Filterung.",
-            "label": "Niedrige Latenz"
-          },
-          "noise_reduction": {
-            "description": "Priorisiert weniger Fehlaufnahmen durch Hintergrundgeräusche.",
-            "label": "Fehlaufnahmen reduzieren"
-          }
-        },
-        "realtimeEndpointing": {
-          "description": "Steuert, wie lange Echtzeit-Anbieter warten, bevor eine Phrase beendet wird.",
-          "label": "Echtzeit-Endpunkt",
-          "options": {
-            "balanced": {
-              "description": "Ein ausgewogenes Pausenfenster für natürliche Diktate.",
-              "label": "Ausgewogen"
-            },
-            "fast": {
-              "description": "Beendet Phrasen schnell für reaktionsschnellere Ergebnisse.",
-              "label": "Schnell"
-            },
-            "patient": {
-              "description": "Wartet länger durch Pausen, um zu frühe Enden zu vermeiden.",
-              "label": "Geduldig"
-            }
-          }
-        },
-        "title": "Audioqualität & Fehlaufnahme-Kontrolle",
-        "voiceGateStrictness": {
-          "description": "Steuert, wie sicher Sprache erkannt werden muss, bevor Audio akzeptiert wird.",
-          "label": "Strenge der Sprachschwelle",
-          "options": {
-            "relaxed": {
-              "description": "Empfindlicher, nützlich für leise Stimmen.",
-              "label": "Locker"
-            },
-            "standard": {
-              "description": "Empfohlener Standard für die meisten Räume.",
-              "label": "Standard"
-            },
-            "strict": {
-              "description": "Erfordert deutlichere Sprache und weist mehr Hintergrundgeräusche ab.",
-              "label": "Streng"
-            }
-          }
-        }
-      }
+      "title": "Sprache-zu-Text"
     }
   },
   "models": {

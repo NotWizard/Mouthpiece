@@ -15,87 +15,30 @@ async function loadAudioQualitySettings() {
   return import(modulePath);
 }
 
-test("audio quality settings default to noise reduction and sanitize invalid values", async () => {
+test("audio quality settings expose a single hardcoded preset", async () => {
   const mod = await loadAudioQualitySettings();
 
-  assert.equal(mod.DEFAULT_AUDIO_QUALITY_MODE, "noise_reduction");
-  assert.equal(mod.DEFAULT_VOICE_GATE_STRICTNESS, "standard");
-  assert.equal(mod.DEFAULT_REALTIME_ENDPOINTING_MODE, "balanced");
-  assert.equal(mod.normalizeAudioQualityMode("balanced"), "balanced");
-  assert.equal(mod.normalizeAudioQualityMode("unknown"), "noise_reduction");
-  assert.equal(mod.normalizeVoiceGateStrictness("strict"), "strict");
-  assert.equal(mod.normalizeVoiceGateStrictness("unknown"), "standard");
-  assert.equal(mod.normalizeRealtimeEndpointingMode("patient"), "patient");
-  assert.equal(mod.normalizeRealtimeEndpointingMode("unknown"), "balanced");
-});
-
-test("audio quality mode maps to microphone constraints and gate thresholds", async () => {
-  const mod = await loadAudioQualitySettings();
-
-  assert.deepEqual(mod.getAudioProcessingConstraints("noise_reduction"), {
+  assert.deepEqual(mod.getAudioProcessingConstraints(), {
     echoCancellation: { ideal: true },
     noiseSuppression: { ideal: true },
     autoGainControl: { ideal: false },
   });
-  assert.deepEqual(mod.getAudioProcessingConstraints("low_latency"), {
-    echoCancellation: false,
-    noiseSuppression: false,
-    autoGainControl: false,
+
+  const config = mod.getVoiceGateConfig();
+  assert.equal(config.sampleRate, 16000);
+  assert.equal(config.frameMs, 50);
+  assert.equal(config.minSpeechRms, 0.022);
+  assert.equal(config.openSnrDb, 10);
+  assert.equal(config.minSpeechFrames, 4);
+
+  assert.deepEqual(mod.getRealtimeEndpointingConfig("deepgram"), {
+    endpointing: 500,
+    utteranceEndMs: 1000,
   });
-
-  const strict = mod.getVoiceGateConfig({
-    audioQualityMode: "noise_reduction",
-    voiceGateStrictness: "strict",
+  assert.deepEqual(mod.getRealtimeEndpointingConfig("bailian"), {
+    silenceDurationMs: 1200,
   });
-  const relaxed = mod.getVoiceGateConfig({
-    audioQualityMode: "low_latency",
-    voiceGateStrictness: "relaxed",
-  });
-
-  assert.equal(strict.minSpeechMs > relaxed.minSpeechMs, true);
-  assert.equal(strict.openSnrDb > relaxed.openSnrDb, true);
-  assert.equal(strict.minVoicedRatio > relaxed.minVoicedRatio, true);
-});
-
-test("settings store and hook expose audio quality controls", async () => {
-  const [settingsStoreSource, settingsHookSource] = await Promise.all([
-    readRepoFile("src/stores/settingsStore.ts"),
-    readRepoFile("src/hooks/useSettings.ts"),
-  ]);
-
-  assert.match(settingsStoreSource, /audioQualityMode: normalizeAudioQualityMode/);
-  assert.match(settingsStoreSource, /voiceGateStrictness: normalizeVoiceGateStrictness/);
-  assert.match(settingsStoreSource, /realtimeEndpointingMode: normalizeRealtimeEndpointingMode/);
-  assert.match(settingsStoreSource, /setAudioQualityMode: createAudioQualityModeSetter/);
-  assert.match(settingsStoreSource, /setVoiceGateStrictness: createVoiceGateStrictnessSetter/);
-  assert.match(
-    settingsStoreSource,
-    /setRealtimeEndpointingMode: createRealtimeEndpointingModeSetter/
-  );
-
-  assert.match(settingsHookSource, /audioQualityMode: AudioQualityMode;/);
-  assert.match(settingsHookSource, /voiceGateStrictness: VoiceGateStrictness;/);
-  assert.match(settingsHookSource, /realtimeEndpointingMode: RealtimeEndpointingMode;/);
-  assert.match(settingsHookSource, /setAudioQualityMode: store\.setAudioQualityMode,/);
-  assert.match(settingsHookSource, /setVoiceGateStrictness: store\.setVoiceGateStrictness,/);
-  assert.match(
-    settingsHookSource,
-    /setRealtimeEndpointingMode: store\.setRealtimeEndpointingMode,/
-  );
-});
-
-test("control panel exposes audio quality UI without hardcoded labels", async () => {
-  const source = await readRepoFile("src/components/SettingsPage.tsx");
-
-  assert.match(source, /function AudioQualitySettingsCard/);
-  assert.match(source, /settingsPage\.transcription\.audioQuality\.title/);
-  assert.match(source, /settingsPage\.transcription\.audioQuality\.advancedTitle/);
-  assert.match(source, /AudioQualityCompactSelect/);
-  assert.doesNotMatch(source, /SettingsPanelRow className="space-y-3"/);
-  assert.match(source, /audioQualityMode=\{audioQualityMode\}/);
-  assert.match(source, /setAudioQualityMode=\{setAudioQualityMode\}/);
-  assert.match(source, /voiceGateStrictness=\{voiceGateStrictness\}/);
-  assert.match(source, /realtimeEndpointingMode=\{realtimeEndpointingMode\}/);
+  assert.deepEqual(mod.getRealtimeEndpointingConfig("unknown"), {});
 });
 
 test("microphone input test reserves stable space for dynamic status text", async () => {
@@ -144,13 +87,59 @@ test("audio manager applies capture constraints and gates realtime frames before
   assert.match(source, /getSpeechActivityGateConfig/);
   assert.match(source, /advanceSpeechActivityGate/);
   assert.match(source, /createSilenceFrameLike/);
-  assert.match(source, /audioQualityMode/);
-  assert.match(source, /voiceGateStrictness/);
-  assert.match(source, /noiseSuppression: settings\.noiseSuppression/);
   assert.match(source, /this\.speechActivityGateState/);
   assert.match(source, /this\.speechActivityGateConfig/);
   assert.match(source, /const gateResult = advanceSpeechActivityGate/);
   assert.match(source, /provider\.send\(frame\.samples\)/);
+});
+
+test("audio quality controls are no longer surfaced as user settings", async () => {
+  const [
+    audioQualitySource,
+    settingsStoreSource,
+    settingsHookSource,
+    settingsPageSource,
+    audioManagerSource,
+  ] = await Promise.all([
+    readRepoFile("src/utils/audioQualitySettings.mjs"),
+    readRepoFile("src/stores/settingsStore.ts"),
+    readRepoFile("src/hooks/useSettings.ts"),
+    readRepoFile("src/components/SettingsPage.tsx"),
+    readRepoFile("src/helpers/audioManager.js"),
+  ]);
+
+  for (const source of [audioQualitySource, settingsHookSource]) {
+    assert.doesNotMatch(source, /AUDIO_QUALITY_MODES/);
+    assert.doesNotMatch(source, /VOICE_GATE_STRICTNESS_LEVELS/);
+    assert.doesNotMatch(source, /REALTIME_ENDPOINTING_MODES/);
+    assert.doesNotMatch(source, /audioQualityMode/);
+    assert.doesNotMatch(source, /voiceGateStrictness/);
+    assert.doesNotMatch(source, /realtimeEndpointingMode/);
+  }
+
+  // settingsStore should no longer declare or expose these settings, but is
+  // expected to keep `localStorage.removeItem` migration calls so existing
+  // installs shed the legacy keys on next launch.
+  assert.doesNotMatch(settingsStoreSource, /AUDIO_QUALITY_MODES/);
+  assert.doesNotMatch(settingsStoreSource, /VOICE_GATE_STRICTNESS_LEVELS/);
+  assert.doesNotMatch(settingsStoreSource, /REALTIME_ENDPOINTING_MODES/);
+  assert.doesNotMatch(settingsStoreSource, /audioQualityMode:\s*readString/);
+  assert.doesNotMatch(settingsStoreSource, /voiceGateStrictness:\s*readString/);
+  assert.doesNotMatch(settingsStoreSource, /realtimeEndpointingMode:\s*readString/);
+  assert.doesNotMatch(settingsStoreSource, /setAudioQualityMode/);
+  assert.doesNotMatch(settingsStoreSource, /setVoiceGateStrictness/);
+  assert.doesNotMatch(settingsStoreSource, /setRealtimeEndpointingMode/);
+  assert.match(settingsStoreSource, /localStorage\.removeItem\("audioQualityMode"\)/);
+  assert.match(settingsStoreSource, /localStorage\.removeItem\("voiceGateStrictness"\)/);
+  assert.match(settingsStoreSource, /localStorage\.removeItem\("realtimeEndpointingMode"\)/);
+
+  assert.doesNotMatch(settingsPageSource, /AudioQualitySettingsCard/);
+  assert.doesNotMatch(settingsPageSource, /audioQuality\.title/);
+
+  assert.doesNotMatch(audioManagerSource, /audioQualityMode/);
+  assert.doesNotMatch(audioManagerSource, /voiceGateStrictness/);
+  assert.doesNotMatch(audioManagerSource, /realtimeEndpointingMode/);
+  assert.doesNotMatch(audioManagerSource, /low_latency/);
 });
 
 test("Bailian realtime sends raw frames to provider server VAD", async () => {
@@ -191,7 +180,7 @@ test("streaming batch fallback uses realtime-specific toast copy", async () => {
   }
 });
 
-test("audio quality locale keys exist across every supported translation file", async () => {
+test("audio quality locale subtree is removed from every supported translation file", async () => {
   const localeFiles = [
     "src/locales/en/translation.json",
     "src/locales/de/translation.json",
@@ -205,15 +194,10 @@ test("audio quality locale keys exist across every supported translation file", 
     "src/locales/zh-TW/translation.json",
   ];
 
-  const localeSources = await Promise.all(localeFiles.map(readRepoFile));
-
-  for (const source of localeSources) {
-    assert.match(source, /"audioQuality": \{/);
-    assert.match(source, /"noise_reduction": \{/);
-    assert.match(source, /"balanced": \{/);
-    assert.match(source, /"low_latency": \{/);
-    assert.match(source, /"voiceGateStrictness": \{/);
-    assert.match(source, /"realtimeEndpointing": \{/);
-    assert.match(source, /"inputTest": \{/);
+  for (const file of localeFiles) {
+    const source = await readRepoFile(file);
+    assert.doesNotMatch(source, /"audioQuality":\s*\{/);
+    assert.doesNotMatch(source, /"voiceGateStrictness":\s*\{/);
+    assert.doesNotMatch(source, /"realtimeEndpointing":\s*\{/);
   }
 });

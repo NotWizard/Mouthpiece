@@ -19,12 +19,7 @@ import MicrophoneSettings from "./ui/MicrophoneSettings";
 import PermissionCard from "./ui/PermissionCard";
 import TranscriptionModelPicker from "./TranscriptionModelPicker";
 import { ConfirmDialog, AlertDialog } from "./ui/dialog";
-import {
-  useSettings,
-  type AudioQualityMode,
-  type RealtimeEndpointingMode,
-  type VoiceGateStrictness,
-} from "../hooks/useSettings";
+import { useSettings } from "../hooks/useSettings";
 import { useDialogs } from "../hooks/useDialogs";
 import { useWhisper } from "../hooks/useWhisper";
 import { usePermissions } from "../hooks/usePermissions";
@@ -46,7 +41,6 @@ import { useTheme } from "../hooks/useTheme";
 import type { AppUpdateStatus, LocalTranscriptionProvider } from "../types/electron";
 import logger from "../utils/logger";
 import { SettingsRow } from "./ui/SettingsSection";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { cn } from "./lib/utils";
 import { UI_LANGUAGE_OPTIONS } from "../locales/localeManifest";
 import { CURRENT_CACHE_DIRNAME } from "../config/productIdentity";
@@ -68,10 +62,6 @@ interface SettingsPageProps {
   onCheckForUpdates?: () => void;
   onInstallUpdate?: () => void;
 }
-
-const AUDIO_QUALITY_MODE_OPTIONS = ["noise_reduction", "balanced", "low_latency"] as const;
-const VOICE_GATE_STRICTNESS_OPTIONS = ["relaxed", "standard", "strict"] as const;
-const REALTIME_ENDPOINTING_MODE_OPTIONS = ["fast", "balanced", "patient"] as const;
 
 function SettingsPanel({
   children,
@@ -111,144 +101,6 @@ function PageHeader({ title, description }: { title: string; description?: strin
   );
 }
 
-function AudioQualityCompactSelect<TValue extends string>({
-  value,
-  options,
-  translationBase,
-  onChange,
-  showDescription = false,
-}: {
-  value: TValue;
-  options: readonly TValue[];
-  translationBase: string;
-  onChange: (value: TValue) => void;
-  showDescription?: boolean;
-}) {
-  const { t } = useTranslation();
-
-  return (
-    <div className="w-56 max-w-[48vw] space-y-1">
-      <Select value={value} onValueChange={(nextValue) => onChange(nextValue as TValue)}>
-        <SelectTrigger className="h-8 w-full text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((option) => (
-            <SelectItem key={option} value={option}>
-              {t(`${translationBase}.${option}.label`)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      {showDescription && (
-        <p className="text-xs text-muted-foreground/75 leading-snug">
-          {t(`${translationBase}.${value}.description`)}
-        </p>
-      )}
-    </div>
-  );
-}
-
-interface AudioQualitySettingsCardProps {
-  audioQualityMode: AudioQualityMode;
-  setAudioQualityMode: (mode: AudioQualityMode) => void;
-  voiceGateStrictness: VoiceGateStrictness;
-  setVoiceGateStrictness: (strictness: VoiceGateStrictness) => void;
-  realtimeEndpointingMode: RealtimeEndpointingMode;
-  setRealtimeEndpointingMode: (mode: RealtimeEndpointingMode) => void;
-}
-
-function AudioQualitySettingsCard({
-  audioQualityMode,
-  setAudioQualityMode,
-  voiceGateStrictness,
-  setVoiceGateStrictness,
-  realtimeEndpointingMode,
-  setRealtimeEndpointingMode,
-}: AudioQualitySettingsCardProps) {
-  const { t } = useTranslation();
-
-  return (
-    <div>
-      <SectionHeader
-        title={t("settingsPage.transcription.audioQuality.title")}
-        description={t("settingsPage.transcription.audioQuality.description")}
-      />
-      <SettingsPanel>
-        <SettingsPanelRow>
-          <SettingsRow
-            label={t("settingsPage.transcription.audioQuality.modeLabel")}
-            description={t("settingsPage.transcription.audioQuality.modeDescription")}
-            className="items-start"
-          >
-            <AudioQualityCompactSelect
-              value={audioQualityMode}
-              options={AUDIO_QUALITY_MODE_OPTIONS}
-              translationBase="settingsPage.transcription.audioQuality.modes"
-              onChange={setAudioQualityMode}
-              showDescription
-            />
-          </SettingsRow>
-        </SettingsPanelRow>
-
-        <SettingsPanelRow className="space-y-2 py-2.5">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold text-foreground">
-              {t("settingsPage.transcription.audioQuality.advancedTitle")}
-            </p>
-            <p className="max-w-md text-right text-xs text-muted-foreground/75 leading-snug">
-              {t("settingsPage.transcription.audioQuality.advancedDescription")}
-            </p>
-          </div>
-
-          <div className="grid gap-2 lg:grid-cols-2">
-            <div className="settings-inline-card px-3 py-2">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-foreground">
-                    {t("settingsPage.transcription.audioQuality.voiceGateStrictness.label")}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground/75">
-                    {t(
-                      `settingsPage.transcription.audioQuality.voiceGateStrictness.options.${voiceGateStrictness}.description`
-                    )}
-                  </p>
-                </div>
-                <AudioQualityCompactSelect
-                  value={voiceGateStrictness}
-                  options={VOICE_GATE_STRICTNESS_OPTIONS}
-                  translationBase="settingsPage.transcription.audioQuality.voiceGateStrictness.options"
-                  onChange={setVoiceGateStrictness}
-                />
-              </div>
-            </div>
-
-            <div className="settings-inline-card px-3 py-2">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-foreground">
-                    {t("settingsPage.transcription.audioQuality.realtimeEndpointing.label")}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground/75">
-                    {t(
-                      `settingsPage.transcription.audioQuality.realtimeEndpointing.options.${realtimeEndpointingMode}.description`
-                    )}
-                  </p>
-                </div>
-                <AudioQualityCompactSelect
-                  value={realtimeEndpointingMode}
-                  options={REALTIME_ENDPOINTING_MODE_OPTIONS}
-                  translationBase="settingsPage.transcription.audioQuality.realtimeEndpointing.options"
-                  onChange={setRealtimeEndpointingMode}
-                />
-              </div>
-            </div>
-          </div>
-        </SettingsPanelRow>
-      </SettingsPanel>
-    </div>
-  );
-}
 
 interface TranscriptionSectionProps {
   setCloudTranscriptionMode: (mode: string) => void;
@@ -283,12 +135,6 @@ interface TranscriptionSectionProps {
   setBailianApiKey: (key: string) => void;
   deepgramStreamingEnabled: boolean;
   setDeepgramStreamingEnabled: (enabled: boolean) => void;
-  audioQualityMode: AudioQualityMode;
-  setAudioQualityMode: (mode: AudioQualityMode) => void;
-  voiceGateStrictness: VoiceGateStrictness;
-  setVoiceGateStrictness: (strictness: VoiceGateStrictness) => void;
-  realtimeEndpointingMode: RealtimeEndpointingMode;
-  setRealtimeEndpointingMode: (mode: RealtimeEndpointingMode) => void;
   customTranscriptionApiKey: string;
   setCustomTranscriptionApiKey: (key: string) => void;
   cloudTranscriptionBaseUrl?: string;
@@ -328,12 +174,6 @@ function TranscriptionSection({
   setBailianApiKey,
   deepgramStreamingEnabled,
   setDeepgramStreamingEnabled,
-  audioQualityMode,
-  setAudioQualityMode,
-  voiceGateStrictness,
-  setVoiceGateStrictness,
-  realtimeEndpointingMode,
-  setRealtimeEndpointingMode,
   customTranscriptionApiKey,
   setCustomTranscriptionApiKey,
   cloudTranscriptionBaseUrl,
@@ -349,15 +189,6 @@ function TranscriptionSection({
       <SectionHeader
         title={t("settingsPage.transcription.title")}
         description={t("settingsPage.transcription.description")}
-      />
-
-      <AudioQualitySettingsCard
-        audioQualityMode={audioQualityMode}
-        setAudioQualityMode={setAudioQualityMode}
-        voiceGateStrictness={voiceGateStrictness}
-        setVoiceGateStrictness={setVoiceGateStrictness}
-        realtimeEndpointingMode={realtimeEndpointingMode}
-        setRealtimeEndpointingMode={setRealtimeEndpointingMode}
       />
 
       <TranscriptionModelPicker
@@ -575,9 +406,6 @@ export default function SettingsPage({
     sonioxApiKey,
     bailianApiKey,
     dictationKey,
-    audioQualityMode,
-    voiceGateStrictness,
-    realtimeEndpointingMode,
     selectedMicDeviceId,
     setSelectedMicDeviceId,
     setUseLocalWhisper,
@@ -605,9 +433,6 @@ export default function SettingsPage({
     setBailianApiKey,
     sonioxRealtimeEnabled,
     setSonioxRealtimeEnabled,
-    setAudioQualityMode,
-    setVoiceGateStrictness,
-    setRealtimeEndpointingMode,
     customTranscriptionApiKey,
     setCustomTranscriptionApiKey,
     customReasoningApiKey,
@@ -1110,12 +935,6 @@ export default function SettingsPage({
             setBailianApiKey={setBailianApiKey}
             deepgramStreamingEnabled={deepgramStreamingEnabled}
             setDeepgramStreamingEnabled={setDeepgramStreamingEnabled}
-            audioQualityMode={audioQualityMode}
-            setAudioQualityMode={setAudioQualityMode}
-            voiceGateStrictness={voiceGateStrictness}
-            setVoiceGateStrictness={setVoiceGateStrictness}
-            realtimeEndpointingMode={realtimeEndpointingMode}
-            setRealtimeEndpointingMode={setRealtimeEndpointingMode}
             customTranscriptionApiKey={customTranscriptionApiKey}
             setCustomTranscriptionApiKey={setCustomTranscriptionApiKey}
             cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}
