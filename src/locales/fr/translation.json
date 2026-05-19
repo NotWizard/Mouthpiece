@@ -1077,65 +1077,7 @@
     },
     "transcription": {
       "description": "Choisissez comment Mouthpiece transcrit votre voix",
-      "title": "Reconnaissance vocale",
-      "audioQuality": {
-        "advancedDescription": "Augmentez ces valeurs uniquement si les bruits de fond ou les courtes pauses produisent encore du texte indésirable.",
-        "advancedTitle": "Contrôles avancés contre les faux départs",
-        "description": "Priorisez moins d'enregistrements accidentels ou échangez une partie du filtrage contre plus de vitesse.",
-        "modeDescription": "Définit les contraintes de capture et le profil par défaut du détecteur de voix.",
-        "modeLabel": "Mode de qualité audio",
-        "modes": {
-          "balanced": {
-            "description": "Équilibre précision, réactivité et rejet du bruit.",
-            "label": "Équilibré"
-          },
-          "low_latency": {
-            "description": "Démarre et termine plus vite avec un filtrage plus léger.",
-            "label": "Faible latence"
-          },
-          "noise_reduction": {
-            "description": "Priorise la réduction des captures erronées dues au son de fond.",
-            "label": "Réduire les fausses captures"
-          }
-        },
-        "realtimeEndpointing": {
-          "description": "Contrôle la durée d'attente des fournisseurs temps réel avant de terminer une phrase.",
-          "label": "Fin de phrase en temps réel",
-          "options": {
-            "balanced": {
-              "description": "Une fenêtre de pause équilibrée pour une dictée naturelle.",
-              "label": "Équilibré"
-            },
-            "fast": {
-              "description": "Termine rapidement les phrases pour des résultats plus réactifs.",
-              "label": "Rapide"
-            },
-            "patient": {
-              "description": "Attend plus longtemps pendant les pauses pour éviter les coupures prématurées.",
-              "label": "Patient"
-            }
-          }
-        },
-        "title": "Qualité audio et contrôle des fausses captures",
-        "voiceGateStrictness": {
-          "description": "Contrôle le niveau de confiance requis pour accepter l'audio comme parole.",
-          "label": "Strictesse du détecteur de voix",
-          "options": {
-            "relaxed": {
-              "description": "Plus sensible, utile pour les voix faibles.",
-              "label": "Souple"
-            },
-            "standard": {
-              "description": "Réglage recommandé pour la plupart des pièces.",
-              "label": "Standard"
-            },
-            "strict": {
-              "description": "Exige une parole plus claire et rejette davantage le bruit de fond.",
-              "label": "Strict"
-            }
-          }
-        }
-      }
+      "title": "Reconnaissance vocale"
     }
   },
   "models": {

@@ -850,13 +850,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   resetSpeechActivityGate({ disabled = false } = {}) {
-    const settings = getSettings();
-    this.speechActivityGateDisabled =
-      Boolean(disabled) || settings.audioQualityMode === "low_latency";
-    this.speechActivityGateConfig = getSpeechActivityGateConfig({
-      audioQualityMode: settings.audioQualityMode,
-      voiceGateStrictness: settings.voiceGateStrictness,
-    });
+    this.speechActivityGateDisabled = Boolean(disabled);
+    this.speechActivityGateConfig = getSpeechActivityGateConfig();
     this.speechActivityGateState = createSpeechActivityGateState();
   }
 
@@ -1079,8 +1074,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   async getAudioConstraints() {
-    const { selectedMicDeviceId: selectedDeviceId, audioQualityMode } = getSettings();
-    const audioProcessing = getAudioProcessingConstraints(audioQualityMode);
+    const { selectedMicDeviceId: selectedDeviceId } = getSettings();
+    const audioProcessing = getAudioProcessingConstraints();
 
     if (selectedDeviceId) {
       logger.debug("Using selected microphone", { deviceId: selectedDeviceId }, "audio");
@@ -1231,11 +1226,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   getBatchSpeechActivityConfig() {
-    const settings = getSettings();
-    return getSpeechActivityGateConfig({
-      audioQualityMode: settings.audioQualityMode,
-      voiceGateStrictness: settings.voiceGateStrictness,
-    });
+    return getSpeechActivityGateConfig();
   }
 
   async decodeAudioBlobToMono16kSamples(audioBlob) {
@@ -1301,12 +1292,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   async preprocessBatchAudioForSpeechActivity(audioBlob, metadata = {}) {
-    const settings = getSettings();
-    if (settings.audioQualityMode === "low_latency") {
-      return { audioBlob, metadata, shouldTranscribe: true };
-    }
-
     try {
+      const settings = getSettings();
       const samples = await this.decodeAudioBlobToMono16kSamples(audioBlob);
       const config = this.getBatchSpeechActivityConfig();
       const analysis = analyzeSpeechActivity(samples, config);
@@ -2359,10 +2346,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     };
 
     if (this.isByokDeepgramStreamingEnabled()) {
-      const endpointing = getRealtimeEndpointingConfig(
-        settings.realtimeEndpointingMode,
-        "deepgram"
-      );
+      const endpointing = getRealtimeEndpointingConfig("deepgram");
       return {
         ...options,
         authMode: "apiKey",
@@ -2373,7 +2357,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     }
 
     if (this.isByokBailianStreamingEnabled()) {
-      const endpointing = getRealtimeEndpointingConfig(settings.realtimeEndpointingMode, "bailian");
+      const endpointing = getRealtimeEndpointingConfig("bailian");
       return {
         ...options,
         model: this.getRealtimeStreamingModel(),

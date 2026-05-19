@@ -9,11 +9,6 @@ import {
   normalizeCloudTranscriptionProviderSettings,
 } from "../utils/transcriptionProviderConfig.mjs";
 import {
-  normalizeAudioQualityMode,
-  normalizeVoiceGateStrictness,
-  normalizeRealtimeEndpointingMode,
-} from "../utils/audioQualitySettings.mjs";
-import {
   normalizeTerminologyProfile,
   terminologyProfileToDictionary,
   type TerminologyProfile,
@@ -29,9 +24,6 @@ import type {
   ApiKeySettings,
   PrivacySettings,
   ThemeSettings,
-  AudioQualityMode,
-  VoiceGateStrictness,
-  RealtimeEndpointingMode,
 } from "../hooks/useSettings";
 
 const isBrowser = typeof window !== "undefined";
@@ -270,9 +262,6 @@ export interface SettingsState
   setDeepgramStreamingEnabled: (value: boolean) => void;
   setSonioxRealtimeEnabled: (value: boolean) => void;
   setBailianRealtimeEnabled: (value: boolean) => void;
-  setAudioQualityMode: (value: AudioQualityMode) => void;
-  setVoiceGateStrictness: (value: VoiceGateStrictness) => void;
-  setRealtimeEndpointingMode: (value: RealtimeEndpointingMode) => void;
   setUseReasoningModel: (value: boolean) => void;
   setReasoningModel: (value: string) => void;
   setReasoningProvider: (value: string) => void;
@@ -318,30 +307,6 @@ function createBooleanSetter(key: string) {
   return (value: boolean) => {
     if (isBrowser) localStorage.setItem(key, String(value));
     useSettingsStore.setState({ [key]: value });
-  };
-}
-
-function createAudioQualityModeSetter(key: string) {
-  return (value: AudioQualityMode) => {
-    const normalized = normalizeAudioQualityMode(value) as AudioQualityMode;
-    if (isBrowser) localStorage.setItem(key, normalized);
-    useSettingsStore.setState({ [key]: normalized });
-  };
-}
-
-function createVoiceGateStrictnessSetter(key: string) {
-  return (value: VoiceGateStrictness) => {
-    const normalized = normalizeVoiceGateStrictness(value) as VoiceGateStrictness;
-    if (isBrowser) localStorage.setItem(key, normalized);
-    useSettingsStore.setState({ [key]: normalized });
-  };
-}
-
-function createRealtimeEndpointingModeSetter(key: string) {
-  return (value: RealtimeEndpointingMode) => {
-    const normalized = normalizeRealtimeEndpointingMode(value) as RealtimeEndpointingMode;
-    if (isBrowser) localStorage.setItem(key, normalized);
-    useSettingsStore.setState({ [key]: normalized });
   };
 }
 
@@ -501,15 +466,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   deepgramStreamingEnabled: readBoolean("deepgramStreamingEnabled", false),
   sonioxRealtimeEnabled: readBoolean("sonioxRealtimeEnabled", true),
   bailianRealtimeEnabled: readBoolean("bailianRealtimeEnabled", false),
-  audioQualityMode: normalizeAudioQualityMode(
-    readString("audioQualityMode", "noise_reduction")
-  ) as AudioQualityMode,
-  voiceGateStrictness: normalizeVoiceGateStrictness(
-    readString("voiceGateStrictness", "standard")
-  ) as VoiceGateStrictness,
-  realtimeEndpointingMode: normalizeRealtimeEndpointingMode(
-    readString("realtimeEndpointingMode", "balanced")
-  ) as RealtimeEndpointingMode,
 
   useReasoningModel: readBoolean("useReasoningModel", true),
   reasoningModel: readString("reasoningModel", ""),
@@ -567,9 +523,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setDeepgramStreamingEnabled: createBooleanSetter("deepgramStreamingEnabled"),
   setSonioxRealtimeEnabled: createBooleanSetter("sonioxRealtimeEnabled"),
   setBailianRealtimeEnabled: createBooleanSetter("bailianRealtimeEnabled"),
-  setAudioQualityMode: createAudioQualityModeSetter("audioQualityMode"),
-  setVoiceGateStrictness: createVoiceGateStrictnessSetter("voiceGateStrictness"),
-  setRealtimeEndpointingMode: createRealtimeEndpointingModeSetter("realtimeEndpointingMode"),
   setUseReasoningModel: createBooleanSetter("useReasoningModel"),
   setReasoningModel: createStringSetter("reasoningModel"),
   setReasoningProvider: createStringSetter("reasoningProvider"),
@@ -704,11 +657,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       s.setSonioxRealtimeEnabled(settings.sonioxRealtimeEnabled);
     if (settings.bailianRealtimeEnabled !== undefined)
       s.setBailianRealtimeEnabled(settings.bailianRealtimeEnabled);
-    if (settings.audioQualityMode !== undefined) s.setAudioQualityMode(settings.audioQualityMode);
-    if (settings.voiceGateStrictness !== undefined)
-      s.setVoiceGateStrictness(settings.voiceGateStrictness);
-    if (settings.realtimeEndpointingMode !== undefined)
-      s.setRealtimeEndpointingMode(settings.realtimeEndpointingMode);
   },
 
   updateReasoningSettings: (settings: Partial<ReasoningSettings>) => {
@@ -787,6 +735,9 @@ export async function initializeSettings(): Promise<void> {
   localStorage.removeItem("activationMode");
   localStorage.removeItem("floatingIconAutoHide");
   localStorage.removeItem("preferBuiltInMic");
+  localStorage.removeItem("audioQualityMode");
+  localStorage.removeItem("voiceGateStrictness");
+  localStorage.removeItem("realtimeEndpointingMode");
   migrateLegacyVoiceModeStorage(localStorage);
 
   const state = useSettingsStore.getState();

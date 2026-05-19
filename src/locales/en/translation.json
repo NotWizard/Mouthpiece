@@ -1077,65 +1077,7 @@
     },
     "transcription": {
       "description": "Choose how Mouthpiece transcribes your voice",
-      "title": "Speech to Text",
-      "audioQuality": {
-        "advancedDescription": "Raise these only if background sounds or short pauses still become unwanted text.",
-        "advancedTitle": "Advanced false-start controls",
-        "description": "Prioritize fewer accidental recordings, or trade some filtering for speed.",
-        "modeDescription": "Sets capture constraints and the default speech gate profile.",
-        "modeLabel": "Audio quality mode",
-        "modes": {
-          "balanced": {
-            "description": "Balances accuracy, responsiveness, and noise rejection.",
-            "label": "Balanced"
-          },
-          "low_latency": {
-            "description": "Starts and finishes faster with lighter filtering.",
-            "label": "Low latency"
-          },
-          "noise_reduction": {
-            "description": "Prioritizes reducing false captures from background audio.",
-            "label": "Reduce false captures"
-          }
-        },
-        "realtimeEndpointing": {
-          "description": "Controls how long real-time providers wait before ending a phrase.",
-          "label": "Realtime endpointing",
-          "options": {
-            "balanced": {
-              "description": "A balanced pause window for natural dictation.",
-              "label": "Balanced"
-            },
-            "fast": {
-              "description": "Ends phrases quickly for snappier results.",
-              "label": "Fast"
-            },
-            "patient": {
-              "description": "Waits longer through pauses to avoid premature endings.",
-              "label": "Patient"
-            }
-          }
-        },
-        "title": "Audio quality & false capture control",
-        "voiceGateStrictness": {
-          "description": "Controls how confidently speech must be detected before audio is accepted.",
-          "label": "Voice gate strictness",
-          "options": {
-            "relaxed": {
-              "description": "More sensitive, useful for quiet voices.",
-              "label": "Relaxed"
-            },
-            "standard": {
-              "description": "Recommended default for most rooms.",
-              "label": "Standard"
-            },
-            "strict": {
-              "description": "Requires clearer speech and rejects more background noise.",
-              "label": "Strict"
-            }
-          }
-        }
-      }
+      "title": "Speech to Text"
     }
   },
   "models": {

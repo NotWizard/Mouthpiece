@@ -1077,65 +1077,7 @@
     },
     "transcription": {
       "description": "Elige cómo Mouthpiece transcribe tu voz",
-      "title": "Voz a texto",
-      "audioQuality": {
-        "advancedDescription": "Aumenta estos valores solo si los sonidos de fondo o las pausas breves siguen convirtiéndose en texto no deseado.",
-        "advancedTitle": "Controles avanzados contra inicios falsos",
-        "description": "Prioriza menos grabaciones accidentales o cambia parte del filtrado por velocidad.",
-        "modeDescription": "Define las restricciones de captura y el perfil predeterminado de detección de voz.",
-        "modeLabel": "Modo de calidad de audio",
-        "modes": {
-          "balanced": {
-            "description": "Equilibra precisión, respuesta y rechazo de ruido.",
-            "label": "Equilibrado"
-          },
-          "low_latency": {
-            "description": "Inicia y termina más rápido con un filtrado más ligero.",
-            "label": "Baja latencia"
-          },
-          "noise_reduction": {
-            "description": "Prioriza reducir capturas falsas causadas por audio de fondo.",
-            "label": "Reducir capturas falsas"
-          }
-        },
-        "realtimeEndpointing": {
-          "description": "Controla cuánto esperan los proveedores en tiempo real antes de cerrar una frase.",
-          "label": "Finalización en tiempo real",
-          "options": {
-            "balanced": {
-              "description": "Una ventana de pausa equilibrada para dictado natural.",
-              "label": "Equilibrado"
-            },
-            "fast": {
-              "description": "Cierra frases rápido para resultados más ágiles.",
-              "label": "Rápido"
-            },
-            "patient": {
-              "description": "Espera más durante las pausas para evitar cortes prematuros.",
-              "label": "Paciente"
-            }
-          }
-        },
-        "title": "Calidad de audio y control de capturas falsas",
-        "voiceGateStrictness": {
-          "description": "Controla cuánta confianza se requiere para aceptar audio como voz.",
-          "label": "Rigor de la puerta de voz",
-          "options": {
-            "relaxed": {
-              "description": "Más sensible, útil para voces bajas.",
-              "label": "Relajado"
-            },
-            "standard": {
-              "description": "Valor recomendado para la mayoría de habitaciones.",
-              "label": "Estándar"
-            },
-            "strict": {
-              "description": "Requiere voz más clara y rechaza más ruido de fondo.",
-              "label": "Estricto"
-            }
-          }
-        }
-      }
+      "title": "Voz a texto"
     }
   },
   "models": {

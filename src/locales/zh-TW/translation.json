@@ -1077,65 +1077,7 @@
     },
     "transcription": {
       "description": "選擇 Mouthpiece 轉錄語音的方式",
-      "title": "語音轉文字",
-      "audioQuality": {
-        "advancedDescription": "只有在背景聲或短暫停頓仍會變成多餘文字時，才提高這些設定。",
-        "advancedTitle": "進階誤啟動控制",
-        "description": "優先減少誤錄，也可以用部分降噪能力換取更低延遲。",
-        "modeDescription": "設定擷取限制與預設語音閘門策略。",
-        "modeLabel": "音訊品質模式",
-        "modes": {
-          "balanced": {
-            "description": "在準確度、反應速度與抑制噪音之間取得平衡。",
-            "label": "平衡"
-          },
-          "low_latency": {
-            "description": "使用較輕的過濾，更快開始和結束。",
-            "label": "低延遲"
-          },
-          "noise_reduction": {
-            "description": "優先減少背景音造成的誤錄。",
-            "label": "減少誤錄"
-          }
-        },
-        "realtimeEndpointing": {
-          "description": "控制即時供應商在結束一句話前等待靜音的時間。",
-          "label": "即時斷句",
-          "options": {
-            "balanced": {
-              "description": "適合自然聽寫的平衡停頓視窗。",
-              "label": "平衡"
-            },
-            "fast": {
-              "description": "更快結束短句，反應更靈敏。",
-              "label": "快速"
-            },
-            "patient": {
-              "description": "在停頓時等待更久，避免過早截斷。",
-              "label": "耐心"
-            }
-          }
-        },
-        "title": "音訊品質與誤錄控制",
-        "voiceGateStrictness": {
-          "description": "控制語音需要達到多高信心才會被接受。",
-          "label": "語音閘門嚴格度",
-          "options": {
-            "relaxed": {
-              "description": "更靈敏，適合較小的說話聲。",
-              "label": "寬鬆"
-            },
-            "standard": {
-              "description": "適合大多數環境的建議預設值。",
-              "label": "標準"
-            },
-            "strict": {
-              "description": "要求更清楚的語音，過濾更多背景噪音。",
-              "label": "嚴格"
-            }
-          }
-        }
-      }
+      "title": "語音轉文字"
     }
   },
   "models": {

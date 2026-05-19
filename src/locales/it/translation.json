@@ -1077,65 +1077,7 @@
     },
     "transcription": {
       "description": "Scegli come Mouthpiece trascrive la tua voce",
-      "title": "Riconoscimento vocale",
-      "audioQuality": {
-        "advancedDescription": "Aumenta questi valori solo se i rumori di fondo o le pause brevi diventano ancora testo indesiderato.",
-        "advancedTitle": "Controlli avanzati contro i falsi avvii",
-        "description": "Dai priorità a meno registrazioni accidentali o scambia parte del filtro con più velocità.",
-        "modeDescription": "Imposta i vincoli di acquisizione e il profilo predefinito del gate vocale.",
-        "modeLabel": "Modalità qualità audio",
-        "modes": {
-          "balanced": {
-            "description": "Bilancia accuratezza, reattività e rifiuto del rumore.",
-            "label": "Bilanciata"
-          },
-          "low_latency": {
-            "description": "Avvia e termina più rapidamente con un filtro più leggero.",
-            "label": "Bassa latenza"
-          },
-          "noise_reduction": {
-            "description": "Dà priorità alla riduzione delle false acquisizioni dal rumore di fondo.",
-            "label": "Riduci false acquisizioni"
-          }
-        },
-        "realtimeEndpointing": {
-          "description": "Controlla quanto attendono i provider in tempo reale prima di chiudere una frase.",
-          "label": "Chiusura in tempo reale",
-          "options": {
-            "balanced": {
-              "description": "Una finestra di pausa bilanciata per dettatura naturale.",
-              "label": "Bilanciata"
-            },
-            "fast": {
-              "description": "Chiude rapidamente le frasi per risultati più reattivi.",
-              "label": "Veloce"
-            },
-            "patient": {
-              "description": "Attende più a lungo durante le pause per evitare chiusure premature.",
-              "label": "Paziente"
-            }
-          }
-        },
-        "title": "Qualità audio e controllo false acquisizioni",
-        "voiceGateStrictness": {
-          "description": "Controlla con quanta sicurezza deve essere rilevata la voce prima di accettare l'audio.",
-          "label": "Rigidità del gate vocale",
-          "options": {
-            "relaxed": {
-              "description": "Più sensibile, utile per voci basse.",
-              "label": "Rilassata"
-            },
-            "standard": {
-              "description": "Predefinito consigliato per la maggior parte degli ambienti.",
-              "label": "Standard"
-            },
-            "strict": {
-              "description": "Richiede voce più chiara e respinge più rumore di fondo.",
-              "label": "Rigida"
-            }
-          }
-        }
-      }
+      "title": "Riconoscimento vocale"
     }
   },
   "models": {
