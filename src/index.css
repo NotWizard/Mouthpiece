@@ -80,7 +80,7 @@
 
   /* Control panel and onboarding surfaces */
   --mp-control-window-bg: #eef0f6;
-  --mp-control-sidebar-bg: rgba(255, 255, 255, 0.62);
+  --mp-control-sidebar-bg: rgba(255, 255, 255, 0.5);
   --mp-control-panel-bg: rgba(255, 255, 255, 0.62);
   --mp-control-panel-muted: rgba(248, 250, 253, 0.5);
   --mp-control-border: rgba(13, 18, 30, 0.08);
@@ -113,7 +113,7 @@
   --glass-orb-2: #c2d8ff; /* lavender-blue */
   --glass-orb-3: #e3d2ff; /* lavender */
   --glass-orb-4: #bdf2e0; /* mint */
-  --glass-orb-opacity: 0.42;
+  --glass-orb-opacity: 0.6;
 }
 
 .dark {
@@ -172,7 +172,7 @@
   --shadow-card-hover-subtle: 0 2px 8px -2px rgba(0, 0, 0, 0.12);
 
   --mp-control-window-bg: #0d0f15;
-  --mp-control-sidebar-bg: rgba(22, 25, 33, 0.5);
+  --mp-control-sidebar-bg: rgba(22, 25, 33, 0.42);
   --mp-control-panel-bg: rgba(30, 33, 41, 0.48);
   --mp-control-panel-muted: rgba(24, 27, 34, 0.4);
   --mp-control-border: rgba(255, 255, 255, 0.07);
@@ -199,7 +199,7 @@
   --glass-orb-2: #0d3a55; /* deep teal */
   --glass-orb-3: #421b46; /* wine */
   --glass-orb-4: #0a3f3a; /* dark mint */
-  --glass-orb-opacity: 0.32;
+  --glass-orb-opacity: 0.45;
 }
 
 @layer base {
@@ -441,7 +441,7 @@ a:hover {
 /* Onboarding leans into a more vivid atmosphere because users only see
    this flow once — first impression deserves a heavier glass moment. */
 .onboarding-shell {
-  --glass-orb-opacity: 0.55;
+  --glass-orb-opacity: 0.7;
 }
 
 /* Liquid Glass atmosphere layer — colored orbs that sidebar/cards refract.
