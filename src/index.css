@@ -713,7 +713,10 @@ a:hover {
   box-shadow: var(--mp-card-shadow);
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  overflow: hidden;
+  /* `overflow: clip` (not `hidden`) so .history-panel does NOT become a sticky
+     scroll container — the actual scroller is .control-panel-content-scroll, and
+     hidden would trap the sticky pill in a non-scrolling context. */
+  overflow: clip;
 }
 
 .history-panel::before,

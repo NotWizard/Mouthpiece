@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **History date pill now actually sticks to the top while scrolling.** `.history-panel` was using `overflow: hidden`, which per CSS spec turns it into a "scroll container" — and since the panel itself doesn't scroll (the real scroller is `.control-panel-content-scroll` higher up in the tree), the sticky pill was scoped to a non-scrolling ancestor and never engaged. Switched the panel and `.history-empty` to `overflow: clip`, which still clips overflow against the 14 px rounded corners but does NOT create a scroll container — so `position: sticky; top: 8px;` now resolves against the actual `.control-panel-content-scroll` and the pill anchors to the panel's top edge as the user scrolls through a day's items.
 - **Renderer build no longer fails on `buildCustomDictionaryPrompt`.** The custom-dictionary helper was authored as CommonJS (`module.exports`) but imported by the Vite-bundled `audioManager`, which Rollup's static analyzer rejected with `"buildCustomDictionaryPrompt" is not exported`. The helper is now an ES module (`customDictionaryPrompt.mjs` with `export`), the `audioManager` import points at the new extension, and the unit test loads it via dynamic `import()` to match.
 
 ## [1.3.1] - 2026-05-17
