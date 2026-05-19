@@ -1237,13 +1237,15 @@ export default function SettingsPage({
               setCustomReasoningEnableThinking={setCustomReasoningEnableThinking}
             />
             {/* System Prompt */}
-            <div className="border-t border-border/40 pt-6">
-              <SectionHeader
-                title={t("settingsPage.prompts.title")}
-                description={t("settingsPage.prompts.description")}
-              />
-              <PromptStudio />
-            </div>
+            {useReasoningModel && (
+              <div className="border-t border-border/40 pt-6">
+                <SectionHeader
+                  title={t("settingsPage.prompts.title")}
+                  description={t("settingsPage.prompts.description")}
+                />
+                <PromptStudio />
+              </div>
+            )}
           </div>
         );
 
