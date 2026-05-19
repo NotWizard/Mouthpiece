@@ -52,7 +52,6 @@ const CONTROL_PANEL_CONFIG = {
     sandbox: true,
     webSecurity: true,
     spellcheck: false,
-    backgroundThrottling: false,
   },
   title: "Control Panel",
   resizable: true,
