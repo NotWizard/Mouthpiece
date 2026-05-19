@@ -1,14 +1,19 @@
 #!/bin/bash
 set -euo pipefail
 
-CACHE_DIR="$HOME/.cache/openwhispr"
-MODELS_DIR="$CACHE_DIR/models"
+cleanup_cache_dir() {
+  local cache_dir="$1"
+  local models_dir="$cache_dir/models"
 
-if [ -d "$MODELS_DIR" ]; then
-  rm -rf "$MODELS_DIR"
-  echo "Removed Mouthpiece cached models"
-fi
+  if [ -d "$models_dir" ]; then
+    rm -rf "$models_dir"
+    echo "Removed Mouthpiece cached models in $cache_dir"
+  fi
 
-if [ -d "$CACHE_DIR" ]; then
-  rmdir "$CACHE_DIR" 2>/dev/null || true
-fi
+  if [ -d "$cache_dir" ]; then
+    rmdir "$cache_dir" 2>/dev/null || true
+  fi
+}
+
+cleanup_cache_dir "$HOME/.cache/mouthpiece"
+cleanup_cache_dir "$HOME/.cache/openwhispr"

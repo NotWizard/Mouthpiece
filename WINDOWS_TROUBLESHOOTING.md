@@ -40,7 +40,7 @@ Try this:
 2. If you are running from source, run `npm run download:whisper-cpp`
 3. Confirm a Windows Whisper runtime exists under `resources\\bin\\`
 4. Check whether antivirus quarantined the runtime executable
-5. Clear the model cache at `%USERPROFILE%\.cache\openwhispr\whisper-models`
+5. Clear the model cache at `%USERPROFILE%\.cache\mouthpiece\whisper-models` (or the legacy `%USERPROFILE%\.cache\openwhispr\whisper-models` for older installs)
 
 ### Model download problems
 
@@ -72,10 +72,10 @@ Mouthpiece.exe --log-level=debug
 Or add this to `%APPDATA%\Mouthpiece\.env`:
 
 ```env
-OPENWHISPR_LOG_LEVEL=debug
+MOUTHPIECE_LOG_LEVEL=debug
 ```
 
-The environment variable name remains `OPENWHISPR_LOG_LEVEL` for compatibility.
+The legacy `OPENWHISPR_LOG_LEVEL` is still honored as a fallback for upgrades from older builds.
 
 Logs are written to:
 
@@ -110,13 +110,14 @@ If a reinstall is not enough, uninstall Mouthpiece and then remove its local dat
 
 ```batch
 rd /s /q "%APPDATA%\Mouthpiece"
-rd /s /q "%USERPROFILE%\.cache\openwhispr\whisper-models"
+rd /s /q "%USERPROFILE%\.cache\mouthpiece\whisper-models"
 ```
 
-If this machine previously used older OpenWhispr builds, also remove the old roaming-data directory if it still exists:
+If this machine previously used older OpenWhispr builds, also remove the legacy roaming-data and cache directories if they still exist:
 
 ```batch
 rd /s /q "%APPDATA%\OpenWhispr"
+rd /s /q "%USERPROFILE%\.cache\openwhispr"
 ```
 
 Then reinstall and launch again.

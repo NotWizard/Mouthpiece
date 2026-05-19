@@ -28,10 +28,10 @@ You can also use `--log-level=trace` for even more detail.
 Add this to the `.env` file inside Mouthpiece's user-data directory and restart the app:
 
 ```env
-OPENWHISPR_LOG_LEVEL=debug
+MOUTHPIECE_LOG_LEVEL=debug
 ```
 
-The environment variable still uses the legacy `OPENWHISPR_LOG_LEVEL` name for compatibility.
+The legacy `OPENWHISPR_LOG_LEVEL` is still honored as a fallback if you are upgrading from an older install.
 
 ## Where the `.env` File Lives
 
@@ -108,4 +108,4 @@ Debug mode is off by default. To disable it again:
 
 - turn off `Debug mode` in the Control Panel
 - remove `--log-level=debug` from your launch command
-- remove `OPENWHISPR_LOG_LEVEL` from the user-data `.env` file
+- remove `MOUTHPIECE_LOG_LEVEL` (or legacy `OPENWHISPR_LOG_LEVEL`) from the user-data `.env` file

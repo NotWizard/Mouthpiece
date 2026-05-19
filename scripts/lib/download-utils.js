@@ -24,7 +24,7 @@ function fetchJson(url, redirectCount = 0, useAuthToken = true) {
     }
 
     const headers = {
-      "User-Agent": "OpenWhispr-Downloader",
+      "User-Agent": "Mouthpiece-Downloader",
       Accept: "application/vnd.github+json",
     };
 

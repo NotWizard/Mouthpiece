@@ -68,8 +68,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
           VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
-          VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
-          VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
+          VITE_MOUTHPIECE_API_URL: ${{ vars.VITE_MOUTHPIECE_API_URL || vars.VITE_OPENWHISPR_API_URL }}
+          VITE_MOUTHPIECE_OAUTH_CALLBACK_URL: ${{ vars.VITE_MOUTHPIECE_OAUTH_CALLBACK_URL || vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -146,8 +146,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
           VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
-          VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
-          VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
+          VITE_MOUTHPIECE_API_URL: ${{ vars.VITE_MOUTHPIECE_API_URL || vars.VITE_OPENWHISPR_API_URL }}
+          VITE_MOUTHPIECE_OAUTH_CALLBACK_URL: ${{ vars.VITE_MOUTHPIECE_OAUTH_CALLBACK_URL || vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -243,8 +243,8 @@ jobs:
           TARGET_ARCH: ${{ matrix.arch }}
           GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
           VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
-          VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
-          VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
+          VITE_MOUTHPIECE_API_URL: ${{ vars.VITE_MOUTHPIECE_API_URL || vars.VITE_OPENWHISPR_API_URL }}
+          VITE_MOUTHPIECE_OAUTH_CALLBACK_URL: ${{ vars.VITE_MOUTHPIECE_OAUTH_CALLBACK_URL || vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.APPLE_SIGNING_ENABLED == 'true' && 'true' || 'false' }}
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
