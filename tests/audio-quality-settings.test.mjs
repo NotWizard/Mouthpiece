@@ -20,14 +20,14 @@ test("audio quality settings expose a single hardcoded preset", async () => {
 
   assert.deepEqual(mod.getAudioProcessingConstraints(), {
     echoCancellation: { ideal: true },
-    noiseSuppression: { ideal: true },
+    noiseSuppression: { ideal: false },
     autoGainControl: { ideal: false },
   });
 
   const config = mod.getVoiceGateConfig();
   assert.equal(config.sampleRate, 16000);
   assert.equal(config.frameMs, 50);
-  assert.equal(config.minSpeechRms, 0.022);
+  assert.equal(config.minSpeechRms, 0.014);
   assert.equal(config.openSnrDb, 10);
   assert.equal(config.minSpeechFrames, 4);
 

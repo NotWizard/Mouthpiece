@@ -3,13 +3,20 @@
 // and a separate strictness slider on top of them, but the user-visible knobs
 // were either no-ops for the streaming providers we ship or silently disabled
 // the gate entirely. The single bake-in below uses the historical
-// "noise_reduction" + "standard" combination, which prioritizes false-record
-// rejection — the original intent of the panel.
+// "noise_reduction" + "standard" combination, with two values brought into
+// industry-consensus range during the bake-in:
+//   - minSpeechRms relaxed from 0.022 (~-33 dBFS) to 0.014 (~-37 dBFS) so
+//     soft / distant voices are not dropped at the gate (aligned with the
+//     Minuta / GPT-SoVITS practical floor of -38 dBFS).
+//   - noiseSuppression flipped from true to false because Deepgram's
+//     streaming-transcription Decision Matrix recommends disabling
+//     browser-side NS, and community evidence from Whisper desktop projects
+//     shows it strips speech-band detail and shortens word onsets / offsets.
 
 const VOICE_GATE_PROFILE = Object.freeze({
   sampleRate: 16000,
   frameMs: 50,
-  minSpeechRms: 0.022,
+  minSpeechRms: 0.014,
   openSnrDb: 10,
   closeSnrDb: 6,
   minSpeechMs: 220,
@@ -21,7 +28,7 @@ const VOICE_GATE_PROFILE = Object.freeze({
 
 const AUDIO_PROCESSING_CONSTRAINTS = Object.freeze({
   echoCancellation: { ideal: true },
-  noiseSuppression: { ideal: true },
+  noiseSuppression: { ideal: false },
   autoGainControl: { ideal: false },
 });
 

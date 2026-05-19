@@ -24,7 +24,7 @@ test("speech activity gate rejects sustained low-SNR background noise", async ()
   const config = mod.getSpeechActivityGateConfig();
 
   for (let index = 0; index < 14; index += 1) {
-    const result = mod.advanceSpeechActivityGate(state, frame(0.014), config);
+    const result = mod.advanceSpeechActivityGate(state, frame(0.01), config);
     state = result.state;
   }
 
