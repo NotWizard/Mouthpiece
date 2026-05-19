@@ -761,29 +761,38 @@ a:hover {
   width: fit-content;
   max-width: 100%;
   white-space: nowrap;
-  background: linear-gradient(
-    180deg,
-    rgba(56, 116, 240, 0.14),
-    rgba(56, 116, 240, 0.06)
-  );
-  border: 1px solid rgba(56, 116, 240, 0.22);
+  /* Two-layer background — blue tint on TOP, opaque card base BELOW — so
+     transcription rows scrolling underneath the sticky pill cannot bleed
+     through. Pure blur is not enough; we need real opacity. */
+  background:
+    linear-gradient(
+      180deg,
+      rgba(56, 116, 240, 0.18),
+      rgba(56, 116, 240, 0.08)
+    ),
+    rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(56, 116, 240, 0.28);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 1px 4px rgba(40, 90, 200, 0.08);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 1px 2px rgba(40, 90, 200, 0.08),
+    0 4px 12px -4px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
 
 .dark .history-date-pill {
-  background: linear-gradient(
-    180deg,
-    rgba(122, 166, 255, 0.18),
-    rgba(122, 166, 255, 0.08)
-  );
-  border-color: rgba(122, 166, 255, 0.28);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(122, 166, 255, 0.22),
+      rgba(122, 166, 255, 0.10)
+    ),
+    rgba(28, 32, 44, 0.94);
+  border-color: rgba(122, 166, 255, 0.32);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 4px rgba(0, 0, 0, 0.2);
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    0 4px 12px -4px rgba(0, 0, 0, 0.3);
 }
 
 .history-date-pill .dot {
