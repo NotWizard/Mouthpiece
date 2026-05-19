@@ -237,7 +237,7 @@ interface TranscriptionModelPickerProps {
 const CLOUD_PROVIDER_TABS = [
   { id: "openai", name: "OpenAI" },
   { id: "deepgram", name: "Deepgram" },
-  { id: "groq", name: "Groq", recommended: true },
+  { id: "groq", name: "Groq" },
   { id: "mistral", name: "Mistral" },
   { id: "soniox", name: "Soniox" },
   { id: "bailian", name: "Alibaba Bailian" },
