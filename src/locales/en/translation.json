@@ -1372,7 +1372,8 @@
     "show": "Show API key",
     "hide": "Hide API key",
     "editButton": "edit",
-    "addButton": "add"
+    "addButton": "add",
+    "savedBadge": "Saved"
   },
   "gpu": {
     "transcriptionBanner": "Speed up transcription with GPU acceleration",

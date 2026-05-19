@@ -795,6 +795,93 @@ a:hover {
   line-height: 1.45;
 }
 
+/* Segmented control polish — selected pill becomes tinted glass instead of
+   a flat white slab; inactive provider/mode logos desaturate so the active
+   one naturally pops. Active text takes on the primary color.
+
+   Targets the indicator div via data-tab-indicator (added in
+   ProviderTabs.tsx + TranscriptionModelPicker ModeToggle) and tab buttons
+   via the existing data-tab-button + aria-selected we added. */
+.control-panel-shell [data-tab-indicator] {
+  background: linear-gradient(
+    180deg,
+    rgba(56, 116, 240, 0.13),
+    rgba(56, 116, 240, 0.07)
+  );
+  border-color: rgba(80, 130, 255, 0.25);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 1px 3px rgba(40, 90, 200, 0.1);
+}
+
+.dark .control-panel-shell [data-tab-indicator] {
+  background: linear-gradient(
+    180deg,
+    rgba(122, 166, 255, 0.18),
+    rgba(122, 166, 255, 0.1)
+  );
+  border-color: rgba(122, 166, 255, 0.25);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.control-panel-shell [data-tab-button][aria-selected="true"] {
+  color: var(--color-primary);
+}
+
+.control-panel-shell [data-tab-button]:not([aria-selected="true"]) svg,
+.control-panel-shell [data-tab-button]:not([aria-selected="true"]) img {
+  opacity: 0.55;
+  filter: grayscale(0.25);
+  transition:
+    opacity 200ms cubic-bezier(0.4, 0.6, 0.2, 1),
+    filter 200ms cubic-bezier(0.4, 0.6, 0.2, 1);
+}
+
+.control-panel-shell [data-tab-button][aria-selected="true"] svg,
+.control-panel-shell [data-tab-button][aria-selected="true"] img {
+  opacity: 1;
+  filter: grayscale(0);
+}
+
+/* Filled input visual cue — a 2 px primary inset strip on the left edge of
+   any filled input/textarea. Uses :not(:placeholder-shown) to detect content
+   and inset box-shadow so layout doesn't shift (vs. changing border-width).
+   Hides on focus to defer to the focus glow. */
+.control-panel-shell input:not(:placeholder-shown):not(:focus),
+.control-panel-shell textarea:not(:placeholder-shown):not(:focus) {
+  box-shadow:
+    inset 2px 0 0 var(--color-primary),
+    inset 0 1px 0 var(--glass-highlight);
+}
+
+/* Saved-key badge for ApiKeyInput — small green-tinted pill that appears
+   next to the input label when a value is present. JSX rendering happens
+   in ApiKeyInput.tsx; styling is centralized here for theming. */
+.api-key-saved-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  padding: 2px 7px;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--color-success) 28%, transparent);
+}
+
+.api-key-saved-badge .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+
 /* Page-level header — sits above any in-page SectionHeaders.
    Establishes a clear "you are on the Foo settings page" anchor that the
    wizard previously lacked: every case in SettingsPage routed straight

@@ -1372,7 +1372,8 @@
     "show": "顯示 API Key",
     "hide": "隱藏 API Key",
     "editButton": "編輯金鑰",
-    "addButton": "新增金鑰"
+    "addButton": "新增金鑰",
+    "savedBadge": "已儲存"
   },
   "gpu": {
     "transcriptionBanner": "使用 GPU 加速轉錄",

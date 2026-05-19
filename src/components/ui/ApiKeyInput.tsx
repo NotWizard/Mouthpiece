@@ -104,7 +104,15 @@ export default function ApiKeyInput({
   return (
     <div className={className}>
       {resolvedLabel && (
-        <label className="block text-xs font-medium text-foreground mb-1">{resolvedLabel}</label>
+        <div className="flex items-center justify-between mb-1">
+          <label className="block text-xs font-medium text-foreground">{resolvedLabel}</label>
+          {hasKey && (
+            <span className="api-key-saved-badge" aria-live="polite">
+              <span className="dot" />
+              {t("apiKeyInput.savedBadge")}
+            </span>
+          )}
+        </div>
       )}
 
       <div className="relative">

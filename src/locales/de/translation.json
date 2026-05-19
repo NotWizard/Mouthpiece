@@ -1372,7 +1372,8 @@
     "show": "API-Schlüssel anzeigen",
     "hide": "API-Schlüssel verbergen",
     "editButton": "Bearbeiten",
-    "addButton": "Hinzufügen"
+    "addButton": "Hinzufügen",
+    "savedBadge": "Gespeichert"
   },
   "gpu": {
     "transcriptionBanner": "Transkription mit GPU beschleunigen",

@@ -77,6 +77,7 @@ export function ProviderTabs({
     >
       {/* Sliding indicator - frosted glass treatment */}
       <div
+        data-tab-indicator
         className="absolute top-0.5 left-0 rounded-md bg-card border border-border dark:border-border-subtle shadow-sm dark:shadow-(--shadow-card) transition-[width,height,transform,opacity] duration-200 ease-out pointer-events-none"
         style={indicatorStyle}
       />
@@ -88,6 +89,7 @@ export function ProviderTabs({
           <button
             key={provider.id}
             data-tab-button
+            aria-selected={isSelected}
             onClick={() => onSelect(provider.id)}
             className={`relative z-10 flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md font-medium text-xs transition-colors duration-150 ${
               scrollable ? "whitespace-nowrap" : ""

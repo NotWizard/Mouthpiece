@@ -1372,7 +1372,8 @@
     "show": "API キーを表示",
     "hide": "API キーを非表示",
     "editButton": "編集",
-    "addButton": "追加"
+    "addButton": "追加",
+    "savedBadge": "保存済み"
   },
   "gpu": {
     "transcriptionBanner": "GPU で文字起こしを高速化",

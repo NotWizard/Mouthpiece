@@ -1372,7 +1372,8 @@
     "show": "显示 API Key",
     "hide": "隐藏 API Key",
     "editButton": "编辑密钥",
-    "addButton": "添加密钥"
+    "addButton": "添加密钥",
+    "savedBadge": "已保存"
   },
   "gpu": {
     "transcriptionBanner": "使用 GPU 加速转录",

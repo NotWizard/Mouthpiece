@@ -1372,7 +1372,8 @@
     "show": "Mostrar clave API",
     "hide": "Ocultar clave API",
     "editButton": "Editar",
-    "addButton": "Agregar"
+    "addButton": "Agregar",
+    "savedBadge": "Guardado"
   },
   "gpu": {
     "transcriptionBanner": "Acelera la transcripción con GPU",
