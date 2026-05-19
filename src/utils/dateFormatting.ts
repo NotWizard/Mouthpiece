@@ -3,16 +3,53 @@ export function normalizeDbDate(dateStr: string): Date {
   return new Date(source);
 }
 
-export function formatDateGroup(date: Date | string, t: (key: string) => string): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+export interface DateGroupParts {
+  /** Stable identity used for grouping consecutive items into the same day. */
+  key: string;
+  /** Headline label — Today / Yesterday / weekday / full date depending on recency. */
+  primary: string;
+  /** Optional secondary detail — full date · weekday, or weekday alone, or undefined. */
+  secondary?: string;
+}
 
-  if (target.getTime() === today.getTime()) return t("controlPanel.history.dateGroups.today");
-  if (target.getTime() === yesterday.getTime())
-    return t("controlPanel.history.dateGroups.yesterday");
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+function startOfDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+export function formatDateGroupParts(
+  date: Date | string,
+  t: (key: string) => string,
+  locale?: string,
+): DateGroupParts {
+  const d = typeof date === "string" ? new Date(date) : date;
+  const target = startOfDay(d);
+  const today = startOfDay(new Date());
+  const diffDays = Math.round((today.getTime() - target.getTime()) / 86400000);
+
+  const fullDate = d.toLocaleDateString(locale, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const weekday = d.toLocaleDateString(locale, { weekday: "short" });
+  const key = `${target.getFullYear()}-${target.getMonth()}-${target.getDate()}`;
+
+  if (diffDays === 0) {
+    return {
+      key,
+      primary: t("controlPanel.history.dateGroups.today"),
+      secondary: `${fullDate} · ${weekday}`,
+    };
+  }
+  if (diffDays === 1) {
+    return {
+      key,
+      primary: t("controlPanel.history.dateGroups.yesterday"),
+      secondary: `${fullDate} · ${weekday}`,
+    };
+  }
+  if (diffDays >= 2 && diffDays <= 6) {
+    return { key, primary: weekday, secondary: fullDate };
+  }
+  return { key, primary: fullDate, secondary: weekday };
 }

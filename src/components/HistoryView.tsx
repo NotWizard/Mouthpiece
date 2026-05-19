@@ -5,7 +5,7 @@ import { Loader2, Sparkles, Cloud, X } from "lucide-react";
 import TranscriptionItem from "./ui/TranscriptionItem";
 import type { TranscriptionItem as TranscriptionItemType } from "../types/electron";
 import { formatHotkeyLabel } from "../utils/hotkeys";
-import { formatDateGroup } from "../utils/dateFormatting";
+import { formatDateGroupParts } from "../utils/dateFormatting";
 
 interface HistoryViewProps {
   history: TranscriptionItemType[];
@@ -34,27 +34,37 @@ export default function HistoryView({
   deleteTranscription,
   onOpenSettings,
 }: HistoryViewProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const groupedHistory = useMemo(() => {
     if (history.length === 0) return [];
 
-    const groups: { label: string; items: TranscriptionItemType[] }[] = [];
-    let currentLabel: string | null = null;
+    const groups: {
+      key: string;
+      primary: string;
+      secondary?: string;
+      items: TranscriptionItemType[];
+    }[] = [];
+    let currentKey: string | null = null;
 
     for (const item of history) {
-      const label = formatDateGroup(item.timestamp, t);
+      const parts = formatDateGroupParts(item.timestamp, t, i18n.language);
 
-      if (label !== currentLabel) {
-        groups.push({ label, items: [item] });
-        currentLabel = label;
+      if (parts.key !== currentKey) {
+        groups.push({
+          key: parts.key,
+          primary: parts.primary,
+          secondary: parts.secondary,
+          items: [item],
+        });
+        currentKey = parts.key;
       } else {
         groups[groups.length - 1].items.push(item);
       }
     }
 
     return groups;
-  }, [history, t]);
+  }, [history, t, i18n.language]);
 
   return (
     <div className="history-view">
@@ -244,13 +254,15 @@ export default function HistoryView({
         ) : (
           <div className="history-panel">
             {groupedHistory.map((group) => (
-              <div key={group.label}>
-                <div className="history-date-header sticky top-0 z-10 px-4 py-2">
-                  <span className="text-[11px] font-semibold text-muted-foreground dark:text-muted-foreground uppercase tracking-wide">
-                    {group.label}
-                  </span>
+              <div key={group.key} className="history-day-group">
+                <div className="history-date-pill">
+                  <span className="dot" aria-hidden="true" />
+                  <span className="primary">{group.primary}</span>
+                  {group.secondary && (
+                    <span className="secondary">{group.secondary}</span>
+                  )}
                 </div>
-                <div className="relative z-0">
+                <div className="history-day-items">
                   {group.items.map((item) => (
                     <TranscriptionItem
                       key={item.id}

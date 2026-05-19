@@ -727,15 +727,104 @@ a:hover {
   z-index: 1;
 }
 
-.history-date-header {
+/* History — sticky glass date pill + left vertical rail per day group. */
+.history-day-group {
+  position: relative;
+  padding: 14px 16px 4px;
+}
+
+.history-day-group:first-child {
+  padding-top: 12px;
+}
+
+.history-day-group:last-child {
+  padding-bottom: 14px;
+}
+
+.history-day-group + .history-day-group {
+  padding-top: 6px;
+}
+
+.history-date-pill {
+  position: sticky;
+  top: 8px;
+  z-index: 12;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 11px 5px 9px;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  width: fit-content;
+  max-width: 100%;
+  white-space: nowrap;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--mp-control-panel-bg) 96%, transparent),
-    color-mix(in srgb, var(--mp-control-panel-bg) 80%, transparent)
+    rgba(56, 116, 240, 0.14),
+    rgba(56, 116, 240, 0.06)
   );
-  border-bottom: 1px solid var(--mp-control-border-soft);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(56, 116, 240, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 1px 4px rgba(40, 90, 200, 0.08);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.dark .history-date-pill {
+  background: linear-gradient(
+    180deg,
+    rgba(122, 166, 255, 0.18),
+    rgba(122, 166, 255, 0.08)
+  );
+  border-color: rgba(122, 166, 255, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.history-date-pill .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+.history-date-pill .primary {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: -0.005em;
+}
+
+.history-date-pill .secondary {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--color-foreground);
+  opacity: 0.55;
+}
+
+.history-day-items {
+  position: relative;
+  padding-left: 16px;
+}
+
+.history-day-items::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-primary) 50%, transparent),
+    color-mix(in srgb, var(--color-primary) 18%, transparent) 75%,
+    transparent
+  );
+  pointer-events: none;
 }
 
 /* DictionaryView populated-state wrapper — anchors the loose header / input /
