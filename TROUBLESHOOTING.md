@@ -100,7 +100,7 @@ Try this:
 
 ## Local Whisper Problems
 
-Mouthpiece's local Whisper mode uses a bundled `whisper-server` binary plus model files stored under the legacy cache directory `~/.cache/openwhispr/whisper-models/`.
+Mouthpiece's local Whisper mode uses a bundled `whisper-server` binary plus model files stored under `~/.cache/mouthpiece/whisper-models/` (the legacy `~/.cache/openwhispr/` path is still read as a fallback for upgrades).
 
 ### "whisper-server binary not found"
 

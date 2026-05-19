@@ -108,8 +108,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
           VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
-          VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
-          VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
+          VITE_MOUTHPIECE_API_URL: ${{ vars.VITE_MOUTHPIECE_API_URL || vars.VITE_OPENWHISPR_API_URL }}
+          VITE_MOUTHPIECE_OAUTH_CALLBACK_URL: ${{ vars.VITE_MOUTHPIECE_OAUTH_CALLBACK_URL || vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
 
       - name: Upload Linux update metadata
         env:
@@ -205,8 +205,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
           VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
-          VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
-          VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
+          VITE_MOUTHPIECE_API_URL: ${{ vars.VITE_MOUTHPIECE_API_URL || vars.VITE_OPENWHISPR_API_URL }}
+          VITE_MOUTHPIECE_OAUTH_CALLBACK_URL: ${{ vars.VITE_MOUTHPIECE_OAUTH_CALLBACK_URL || vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
 
   build-macos:
     needs: prepare
@@ -329,8 +329,8 @@ jobs:
           TARGET_ARCH: ${{ matrix.arch }}
           GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
           VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
-          VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
-          VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
+          VITE_MOUTHPIECE_API_URL: ${{ vars.VITE_MOUTHPIECE_API_URL || vars.VITE_OPENWHISPR_API_URL }}
+          VITE_MOUTHPIECE_OAUTH_CALLBACK_URL: ${{ vars.VITE_MOUTHPIECE_OAUTH_CALLBACK_URL || vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.MAC_SIGNING_ENABLED == 'true' && 'true' || 'false' }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_SELFSIGN_CERT_PASSWORD }}
 

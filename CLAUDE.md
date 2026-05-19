@@ -1,6 +1,6 @@
-# OpenWhispr Technical Reference for AI Assistants
+# Mouthpiece Technical Reference for AI Assistants
 
-This document provides comprehensive technical details about the OpenWhispr project architecture for AI assistants working on the codebase.
+This document provides comprehensive technical details about the Mouthpiece project architecture for AI assistants working on the codebase.
 
 ## Repository Collaboration Rules
 
@@ -57,7 +57,7 @@ English
 
 ## Project Overview
 
-OpenWhispr is an Electron-based desktop dictation application that uses whisper.cpp for speech-to-text transcription. It supports both local (privacy-focused) and cloud (OpenAI API) processing modes.
+Mouthpiece is an Electron-based desktop dictation application that uses whisper.cpp for speech-to-text transcription. It supports both local (privacy-focused) and cloud (OpenAI API) processing modes.
 
 ## Architecture Overview
 
@@ -170,7 +170,7 @@ OpenWhispr is an Electron-based desktop dictation application that uses whisper.
   - Bundled binaries in `resources/bin/whisper-cpp-{platform}-{arch}`
   - Falls back to system installation (`brew install whisper-cpp`)
   - GGML model downloads from HuggingFace
-  - Models stored in `~/.cache/openwhispr/whisper-models/`
+  - Models stored in `~/.cache/mouthpiece/whisper-models/`
 
 ### NVIDIA Parakeet Integration (via sherpa-onnx)
 
@@ -178,7 +178,7 @@ OpenWhispr is an Electron-based desktop dictation application that uses whisper.
   - Uses sherpa-onnx runtime for cross-platform ONNX inference
   - Bundled binaries in `resources/bin/sherpa-onnx-{platform}-{arch}`
   - INT8 quantized models for efficient CPU inference
-  - Models stored in `~/.cache/openwhispr/parakeet-models/`
+  - Models stored in `~/.cache/mouthpiece/parakeet-models/`
   - Server pre-warming on startup when `LOCAL_TRANSCRIPTION_PROVIDER=nvidia` is set
   - Provider preference persisted to `.env` via `saveAllKeysToEnvFile()` on server start/stop
 
@@ -226,7 +226,7 @@ FFmpeg is bundled with the app and doesn't require system installation:
 
 ### 3. Local Whisper Models (GGML format)
 
-Models stored in `~/.cache/openwhispr/whisper-models/`:
+Models stored in `~/.cache/mouthpiece/whisper-models/`:
 - tiny: ~75MB (fastest, lowest quality)
 - base: ~142MB (recommended balance)
 - small: ~466MB (better quality)
@@ -372,7 +372,7 @@ The app can open OS-level settings for microphone permissions, sound input selec
 
 ### 11. Debug Mode
 
-Enable with `--log-level=debug` or `OPENWHISPR_LOG_LEVEL=debug` (can be set in `.env`):
+Enable with `--log-level=debug` or `MOUTHPIECE_LOG_LEVEL=debug` (can be set in `.env`; legacy `OPENWHISPR_LOG_LEVEL` is still honored):
 - Logs saved to platform-specific app data directory
 - Comprehensive logging of audio pipeline
 - FFmpeg path resolution details
@@ -426,19 +426,19 @@ Improve transcription accuracy for specific words, names, or technical terms:
 
 ### 14. GNOME Wayland Global Hotkeys
 
-On GNOME Wayland, Electron's `globalShortcut` API doesn't work due to Wayland's security model. OpenWhispr uses native GNOME shortcuts:
+On GNOME Wayland, Electron's `globalShortcut` API doesn't work due to Wayland's security model. Mouthpiece uses native GNOME shortcuts:
 
 **Architecture**:
 1. `main.js` enables `GlobalShortcutsPortal` feature flag for Wayland
 2. `hotkeyManager.js` detects GNOME + Wayland and initializes `GnomeShortcutManager`
-3. `gnomeShortcut.js` creates D-Bus service at `com.openwhispr.App`
+3. `gnomeShortcut.js` creates D-Bus service at `com.mouthpiece.App`
 4. Shortcuts registered via `gsettings` as custom GNOME keybindings
 5. GNOME triggers `dbus-send` command which calls the D-Bus `Toggle()` method
 
 **Key Constants**:
-- D-Bus service: `com.openwhispr.App`
-- D-Bus path: `/com/openwhispr/App`
-- gsettings path: `/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/openwhispr/`
+- D-Bus service: `com.mouthpiece.App`
+- D-Bus path: `/com/mouthpiece/App`
+- gsettings path: `/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/mouthpiece/`
 
 **IPC Integration**:
 - `get-hotkey-mode-info`: Returns `{ isUsingGnome: boolean }` to renderer
@@ -473,7 +473,7 @@ const { t } = useTranslation();
 1. Every new UI string must have a translation key in `en/translation.json` and all other language files
 2. Use `useTranslation()` hook in components and hooks
 3. Keep `{{variable}}` interpolation syntax for dynamic values
-4. Do NOT translate: brand names (OpenWhispr, Pro), technical terms (Markdown, Signal ID), format names (MP3, WAV), AI system prompts
+4. Do NOT translate: brand names (Mouthpiece, Pro), technical terms (Markdown, Signal ID), format names (MP3, WAV), AI system prompts
 5. Group keys by feature area (e.g., `notes.editor.*`, `referral.toasts.*`)
 
 ### Adding New Features
