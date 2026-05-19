@@ -71,7 +71,7 @@
   },
   "systemSettings": {
     "microphone": "Please open your system settings to configure microphone permissions.",
-    "sound": "Please open your system sound settings (for example, pavucontrol).",
+    "sound": "Please open your system sound settings to choose an input device.",
     "accessibility": "Accessibility settings are not available on this platform."
   },
   "titleBar": {
@@ -158,7 +158,6 @@
       "hotkey": "Hotkey",
       "mode": "Mode",
       "modeDescription": "Short press toggles dictation. Long press records only while you keep the hotkey held when your system supports it.",
-      "modeFallbackDescription": "Your current shortcut system uses short-press activation only. Mouthpiece falls back automatically when hold detection is unavailable.",
       "tapDescription": "Press to start/stop",
       "holdDescription": "Hold while speaking",
       "test": "Test",
@@ -404,9 +403,7 @@
     "permissions": {
       "paths": {
         "windowsMicrophone": "Settings -> Privacy -> Microphone",
-        "linuxSound": "your system sound settings",
         "defaultSound": "System Settings -> Sound -> Input",
-        "linuxPrivacy": "your system privacy settings",
         "defaultPrivacy": "System Settings -> Privacy & Security -> Microphone"
       },
       "micErrors": {
@@ -433,34 +430,20 @@
         "microphoneUnavailable": "Microphone Unavailable",
         "microphonePermissionRequired": "Microphone Permission Required",
         "accessibilityNeeded": "Accessibility Permissions Needed",
-        "readyToGo": "Ready to Go!",
-        "waylandClipboardMode": "Clipboard Mode on Wayland",
-        "optionalPasteTool": "Optional: Install Paste Tool"
+        "readyToGo": "Ready to Go!"
       },
       "descriptions": {
         "accessibilityNeeded": "Please grant accessibility permissions in System Settings to enable automatic text pasting.",
-        "windowsReady": "Windows does not require special permissions for automatic pasting. You're all set!",
-        "linuxReadyWithMethod": "Automatic pasting is available using {{method}}. You are all set!",
-        "waylandClipboardMode": "Automatic pasting is not available on this Wayland session. Mouthpiece will copy text to your clipboard and you can paste with Ctrl+V.",
-        "optionalPasteTool": "For automatic pasting, install {{tool}}:\n\n{{installCmd}}{{waylandNote}}\n\nWithout this, you can still use Mouthpiece - text will be copied to your clipboard and you can paste with Ctrl+V."
+        "windowsReady": "Windows does not require special permissions for automatic pasting. You're all set!"
       },
       "alerts": {
         "accessibilityNeeded": "Accessibility permissions needed! Please grant them in System Settings."
-      },
-      "notes": {
-        "waylandWtype": "\n\nNote: For XWayland apps, xdotool also works.",
-        "waylandXwaylandOnly": "\n\nNote: Automatic pasting works for XWayland apps only."
-      },
-      "labels": {
-        "defaultPasteTool": "xdotool",
-        "xdotoolXwayland": "xdotool (XWayland apps)"
       },
       "accessibilityTestText": "Mouthpiece accessibility test",
       "warning": {
         "messages": {
           "macos": "Check Sound settings to select your input device",
-          "windows": "Check Windows Settings to select your input device",
-          "linux": "Check system sound settings to select your input device"
+          "windows": "Check Windows Settings to select your input device"
         },
         "soundLabel": "Sound",
         "privacyLabel": "Privacy"
@@ -640,18 +623,10 @@
     "description": "Use these platform rules to choose a shortcut that won't conflict with your system.",
     "examplesTitle": "Valid examples",
     "platforms": {
-      "linux": "Linux",
       "macos": "macOS",
       "windows": "Windows"
     },
     "recommended": {
-      "linux": {
-        "0": "Ctrl+Space",
-        "1": "Super+S",
-        "2": "Alt+D",
-        "3": "Shift+J",
-        "4": "Alt+Space"
-      },
       "macos": {
         "0": "⌃Space",
         "1": "⌥S",
@@ -689,7 +664,6 @@
     "hotkeyLabel": "Hotkey",
     "modeLabel": "Shortcut type",
     "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
-    "modifierOnlyUnavailable": "Modifier-only shortcuts are not available with your current shortcut system. Choose a key combo instead.",
     "modifiersLabel": "Modifiers",
     "modes": {
       "keyCombo": "Key combo",
@@ -750,30 +724,6 @@
     "selectPlaceholder": "Select a microphone",
     "systemDefault": "System Default",
     "unknownDevice": "Unknown Device"
-  },
-  "pasteToolsInfo": {
-    "checking": "Checking system capabilities...",
-    "installCommands": {
-      "archLinux": "# Arch Linux",
-      "debianUbuntu": "# Debian / Ubuntu",
-      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
-      "fedoraRhel": "# Fedora / RHEL"
-    },
-    "installPrefix": "For automatic text pasting, install",
-    "methodReady": "for automatic text pasting",
-    "noteXwaylandAlso": "Note: For XWayland apps, xdotool also works.",
-    "noteXwaylandOnly": "Note: automatic pasting works for XWayland apps only.",
-    "optionalEnableTitle": "Optional: Enable Automatic Pasting",
-    "readyTitle": "Automatic Pasting Ready",
-    "recheck": "Re-check",
-    "recheckChecking": "Checking...",
-    "title": "Automatic Pasting",
-    "usingMethodPrefix": "Using",
-    "waylandClipboardDescription": "Automatic pasting isn't available on this Wayland session. Mouthpiece will copy text to your clipboard so you can paste manually with Ctrl+V.",
-    "waylandClipboardTitle": "Clipboard Mode on Wayland",
-    "windowsReady": "Windows supports automatic pasting out of the box. No setup required!",
-    "withoutToolPrefix": "Without this tool, Mouthpiece will copy text to your clipboard. You can then paste manually with Ctrl+V.",
-    "xwaylandAppsOnly": "automatic pasting works for XWayland apps only"
   },
   "promptStudio": {
     "common": {
@@ -1010,7 +960,6 @@
       "hotkey": {
         "activationBehavior": "Automatic activation",
         "activationBehaviorDescription": "Short press toggles dictation. Long press records only while you keep the hotkey held when your system supports release detection.",
-        "activationBehaviorFallback": "Your current shortcut system only supports short-press activation, so Mouthpiece will fall back automatically.",
         "activationMode": "Activation Mode",
         "description": "The key combination that starts and stops voice dictation",
         "resetToDefault": "Reset to {{hotkey}}",

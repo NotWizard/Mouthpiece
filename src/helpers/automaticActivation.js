@@ -7,7 +7,6 @@ const AUTOMATIC_ACTIVATION_THRESHOLD_MS = 350;
 function getAutomaticActivationSupport({
   platform = process.platform,
   hotkey,
-  isUsingGnome = false,
   windowsListenerAvailable = true,
 } = {}) {
   if (!hotkey || typeof hotkey !== "string") {
@@ -15,14 +14,6 @@ function getAutomaticActivationSupport({
       supportsHold: false,
       mode: "tap-only",
       reason: "missing-hotkey",
-    };
-  }
-
-  if (isUsingGnome) {
-    return {
-      supportsHold: false,
-      mode: "tap-only",
-      reason: "gnome-shortcut",
     };
   }
 

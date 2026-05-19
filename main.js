@@ -69,27 +69,8 @@ function configureChannelUserDataPath() {
 
 configureChannelUserDataPath();
 
-// Fix transparent window flickering on Linux: --enable-transparent-visuals requires
-// the compositor to set up an ARGB visual before any windows are created.
-// --disable-gpu-compositing prevents GPU compositing conflicts with the compositor.
-if (process.platform === "linux") {
-  app.commandLine.appendSwitch("gtk-version", "3");
-  app.commandLine.appendSwitch("enable-transparent-visuals");
-  app.commandLine.appendSwitch("disable-gpu-compositing");
-}
-
 if (process.platform === "win32") {
   app.commandLine.appendSwitch("disable-gpu-compositing");
-}
-
-// Enable native Wayland support: Ozone platform for native rendering,
-// and GlobalShortcutsPortal for global shortcuts via xdg-desktop-portal
-if (process.platform === "linux" && process.env.XDG_SESSION_TYPE === "wayland") {
-  app.commandLine.appendSwitch("ozone-platform-hint", "auto");
-  app.commandLine.appendSwitch(
-    "enable-features",
-    "UseOzonePlatform,WaylandWindowDecorations,GlobalShortcutsPortal"
-  );
 }
 
 // Group all windows under single taskbar entry on Windows
@@ -132,7 +113,7 @@ function shouldRegisterProtocolWithAppArg() {
 }
 
 // Register custom protocol for OAuth callbacks.
-// In development, always include the app path argument so macOS/Windows/Linux
+// In development, always include the app path argument so macOS/Windows
 // can launch the project app instead of opening bare Electron.
 function registerMouthpieceProtocol() {
   const protocol = OAUTH_PROTOCOL;
@@ -200,7 +181,6 @@ const TargetAppCapture = require("./src/helpers/targetAppCapture");
 const WhisperCudaManager = require("./src/helpers/whisperCudaManager");
 const { MacOSPermissionFlowManager } = require("./src/helpers/macOSPermissionFlow");
 const { i18nMain, changeLanguage } = require("./src/helpers/i18nMain");
-const { ensureYdotool } = require("./src/helpers/ensureYdotool");
 
 // Manager instances - initialized after app.whenReady()
 let debugLogger = null;
@@ -406,13 +386,6 @@ function initializeCoreManagers() {
 
 // Phase 2: Non-critical setup after windows are visible
 function initializeDeferredManagers() {
-  ensureYdotool().catch((err) => {
-    require("./src/helpers/debugLogger").warn(
-      "ydotool setup error",
-      { error: err?.message },
-      "clipboard"
-    );
-  });
   clipboardManager.preWarmAccessibility();
   trayManager = new TrayManager();
   globeKeyManager = new GlobeKeyManager();
@@ -987,32 +960,23 @@ if (gotSingleInstanceLock) {
       windowManager.createMainWindow();
     }
 
-    // Check for OAuth protocol URL in command line arguments (Windows/Linux)
+    // Check for OAuth protocol URL in command line arguments (Windows)
     const url = commandLine.find((arg) => arg.startsWith(`${OAUTH_PROTOCOL}://`));
     if (url) {
       handleOAuthDeepLink(url);
     }
   });
 
-  app
-    .whenReady()
-    .then(() => {
-      // On Linux, --enable-transparent-visuals requires a short delay before creating
-      // windows to allow the compositor to set up the ARGB visual correctly.
-      // Without this delay, transparent windows flicker on both X11 and Wayland.
-      const delay = process.platform === "linux" ? 300 : 0;
-      return new Promise((resolve) => setTimeout(resolve, delay));
-    })
-    .then(() => {
-      startApp().catch((error) => {
-        console.error("Failed to start app:", error);
-        dialog.showErrorBox(
-          i18nMain.t("startup.error.title"),
-          i18nMain.t("startup.error.message", { error: error.message })
-        );
-        app.exit(1);
-      });
+  app.whenReady().then(() => {
+    startApp().catch((error) => {
+      console.error("Failed to start app:", error);
+      dialog.showErrorBox(
+        i18nMain.t("startup.error.title"),
+        i18nMain.t("startup.error.message", { error: error.message })
+      );
+      app.exit(1);
     });
+  });
 
   app.on("window-all-closed", () => {
     // Don't quit on macOS when all windows are closed

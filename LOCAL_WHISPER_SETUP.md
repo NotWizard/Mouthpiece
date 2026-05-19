@@ -40,7 +40,6 @@ Whisper model files are stored in the legacy cache namespace:
 
 - macOS: `~/.cache/openwhispr/whisper-models/`
 - Windows: `%USERPROFILE%\.cache\openwhispr\whisper-models\`
-- Linux: `~/.cache/openwhispr/whisper-models/`
 
 The `openwhispr` folder name is still used internally for compatibility with existing installs.
 

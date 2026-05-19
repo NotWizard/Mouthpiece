@@ -71,7 +71,7 @@
   },
   "systemSettings": {
     "microphone": "请打开系统设置以配置麦克风权限。",
-    "sound": "请打开系统声音设置（例如 pavucontrol）。",
+    "sound": "请打开系统声音设置以选择输入设备。",
     "accessibility": "此平台不支持辅助功能设置。"
   },
   "titleBar": {
@@ -158,7 +158,6 @@
       "hotkey": "快捷键",
       "mode": "模式",
       "modeDescription": "短按可开始或停止听写。长按时，在系统支持的情况下，仅在按住期间持续录音。",
-      "modeFallbackDescription": "你当前的快捷键系统仅支持短按触发，因此在无法检测松键时，Mouthpiece 会自动回退为点按模式。",
       "tapDescription": "按下开始/停止",
       "holdDescription": "按住说话",
       "test": "测试",
@@ -404,9 +403,7 @@
     "permissions": {
       "paths": {
         "windowsMicrophone": "设置 -> 隐私 -> 麦克风",
-        "linuxSound": "系统声音设置",
         "defaultSound": "系统设置 -> 声音 -> 输入",
-        "linuxPrivacy": "系统隐私设置",
         "defaultPrivacy": "系统设置 -> 隐私与安全 -> 麦克风"
       },
       "micErrors": {
@@ -433,34 +430,20 @@
         "microphoneUnavailable": "麦克风不可用",
         "microphonePermissionRequired": "需要麦克风权限",
         "accessibilityNeeded": "需要辅助功能权限",
-        "readyToGo": "准备就绪！",
-        "waylandClipboardMode": "Wayland 上的剪贴板模式",
-        "optionalPasteTool": "可选：安装粘贴工具"
+        "readyToGo": "准备就绪！"
       },
       "descriptions": {
         "accessibilityNeeded": "请在系统设置中授予辅助功能权限，以启用自动粘贴。",
-        "windowsReady": "Windows 无需特殊权限即可自动粘贴，一切就绪！",
-        "linuxReadyWithMethod": "可使用 {{method}} 进行自动粘贴，一切就绪！",
-        "waylandClipboardMode": "此 Wayland 会话不支持自动粘贴。Mouthpiece 会将文本复制到剪贴板，你可以使用 Ctrl+V 粘贴。",
-        "optionalPasteTool": "如需自动粘贴功能，请安装 {{tool}}：\n\n{{installCmd}}{{waylandNote}}\n\n即使不安装，你仍然可以使用 Mouthpiece——文本会被复制到剪贴板，你可以使用 Ctrl+V 粘贴。"
+        "windowsReady": "Windows 无需特殊权限即可自动粘贴，一切就绪！"
       },
       "alerts": {
         "accessibilityNeeded": "需要辅助功能权限！请在系统设置中授权。"
-      },
-      "notes": {
-        "waylandWtype": "\n\n注意：对于 XWayland 应用，xdotool 也适用。",
-        "waylandXwaylandOnly": "\n\n注意：自动粘贴仅适用于 XWayland 应用。"
-      },
-      "labels": {
-        "defaultPasteTool": "xdotool",
-        "xdotoolXwayland": "xdotool（XWayland 应用）"
       },
       "accessibilityTestText": "Mouthpiece 辅助功能测试",
       "warning": {
         "messages": {
           "macos": "请检查声音设置以选择输入设备",
-          "windows": "请检查 Windows 设置以选择输入设备",
-          "linux": "请检查系统声音设置以选择输入设备"
+          "windows": "请检查 Windows 设置以选择输入设备"
         },
         "soundLabel": "声音",
         "privacyLabel": "隐私"
@@ -640,18 +623,10 @@
     "description": "使用以下平台规则来选择不会与系统冲突的快捷键。",
     "examplesTitle": "有效示例",
     "platforms": {
-      "linux": "Linux",
       "macos": "macOS",
       "windows": "Windows"
     },
     "recommended": {
-      "linux": {
-        "0": "Ctrl+Space",
-        "1": "Super+S",
-        "2": "Alt+D",
-        "3": "Shift+J",
-        "4": "Alt+Space"
-      },
       "macos": {
         "0": "⌃Space",
         "1": "⌥S",
@@ -689,7 +664,6 @@
     "hotkeyLabel": "快捷键",
     "modeLabel": "快捷键类型",
     "comboModifierHint": "请先选择且只选择一个修饰键，然后再录入主键。",
-    "modifierOnlyUnavailable": "当前快捷键系统不支持仅修饰键方案，请改用按键组合。",
     "modifiersLabel": "修饰键",
     "modes": {
       "keyCombo": "按键组合",
@@ -750,30 +724,6 @@
     "selectPlaceholder": "选择麦克风",
     "systemDefault": "系统默认",
     "unknownDevice": "未知设备"
-  },
-  "pasteToolsInfo": {
-    "checking": "正在检查系统功能...",
-    "installCommands": {
-      "archLinux": "# Arch Linux",
-      "debianUbuntu": "# Debian / Ubuntu",
-      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
-      "fedoraRhel": "# Fedora / RHEL"
-    },
-    "installPrefix": "如需自动粘贴文本，请安装",
-    "methodReady": "用于自动粘贴文本",
-    "noteXwaylandAlso": "注意：对于 XWayland 应用，xdotool 也适用。",
-    "noteXwaylandOnly": "注意：自动粘贴仅适用于 XWayland 应用。",
-    "optionalEnableTitle": "可选：启用自动粘贴",
-    "readyTitle": "自动粘贴已就绪",
-    "recheck": "重新检查",
-    "recheckChecking": "检查中...",
-    "title": "自动粘贴",
-    "usingMethodPrefix": "使用",
-    "waylandClipboardDescription": "此 Wayland 会话不支持自动粘贴。Mouthpiece 会将文本复制到剪贴板，你可以使用 Ctrl+V 手动粘贴。",
-    "waylandClipboardTitle": "Wayland 上的剪贴板模式",
-    "windowsReady": "Windows 原生支持自动粘贴，无需额外设置！",
-    "withoutToolPrefix": "如果不安装此工具，Mouthpiece 会将文本复制到剪贴板，你可以使用 Ctrl+V 手动粘贴。",
-    "xwaylandAppsOnly": "自动粘贴仅适用于 XWayland 应用"
   },
   "promptStudio": {
     "common": {
@@ -1010,7 +960,6 @@
       "hotkey": {
         "activationBehavior": "自动激活",
         "activationBehaviorDescription": "短按可开始或停止听写。长按时，当系统可以检测松键时，仅在按住期间持续录音。",
-        "activationBehaviorFallback": "你当前的快捷键系统仅支持短按触发，因此 Mouthpiece 会自动回退到该方式。",
         "activationMode": "激活模式",
         "description": "用于开始和停止语音听写的组合键",
         "resetToDefault": "重置为 {{hotkey}}",

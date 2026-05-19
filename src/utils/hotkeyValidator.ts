@@ -1,6 +1,6 @@
 import { formatHotkeyLabelForPlatform, isGlobeLikeHotkey } from "./hotkeys";
 
-export type Platform = "darwin" | "win32" | "linux";
+export type Platform = "darwin" | "win32";
 
 export type ValidationErrorCode =
   | "TOO_MANY_KEYS"
@@ -167,85 +167,6 @@ const WINDOWS_RESERVED_SHORTCUTS = [
   "Super+Down",
 ] as const;
 
-const LINUX_RESERVED_SHORTCUTS = [
-  "Control+C",
-  "Control+V",
-  "Control+X",
-  "Control+Z",
-  "Control+Y",
-  "Control+R",
-  "Control+A",
-  "Control+F",
-  "Control+G",
-  "Control+O",
-  "Control+S",
-  "Control+P",
-  "Control+N",
-  "Control+T",
-  "Control+W",
-  "Control+Q",
-  "Control+H",
-  "Control+L",
-  "Control+Home",
-  "Control+End",
-  "Control+Backspace",
-  "Control+Delete",
-  "Control+Shift+T",
-  "Control+Shift+Q",
-  "Control+=",
-  "Control+-",
-  "Control+Alt+T",
-  "Control+Alt+Delete",
-  "Control+Alt+L",
-  "Control+Alt+Esc",
-  "Control+Alt+Left",
-  "Control+Alt+Right",
-  "Control+Alt+Up",
-  "Control+Alt+Down",
-  "Control+Alt+D",
-  "Control+Alt+S",
-  "Control+Alt+Tab",
-  "Alt+Tab",
-  "Alt+Shift+Tab",
-  "Alt+F1",
-  "Alt+F2",
-  "Alt+F4",
-  "Alt+F7",
-  "Alt+F8",
-  "Alt+F9",
-  "Alt+F10",
-  "Alt+Space",
-  "Alt+Left",
-  "Alt+Right",
-  "Alt+PrintScreen",
-  "Super",
-  "Super+A",
-  "Super+D",
-  "Super+L",
-  "Super+S",
-  "Super+M",
-  "Super+Tab",
-  "Super+Space",
-  "Super+Left",
-  "Super+Right",
-  "Super+Up",
-  "Super+Down",
-  "Super+Shift+Left",
-  "Super+Shift+Right",
-  "Super+Shift+Up",
-  "Super+Shift+Down",
-  "Super+PageUp",
-  "Super+PageDown",
-  "Super+Home",
-  "Super+End",
-  "F1",
-  "F5",
-  "F11",
-  "PrintScreen",
-  "Shift+PrintScreen",
-  "Super+PrintScreen",
-] as const;
-
 const MAC_RECOMMENDED = [
   "Fn",
   "Right Cmd",
@@ -259,14 +180,6 @@ const WINDOWS_RECOMMENDED = [
   "Alt",
   "Ctrl (right) or Alt (right)",
   "One modifier + rarely used key (e.g., Ctrl + Page Up)",
-] as const;
-
-const LINUX_RECOMMENDED = [
-  "Ctrl",
-  "Alt",
-  "Shift",
-  "Super",
-  "One modifier + rarely used key (e.g., Ctrl + Page Up or Shift + Scroll Lock)",
 ] as const;
 
 const MAC_EXAMPLES = [
@@ -284,15 +197,6 @@ const WINDOWS_EXAMPLES = [
   "Control+Space",
   "Alt+M",
   "Shift+F9",
-] as const;
-
-const LINUX_EXAMPLES = [
-  "Control+K",
-  "Alt+F7",
-  "Super+R",
-  "Control+Space",
-  "Shift+F9",
-  "Alt+M",
 ] as const;
 
 export const VALIDATION_RULES = [
@@ -459,8 +363,6 @@ export function getReservedShortcuts(platform: Platform): readonly string[] {
       return MAC_RESERVED_SHORTCUTS;
     case "win32":
       return WINDOWS_RESERVED_SHORTCUTS;
-    case "linux":
-      return LINUX_RESERVED_SHORTCUTS;
     default:
       return [];
   }
@@ -472,8 +374,6 @@ export function getRecommendedPatterns(platform: Platform): readonly string[] {
       return MAC_RECOMMENDED;
     case "win32":
       return WINDOWS_RECOMMENDED;
-    case "linux":
-      return LINUX_RECOMMENDED;
     default:
       return [];
   }
@@ -485,8 +385,6 @@ export function getValidExamples(platform: Platform): readonly string[] {
       return MAC_EXAMPLES;
     case "win32":
       return WINDOWS_EXAMPLES;
-    case "linux":
-      return LINUX_EXAMPLES;
     default:
       return [];
   }
@@ -570,15 +468,6 @@ export function validateHotkey(
         valid: false,
         error:
           "Single modifier hotkeys must use the right-side key (e.g., RightOption). Or use two modifiers (e.g., Control+Alt).",
-        errorCode: "LEFT_MODIFIER_ONLY",
-      };
-    }
-    // Right-side single modifiers require native listeners (not available on Linux)
-    if (platform === "linux") {
-      return {
-        valid: false,
-        error:
-          "Right-side single modifier hotkeys are not supported on Linux. Use two modifiers (e.g., Control+Alt) instead.",
         errorCode: "LEFT_MODIFIER_ONLY",
       };
     }

@@ -80,22 +80,15 @@ OpenWhispr is an Electron-based desktop dictation application that uses whisper.
 - **clipboard.js**: Cross-platform clipboard operations
   - macOS: AppleScript-based paste with accessibility permission check
   - Windows: PowerShell SendKeys with nircmd.exe fallback
-  - Linux: Native XTest binary + compositor-aware fallbacks (xdotool, wtype, ydotool)
 - **database.js**: SQLite operations for transcription history
 - **debugLogger.js**: Debug logging system with file output
 - **devServerManager.js**: Vite dev server integration
 - **dragManager.js**: Window dragging functionality
 - **environment.js**: Environment variable and OpenAI API management
 - **hotkeyManager.js**: Global hotkey registration and management
-  - Handles platform-specific defaults (GLOBE on macOS, backtick on Windows/Linux)
+  - Handles platform-specific defaults (GLOBE on macOS, backtick on Windows)
   - Auto-fallback to F8/F9 if default hotkey is unavailable
   - Notifies renderer via IPC when hotkey registration fails
-  - Integrates with GnomeShortcutManager for GNOME Wayland support
-- **gnomeShortcut.js**: GNOME Wayland global shortcut integration
-  - Uses D-Bus service to receive hotkey toggle commands
-  - Registers shortcuts via gsettings (visible in GNOME Settings → Keyboard → Shortcuts)
-  - Converts Electron hotkey format to GNOME keysym format
-  - Only active on Linux + Wayland + GNOME desktop
 - **ipcHandlers.js**: Centralized IPC handler registration
 - **windowsKeyManager.js**: Windows Push-to-Talk support with native key listener
   - Spawns native `windows-key-listener.exe` binary for low-level keyboard hooks
@@ -339,11 +332,9 @@ The app can open OS-level settings for microphone permissions, sound input selec
 |----------|-------------------|-------------|---------------|
 | macOS | `x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone` | `x-apple.systempreferences:com.apple.preference.sound?input` | `x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility` |
 | Windows | `ms-settings:privacy-microphone` | `ms-settings:sound` | N/A |
-| Linux | Manual (no URL scheme) | Manual (e.g., pavucontrol) | N/A |
 
 **UI Component** (`MicPermissionWarning.tsx`):
 - Shows platform-appropriate buttons and messages
-- Linux only shows "Open Sound Settings" (no separate privacy settings)
 - macOS/Windows show both sound and privacy buttons
 
 ### 11. Debug Mode
@@ -400,32 +391,6 @@ Improve transcription accuracy for specific words, names, or technical terms:
 - Words in the prompt are more likely to be recognized correctly
 - Useful for: uncommon names, technical jargon, brand names, domain-specific terms
 
-### 14. GNOME Wayland Global Hotkeys
-
-On GNOME Wayland, Electron's `globalShortcut` API doesn't work due to Wayland's security model. OpenWhispr uses native GNOME shortcuts:
-
-**Architecture**:
-1. `main.js` enables `GlobalShortcutsPortal` feature flag for Wayland
-2. `hotkeyManager.js` detects GNOME + Wayland and initializes `GnomeShortcutManager`
-3. `gnomeShortcut.js` creates D-Bus service at `com.openwhispr.App`
-4. Shortcuts registered via `gsettings` as custom GNOME keybindings
-5. GNOME triggers `dbus-send` command which calls the D-Bus `Toggle()` method
-
-**Key Constants**:
-- D-Bus service: `com.openwhispr.App`
-- D-Bus path: `/com/openwhispr/App`
-- gsettings path: `/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/openwhispr/`
-
-**IPC Integration**:
-- `get-hotkey-mode-info`: Returns `{ isUsingGnome: boolean }` to renderer
-- UI hides activation mode selector when `isUsingGnome` is true
-- Forces tap-to-talk mode (push-to-talk not supported)
-
-**Hotkey Format Conversion**:
-- Electron format: `Alt+R`, `CommandOrControl+Shift+Space`
-- GNOME format: `<Alt>r`, `<Control><Shift>space`
-- Backtick (`) → `grave` in GNOME keysym format
-
 ## Development Guidelines
 
 ### Internationalization (i18n) — REQUIRED
@@ -471,8 +436,6 @@ const { t } = useTranslation();
 - [ ] Test AI text cleanup and Prompt Studio customization
 - [ ] Test custom dictionary with uncommon words
 - [ ] Verify Windows Push-to-Talk with compound hotkeys
-- [ ] Test GNOME Wayland hotkeys (if on GNOME + Wayland)
-- [ ] Verify activation mode selector is hidden on GNOME Wayland
 
 ### Common Issues and Solutions
 
@@ -489,10 +452,6 @@ const { t } = useTranslation();
 
 3. **Clipboard Not Working**:
    - macOS: Check accessibility permissions (required for AppleScript paste)
-   - Linux: Native `linux-fast-paste` binary (XTest) is tried first, works for X11 and XWayland apps
-     - X11: xdotool fallback if native binary unavailable
-     - GNOME/KDE Wayland: xdotool (XWayland apps) → ydotool (requires ydotoold daemon)
-     - wlroots Wayland (Sway, Hyprland): wtype → xdotool → ydotool
    - Windows: PowerShell SendKeys (built-in) or nircmd.exe (bundled)
 
 4. **Build Issues**:
@@ -531,28 +490,6 @@ const { t } = useTranslation();
   - Supports compound hotkeys (e.g., `Ctrl+Shift+F11`)
   - Prebuilt binary auto-downloaded from GitHub releases
   - Falls back to tap mode if unavailable
-
-**Linux**:
-- Multiple package manager support
-- Standard XDG directories
-- AppImage for distribution
-- whisper.cpp bundled for x64
-- No standardized URL scheme for system settings (user must open manually)
-- Privacy settings button hidden in UI (not applicable on Linux)
-- Recommend `pavucontrol` for audio device management
-- **Clipboard paste tools** (at least one required for auto-paste):
-  - **X11**: `xdotool` (recommended)
-  - **Wayland** (non-GNOME): `wtype` (requires virtual keyboard protocol) or `xdotool` (works via XWayland, recommended for Electron apps)
-  - **GNOME Wayland**: `xdotool` for XWayland apps only (native Wayland apps require manual paste)
-  - Terminal detection: Auto-detects terminal emulators and uses Ctrl+Shift+V
-  - Fallback: Text copied to clipboard with manual paste instructions
-- **GNOME Wayland global hotkeys**:
-  - Uses native GNOME shortcuts via D-Bus and gsettings (no special permissions needed)
-  - Hotkeys visible in GNOME Settings → Keyboard → Shortcuts → Custom
-  - Default hotkey: `Alt+R` (backtick not supported)
-  - Push-to-talk unavailable (GNOME shortcuts only fire single toggle event)
-  - Falls back to X11/globalShortcut if GNOME integration fails
-  - `dbus-next` npm package used for D-Bus communication
 
 ## Code Style and Conventions
 

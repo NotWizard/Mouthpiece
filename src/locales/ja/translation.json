@@ -71,7 +71,7 @@
   },
   "systemSettings": {
     "microphone": "システム設定を開いてマイクの権限を設定してください。",
-    "sound": "システムのサウンド設定を開いてください（例: pavucontrol）。",
+    "sound": "システム設定で入力デバイスを確認してください。",
     "accessibility": "このプラットフォームではアクセシビリティ設定を利用できません。"
   },
   "titleBar": {
@@ -158,7 +158,6 @@
       "hotkey": "ホットキー",
       "mode": "モード",
       "modeDescription": "短押しでディクテーションの開始と停止を切り替えます。長押しは、システムが対応している場合に押している間だけ録音します。",
-      "modeFallbackDescription": "現在のショートカット方式は短押しのみをサポートしているため、キーを離したことを検出できない場合は Mouthpiece が自動で短押し動作に切り替えます。",
       "tapDescription": "押して開始/停止",
       "holdDescription": "押しながら話す",
       "test": "テスト",
@@ -404,9 +403,7 @@
     "permissions": {
       "paths": {
         "windowsMicrophone": "設定 -> プライバシー -> マイク",
-        "linuxSound": "システムのサウンド設定",
         "defaultSound": "システム設定 -> サウンド -> 入力",
-        "linuxPrivacy": "システムのプライバシー設定",
         "defaultPrivacy": "システム設定 -> プライバシーとセキュリティ -> マイク"
       },
       "micErrors": {
@@ -433,34 +430,20 @@
         "microphoneUnavailable": "マイクが利用できません",
         "microphonePermissionRequired": "マイクの権限が必要です",
         "accessibilityNeeded": "アクセシビリティの権限が必要です",
-        "readyToGo": "準備完了！",
-        "waylandClipboardMode": "Wayland でのクリップボードモード",
-        "optionalPasteTool": "オプション: 貼り付けツールのインストール"
+        "readyToGo": "準備完了！"
       },
       "descriptions": {
         "accessibilityNeeded": "テキストの自動貼り付けを有効にするには、システム設定でアクセシビリティの権限を許可してください。",
-        "windowsReady": "Windows では自動貼り付けに特別な権限は必要ありません。準備完了です！",
-        "linuxReadyWithMethod": "{{method}} を使用した自動貼り付けが利用可能です。準備完了です！",
-        "waylandClipboardMode": "この Wayland セッションでは自動貼り付けが利用できません。Mouthpiece はテキストをクリップボードにコピーしますので、Ctrl+V で貼り付けてください。",
-        "optionalPasteTool": "自動貼り付けには {{tool}} をインストールしてください:\n\n{{installCmd}}{{waylandNote}}\n\nインストールしなくても Mouthpiece は使用できます。テキストがクリップボードにコピーされるので、Ctrl+V で貼り付けてください。"
+        "windowsReady": "Windows では自動貼り付けに特別な権限は必要ありません。準備完了です！"
       },
       "alerts": {
         "accessibilityNeeded": "アクセシビリティの権限が必要です！システム設定で許可してください。"
-      },
-      "notes": {
-        "waylandWtype": "\n\n注: XWayland アプリでは xdotool も使用できます。",
-        "waylandXwaylandOnly": "\n\n注: 自動貼り付けは XWayland アプリのみで動作します。"
-      },
-      "labels": {
-        "defaultPasteTool": "xdotool",
-        "xdotoolXwayland": "xdotool（XWayland アプリ）"
       },
       "accessibilityTestText": "Mouthpiece アクセシビリティテスト",
       "warning": {
         "messages": {
           "macos": "サウンド設定で入力デバイスを確認してください",
-          "windows": "Windows の設定で入力デバイスを確認してください",
-          "linux": "システムのサウンド設定で入力デバイスを確認してください"
+          "windows": "Windows の設定で入力デバイスを確認してください"
         },
         "soundLabel": "サウンド",
         "privacyLabel": "プライバシー"
@@ -640,18 +623,10 @@
     "description": "以下のプラットフォームルールを参考に、システムと競合しないショートカットを選択してください。",
     "examplesTitle": "有効な例",
     "platforms": {
-      "linux": "Linux",
       "macos": "macOS",
       "windows": "Windows"
     },
     "recommended": {
-      "linux": {
-        "0": "Ctrl+Space",
-        "1": "Super+S",
-        "2": "Alt+D",
-        "3": "Shift+J",
-        "4": "Alt+Space"
-      },
       "macos": {
         "0": "⌃Space",
         "1": "⌥S",
@@ -689,7 +664,6 @@
     "hotkeyLabel": "ホットキー",
     "modeLabel": "Shortcut type",
     "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
-    "modifierOnlyUnavailable": "Modifier-only shortcuts are not available with your current shortcut system. Choose a key combo instead.",
     "modifiersLabel": "Modifiers",
     "modes": {
       "keyCombo": "Key combo",
@@ -750,30 +724,6 @@
     "selectPlaceholder": "マイクを選択",
     "systemDefault": "システムデフォルト",
     "unknownDevice": "不明なデバイス"
-  },
-  "pasteToolsInfo": {
-    "checking": "システム機能を確認中...",
-    "installCommands": {
-      "archLinux": "# Arch Linux",
-      "debianUbuntu": "# Debian / Ubuntu",
-      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
-      "fedoraRhel": "# Fedora / RHEL"
-    },
-    "installPrefix": "テキストの自動貼り付けには",
-    "methodReady": "で自動貼り付け可能",
-    "noteXwaylandAlso": "注: XWayland アプリでは xdotool も使用できます。",
-    "noteXwaylandOnly": "注: 自動貼り付けは XWayland アプリのみで動作します。",
-    "optionalEnableTitle": "オプション: 自動貼り付けを有効にする",
-    "readyTitle": "自動貼り付け準備完了",
-    "recheck": "再確認",
-    "recheckChecking": "確認中...",
-    "title": "自動貼り付け",
-    "usingMethodPrefix": "使用中:",
-    "waylandClipboardDescription": "この Wayland セッションでは自動貼り付けが利用できません。Mouthpiece はテキストをクリップボードにコピーしますので、Ctrl+V で手動で貼り付けてください。",
-    "waylandClipboardTitle": "Wayland でのクリップボードモード",
-    "windowsReady": "Windows は自動貼り付けに標準対応しています。設定は不要です！",
-    "withoutToolPrefix": "このツールがない場合、Mouthpiece はテキストをクリップボードにコピーします。Ctrl+V で手動で貼り付けてください。",
-    "xwaylandAppsOnly": "自動貼り付けは XWayland アプリのみで動作します"
   },
   "promptStudio": {
     "common": {
@@ -972,7 +922,6 @@
       "hotkey": {
         "activationBehavior": "自動アクティベーション",
         "activationBehaviorDescription": "短押しでディクテーションを開始または停止します。長押しは、システムがキーの解放を検出できる場合に押している間だけ録音します。",
-        "activationBehaviorFallback": "現在のショートカット方式は短押しのみをサポートしているため、Mouthpiece は自動でその動作に切り替えます。",
         "activationMode": "起動モード",
         "description": "音声ディクテーションの開始/停止に使用するキーの組み合わせ",
         "resetToDefault": "{{hotkey}}にリセット",

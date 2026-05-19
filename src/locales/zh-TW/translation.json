@@ -71,7 +71,7 @@
   },
   "systemSettings": {
     "microphone": "請開啟系統設定來配置麥克風權限。",
-    "sound": "請開啟系統音效設定（例如 pavucontrol）。",
+    "sound": "請開啟系統音效設定以選擇輸入裝置。",
     "accessibility": "此平台不支援輔助使用設定。"
   },
   "titleBar": {
@@ -158,7 +158,6 @@
       "hotkey": "快捷鍵",
       "mode": "模式",
       "modeDescription": "短按可開始或停止聽寫。長按時，在系統支援的情況下，只有按住期間會持續錄音。",
-      "modeFallbackDescription": "你目前的快捷鍵系統僅支援短按觸發，因此在無法偵測放鍵時，Mouthpiece 會自動回退為點按模式。",
       "tapDescription": "按一下開始/停止",
       "holdDescription": "按住時說話",
       "test": "測試",
@@ -404,9 +403,7 @@
     "permissions": {
       "paths": {
         "windowsMicrophone": "設定 -> 隱私權 -> 麥克風",
-        "linuxSound": "你的系統音效設定",
         "defaultSound": "系統設定 -> 聲音 -> 輸入",
-        "linuxPrivacy": "你的系統隱私權設定",
         "defaultPrivacy": "系統設定 -> 隱私權與安全性 -> 麥克風"
       },
       "micErrors": {
@@ -433,34 +430,20 @@
         "microphoneUnavailable": "麥克風無法使用",
         "microphonePermissionRequired": "需要麥克風權限",
         "accessibilityNeeded": "需要輔助使用權限",
-        "readyToGo": "準備就緒！",
-        "waylandClipboardMode": "Wayland 剪貼簿模式",
-        "optionalPasteTool": "選用：安裝貼上工具"
+        "readyToGo": "準備就緒！"
       },
       "descriptions": {
         "accessibilityNeeded": "請在系統設定中授予輔助使用權限，以啟用自動貼上功能。",
-        "windowsReady": "Windows 不需要特殊權限即可自動貼上。一切就緒！",
-        "linuxReadyWithMethod": "已使用 {{method}} 啟用自動貼上。一切就緒！",
-        "waylandClipboardMode": "此 Wayland 工作階段不支援自動貼上。Mouthpiece 會將文字複製到剪貼簿，你可以使用 Ctrl+V 貼上。",
-        "optionalPasteTool": "如需自動貼上，請安裝 {{tool}}：\n\n{{installCmd}}{{waylandNote}}\n\n沒有安裝也可以使用 Mouthpiece，文字會複製到剪貼簿，你可以使用 Ctrl+V 貼上。"
+        "windowsReady": "Windows 不需要特殊權限即可自動貼上。一切就緒！"
       },
       "alerts": {
         "accessibilityNeeded": "需要輔助使用權限！請在系統設定中授權。"
-      },
-      "notes": {
-        "waylandWtype": "\n\n注意：XWayland 應用程式也可使用 xdotool。",
-        "waylandXwaylandOnly": "\n\n注意：自動貼上僅適用於 XWayland 應用程式。"
-      },
-      "labels": {
-        "defaultPasteTool": "xdotool",
-        "xdotoolXwayland": "xdotool（XWayland 應用程式）"
       },
       "accessibilityTestText": "Mouthpiece 輔助使用測試",
       "warning": {
         "messages": {
           "macos": "請檢查聲音設定以選擇輸入裝置",
-          "windows": "請檢查 Windows 設定以選擇輸入裝置",
-          "linux": "請檢查系統音效設定以選擇輸入裝置"
+          "windows": "請檢查 Windows 設定以選擇輸入裝置"
         },
         "soundLabel": "聲音",
         "privacyLabel": "隱私權"
@@ -640,18 +623,10 @@
     "description": "參考這些平台規則來選擇不會與系統衝突的快捷鍵。",
     "examplesTitle": "有效範例",
     "platforms": {
-      "linux": "Linux",
       "macos": "macOS",
       "windows": "Windows"
     },
     "recommended": {
-      "linux": {
-        "0": "Ctrl+Space",
-        "1": "Super+S",
-        "2": "Alt+D",
-        "3": "Shift+J",
-        "4": "Alt+Space"
-      },
       "macos": {
         "0": "⌃Space",
         "1": "⌥S",
@@ -689,7 +664,6 @@
     "hotkeyLabel": "快捷鍵",
     "modeLabel": "快捷鍵類型",
     "comboModifierHint": "請先選擇且只選擇一個修飾鍵，再錄入主鍵。",
-    "modifierOnlyUnavailable": "目前的快捷鍵系統不支援僅修飾鍵方案，請改用按鍵組合。",
     "modifiersLabel": "修飾鍵",
     "modes": {
       "keyCombo": "按鍵組合",
@@ -750,30 +724,6 @@
     "selectPlaceholder": "選擇麥克風",
     "systemDefault": "系統預設",
     "unknownDevice": "未知裝置"
-  },
-  "pasteToolsInfo": {
-    "checking": "正在檢查系統功能...",
-    "installCommands": {
-      "archLinux": "# Arch Linux",
-      "debianUbuntu": "# Debian / Ubuntu",
-      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
-      "fedoraRhel": "# Fedora / RHEL"
-    },
-    "installPrefix": "如需自動貼上文字，請安裝",
-    "methodReady": "用於自動貼上文字",
-    "noteXwaylandAlso": "注意：XWayland 應用程式也可使用 xdotool。",
-    "noteXwaylandOnly": "注意：自動貼上僅適用於 XWayland 應用程式。",
-    "optionalEnableTitle": "選用：啟用自動貼上",
-    "readyTitle": "自動貼上已就緒",
-    "recheck": "重新檢查",
-    "recheckChecking": "檢查中...",
-    "title": "自動貼上",
-    "usingMethodPrefix": "使用",
-    "waylandClipboardDescription": "此 Wayland 工作階段不支援自動貼上。Mouthpiece 會將文字複製到剪貼簿，你可以使用 Ctrl+V 手動貼上。",
-    "waylandClipboardTitle": "Wayland 剪貼簿模式",
-    "windowsReady": "Windows 內建支援自動貼上。不需要額外設定！",
-    "withoutToolPrefix": "若未安裝此工具，Mouthpiece 會將文字複製到剪貼簿。你可以使用 Ctrl+V 手動貼上。",
-    "xwaylandAppsOnly": "自動貼上僅適用於 XWayland 應用程式"
   },
   "promptStudio": {
     "common": {
@@ -1010,7 +960,6 @@
       "hotkey": {
         "activationBehavior": "自動啟用",
         "activationBehaviorDescription": "短按可開始或停止聽寫。長按時，當系統可以偵測放鍵時，只有按住期間會持續錄音。",
-        "activationBehaviorFallback": "你目前的快捷鍵系統僅支援短按觸發，因此 Mouthpiece 會自動回退到該方式。",
         "activationMode": "啟用模式",
         "description": "用來開始和停止語音輸入的組合鍵",
         "resetToDefault": "重置為 {{hotkey}}",

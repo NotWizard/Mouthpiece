@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
-import type { PasteToolsResult } from "../types/electron";
 import { useLocalStorage } from "./useLocalStorage";
 
 export interface UsePermissionsReturn {
@@ -9,13 +8,10 @@ export interface UsePermissionsReturn {
   micPermissionGranted: boolean;
   accessibilityPermissionGranted: boolean;
   micPermissionError: string | null;
-  pasteToolsInfo: PasteToolsResult | null;
-  isCheckingPasteTools: boolean;
 
   requestMicPermission: () => Promise<void>;
   testAccessibilityPermission: () => Promise<void>;
   startAccessibilityPermissionFlow: () => Promise<void>;
-  checkPasteToolsAvailability: () => Promise<PasteToolsResult | null>;
   openMicPrivacySettings: () => Promise<void>;
   openSoundInputSettings: () => Promise<void>;
   openAccessibilitySettings: () => Promise<void>;
@@ -40,7 +36,6 @@ const getPlatformSettingsPath = (t: TFunction): string => {
   if (typeof navigator !== "undefined") {
     const ua = navigator.userAgent.toLowerCase();
     if (ua.includes("win")) return t("hooks.permissions.paths.windowsMicrophone");
-    if (ua.includes("linux")) return t("hooks.permissions.paths.linuxSound");
   }
   return t("hooks.permissions.paths.defaultSound");
 };
@@ -49,15 +44,14 @@ const getPlatformPrivacyPath = (t: TFunction): string => {
   if (typeof navigator !== "undefined") {
     const ua = navigator.userAgent.toLowerCase();
     if (ua.includes("win")) return t("hooks.permissions.paths.windowsMicrophone");
-    if (ua.includes("linux")) return t("hooks.permissions.paths.linuxPrivacy");
   }
   return t("hooks.permissions.paths.defaultPrivacy");
 };
 
-const getPlatform = (): "darwin" | "win32" | "linux" => {
+const getPlatform = (): "darwin" | "win32" => {
   if (typeof window !== "undefined" && window.electronAPI?.getPlatform) {
     const platform = window.electronAPI.getPlatform();
-    if (platform === "darwin" || platform === "win32" || platform === "linux") {
+    if (platform === "darwin" || platform === "win32") {
       return platform;
     }
   }
@@ -66,7 +60,6 @@ const getPlatform = (): "darwin" | "win32" | "linux" => {
     const ua = navigator.userAgent.toLowerCase();
     if (ua.includes("mac")) return "darwin";
     if (ua.includes("win")) return "win32";
-    if (ua.includes("linux")) return "linux";
   }
   return "darwin"; // Default fallback
 };
@@ -124,9 +117,6 @@ export const usePermissions = (
       deserialize: (value) => value === "true",
     }
   );
-  const [pasteToolsInfo, setPasteToolsInfo] = useState<PasteToolsResult | null>(null);
-  const [isCheckingPasteTools, setIsCheckingPasteTools] = useState(false);
-
   const openSystemSettings = useCallback(
     async (
       settingType: "microphone" | "sound" | "accessibility",
@@ -314,35 +304,6 @@ export const usePermissions = (
     }
   }, [setMicPermissionGranted, showAlertDialog, t]);
 
-  const checkPasteToolsAvailability = useCallback(async (): Promise<PasteToolsResult | null> => {
-    setIsCheckingPasteTools(true);
-    try {
-      if (window.electronAPI?.checkPasteTools) {
-        const result = await window.electronAPI.checkPasteTools();
-        setPasteToolsInfo(result);
-
-        // On Windows and Linux with tools available, auto-grant accessibility
-        if (result.platform === "win32") {
-          setAccessibilityPermissionGranted(true);
-        } else if (result.platform === "linux" && result.available) {
-          setAccessibilityPermissionGranted(true);
-        }
-        return result;
-      }
-      return null;
-    } catch (error) {
-      console.error("Failed to check paste tools:", error);
-      return null;
-    } finally {
-      setIsCheckingPasteTools(false);
-    }
-  }, [setAccessibilityPermissionGranted]);
-
-  // Check paste tools on mount
-  useEffect(() => {
-    checkPasteToolsAvailability();
-  }, [checkPasteToolsAvailability]);
-
   useEffect(() => {
     if (getPlatform() !== "darwin") return;
 
@@ -405,74 +366,15 @@ export const usePermissions = (
       }
       return;
     }
-
-    // On Linux, check if paste tools are available
-    if (platform === "linux") {
-      const result = await checkPasteToolsAvailability();
-
-      if (result?.available) {
-        setAccessibilityPermissionGranted(true);
-        if (showAlertDialog) {
-          const method = result.method || t("hooks.permissions.labels.defaultPasteTool");
-          const methodLabel =
-            result.isWayland && method === "xdotool"
-              ? t("hooks.permissions.labels.xdotoolXwayland")
-              : method;
-          showAlertDialog({
-            title: t("hooks.permissions.titles.readyToGo"),
-            description: t("hooks.permissions.descriptions.linuxReadyWithMethod", {
-              method: methodLabel,
-            }),
-          });
-        }
-      } else {
-        // Don't block, but inform the user
-        const isWayland = result?.isWayland;
-        const xwaylandAvailable = result?.xwaylandAvailable;
-        const recommendedTool = result?.recommendedInstall;
-        const installCmd =
-          recommendedTool === "wtype"
-            ? "sudo dnf install wtype  # Fedora\nsudo apt install wtype  # Debian/Ubuntu"
-            : "sudo apt install xdotool  # Debian/Ubuntu/Mint\nsudo dnf install xdotool  # Fedora";
-
-        if (showAlertDialog) {
-          if (isWayland && !xwaylandAvailable && !recommendedTool) {
-            showAlertDialog({
-              title: t("hooks.permissions.titles.waylandClipboardMode"),
-              description: t("hooks.permissions.descriptions.waylandClipboardMode"),
-            });
-          } else {
-            const waylandNote = isWayland
-              ? recommendedTool === "wtype"
-                ? t("hooks.permissions.notes.waylandWtype")
-                : t("hooks.permissions.notes.waylandXwaylandOnly")
-              : "";
-            showAlertDialog({
-              title: t("hooks.permissions.titles.optionalPasteTool"),
-              description: t("hooks.permissions.descriptions.optionalPasteTool", {
-                tool: recommendedTool || t("hooks.permissions.labels.defaultPasteTool"),
-                installCmd,
-                waylandNote,
-              }),
-            });
-          }
-        }
-        // Still allow proceeding - this is optional
-        setAccessibilityPermissionGranted(true);
-      }
-    }
-  }, [showAlertDialog, checkPasteToolsAvailability, setAccessibilityPermissionGranted, t]);
+  }, [showAlertDialog, setAccessibilityPermissionGranted, t]);
 
   return {
     micPermissionGranted,
     accessibilityPermissionGranted,
     micPermissionError,
-    pasteToolsInfo,
-    isCheckingPasteTools,
     requestMicPermission,
     testAccessibilityPermission,
     startAccessibilityPermissionFlow,
-    checkPasteToolsAvailability,
     openMicPrivacySettings,
     openSoundInputSettings,
     openAccessibilitySettings,

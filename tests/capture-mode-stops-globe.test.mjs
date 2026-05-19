@@ -18,10 +18,9 @@ function extractSetHotkeyListeningModeBody(source) {
 test("set-hotkey-listening-mode entering capture mode stops the macOS globe listener so Fn / RightCommand can be re-captured", async () => {
   const source = await readRepoFile("src/helpers/ipcHandlers.js");
   const handler = extractSetHotkeyListeningModeBody(source);
-  // The bug: capture-mode entry handled globalShortcut.unregister, windowsKeyManager.stop,
-  // and GNOME unregister, but never stopped globeKeyManager. If currentHotkey was GLOBE
-  // or a right-side modifier, the Swift listener kept firing dictation while the user
-  // tried to record a new key.
+  // The bug: capture-mode entry handled globalShortcut.unregister and windowsKeyManager.stop,
+  // but never stopped globeKeyManager. If currentHotkey was GLOBE or a right-side modifier,
+  // the Swift listener kept firing dictation while the user tried to record a new key.
   assert.match(
     handler,
     /globeKeyManager[\s\S]{0,80}\.stop\(\)/,

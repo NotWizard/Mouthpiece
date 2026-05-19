@@ -71,7 +71,7 @@
   },
   "systemSettings": {
     "microphone": "Veuillez ouvrir les paramètres système pour configurer les permissions du microphone.",
-    "sound": "Veuillez ouvrir les paramètres son du système (par exemple, pavucontrol).",
+    "sound": "Ouvrez les paramètres son du système pour choisir un périphérique d'entrée.",
     "accessibility": "Les paramètres d'accessibilité ne sont pas disponibles sur cette plateforme."
   },
   "titleBar": {
@@ -158,7 +158,6 @@
       "hotkey": "Raccourci",
       "mode": "Mode",
       "modeDescription": "Un appui court active ou arrête la dictée. Un appui long enregistre seulement tant que vous gardez la touche enfoncée lorsque votre système le permet.",
-      "modeFallbackDescription": "Votre système de raccourcis actuel ne prend en charge que l'appui court ; Mouthpiece reviendra donc automatiquement à ce mode lorsque la détection du relâchement n'est pas disponible.",
       "tapDescription": "Appuyer pour démarrer/arrêter",
       "holdDescription": "Maintenir pendant que vous parlez",
       "test": "Test",
@@ -404,9 +403,7 @@
     "permissions": {
       "paths": {
         "windowsMicrophone": "Paramètres -> Confidentialité -> Microphone",
-        "linuxSound": "les paramètres son de votre système",
         "defaultSound": "Paramètres système -> Son -> Entrée",
-        "linuxPrivacy": "les paramètres de confidentialité de votre système",
         "defaultPrivacy": "Paramètres système -> Confidentialité et sécurité -> Microphone"
       },
       "micErrors": {
@@ -433,34 +430,20 @@
         "microphoneUnavailable": "Microphone indisponible",
         "microphonePermissionRequired": "Autorisation microphone requise",
         "accessibilityNeeded": "Permissions d'accessibilité requises",
-        "readyToGo": "Prêt !",
-        "waylandClipboardMode": "Mode presse-papiers sur Wayland",
-        "optionalPasteTool": "Optionnel : installer un outil de collage"
+        "readyToGo": "Prêt !"
       },
       "descriptions": {
         "accessibilityNeeded": "Accordez les permissions d'accessibilité dans les paramètres système pour activer le collage automatique.",
-        "windowsReady": "Windows ne demande pas de permissions spéciales pour le collage automatique. Tout est prêt !",
-        "linuxReadyWithMethod": "Le collage automatique est disponible via {{method}}. Tout est prêt !",
-        "waylandClipboardMode": "Le collage automatique n'est pas disponible dans cette session Wayland. Mouthpiece copiera le texte dans le presse-papiers et vous pourrez coller avec Ctrl+V.",
-        "optionalPasteTool": "Pour le collage automatique, installez {{tool}} :\n\n{{installCmd}}{{waylandNote}}\n\nSans cela, vous pouvez quand même utiliser Mouthpiece : le texte sera copié dans le presse-papiers et vous pourrez coller avec Ctrl+V."
+        "windowsReady": "Windows ne demande pas de permissions spéciales pour le collage automatique. Tout est prêt !"
       },
       "alerts": {
         "accessibilityNeeded": "Permissions d'accessibilité requises ! Veuillez les accorder dans les paramètres système."
-      },
-      "notes": {
-        "waylandWtype": "\n\nNote : pour les apps XWayland, xdotool fonctionne aussi.",
-        "waylandXwaylandOnly": "\n\nNote : le collage automatique fonctionne uniquement pour les apps XWayland."
-      },
-      "labels": {
-        "defaultPasteTool": "xdotool",
-        "xdotoolXwayland": "xdotool (apps XWayland)"
       },
       "accessibilityTestText": "Test d'accessibilité Mouthpiece",
       "warning": {
         "messages": {
           "macos": "Vérifiez les réglages Son pour choisir votre périphérique d'entrée",
-          "windows": "Vérifiez les paramètres Windows pour choisir votre périphérique d'entrée",
-          "linux": "Vérifiez les réglages son système pour choisir votre périphérique d'entrée"
+          "windows": "Vérifiez les paramètres Windows pour choisir votre périphérique d'entrée"
         },
         "soundLabel": "Son",
         "privacyLabel": "Confidentialité"
@@ -640,18 +623,10 @@
     "description": "Utilisez ces règles selon votre plateforme pour choisir un raccourci qui ne soit pas en conflit avec votre système.",
     "examplesTitle": "Exemples valides",
     "platforms": {
-      "linux": "Linux",
       "macos": "macOS",
       "windows": "Windows"
     },
     "recommended": {
-      "linux": {
-        "0": "Ctrl+Space",
-        "1": "Super+S",
-        "2": "Alt+D",
-        "3": "Shift+J",
-        "4": "Alt+Space"
-      },
       "macos": {
         "0": "⌃Space",
         "1": "⌥S",
@@ -689,7 +664,6 @@
     "hotkeyLabel": "Raccourci",
     "modeLabel": "Shortcut type",
     "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
-    "modifierOnlyUnavailable": "Modifier-only shortcuts are not available with your current shortcut system. Choose a key combo instead.",
     "modifiersLabel": "Modifiers",
     "modes": {
       "keyCombo": "Key combo",
@@ -750,30 +724,6 @@
     "selectPlaceholder": "Sélectionnez un microphone",
     "systemDefault": "Par défaut du système",
     "unknownDevice": "Appareil inconnu"
-  },
-  "pasteToolsInfo": {
-    "checking": "Vérification des capacités du système...",
-    "installCommands": {
-      "archLinux": "# Arch Linux",
-      "debianUbuntu": "# Debian / Ubuntu",
-      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
-      "fedoraRhel": "# Fedora / RHEL"
-    },
-    "installPrefix": "Pour le collage automatique de texte, installez",
-    "methodReady": "pour le collage automatique de texte",
-    "noteXwaylandAlso": "Note : pour les apps XWayland, xdotool fonctionne aussi.",
-    "noteXwaylandOnly": "Note : le collage automatique fonctionne uniquement pour les apps XWayland.",
-    "optionalEnableTitle": "Optionnel : activer le collage automatique",
-    "readyTitle": "Collage automatique prêt",
-    "recheck": "Revérifier",
-    "recheckChecking": "Vérification...",
-    "title": "Collage automatique",
-    "usingMethodPrefix": "Utilisation de",
-    "waylandClipboardDescription": "Le collage automatique n'est pas disponible dans cette session Wayland. Mouthpiece copiera le texte dans le presse-papiers et vous pourrez coller manuellement avec Ctrl+V.",
-    "waylandClipboardTitle": "Mode presse-papiers sur Wayland",
-    "windowsReady": "Windows prend en charge le collage automatique nativement. Aucune configuration requise !",
-    "withoutToolPrefix": "Sans cet outil, Mouthpiece copiera le texte dans le presse-papiers. Vous pourrez ensuite coller manuellement avec Ctrl+V.",
-    "xwaylandAppsOnly": "le collage automatique fonctionne uniquement pour les apps XWayland"
   },
   "promptStudio": {
     "common": {
@@ -1010,7 +960,6 @@
       "hotkey": {
         "activationBehavior": "Activation automatique",
         "activationBehaviorDescription": "Un appui court active ou arrête la dictée. Un appui long enregistre seulement tant que vous gardez la touche enfoncée lorsque votre système peut détecter le relâchement.",
-        "activationBehaviorFallback": "Votre système de raccourcis actuel ne prend en charge que l'appui court, donc Mouthpiece reviendra automatiquement à ce mode.",
         "activationMode": "Mode d'activation",
         "description": "La combinaison de touches qui démarre et arrête la dictée vocale",
         "resetToDefault": "Réinitialiser à {{hotkey}}",

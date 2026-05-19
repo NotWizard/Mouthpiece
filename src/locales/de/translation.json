@@ -71,7 +71,7 @@
   },
   "systemSettings": {
     "microphone": "Bitte öffnen Sie die Systemeinstellungen, um Mikrofonberechtigungen zu konfigurieren.",
-    "sound": "Bitte öffnen Sie die Sound-Einstellungen des Systems (z. B. pavucontrol).",
+    "sound": "Öffnen Sie die System-Toneinstellungen, um ein Eingabegerät auszuwählen.",
     "accessibility": "Bedienungshilfen-Einstellungen sind auf dieser Plattform nicht verfügbar."
   },
   "titleBar": {
@@ -158,7 +158,6 @@
       "hotkey": "Hotkey",
       "mode": "Modus",
       "modeDescription": "Kurzes Drücken startet oder stoppt das Diktat. Langes Drücken nimmt nur so lange auf, wie Sie die Taste gedrückt halten, wenn Ihr System das unterstützt.",
-      "modeFallbackDescription": "Ihr aktuelles Hotkey-System unterstützt nur kurzes Drücken. Mouthpiece fällt daher automatisch darauf zurück, wenn das Loslassen nicht erkannt werden kann.",
       "tapDescription": "Drücken zum Starten/Stoppen",
       "holdDescription": "Gedrückt halten beim Sprechen",
       "test": "Test",
@@ -404,9 +403,7 @@
     "permissions": {
       "paths": {
         "windowsMicrophone": "Einstellungen -> Datenschutz -> Mikrofon",
-        "linuxSound": "Ihre System-Toneinstellungen",
         "defaultSound": "Systemeinstellungen -> Ton -> Eingabe",
-        "linuxPrivacy": "Ihre System-Datenschutzeinstellungen",
         "defaultPrivacy": "Systemeinstellungen -> Datenschutz & Sicherheit -> Mikrofon"
       },
       "micErrors": {
@@ -433,34 +430,20 @@
         "microphoneUnavailable": "Mikrofon nicht verfügbar",
         "microphonePermissionRequired": "Mikrofonberechtigung erforderlich",
         "accessibilityNeeded": "Bedienungshilfen-Berechtigungen erforderlich",
-        "readyToGo": "Bereit!",
-        "waylandClipboardMode": "Zwischenablage-Modus unter Wayland",
-        "optionalPasteTool": "Optional: Einfüge-Tool installieren"
+        "readyToGo": "Bereit!"
       },
       "descriptions": {
         "accessibilityNeeded": "Bitte gewähren Sie Bedienungshilfen-Berechtigungen in den Systemeinstellungen, um automatisches Einfügen zu ermöglichen.",
-        "windowsReady": "Windows benötigt keine speziellen Berechtigungen für automatisches Einfügen. Alles bereit!",
-        "linuxReadyWithMethod": "Automatisches Einfügen ist mit {{method}} verfügbar. Alles bereit!",
-        "waylandClipboardMode": "Automatisches Einfügen ist in dieser Wayland-Sitzung nicht verfügbar. Mouthpiece kopiert den Text in die Zwischenablage und Sie können mit Ctrl+V einfügen.",
-        "optionalPasteTool": "Für automatisches Einfügen installieren Sie {{tool}}:\n\n{{installCmd}}{{waylandNote}}\n\nOhne dieses Tool können Sie Mouthpiece weiterhin nutzen – Text wird in die Zwischenablage kopiert und Sie können mit Ctrl+V einfügen."
+        "windowsReady": "Windows benötigt keine speziellen Berechtigungen für automatisches Einfügen. Alles bereit!"
       },
       "alerts": {
         "accessibilityNeeded": "Bedienungshilfen-Berechtigungen erforderlich! Bitte erlauben Sie diese in den Systemeinstellungen."
-      },
-      "notes": {
-        "waylandWtype": "\n\nHinweis: Für XWayland-Apps funktioniert auch xdotool.",
-        "waylandXwaylandOnly": "\n\nHinweis: Automatisches Einfügen funktioniert nur für XWayland-Apps."
-      },
-      "labels": {
-        "defaultPasteTool": "xdotool",
-        "xdotoolXwayland": "xdotool (XWayland-Apps)"
       },
       "accessibilityTestText": "Mouthpiece Bedienungshilfen-Test",
       "warning": {
         "messages": {
           "macos": "Prüfen Sie die Toneinstellungen, um Ihr Eingabegerät auszuwählen",
-          "windows": "Prüfen Sie die Windows-Einstellungen, um Ihr Eingabegerät auszuwählen",
-          "linux": "Prüfen Sie die System-Toneinstellungen, um Ihr Eingabegerät auszuwählen"
+          "windows": "Prüfen Sie die Windows-Einstellungen, um Ihr Eingabegerät auszuwählen"
         },
         "soundLabel": "Ton",
         "privacyLabel": "Datenschutz"
@@ -640,18 +623,10 @@
     "description": "Nutzen Sie diese plattformspezifischen Regeln, um eine Tastenkombination zu wählen, die nicht mit Ihrem System kollidiert.",
     "examplesTitle": "Gültige Beispiele",
     "platforms": {
-      "linux": "Linux",
       "macos": "macOS",
       "windows": "Windows"
     },
     "recommended": {
-      "linux": {
-        "0": "Ctrl+Space",
-        "1": "Super+S",
-        "2": "Alt+D",
-        "3": "Shift+J",
-        "4": "Alt+Space"
-      },
       "macos": {
         "0": "⌃Space",
         "1": "⌥S",
@@ -689,7 +664,6 @@
     "hotkeyLabel": "Hotkey",
     "modeLabel": "Shortcut type",
     "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
-    "modifierOnlyUnavailable": "Modifier-only shortcuts are not available with your current shortcut system. Choose a key combo instead.",
     "modifiersLabel": "Modifiers",
     "modes": {
       "keyCombo": "Key combo",
@@ -750,30 +724,6 @@
     "selectPlaceholder": "Mikrofon auswählen",
     "systemDefault": "Systemstandard",
     "unknownDevice": "Unbekanntes Gerät"
-  },
-  "pasteToolsInfo": {
-    "checking": "Systemfähigkeiten werden geprüft...",
-    "installCommands": {
-      "archLinux": "# Arch Linux",
-      "debianUbuntu": "# Debian / Ubuntu",
-      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
-      "fedoraRhel": "# Fedora / RHEL"
-    },
-    "installPrefix": "Für automatisches Einfügen installieren Sie",
-    "methodReady": "für automatisches Einfügen",
-    "noteXwaylandAlso": "Hinweis: Für XWayland-Apps funktioniert auch xdotool.",
-    "noteXwaylandOnly": "Hinweis: Automatisches Einfügen funktioniert nur für XWayland-Apps.",
-    "optionalEnableTitle": "Optional: Automatisches Einfügen aktivieren",
-    "readyTitle": "Automatisches Einfügen bereit",
-    "recheck": "Erneut prüfen",
-    "recheckChecking": "Wird geprüft...",
-    "title": "Automatisches Einfügen",
-    "usingMethodPrefix": "Verwendet",
-    "waylandClipboardDescription": "Automatisches Einfügen ist in dieser Wayland-Sitzung nicht verfügbar. Mouthpiece kopiert den Text in Ihre Zwischenablage, damit Sie ihn manuell mit Ctrl+V einfügen können.",
-    "waylandClipboardTitle": "Zwischenablage-Modus unter Wayland",
-    "windowsReady": "Windows unterstützt automatisches Einfügen direkt. Keine Einrichtung erforderlich!",
-    "withoutToolPrefix": "Ohne dieses Tool kopiert Mouthpiece den Text in Ihre Zwischenablage. Sie können ihn dann manuell mit Ctrl+V einfügen.",
-    "xwaylandAppsOnly": "Automatisches Einfügen funktioniert nur für XWayland-Apps"
   },
   "promptStudio": {
     "common": {
@@ -1010,7 +960,6 @@
       "hotkey": {
         "activationBehavior": "Automatische Aktivierung",
         "activationBehaviorDescription": "Kurzes Drücken startet oder stoppt das Diktat. Langes Drücken nimmt nur so lange auf, wie Sie die Taste gedrückt halten, wenn Ihr System das Loslassen erkennen kann.",
-        "activationBehaviorFallback": "Ihr aktuelles Hotkey-System unterstützt nur kurzes Drücken, daher greift Mouthpiece automatisch darauf zurück.",
         "activationMode": "Aktivierungsmodus",
         "description": "Die Tastenkombination, die das Sprachdiktat startet und stoppt",
         "resetToDefault": "Auf {{hotkey}} zurücksetzen",

@@ -1,7 +1,6 @@
 const { globalShortcut } = require("electron");
 const EventEmitter = require("events");
 const debugLogger = require("./debugLogger");
-const GnomeShortcutManager = require("./gnomeShortcut");
 const { getDefaultHotkeyForPlatform, resolvePersistedHotkey } = require("./hotkeyPersistence");
 const { i18nMain } = require("./i18nMain");
 
@@ -64,8 +63,6 @@ class HotkeyManager extends EventEmitter {
     this.currentHotkey = getDefaultHotkeyForPlatform(process.platform);
     this.isInitialized = false;
     this.isListeningMode = false;
-    this.gnomeManager = null;
-    this.useGnome = false;
     this.hotkeyCallback = null;
   }
 
@@ -87,17 +84,6 @@ class HotkeyManager extends EventEmitter {
       };
     }
 
-    if (process.platform === "linux") {
-      // Linux DE's often reserve Super/Meta combinations
-      if (hotkey.includes("Super") || hotkey.includes("Meta")) {
-        return {
-          reason: "os_reserved",
-          message: i18nMain.t("hotkey.errors.osReserved", { hotkey }),
-          suggestions: this.getSuggestions(hotkey),
-        };
-      }
-    }
-
     return {
       reason: "registration_failed",
       message: i18nMain.t("hotkey.errors.registrationFailed", { hotkey }),
@@ -113,8 +99,6 @@ class HotkeyManager extends EventEmitter {
       suggestions = ["Control+K", "Command+9", "Shift+F9"];
     } else if (process.platform === "win32" && isCompound) {
       suggestions = ["Control+K", "Alt+F7", "Shift+F9"];
-    } else if (process.platform === "linux" && isCompound) {
-      suggestions = ["Alt+F7", "Super+R", "Shift+F9"];
     }
 
     return suggestions.filter((s) => s !== failedHotkey).slice(0, 3);
@@ -205,10 +189,6 @@ class HotkeyManager extends EventEmitter {
         `[HotkeyManager] Is "${accelerator}" already registered? ${alreadyRegistered}`
       );
 
-      if (process.platform === "linux") {
-        globalShortcut.unregister(accelerator);
-      }
-
       const success = globalShortcut.register(accelerator, callback);
       debugLogger.log(`[HotkeyManager] Registration result for "${hotkey}": ${success}`);
 
@@ -271,31 +251,6 @@ class HotkeyManager extends EventEmitter {
     }
   }
 
-  async initializeGnomeShortcuts(callback) {
-    if (process.platform !== "linux" || !GnomeShortcutManager.isWayland()) {
-      return false;
-    }
-
-    if (GnomeShortcutManager.isGnome()) {
-      try {
-        this.gnomeManager = new GnomeShortcutManager();
-
-        const dbusOk = await this.gnomeManager.initDBusService(callback);
-        if (dbusOk) {
-          this.useGnome = true;
-          this.hotkeyCallback = callback;
-          return true;
-        }
-      } catch (err) {
-        debugLogger.log("[HotkeyManager] GNOME shortcut init failed:", err.message);
-        this.gnomeManager = null;
-        this.useGnome = false;
-      }
-    }
-
-    return false;
-  }
-
   async initializeHotkey(mainWindow, callback) {
     if (!mainWindow || !callback) {
       throw new Error("mainWindow and callback are required");
@@ -303,22 +258,6 @@ class HotkeyManager extends EventEmitter {
 
     this.mainWindow = mainWindow;
     this.hotkeyCallback = callback;
-
-    if (process.platform === "linux" && GnomeShortcutManager.isWayland()) {
-      const gnomeOk = await this.initializeGnomeShortcuts(callback);
-
-      if (gnomeOk) {
-        setTimeout(() => {
-          this.loadSavedHotkeyOrDefault(mainWindow, callback);
-        }, HOTKEY_REGISTRATION_DELAY_MS);
-        this.isInitialized = true;
-        return;
-      }
-    }
-
-    if (process.platform === "linux") {
-      globalShortcut.unregisterAll();
-    }
 
     setTimeout(() => {
       this.loadSavedHotkeyOrDefault(mainWindow, callback);
@@ -336,11 +275,6 @@ class HotkeyManager extends EventEmitter {
           debugLogger.log(`[HotkeyManager] Restored saved hotkey: "${resolvedHotkey.hotkey}"`);
           this._signalHotkeyReady(resolvedHotkey.hotkey);
           return;
-        }
-        if (result.gnomeFailed) {
-          debugLogger.log("[HotkeyManager] GNOME keybinding failed, falling back to X11");
-          this.useGnome = false;
-          return this.loadSavedHotkeyOrDefault(mainWindow, callback);
         }
         debugLogger.log(
           `[HotkeyManager] Saved hotkey "${resolvedHotkey.hotkey}" failed to register`
@@ -366,11 +300,6 @@ class HotkeyManager extends EventEmitter {
         this._signalHotkeyReady(defaultHotkey);
         return;
       }
-      if (result.gnomeFailed) {
-        debugLogger.log("[HotkeyManager] GNOME default keybinding failed, falling back to X11");
-        this.useGnome = false;
-        return this.loadSavedHotkeyOrDefault(mainWindow, callback);
-      }
 
       debugLogger.log(
         `[HotkeyManager] Default hotkey "${defaultHotkey}" failed, trying fallbacks...`
@@ -385,13 +314,6 @@ class HotkeyManager extends EventEmitter {
           this.notifyHotkeyFallback(defaultHotkey, fallback);
           this._signalHotkeyReady(fallback);
           return;
-        }
-        if (fallbackResult.gnomeFailed) {
-          debugLogger.log(
-            `[HotkeyManager] GNOME fallback keybinding "${fallback}" failed, retrying via X11`
-          );
-          this.useGnome = false;
-          return this.loadSavedHotkeyOrDefault(mainWindow, callback);
         }
       }
 
@@ -518,30 +440,6 @@ class HotkeyManager extends EventEmitter {
   }
 
   async _registerStartupHotkey(hotkey, callback) {
-    if (this.useGnome && this.gnomeManager) {
-      try {
-        const gnomeHotkey = GnomeShortcutManager.convertToGnomeFormat(hotkey);
-        const success = await this.gnomeManager.registerKeybinding(gnomeHotkey);
-        if (success) {
-          this.currentHotkey = hotkey;
-          debugLogger.log(`[HotkeyManager] GNOME hotkey "${hotkey}" registered successfully`);
-          return { success: true, hotkey };
-        }
-        return {
-          success: false,
-          gnomeFailed: true,
-          error: `Failed to register GNOME hotkey "${hotkey}"`,
-        };
-      } catch (error) {
-        debugLogger.log("[HotkeyManager] GNOME startup hotkey registration failed:", error.message);
-        return {
-          success: false,
-          gnomeFailed: true,
-          error: error.message,
-        };
-      }
-    }
-
     return this.setupShortcuts(hotkey, callback);
   }
 
@@ -571,33 +469,6 @@ class HotkeyManager extends EventEmitter {
     }
 
     try {
-      if (this.useGnome && this.gnomeManager) {
-        debugLogger.log(`[HotkeyManager] Updating GNOME hotkey to "${hotkey}"`);
-        const gnomeHotkey = GnomeShortcutManager.convertToGnomeFormat(hotkey);
-        const success = await this.gnomeManager.updateKeybinding(gnomeHotkey);
-        if (!success) {
-          return {
-            success: false,
-            message: `Failed to update GNOME hotkey to "${hotkey}". Check the format is valid.`,
-          };
-        }
-        this.currentHotkey = hotkey;
-        const saved = await this.saveHotkeyToRenderer(hotkey);
-        if (!saved) {
-          debugLogger.warn(
-            "[HotkeyManager] GNOME hotkey registered but failed to persist to localStorage"
-          );
-        }
-        // Emit so main.js can restart native listeners regardless of whether
-        // the renderer subsequently calls notifyHotkeyChanged. Decouples
-        // listener restart from renderer cooperation.
-        this.emit("hotkey-changed", hotkey);
-        return {
-          success: true,
-          message: `Hotkey updated to: ${hotkey} (via GNOME native shortcut)`,
-        };
-      }
-
       const result = this.setupShortcuts(hotkey, callback);
       if (result.success) {
         const saved = await this.saveHotkeyToRenderer(hotkey);
@@ -629,19 +500,7 @@ class HotkeyManager extends EventEmitter {
   }
 
   unregisterAll() {
-    if (this.gnomeManager) {
-      this.gnomeManager.unregisterKeybinding().catch((err) => {
-        debugLogger.warn("[HotkeyManager] Error unregistering GNOME keybinding:", err.message);
-      });
-      this.gnomeManager.close();
-      this.gnomeManager = null;
-      this.useGnome = false;
-    }
     globalShortcut.unregisterAll();
-  }
-
-  isUsingGnome() {
-    return this.useGnome;
   }
 
   isHotkeyRegistered(hotkey) {

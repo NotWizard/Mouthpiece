@@ -22,7 +22,6 @@ test("macOS builder capabilities expose Fn and supported modifier-only choices",
 
   const caps = mod.getHotkeyBuilderCapabilities({
     platform: "darwin",
-    isUsingGnome: false,
   });
 
   assert.equal(caps.allowModifierOnlyMode, true);
@@ -41,26 +40,6 @@ test("macOS builder capabilities expose Fn and supported modifier-only choices",
   ]);
 });
 
-test("GNOME builder capabilities disable modifier-only mode and keep combo modifiers", async () => {
-  const mod = await loadHotkeyBuilderModule();
-
-  assert.equal(typeof mod.getHotkeyBuilderCapabilities, "function");
-
-  const caps = mod.getHotkeyBuilderCapabilities({
-    platform: "linux",
-    isUsingGnome: true,
-  });
-
-  assert.equal(caps.allowModifierOnlyMode, false);
-  assert.deepEqual(caps.modifierOnlyOptions, []);
-  assert.deepEqual(caps.comboModifierOptions.map((option) => option.hotkey), [
-    "Control",
-    "Alt",
-    "Shift",
-    "Super",
-  ]);
-});
-
 test("windows builder keeps right-side modifier-only shortcuts exclusive", async () => {
   const mod = await loadHotkeyBuilderModule();
 
@@ -68,7 +47,6 @@ test("windows builder keeps right-side modifier-only shortcuts exclusive", async
 
   const caps = mod.getHotkeyBuilderCapabilities({
     platform: "win32",
-    isUsingGnome: false,
   });
 
   const rightAltOption = caps.modifierOnlyOptions.find((option) => option.hotkey === "RightAlt");
@@ -130,8 +108,7 @@ test("builder parses persisted hotkeys back into editable builder state", async 
     mod.parseHotkeyToBuilderState({
       hotkey: "GLOBE",
       platform: "darwin",
-      isUsingGnome: false,
-    }),
+      }),
     {
       mode: "modifier-only",
       selectedModifiers: ["GLOBE"],
@@ -143,8 +120,7 @@ test("builder parses persisted hotkeys back into editable builder state", async 
     mod.parseHotkeyToBuilderState({
       hotkey: "F8",
       platform: "win32",
-      isUsingGnome: false,
-    }),
+      }),
     {
       mode: "single-key",
       selectedModifiers: [],
@@ -156,8 +132,7 @@ test("builder parses persisted hotkeys back into editable builder state", async 
     mod.parseHotkeyToBuilderState({
       hotkey: "Control+Shift+Space",
       platform: "win32",
-      isUsingGnome: false,
-    }),
+      }),
     {
       mode: "key-combo",
       selectedModifiers: ["Control", "Shift"],

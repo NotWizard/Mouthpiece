@@ -37,87 +37,6 @@ jobs:
           echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
           echo "release_version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
 
-  build-linux:
-    needs: prepare
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.prepare.outputs.release_tag }}
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-
-      - name: Validate release version
-        shell: bash
-        run: |
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          if [ "$PACKAGE_VERSION" != "${{ needs.prepare.outputs.release_version }}" ]; then
-            echo "Expected package.json version ${{ needs.prepare.outputs.release_version }}, found $PACKAGE_VERSION"
-            exit 1
-          fi
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate ASR replay benchmark summary
-        run: npm run replay:asr -- --output tmp/asr-replay.json
-
-      - name: Verify ASR replay benchmark summary
-        run: npm run verify:asr-benchmarks
-
-      - name: Cache native binaries
-        uses: actions/cache@v4
-        with:
-          path: resources/bin
-          key: linux-x64-bin-${{ hashFiles('scripts/download-*.js') }}
-
-      - name: Download whisper.cpp binaries
-        run: node scripts/download-whisper-cpp.js --current
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-
-      - name: Download llama-server binaries
-        run: node scripts/download-llama-server.js --current
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-
-      - name: Download sherpa-onnx binaries
-        run: node scripts/download-sherpa-onnx.js --current
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-
-      - name: Cache Electron
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/electron
-          key: linux-electron-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: linux-electron-
-
-      - name: Install Linux packaging dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y rpm pkg-config libx11-dev libxtst-dev libatspi2.0-dev libglib2.0-dev
-
-      - name: Build Application
-        run: npm run build:linux -- --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-          VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
-          VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
-          VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
-
-      - name: Upload Linux update metadata
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-        run: |
-          test -f dist/latest-linux.yml
-          gh release upload "${{ needs.prepare.outputs.release_tag }}" dist/latest-linux.yml --clobber
-
   build-windows:
     needs: prepare
     runs-on: windows-latest
@@ -381,7 +300,6 @@ jobs:
   finalize-update-metadata:
     needs:
       - prepare
-      - build-linux
       - build-windows
       - build-macos
     runs-on: ubuntu-latest
@@ -408,7 +326,6 @@ jobs:
           gh release download "${{ needs.prepare.outputs.release_tag }}" \
             -D tmp/release-assets \
             -p "latest.yml" \
-            -p "latest-linux.yml" \
             -p "latest-arm64-mac.yml" \
             -p "latest-x64-mac.yml"
 
@@ -436,7 +353,6 @@ jobs:
           node scripts/validate-release-assets.mjs \
             --release-json tmp/release-assets/release.json \
             --latest-windows tmp/release-assets/latest.yml \
-            --latest-linux tmp/release-assets/latest-linux.yml \
             --latest-mac tmp/release-assets/latest-mac.yml \
             --latest-arm64 tmp/release-assets/latest-arm64-mac.yml \
             --latest-x64 tmp/release-assets/latest-x64-mac.yml

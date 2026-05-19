@@ -71,7 +71,7 @@
   },
   "systemSettings": {
     "microphone": "Apri le impostazioni di sistema per configurare i permessi del microfono.",
-    "sound": "Apri le impostazioni audio di sistema (ad esempio, pavucontrol).",
+    "sound": "Apri le impostazioni audio di sistema per scegliere un dispositivo di ingresso.",
     "accessibility": "Le impostazioni di accessibilità non sono disponibili su questa piattaforma."
   },
   "titleBar": {
@@ -158,7 +158,6 @@
       "hotkey": "Scorciatoia",
       "mode": "Modalità",
       "modeDescription": "Una pressione breve avvia o interrompe la dettatura. Una pressione prolungata registra solo mentre tieni premuto il tasto quando il sistema lo supporta.",
-      "modeFallbackDescription": "Il tuo attuale sistema di scorciatoie supporta solo l'attivazione con pressione breve, quindi Mouthpiece effettuerà automaticamente il fallback quando il rilascio non è rilevabile.",
       "tapDescription": "Premi per avviare/fermare",
       "holdDescription": "Tieni premuto mentre parli",
       "test": "Test",
@@ -404,9 +403,7 @@
     "permissions": {
       "paths": {
         "windowsMicrophone": "Impostazioni -> Privacy -> Microfono",
-        "linuxSound": "le impostazioni audio di sistema",
         "defaultSound": "Impostazioni di sistema -> Audio -> Ingresso",
-        "linuxPrivacy": "le impostazioni privacy di sistema",
         "defaultPrivacy": "Impostazioni di sistema -> Privacy e sicurezza -> Microfono"
       },
       "micErrors": {
@@ -433,34 +430,20 @@
         "microphoneUnavailable": "Microfono non disponibile",
         "microphonePermissionRequired": "Permesso microfono richiesto",
         "accessibilityNeeded": "Permessi di accessibilità necessari",
-        "readyToGo": "Tutto pronto!",
-        "waylandClipboardMode": "Modalità appunti su Wayland",
-        "optionalPasteTool": "Opzionale: installa strumento di incollaggio"
+        "readyToGo": "Tutto pronto!"
       },
       "descriptions": {
         "accessibilityNeeded": "Concedi i permessi di accessibilità nelle impostazioni di sistema per abilitare l'incollaggio automatico.",
-        "windowsReady": "Windows non richiede permessi speciali per l'incollaggio automatico. È tutto pronto!",
-        "linuxReadyWithMethod": "L'incollaggio automatico è disponibile tramite {{method}}. È tutto pronto!",
-        "waylandClipboardMode": "L'incollaggio automatico non è disponibile in questa sessione Wayland. Mouthpiece copierà il testo negli appunti e potrai incollare con Ctrl+V.",
-        "optionalPasteTool": "Per l'incollaggio automatico, installa {{tool}}:\n\n{{installCmd}}{{waylandNote}}\n\nAnche senza questo puoi usare Mouthpiece: il testo verrà copiato negli appunti e potrai incollare con Ctrl+V."
+        "windowsReady": "Windows non richiede permessi speciali per l'incollaggio automatico. È tutto pronto!"
       },
       "alerts": {
         "accessibilityNeeded": "Permessi di accessibilità necessari! Concedili nelle impostazioni di sistema."
-      },
-      "notes": {
-        "waylandWtype": "\n\nNota: per le app XWayland, funziona anche xdotool.",
-        "waylandXwaylandOnly": "\n\nNota: l'incollaggio automatico funziona solo per le app XWayland."
-      },
-      "labels": {
-        "defaultPasteTool": "xdotool",
-        "xdotoolXwayland": "xdotool (app XWayland)"
       },
       "accessibilityTestText": "Test accessibilità Mouthpiece",
       "warning": {
         "messages": {
           "macos": "Controlla le impostazioni Audio per selezionare il dispositivo di ingresso",
-          "windows": "Controlla le impostazioni di Windows per selezionare il dispositivo di ingresso",
-          "linux": "Controlla le impostazioni audio di sistema per selezionare il dispositivo di ingresso"
+          "windows": "Controlla le impostazioni di Windows per selezionare il dispositivo di ingresso"
         },
         "soundLabel": "Audio",
         "privacyLabel": "Privacy"
@@ -640,18 +623,10 @@
     "description": "Usa queste regole per scegliere una scorciatoia che non entri in conflitto con il sistema.",
     "examplesTitle": "Esempi validi",
     "platforms": {
-      "linux": "Linux",
       "macos": "macOS",
       "windows": "Windows"
     },
     "recommended": {
-      "linux": {
-        "0": "Ctrl+Space",
-        "1": "Super+S",
-        "2": "Alt+D",
-        "3": "Shift+J",
-        "4": "Alt+Space"
-      },
       "macos": {
         "0": "⌃Space",
         "1": "⌥S",
@@ -689,7 +664,6 @@
     "hotkeyLabel": "Scorciatoia",
     "modeLabel": "Shortcut type",
     "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
-    "modifierOnlyUnavailable": "Modifier-only shortcuts are not available with your current shortcut system. Choose a key combo instead.",
     "modifiersLabel": "Modifiers",
     "modes": {
       "keyCombo": "Key combo",
@@ -750,30 +724,6 @@
     "selectPlaceholder": "Seleziona un microfono",
     "systemDefault": "Predefinito di sistema",
     "unknownDevice": "Dispositivo sconosciuto"
-  },
-  "pasteToolsInfo": {
-    "checking": "Verifica delle funzionalità di sistema...",
-    "installCommands": {
-      "archLinux": "# Arch Linux",
-      "debianUbuntu": "# Debian / Ubuntu",
-      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
-      "fedoraRhel": "# Fedora / RHEL"
-    },
-    "installPrefix": "Per l'incollaggio automatico del testo, installa",
-    "methodReady": "per l'incollaggio automatico del testo",
-    "noteXwaylandAlso": "Nota: per le app XWayland, funziona anche xdotool.",
-    "noteXwaylandOnly": "Nota: l'incollaggio automatico funziona solo per le app XWayland.",
-    "optionalEnableTitle": "Opzionale: abilita l'incollaggio automatico",
-    "readyTitle": "Incollaggio automatico pronto",
-    "recheck": "Ricontrolla",
-    "recheckChecking": "Verifica...",
-    "title": "Incollaggio automatico",
-    "usingMethodPrefix": "In uso",
-    "waylandClipboardDescription": "L'incollaggio automatico non è disponibile in questa sessione Wayland. Mouthpiece copierà il testo negli appunti, così potrai incollare manualmente con Ctrl+V.",
-    "waylandClipboardTitle": "Modalità appunti su Wayland",
-    "windowsReady": "Windows supporta l'incollaggio automatico senza configurazione aggiuntiva!",
-    "withoutToolPrefix": "Senza questo strumento, Mouthpiece copierà il testo negli appunti. Potrai poi incollare manualmente con Ctrl+V.",
-    "xwaylandAppsOnly": "l'incollaggio automatico funziona solo per le app XWayland"
   },
   "promptStudio": {
     "common": {
@@ -1010,7 +960,6 @@
       "hotkey": {
         "activationBehavior": "Attivazione automatica",
         "activationBehaviorDescription": "Una pressione breve avvia o interrompe la dettatura. Una pressione prolungata registra solo mentre tieni premuto il tasto quando il sistema può rilevare il rilascio.",
-        "activationBehaviorFallback": "Il tuo attuale sistema di scorciatoie supporta solo la pressione breve, quindi Mouthpiece effettuerà automaticamente il fallback.",
         "activationMode": "Modalità di attivazione",
         "description": "La combinazione di tasti che avvia e ferma la dettatura vocale",
         "resetToDefault": "Ripristina a {{hotkey}}",

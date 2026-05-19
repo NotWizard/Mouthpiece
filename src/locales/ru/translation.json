@@ -71,7 +71,7 @@
   },
   "systemSettings": {
     "microphone": "Откройте системные настройки для настройки разрешений микрофона.",
-    "sound": "Откройте системные настройки звука (например, pavucontrol).",
+    "sound": "Откройте системные настройки звука, чтобы выбрать устройство ввода.",
     "accessibility": "Настройки универсального доступа недоступны на этой платформе."
   },
   "titleBar": {
@@ -158,7 +158,6 @@
       "hotkey": "Горячая клавиша",
       "mode": "Режим",
       "modeDescription": "Короткое нажатие запускает или останавливает диктовку. Долгое нажатие записывает только пока вы удерживаете клавишу, если система это поддерживает.",
-      "modeFallbackDescription": "Текущая система горячих клавиш поддерживает только короткое нажатие, поэтому Mouthpiece автоматически переключится на него, если не может отследить отпускание.",
       "tapDescription": "Нажмите для старта/остановки",
       "holdDescription": "Удерживайте во время речи",
       "test": "Тест",
@@ -404,9 +403,7 @@
     "permissions": {
       "paths": {
         "windowsMicrophone": "Параметры -> Конфиденциальность -> Микрофон",
-        "linuxSound": "системные настройки звука",
         "defaultSound": "Системные настройки -> Звук -> Вход",
-        "linuxPrivacy": "системные настройки конфиденциальности",
         "defaultPrivacy": "Системные настройки -> Конфиденциальность и безопасность -> Микрофон"
       },
       "micErrors": {
@@ -433,34 +430,20 @@
         "microphoneUnavailable": "Микрофон недоступен",
         "microphonePermissionRequired": "Требуется разрешение на использование микрофона",
         "accessibilityNeeded": "Требуются разрешения универсального доступа",
-        "readyToGo": "Всё готово!",
-        "waylandClipboardMode": "Режим буфера обмена в Wayland",
-        "optionalPasteTool": "Дополнительно: установите утилиту вставки"
+        "readyToGo": "Всё готово!"
       },
       "descriptions": {
         "accessibilityNeeded": "Предоставьте разрешения универсального доступа в системных настройках для автоматической вставки текста.",
-        "windowsReady": "Windows не требует специальных разрешений для автоматической вставки. Всё готово!",
-        "linuxReadyWithMethod": "Автоматическая вставка доступна через {{method}}. Всё готово!",
-        "waylandClipboardMode": "Автоматическая вставка недоступна в этой сессии Wayland. Mouthpiece скопирует текст в буфер обмена, и вы сможете вставить его с помощью Ctrl+V.",
-        "optionalPasteTool": "Для автоматической вставки установите {{tool}}:\n\n{{installCmd}}{{waylandNote}}\n\nБез этого инструмента Mouthpiece будет копировать текст в буфер обмена, и вы сможете вставить его с помощью Ctrl+V."
+        "windowsReady": "Windows не требует специальных разрешений для автоматической вставки. Всё готово!"
       },
       "alerts": {
         "accessibilityNeeded": "Требуются разрешения универсального доступа! Предоставьте их в системных настройках."
-      },
-      "notes": {
-        "waylandWtype": "\n\nПримечание: для приложений XWayland также работает xdotool.",
-        "waylandXwaylandOnly": "\n\nПримечание: автоматическая вставка работает только для приложений XWayland."
-      },
-      "labels": {
-        "defaultPasteTool": "xdotool",
-        "xdotoolXwayland": "xdotool (приложения XWayland)"
       },
       "accessibilityTestText": "Тест универсального доступа Mouthpiece",
       "warning": {
         "messages": {
           "macos": "Проверьте настройки звука, чтобы выбрать устройство ввода",
-          "windows": "Проверьте настройки Windows, чтобы выбрать устройство ввода",
-          "linux": "Проверьте системные настройки звука, чтобы выбрать устройство ввода"
+          "windows": "Проверьте настройки Windows, чтобы выбрать устройство ввода"
         },
         "soundLabel": "Звук",
         "privacyLabel": "Конфиденциальность"
@@ -640,18 +623,10 @@
     "description": "Используйте эти правила для выбора сочетания клавиш, которое не будет конфликтовать с системой.",
     "examplesTitle": "Допустимые примеры",
     "platforms": {
-      "linux": "Linux",
       "macos": "macOS",
       "windows": "Windows"
     },
     "recommended": {
-      "linux": {
-        "0": "Ctrl+Space",
-        "1": "Super+S",
-        "2": "Alt+D",
-        "3": "Shift+J",
-        "4": "Alt+Space"
-      },
       "macos": {
         "0": "⌃Space",
         "1": "⌥S",
@@ -689,7 +664,6 @@
     "hotkeyLabel": "Горячая клавиша",
     "modeLabel": "Shortcut type",
     "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
-    "modifierOnlyUnavailable": "Modifier-only shortcuts are not available with your current shortcut system. Choose a key combo instead.",
     "modifiersLabel": "Modifiers",
     "modes": {
       "keyCombo": "Key combo",
@@ -750,30 +724,6 @@
     "selectPlaceholder": "Выберите микрофон",
     "systemDefault": "Системный по умолчанию",
     "unknownDevice": "Неизвестное устройство"
-  },
-  "pasteToolsInfo": {
-    "checking": "Проверка системных возможностей...",
-    "installCommands": {
-      "archLinux": "# Arch Linux",
-      "debianUbuntu": "# Debian / Ubuntu",
-      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
-      "fedoraRhel": "# Fedora / RHEL"
-    },
-    "installPrefix": "Для автоматической вставки текста установите",
-    "methodReady": "для автоматической вставки текста",
-    "noteXwaylandAlso": "Примечание: для приложений XWayland также работает xdotool.",
-    "noteXwaylandOnly": "Примечание: автоматическая вставка работает только для приложений XWayland.",
-    "optionalEnableTitle": "Дополнительно: включите автоматическую вставку",
-    "readyTitle": "Автоматическая вставка готова",
-    "recheck": "Проверить снова",
-    "recheckChecking": "Проверка...",
-    "title": "Автоматическая вставка",
-    "usingMethodPrefix": "Используется",
-    "waylandClipboardDescription": "Автоматическая вставка недоступна в этой сессии Wayland. Mouthpiece скопирует текст в буфер обмена, и вы сможете вставить его вручную с помощью Ctrl+V.",
-    "waylandClipboardTitle": "Режим буфера обмена в Wayland",
-    "windowsReady": "Windows поддерживает автоматическую вставку из коробки. Настройка не требуется!",
-    "withoutToolPrefix": "Без этого инструмента Mouthpiece скопирует текст в буфер обмена. Вы сможете вставить его вручную с помощью Ctrl+V.",
-    "xwaylandAppsOnly": "автоматическая вставка работает только для приложений XWayland"
   },
   "promptStudio": {
     "common": {
@@ -1010,7 +960,6 @@
       "hotkey": {
         "activationBehavior": "Автоматическая активация",
         "activationBehaviorDescription": "Короткое нажатие запускает или останавливает диктовку. Долгое нажатие записывает только пока вы удерживаете клавишу, если система может определить отпускание.",
-        "activationBehaviorFallback": "Текущая система горячих клавиш поддерживает только короткое нажатие, поэтому Mouthpiece автоматически переключится на него.",
         "activationMode": "Режим активации",
         "description": "Комбинация клавиш для запуска и остановки голосовой диктовки",
         "resetToDefault": "Сбросить на {{hotkey}}",

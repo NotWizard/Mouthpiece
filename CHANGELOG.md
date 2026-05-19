@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > Note: Version numbering restarts at `1.0.0` for this standalone Mouthpiece repository. The `1.5.x` entries below are retained as inherited upstream reference only.
 
+### Removed
+
+- **Linux platform support is no longer available.** Mouthpiece now only ships for macOS and Windows. The Linux-specific paste backends (`linux-fast-paste`, the ydotool installer/service, the GNOME Wayland D-Bus shortcut bridge), the Linux clipboard/hotkey/window-manager code paths, the AppImage / deb / rpm / tar.gz / Flatpak build targets, the Linux GitHub Actions jobs, the Linux-related `pasteToolsInfo` UI and translation keys, and the `dbus-next` runtime dependency have all been deleted. Existing Linux installations will keep working with their previously installed binary but will not receive future releases.
+
 ### Changed
 
 - **Removed the "Recommended" tag next to Groq in the Transcription cloud provider tabs.** `CLOUD_PROVIDER_TABS` in `TranscriptionModelPicker.tsx` no longer flags Groq as `recommended: true`, so the "推荐 / Recommended" pill rendered by `ProviderTabs` next to its name is gone. No other provider keeps a recommended flag, so the visual hierarchy across the seven cloud transcription providers (OpenAI / Deepgram / Groq / Mistral / Soniox / Bailian / Custom) is now flat.

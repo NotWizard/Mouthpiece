@@ -240,20 +240,6 @@ export interface QwenAsrDiagnosticsResult {
   models: string[];
 }
 
-export interface PasteToolsResult {
-  platform: "darwin" | "win32" | "linux";
-  available: boolean;
-  method: string | null;
-  requiresPermission: boolean;
-  isWayland?: boolean;
-  xwaylandAvailable?: boolean;
-  terminalAware?: boolean;
-  hasNativeBinary?: boolean;
-  hasUinput?: boolean;
-  tools?: string[];
-  recommendedInstall?: string;
-}
-
 export type GpuBackend = "vulkan" | "cpu" | "metal" | null;
 
 export interface LlamaServerStatus {
@@ -487,7 +473,6 @@ declare global {
       resetAccessibilityPermissions?: () => Promise<{ success: boolean; error?: string }>;
       readClipboard: () => Promise<string>;
       writeClipboard: (text: string) => Promise<{ success: boolean }>;
-      checkPasteTools: () => Promise<PasteToolsResult>;
 
       // Audio
       onNoAudioDetected: (callback: (event: any, data?: any) => void) => () => void;
@@ -684,7 +669,6 @@ declare global {
         enabled: boolean,
         newHotkey?: string | null
       ) => Promise<{ success: boolean }>;
-      getHotkeyModeInfo?: () => Promise<{ isUsingGnome: boolean }>;
 
       // Globe key listener for hotkey capture (macOS only)
       onGlobeKeyPressed?: (callback: () => void) => () => void;
