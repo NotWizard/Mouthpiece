@@ -629,6 +629,7 @@ export default function SettingsPage({
   const { toast } = useToast();
   const [currentVersion, setCurrentVersion] = useState<string>("");
   const [isRemovingModels, setIsRemovingModels] = useState(false);
+  const [showAdvancedSystem, setShowAdvancedSystem] = useState(false);
   const cachePathHint = getModelCachePathHint({
     userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
     cacheDirName: CURRENT_CACHE_DIRNAME,
@@ -687,38 +688,38 @@ export default function SettingsPage({
 
   const systemUpdateDescription = useMemo(() => {
     if (!updateStatus) {
-      return t("settingsModal.updates.latestVersion");
+      return t("settingsPage.general.updates.latestVersion");
     }
 
     switch (updateStatus.status) {
       case "checking":
-        return t("settingsModal.updates.checking");
+        return t("settingsPage.general.updates.checking");
       case "downloading":
-        return t("settingsModal.updates.downloading", {
+        return t("settingsPage.general.updates.downloading", {
           progress: updateStatus.progressPercent ?? 0,
         });
       case "downloaded":
         return availableUpdateVersion
-          ? t("settingsModal.updates.dialogs.updateAvailable.description", {
+          ? t("settingsPage.general.updates.dialogs.updateAvailable.description", {
               version: availableUpdateVersion,
             })
-          : t("settingsModal.updates.newVersion");
+          : t("settingsPage.general.updates.newVersion");
       case "installing":
-        return t("settingsModal.updates.restarting");
+        return t("settingsPage.general.updates.restarting");
       case "error":
-        return updateStatus.error || t("settingsModal.updates.dialogs.updateError.description");
+        return updateStatus.error || t("settingsPage.general.updates.dialogs.updateError.description");
       case "unsupported":
-        return t("settingsModal.updates.devMode");
+        return t("settingsPage.general.updates.devMode");
       case "idle":
       default:
-        return t("settingsModal.updates.latestVersion");
+        return t("settingsPage.general.updates.latestVersion");
     }
   }, [availableUpdateVersion, t, updateStatus]);
 
   const systemUpdateAction = useMemo(() => {
     if (!updateStatus || updateStatus.status === "idle" || updateStatus.status === "error") {
       return {
-        label: t("settingsModal.updates.checkForUpdates"),
+        label: t("settingsPage.general.updates.checkForUpdates"),
         disabled: Boolean(updateStatus?.status === "unsupported"),
         onClick: onCheckForUpdates,
       };
@@ -726,7 +727,7 @@ export default function SettingsPage({
 
     if (updateStatus.status === "checking") {
       return {
-        label: t("settingsModal.updates.checking"),
+        label: t("settingsPage.general.updates.checking"),
         disabled: true,
         onClick: onCheckForUpdates,
       };
@@ -734,7 +735,7 @@ export default function SettingsPage({
 
     if (updateStatus.status === "downloading") {
       return {
-        label: t("settingsModal.updates.downloading", {
+        label: t("settingsPage.general.updates.downloading", {
           progress: updateStatus.progressPercent ?? 0,
         }),
         disabled: true,
@@ -744,7 +745,7 @@ export default function SettingsPage({
 
     if (updateStatus.status === "downloaded") {
       return {
-        label: t("settingsModal.updates.installAndRestart"),
+        label: t("settingsPage.general.updates.installAndRestart"),
         disabled: false,
         onClick: onInstallUpdate,
       };
@@ -752,14 +753,14 @@ export default function SettingsPage({
 
     if (updateStatus.status === "installing") {
       return {
-        label: t("settingsModal.updates.restarting"),
+        label: t("settingsPage.general.updates.restarting"),
         disabled: true,
         onClick: onInstallUpdate,
       };
     }
 
     return {
-      label: t("settingsModal.updates.checkForUpdates"),
+      label: t("settingsPage.general.updates.checkForUpdates"),
       disabled: true,
       onClick: onCheckForUpdates,
     };
@@ -1296,132 +1297,141 @@ export default function SettingsPage({
               title={t("settingsModal.sections.system.label")}
               description={t("settingsModal.sections.system.description")}
             />
-            {/* App Version */}
-            <div>
-              <SectionHeader
-                title={t("settingsPage.system.title")}
-                description={t("settingsPage.system.description")}
-              />
-              <SettingsPanel>
-                <SettingsPanelRow>
-                  <SettingsRow
-                    label={t("settingsPage.system.currentVersion")}
-                    description={t("settingsPage.system.versionDescription")}
+
+            {/* App Version + manual check for updates */}
+            <SettingsPanel>
+              <SettingsPanelRow>
+                <SettingsRow
+                  label={t("settingsPage.system.currentVersion")}
+                  description={t("settingsPage.system.versionDescription")}
+                >
+                  <span className="text-xs tabular-nums text-muted-foreground font-mono">
+                    {currentVersion || t("settingsPage.system.versionPlaceholder")}
+                  </span>
+                </SettingsRow>
+              </SettingsPanelRow>
+              <SettingsPanelRow>
+                <SettingsRow
+                  label={t("settingsPage.general.updates.title")}
+                  description={systemUpdateDescription}
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={systemUpdateAction.onClick}
+                    disabled={systemUpdateAction.disabled}
                   >
-                    <span className="text-xs tabular-nums text-muted-foreground font-mono">
-                      {currentVersion || t("settingsPage.system.versionPlaceholder")}
-                    </span>
-                  </SettingsRow>
-                </SettingsPanelRow>
-                <SettingsPanelRow>
-                  <SettingsRow
-                    label={t("settingsModal.updates.title")}
-                    description={systemUpdateDescription}
+                    {systemUpdateAction.label}
+                  </Button>
+                </SettingsRow>
+              </SettingsPanelRow>
+            </SettingsPanel>
+
+            {/* Reset App Data — always visible since it's an emergency escape hatch. */}
+            <SettingsPanel>
+              <SettingsPanelRow>
+                <SettingsRow
+                  label={t("settingsPage.developer.resetAppData")}
+                  description={t("settingsPage.developer.resetAppDataDescription")}
+                >
+                  <Button
+                    onClick={() => {
+                      showConfirmDialog({
+                        title: t("settingsPage.developer.resetAll.title"),
+                        description: t("settingsPage.developer.resetAll.description"),
+                        onConfirm: () => {
+                          window.electronAPI
+                            ?.cleanupApp()
+                            .then(() => {
+                              showAlertDialog({
+                                title: t("settingsPage.developer.resetAll.successTitle"),
+                                description: t(
+                                  "settingsPage.developer.resetAll.successDescription"
+                                ),
+                              });
+                              setTimeout(() => {
+                                window.location.reload();
+                              }, 1000);
+                            })
+                            .catch(() => {
+                              showAlertDialog({
+                                title: t("settingsPage.developer.resetAll.failedTitle"),
+                                description: t(
+                                  "settingsPage.developer.resetAll.failedDescription"
+                                ),
+                              });
+                            });
+                        },
+                        variant: "destructive",
+                        confirmText: t("settingsPage.developer.resetAll.confirmText"),
+                      });
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:border-destructive"
                   >
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={systemUpdateAction.onClick}
-                      disabled={systemUpdateAction.disabled}
-                    >
-                      {systemUpdateAction.label}
-                    </Button>
-                  </SettingsRow>
-                </SettingsPanelRow>
-              </SettingsPanel>
-            </div>
+                    {t("common.reset")}
+                  </Button>
+                </SettingsRow>
+              </SettingsPanelRow>
+            </SettingsPanel>
 
-            {/* Developer Tools */}
-            <div className="border-t border-border/40 pt-6">
-              <DeveloperSection />
-            </div>
+            {/* Advanced — power-user-only surfaces (debug logs + model cache).
+                Default-collapsed so the System page stays calm for typical users. */}
+            <div className="settings-advanced-disclosure">
+              <button
+                type="button"
+                onClick={() => setShowAdvancedSystem((v) => !v)}
+                className="settings-advanced-toggle"
+                aria-expanded={showAdvancedSystem}
+              >
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 transition-transform duration-200",
+                    showAdvancedSystem && "rotate-180"
+                  )}
+                />
+                <span>{t("settingsPage.system.advanced.title")}</span>
+                <span className="settings-advanced-hint">
+                  {t("settingsPage.system.advanced.description")}
+                </span>
+              </button>
 
-            {/* Data Management */}
-            <div className="border-t border-border/40 pt-6">
-              <SectionHeader
-                title={t("settingsPage.developer.dataManagementTitle")}
-                description={t("settingsPage.developer.dataManagementDescription")}
-              />
+              {showAdvancedSystem && (
+                <div className="space-y-6 pt-4">
+                  <DeveloperSection />
 
-              <div className="space-y-4">
-                <SettingsPanel>
-                  <SettingsPanelRow>
-                    <SettingsRow
-                      label={t("settingsPage.developer.modelCache")}
-                      description={cachePathHint}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => window.electronAPI?.openWhisperModelsFolder?.()}
-                        >
-                          <FolderOpen className="mr-1.5 h-3.5 w-3.5" />
-                          {t("settingsPage.developer.open")}
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={handleRemoveModels}
-                          disabled={isRemovingModels}
-                        >
-                          {isRemovingModels
-                            ? t("settingsPage.developer.removing")
-                            : t("settingsPage.developer.clearCache")}
-                        </Button>
-                      </div>
-                    </SettingsRow>
-                  </SettingsPanelRow>
-                </SettingsPanel>
-
-                <SettingsPanel>
-                  <SettingsPanelRow>
-                    <SettingsRow
-                      label={t("settingsPage.developer.resetAppData")}
-                      description={t("settingsPage.developer.resetAppDataDescription")}
-                    >
-                      <Button
-                        onClick={() => {
-                          showConfirmDialog({
-                            title: t("settingsPage.developer.resetAll.title"),
-                            description: t("settingsPage.developer.resetAll.description"),
-                            onConfirm: () => {
-                              window.electronAPI
-                                ?.cleanupApp()
-                                .then(() => {
-                                  showAlertDialog({
-                                    title: t("settingsPage.developer.resetAll.successTitle"),
-                                    description: t(
-                                      "settingsPage.developer.resetAll.successDescription"
-                                    ),
-                                  });
-                                  setTimeout(() => {
-                                    window.location.reload();
-                                  }, 1000);
-                                })
-                                .catch(() => {
-                                  showAlertDialog({
-                                    title: t("settingsPage.developer.resetAll.failedTitle"),
-                                    description: t(
-                                      "settingsPage.developer.resetAll.failedDescription"
-                                    ),
-                                  });
-                                });
-                            },
-                            variant: "destructive",
-                            confirmText: t("settingsPage.developer.resetAll.confirmText"),
-                          });
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:border-destructive"
+                  <SettingsPanel>
+                    <SettingsPanelRow>
+                      <SettingsRow
+                        label={t("settingsPage.developer.modelCache")}
+                        description={cachePathHint}
                       >
-                        {t("common.reset")}
-                      </Button>
-                    </SettingsRow>
-                  </SettingsPanelRow>
-                </SettingsPanel>
-              </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.electronAPI?.openWhisperModelsFolder?.()}
+                          >
+                            <FolderOpen className="mr-1.5 h-3.5 w-3.5" />
+                            {t("settingsPage.developer.open")}
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleRemoveModels}
+                            disabled={isRemovingModels}
+                          >
+                            {isRemovingModels
+                              ? t("settingsPage.developer.removing")
+                              : t("settingsPage.developer.clearCache")}
+                          </Button>
+                        </div>
+                      </SettingsRow>
+                    </SettingsPanelRow>
+                  </SettingsPanel>
+                </div>
+              )}
             </div>
           </div>
         );

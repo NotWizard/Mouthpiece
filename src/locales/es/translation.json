@@ -1065,7 +1065,11 @@
       "description": "Consulta la versión instalada y administra los datos locales de la app.",
       "title": "Sistema",
       "versionDescription": "Instalada en este dispositivo",
-      "versionPlaceholder": "—"
+      "versionPlaceholder": "—",
+      "advanced": {
+        "title": "Avanzado",
+        "description": "Registros de desarrollo y gestión del almacenamiento"
+      }
     },
     "prompts": {
       "description": "Visualiza, personaliza y prueba el prompt de sistema unificado que impulsa la corrección de texto y la detección de instrucciones",

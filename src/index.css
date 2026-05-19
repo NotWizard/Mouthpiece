@@ -912,6 +912,56 @@ a:hover {
   margin-bottom: 10px;
 }
 
+/* Collapsible "Advanced" disclosure used at the bottom of the System settings
+   page to hide power-user surfaces (debug logs, model cache) behind a single
+   click without removing the escape hatch. Subdued by default — primary tint
+   only on hover and when expanded. */
+.settings-advanced-disclosure {
+  border-top: 1px dashed var(--mp-control-border);
+  padding-top: 16px;
+}
+
+.settings-advanced-toggle {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-left: -8px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--mp-control-text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.settings-advanced-toggle > svg {
+  align-self: center;
+  color: currentColor;
+}
+
+.settings-advanced-toggle:hover {
+  background: color-mix(in srgb, var(--color-foreground) 5%, transparent);
+  color: var(--color-foreground);
+}
+
+.settings-advanced-toggle[aria-expanded="true"] {
+  color: var(--color-primary);
+}
+
+.settings-advanced-hint {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--mp-control-text-muted);
+  opacity: 0.78;
+}
+
+.settings-advanced-toggle:hover .settings-advanced-hint,
+.settings-advanced-toggle[aria-expanded="true"] .settings-advanced-hint {
+  opacity: 1;
+}
+
 .settings-section-header h3 {
   font-size: 13px;
   font-weight: 600;

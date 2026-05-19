@@ -1065,7 +1065,11 @@
       "description": "查看已安装版本并管理本地应用数据。",
       "title": "系统",
       "versionDescription": "已安装在此设备上",
-      "versionPlaceholder": "—"
+      "versionPlaceholder": "—",
+      "advanced": {
+        "title": "高级选项",
+        "description": "开发者日志与存储管理"
+      }
     },
     "prompts": {
       "description": "查看、自定义和测试用于文本整理和指令识别的统一系统提示词",

@@ -1065,7 +1065,11 @@
       "description": "Installierte Version anzeigen und lokale App-Daten verwalten.",
       "title": "System",
       "versionDescription": "Auf diesem Gerät installiert",
-      "versionPlaceholder": "—"
+      "versionPlaceholder": "—",
+      "advanced": {
+        "title": "Erweitert",
+        "description": "Entwicklerprotokolle und Speicherverwaltung"
+      }
     },
     "prompts": {
       "description": "Den einheitlichen System-Prompt anzeigen, anpassen und testen, der Textbereinigung und Anweisungserkennung steuert",

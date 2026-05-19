@@ -1065,7 +1065,11 @@
       "description": "View the installed app version and manage local app data.",
       "title": "System",
       "versionDescription": "Installed on this device",
-      "versionPlaceholder": "—"
+      "versionPlaceholder": "—",
+      "advanced": {
+        "title": "Advanced",
+        "description": "Developer logs and storage management"
+      }
     },
     "prompts": {
       "description": "View, customize, and test the unified system prompt that powers text cleanup and instruction detection",

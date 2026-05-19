@@ -1027,7 +1027,11 @@
       "description": "インストール済みバージョンを確認し、ローカルアプリデータを管理します。",
       "title": "システム",
       "versionDescription": "このデバイスにインストール済み",
-      "versionPlaceholder": "—"
+      "versionPlaceholder": "—",
+      "advanced": {
+        "title": "詳細設定",
+        "description": "開発者ログとストレージ管理"
+      }
     },
     "prompts": {
       "description": "テキスト補正と指示検出を行う統合システムプロンプトの表示、カスタマイズ、テスト",

@@ -214,24 +214,24 @@ export default function ControlPanel() {
 
       if (!status) {
         showAlertDialog({
-          title: t("settingsModal.updates.dialogs.checkFailed.title"),
-          description: t("settingsModal.updates.dialogs.checkFailed.description"),
+          title: t("settingsPage.general.updates.dialogs.checkFailed.title"),
+          description: t("settingsPage.general.updates.dialogs.checkFailed.description"),
         });
         return;
       }
 
       if (status.status === "unsupported") {
         showAlertDialog({
-          title: t("settingsModal.updates.dialogs.checkFailed.title"),
-          description: t("settingsModal.updates.devMode"),
+          title: t("settingsPage.general.updates.dialogs.checkFailed.title"),
+          description: t("settingsPage.general.updates.devMode"),
         });
         return;
       }
 
       if (status.status === "error") {
         showAlertDialog({
-          title: t("settingsModal.updates.dialogs.checkFailed.title"),
-          description: status.error || t("settingsModal.updates.dialogs.checkFailed.description"),
+          title: t("settingsPage.general.updates.dialogs.checkFailed.title"),
+          description: status.error || t("settingsPage.general.updates.dialogs.checkFailed.description"),
         });
         return;
       }
@@ -239,10 +239,10 @@ export default function ControlPanel() {
       if (status.status === "downloading") {
         const version = status.updateInfo?.version || status.updateInfo?.releaseName;
         showAlertDialog({
-          title: t("settingsModal.updates.dialogs.updateAvailable.title"),
+          title: t("settingsPage.general.updates.dialogs.updateAvailable.title"),
           description: version
-            ? t("settingsModal.updates.dialogs.updateAvailable.description", { version })
-            : t("settingsModal.updates.newVersionAvailable"),
+            ? t("settingsPage.general.updates.dialogs.updateAvailable.description", { version })
+            : t("settingsPage.general.updates.newVersionAvailable"),
         });
         return;
       }
@@ -257,16 +257,16 @@ export default function ControlPanel() {
       }
 
       showAlertDialog({
-        title: t("settingsModal.updates.dialogs.noUpdates.title"),
-        description: t("settingsModal.updates.dialogs.noUpdates.description"),
+        title: t("settingsPage.general.updates.dialogs.noUpdates.title"),
+        description: t("settingsPage.general.updates.dialogs.noUpdates.description"),
       });
     } catch (error) {
       showAlertDialog({
-        title: t("settingsModal.updates.dialogs.checkFailed.title"),
+        title: t("settingsPage.general.updates.dialogs.checkFailed.title"),
         description:
           error instanceof Error && error.message
             ? error.message
-            : t("settingsModal.updates.dialogs.checkFailed.description"),
+            : t("settingsPage.general.updates.dialogs.checkFailed.description"),
       });
     }
   }, [handleInstallUpdate, showAlertDialog, t]);

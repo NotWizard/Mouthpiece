@@ -1065,7 +1065,11 @@
       "description": "Consultez la version installée et gérez les données locales de l’application.",
       "title": "Système",
       "versionDescription": "Installée sur cet appareil",
-      "versionPlaceholder": "—"
+      "versionPlaceholder": "—",
+      "advanced": {
+        "title": "Avancé",
+        "description": "Journaux de développement et gestion du stockage"
+      }
     },
     "prompts": {
       "description": "Affichez, personnalisez et testez le prompt système unifié qui gère la correction du texte et la détection des instructions",

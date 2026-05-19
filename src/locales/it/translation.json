@@ -1065,7 +1065,11 @@
       "description": "Visualizza la versione installata e gestisci i dati locali dell'app.",
       "title": "Sistema",
       "versionDescription": "Installata su questo dispositivo",
-      "versionPlaceholder": "—"
+      "versionPlaceholder": "—",
+      "advanced": {
+        "title": "Avanzate",
+        "description": "Log di sviluppo e gestione dell'archiviazione"
+      }
     },
     "prompts": {
       "description": "Visualizza, personalizza e testa il prompt di sistema unificato che gestisce la correzione del testo e il rilevamento delle istruzioni",

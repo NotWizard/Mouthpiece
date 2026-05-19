@@ -1052,7 +1052,11 @@
       "description": "Veja a versão instalada e gerencie os dados locais do app.",
       "title": "Sistema",
       "versionDescription": "Instalada neste dispositivo",
-      "versionPlaceholder": "—"
+      "versionPlaceholder": "—",
+      "advanced": {
+        "title": "Avançado",
+        "description": "Logs de desenvolvedor e gerenciamento de armazenamento"
+      }
     },
     "prompts": {
       "description": "Visualize, personalize e teste o prompt de sistema unificado que alimenta a limpeza de texto e a detecção de instruções",

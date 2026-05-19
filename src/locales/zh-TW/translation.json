@@ -1065,7 +1065,11 @@
       "description": "查看已安裝版本並管理本機應用資料。",
       "title": "系統",
       "versionDescription": "已安裝於此裝置",
-      "versionPlaceholder": "—"
+      "versionPlaceholder": "—",
+      "advanced": {
+        "title": "進階選項",
+        "description": "開發者記錄與儲存管理"
+      }
     },
     "prompts": {
       "description": "檢視、自訂和測試用於文字整理和指令偵測的統一系統提示詞",
