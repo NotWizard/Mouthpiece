@@ -4,12 +4,11 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "./
 import { getReservedShortcuts, getValidExamples, type Platform } from "../../utils/hotkeyValidator";
 import { formatHotkeyLabelForPlatform } from "../../utils/hotkeys";
 
-type AccordionPlatform = "macos" | "windows" | "linux";
+type AccordionPlatform = "macos" | "windows";
 
 const PLATFORM_MAP: Record<AccordionPlatform, Platform> = {
   macos: "darwin",
   windows: "win32",
-  linux: "linux",
 };
 
 interface HotkeyGuidanceAccordionProps {
@@ -25,7 +24,6 @@ export function HotkeyGuidanceAccordion({
   const [showAll, setShowAll] = useState<Record<AccordionPlatform, boolean>>({
     macos: false,
     windows: false,
-    linux: false,
   });
 
   const recommendedByPlatform: Record<AccordionPlatform, string[]> = {
@@ -42,13 +40,6 @@ export function HotkeyGuidanceAccordion({
       t("hotkeyGuidance.recommended.windows.2"),
       t("hotkeyGuidance.recommended.windows.3"),
     ],
-    linux: [
-      t("hotkeyGuidance.recommended.linux.0"),
-      t("hotkeyGuidance.recommended.linux.1"),
-      t("hotkeyGuidance.recommended.linux.2"),
-      t("hotkeyGuidance.recommended.linux.3"),
-      t("hotkeyGuidance.recommended.linux.4"),
-    ],
   };
 
   const validationRules = [
@@ -61,7 +52,6 @@ export function HotkeyGuidanceAccordion({
   const platformLabels: Record<AccordionPlatform, string> = {
     macos: t("hotkeyGuidance.platforms.macos"),
     windows: t("hotkeyGuidance.platforms.windows"),
-    linux: t("hotkeyGuidance.platforms.linux"),
   };
 
   const renderReserved = (platformKey: AccordionPlatform) => {
@@ -174,7 +164,6 @@ export function HotkeyGuidanceAccordion({
       <Accordion type="single" collapsible defaultValue={defaultValue}>
         {renderSection("macos")}
         {renderSection("windows")}
-        {renderSection("linux")}
       </Accordion>
     </div>
   );

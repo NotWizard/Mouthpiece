@@ -24,7 +24,6 @@ const WINDOWS_MODIFIER_ONLY_OPTIONS = [
 const COMBO_MODIFIERS_BY_PLATFORM = {
   darwin: [{ hotkey: "Command" }, { hotkey: "Control" }, { hotkey: "Alt" }, { hotkey: "Shift" }],
   win32: [{ hotkey: "Control" }, { hotkey: "Alt" }, { hotkey: "Shift" }, { hotkey: "Super" }],
-  linux: [{ hotkey: "Control" }, { hotkey: "Alt" }, { hotkey: "Shift" }, { hotkey: "Super" }],
 };
 
 const MODIFIER_SORT_ORDER = [
@@ -99,7 +98,6 @@ function splitHotkey(hotkey) {
 
 export function getHotkeyBuilderCapabilities({
   platform = "darwin",
-  isUsingGnome = false,
 } = {}) {
   if (platform === "darwin") {
     return {
@@ -110,20 +108,11 @@ export function getHotkeyBuilderCapabilities({
     };
   }
 
-  if (platform === "win32") {
-    return {
-      allowModifierOnlyMode: true,
-      allowModifierOnlyMultiSelect: true,
-      modifierOnlyOptions: WINDOWS_MODIFIER_ONLY_OPTIONS,
-      comboModifierOptions: COMBO_MODIFIERS_BY_PLATFORM.win32,
-    };
-  }
-
   return {
-    allowModifierOnlyMode: !isUsingGnome,
-    allowModifierOnlyMultiSelect: !isUsingGnome,
-    modifierOnlyOptions: isUsingGnome ? [] : COMBO_MODIFIERS_BY_PLATFORM.linux,
-    comboModifierOptions: COMBO_MODIFIERS_BY_PLATFORM.linux,
+    allowModifierOnlyMode: true,
+    allowModifierOnlyMultiSelect: true,
+    modifierOnlyOptions: WINDOWS_MODIFIER_ONLY_OPTIONS,
+    comboModifierOptions: COMBO_MODIFIERS_BY_PLATFORM.win32,
   };
 }
 
@@ -167,9 +156,8 @@ export function buildHotkeyFromBuilderState({
 export function parseHotkeyToBuilderState({
   hotkey = "",
   platform = "darwin",
-  isUsingGnome = false,
 } = {}) {
-  const capabilities = getHotkeyBuilderCapabilities({ platform, isUsingGnome });
+  const capabilities = getHotkeyBuilderCapabilities({ platform });
   const parts = splitHotkey(hotkey);
 
   if (parts.length === 0) {

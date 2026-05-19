@@ -4,7 +4,7 @@
 
 # Mouthpiece
 
-An open-source desktop dictation workstation for macOS, Windows, and Linux.  
+An open-source desktop dictation workstation for macOS and Windows.  
 Mouthpiece turns “press a hotkey, speak, and get text back into the app you are using” into a full desktop workflow: recording capsule, transcription engines, dictionary, optional AI post-processing, history, permission guidance, control panel, and app updates all live in one product.
 
 中文 README: [README.md](README.md)
@@ -211,7 +211,6 @@ npm run build:renderer
 # Platform builds
 npm run build:mac
 npm run build:win
-npm run build:linux
 ```
 
 If you just want to use the app, the packaged builds from Releases are the recommended path.

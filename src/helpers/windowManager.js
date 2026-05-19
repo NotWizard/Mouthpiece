@@ -106,7 +106,7 @@ class WindowManager {
   }
 
   canUseDictationCancelShortcut() {
-    return !(process.platform === "linux" && this.hotkeyManager.isUsingGnome());
+    return true;
   }
 
   registerDictationCancelShortcut() {
@@ -265,7 +265,6 @@ class WindowManager {
       const automaticActivation = getAutomaticActivationSupport({
         platform: process.platform,
         hotkey: currentHotkey,
-        isUsingGnome: this.isUsingGnomeHotkeys(),
         windowsListenerAvailable: this.windowsNativeHotkeyEnabled,
       });
 
@@ -502,10 +501,6 @@ class WindowManager {
 
   async updateHotkey(hotkey) {
     return await this.hotkeyManager.updateHotkey(hotkey, this.createHotkeyCallback());
-  }
-
-  isUsingGnomeHotkeys() {
-    return this.hotkeyManager.isUsingGnome();
   }
 
   async startWindowDrag() {

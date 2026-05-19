@@ -54,29 +54,6 @@ releaseDate: '2026-03-19T00:00:00.000Z'
   assert.match(merged, /Mouthpiece-1\.2\.3-arm64\.dmg/);
 });
 
-test("validateReleaseAssets rejects releases missing Linux updater metadata", async () => {
-  const { validateReleaseAssets } = await loadReleaseMetadataModule();
-
-  assert.throws(
-    () =>
-      validateReleaseAssets({
-        assetNames: [
-          "latest.yml",
-          "latest-mac.yml",
-          "latest-arm64-mac.yml",
-          "latest-x64-mac.yml",
-          "Mouthpiece-Setup-1.2.3.exe",
-          "Mouthpiece-1.2.3-mac.zip",
-          "Mouthpiece-1.2.3-arm64-mac.zip",
-          "Mouthpiece-1.2.3.dmg",
-          "Mouthpiece-1.2.3-arm64.dmg",
-          "Mouthpiece-1.2.3-linux-x86_64.AppImage",
-        ],
-      }),
-    /latest-linux\.yml/,
-  );
-});
-
 test("renderHomebrewCask builds the Mouthpiece cask from release asset digests", async () => {
   const { getHomebrewCaskReleaseInfo, renderHomebrewCask } = await loadReleaseMetadataModule();
 
@@ -131,10 +108,9 @@ test("getHomebrewCaskReleaseInfo rejects DMG assets without GitHub sha256 digest
   );
 });
 
-test("release workflow uploads Linux metadata, merges mac metadata, and validates release assets", async () => {
+test("release workflow merges mac metadata and validates release assets", async () => {
   const workflowSource = await readRepoFile(".github/workflows/release.yml");
 
-  assert.match(workflowSource, /latest-linux\.yml/);
   assert.match(workflowSource, /merge-mac-update-metadata\.mjs/);
   assert.match(workflowSource, /validate-release-assets\.mjs/);
   assert.match(workflowSource, /update-homebrew-cask\.mjs/);

@@ -17,7 +17,6 @@ import { NEON_AUTH_URL } from "../lib/neonAuth";
 import MicPermissionWarning from "./ui/MicPermissionWarning";
 import MicrophoneSettings from "./ui/MicrophoneSettings";
 import PermissionCard from "./ui/PermissionCard";
-import PasteToolsInfo from "./ui/PasteToolsInfo";
 import TranscriptionModelPicker from "./TranscriptionModelPicker";
 import { ConfirmDialog, AlertDialog } from "./ui/dialog";
 import {
@@ -678,8 +677,6 @@ export default function SettingsPage({
     []
   );
 
-  const [isUsingGnomeHotkeys, setIsUsingGnomeHotkeys] = useState(false);
-
   const platform = getCachedPlatform();
 
   const [autoStartEnabled, setAutoStartEnabled] = useState(false);
@@ -769,10 +766,6 @@ export default function SettingsPage({
   }, [onCheckForUpdates, onInstallUpdate, t, updateStatus]);
 
   useEffect(() => {
-    if (platform === "linux") {
-      setAutoStartLoading(false);
-      return;
-    }
     const loadAutoStart = async () => {
       if (window.electronAPI?.getAutoStartEnabled) {
         try {
@@ -785,7 +778,7 @@ export default function SettingsPage({
       setAutoStartLoading(false);
     };
     loadAutoStart();
-  }, [platform]);
+  }, []);
 
   const handleAutoStartChange = async (enabled: boolean) => {
     if (window.electronAPI?.setAutoStartEnabled) {
@@ -828,20 +821,6 @@ export default function SettingsPage({
       clearTimeout(timer);
     };
   }, [checkWhisperInstallation]);
-
-  useEffect(() => {
-    const checkHotkeyMode = async () => {
-      try {
-        const info = await window.electronAPI?.getHotkeyModeInfo();
-        if (info?.isUsingGnome) {
-          setIsUsingGnomeHotkeys(true);
-        }
-      } catch (error) {
-        logger.error("Failed to check hotkey mode", error, "settings");
-      }
-    };
-    checkHotkeyMode();
-  }, []);
 
   const resetAccessibilityPermissions = () => {
     const message = t("settingsPage.permissions.resetAccessibility.description");
@@ -1005,25 +984,23 @@ export default function SettingsPage({
             </div>
 
             {/* Startup */}
-            {platform !== "linux" && (
-              <div>
-                <SectionHeader title={t("settingsPage.general.startup.title")} />
-                <SettingsPanel>
-                  <SettingsPanelRow>
-                    <SettingsRow
-                      label={t("settingsPage.general.startup.launchAtLogin")}
-                      description={t("settingsPage.general.startup.launchAtLoginDescription")}
-                    >
-                      <Toggle
-                        checked={autoStartEnabled}
-                        onChange={(checked: boolean) => handleAutoStartChange(checked)}
-                        disabled={autoStartLoading}
-                      />
-                    </SettingsRow>
-                  </SettingsPanelRow>
-                </SettingsPanel>
-              </div>
-            )}
+            <div>
+              <SectionHeader title={t("settingsPage.general.startup.title")} />
+              <SettingsPanel>
+                <SettingsPanelRow>
+                  <SettingsRow
+                    label={t("settingsPage.general.startup.launchAtLogin")}
+                    description={t("settingsPage.general.startup.launchAtLoginDescription")}
+                  >
+                    <Toggle
+                      checked={autoStartEnabled}
+                      onChange={(checked: boolean) => handleAutoStartChange(checked)}
+                      disabled={autoStartLoading}
+                    />
+                  </SettingsRow>
+                </SettingsPanelRow>
+              </SettingsPanel>
+            </div>
 
             {/* Microphone */}
             <div>
@@ -1087,11 +1064,6 @@ export default function SettingsPage({
                   <p className="text-xs leading-relaxed text-muted-foreground/70">
                     {t("settingsPage.general.hotkey.activationBehaviorDescription")}
                   </p>
-                  {isUsingGnomeHotkeys && (
-                    <p className="text-xs leading-relaxed text-muted-foreground/60">
-                      {t("settingsPage.general.hotkey.activationBehaviorFallback")}
-                    </p>
-                  )}
                 </SettingsPanelRow>
               </SettingsPanel>
             </div>
@@ -1289,16 +1261,6 @@ export default function SettingsPage({
                 onOpenPrivacySettings={permissionsHook.openMicPrivacySettings}
               />
             )}
-
-            {platform === "linux" &&
-              permissionsHook.pasteToolsInfo &&
-              !permissionsHook.pasteToolsInfo.available && (
-                <PasteToolsInfo
-                  pasteToolsInfo={permissionsHook.pasteToolsInfo}
-                  isChecking={permissionsHook.isCheckingPasteTools}
-                  onCheck={permissionsHook.checkPasteToolsAvailability}
-                />
-              )}
 
             {platform === "darwin" && (
               <div className="mt-5">

@@ -4,7 +4,7 @@
 
 # Mouthpiece
 
-开源桌面听写工作台，支持 macOS、Windows 与 Linux。<br/>
+开源桌面听写工作台，支持 macOS 与 Windows。<br/>
 它把“按下热键开始说话、把文本安全送回当前应用”这件事做成了一套完整的桌面流程：录音胶囊、转录引擎、词典、智能后处理、历史记录、权限引导、控制面板和系统更新都已经整合到同一个应用里。
 
 English README: [README.en.md](README.en.md)
@@ -211,7 +211,6 @@ npm run build:renderer
 # 平台构建
 npm run build:mac
 npm run build:win
-npm run build:linux
 ```
 
 如果你只是在使用应用，而不是参与开发，优先建议直接从 Releases 下载打包版本。

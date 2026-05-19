@@ -10,18 +10,17 @@ interface MicPermissionWarningProps {
   onOpenPrivacySettings: () => void;
 }
 
-type Platform = "darwin" | "win32" | "linux";
+type Platform = "darwin" | "win32";
 
 const getPlatform = (): Platform => {
   if (typeof window !== "undefined" && window.electronAPI?.getPlatform) {
     const p = window.electronAPI.getPlatform();
-    if (p === "darwin" || p === "win32" || p === "linux") return p;
+    if (p === "darwin" || p === "win32") return p;
   }
   // Fallback to user agent
   if (typeof navigator !== "undefined") {
     const ua = navigator.userAgent.toLowerCase();
     if (ua.includes("mac")) return "darwin";
-    if (ua.includes("linux")) return "linux";
   }
   return "win32";
 };
@@ -48,12 +47,6 @@ export default function MicPermissionWarning({
         soundLabel: t("hooks.permissions.warning.soundLabel"),
         privacyLabel: t("hooks.permissions.warning.privacyLabel"),
         showPrivacyButton: true,
-      },
-      linux: {
-        message: t("hooks.permissions.warning.messages.linux"),
-        soundLabel: t("hooks.permissions.warning.soundLabel"),
-        privacyLabel: "",
-        showPrivacyButton: false,
       },
     };
     return platformConfig[getPlatform()];

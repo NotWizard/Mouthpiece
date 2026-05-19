@@ -71,7 +71,7 @@
   },
   "systemSettings": {
     "microphone": "Abre la configuración del sistema para permisos de micrófono.",
-    "sound": "Abre la configuración de sonido del sistema (por ejemplo, pavucontrol).",
+    "sound": "Abre los ajustes de sonido del sistema para elegir un dispositivo de entrada.",
     "accessibility": "La configuración de accesibilidad no está disponible en esta plataforma."
   },
   "titleBar": {
@@ -158,7 +158,6 @@
       "hotkey": "Atajo",
       "mode": "Modo",
       "modeDescription": "Una pulsación corta activa o detiene el dictado. Una pulsación larga graba solo mientras mantienes la tecla presionada cuando el sistema lo permite.",
-      "modeFallbackDescription": "Tu sistema actual de atajos solo admite la activación con pulsación corta, así que Mouthpiece cambiará automáticamente cuando la detección de liberación no esté disponible.",
       "tapDescription": "Pulsa para iniciar/detener",
       "holdDescription": "Mantén pulsado mientras hablas",
       "test": "Prueba",
@@ -404,9 +403,7 @@
     "permissions": {
       "paths": {
         "windowsMicrophone": "Configuración -> Privacidad -> Micrófono",
-        "linuxSound": "la configuración de sonido del sistema",
         "defaultSound": "Configuración del sistema -> Sonido -> Entrada",
-        "linuxPrivacy": "la configuración de privacidad del sistema",
         "defaultPrivacy": "Configuración del sistema -> Privacidad y seguridad -> Micrófono"
       },
       "micErrors": {
@@ -433,34 +430,20 @@
         "microphoneUnavailable": "Micrófono no disponible",
         "microphonePermissionRequired": "Permiso de micrófono requerido",
         "accessibilityNeeded": "Permisos de accesibilidad necesarios",
-        "readyToGo": "¡Listo!",
-        "waylandClipboardMode": "Modo portapapeles en Wayland",
-        "optionalPasteTool": "Opcional: instalar herramienta de pegado"
+        "readyToGo": "¡Listo!"
       },
       "descriptions": {
         "accessibilityNeeded": "Concede permisos de accesibilidad en la configuración del sistema para habilitar el pegado automático.",
-        "windowsReady": "Windows no requiere permisos especiales para pegado automático. ¡Todo listo!",
-        "linuxReadyWithMethod": "El pegado automático está disponible usando {{method}}. ¡Todo listo!",
-        "waylandClipboardMode": "El pegado automático no está disponible en esta sesión Wayland. Mouthpiece copiará el texto al portapapeles y podrás pegar con Ctrl+V.",
-        "optionalPasteTool": "Para pegado automático, instala {{tool}}:\n\n{{installCmd}}{{waylandNote}}\n\nSin esto, aún puedes usar Mouthpiece: el texto se copiará al portapapeles y podrás pegar con Ctrl+V."
+        "windowsReady": "Windows no requiere permisos especiales para pegado automático. ¡Todo listo!"
       },
       "alerts": {
         "accessibilityNeeded": "Se requieren permisos de accesibilidad. Concédelos en la configuración del sistema."
-      },
-      "notes": {
-        "waylandWtype": "\n\nNota: para apps XWayland, xdotool también funciona.",
-        "waylandXwaylandOnly": "\n\nNota: el pegado automático funciona solo en apps XWayland."
-      },
-      "labels": {
-        "defaultPasteTool": "xdotool",
-        "xdotoolXwayland": "xdotool (apps XWayland)"
       },
       "accessibilityTestText": "Prueba de accesibilidad de Mouthpiece",
       "warning": {
         "messages": {
           "macos": "Revisa la configuración de Sonido para seleccionar tu dispositivo de entrada",
-          "windows": "Revisa la Configuración de Windows para seleccionar tu dispositivo de entrada",
-          "linux": "Revisa la configuración de sonido del sistema para seleccionar tu dispositivo de entrada"
+          "windows": "Revisa la Configuración de Windows para seleccionar tu dispositivo de entrada"
         },
         "soundLabel": "Sonido",
         "privacyLabel": "Privacidad"
@@ -640,18 +623,10 @@
     "description": "Usa estas reglas de plataforma para elegir un atajo que no entre en conflicto con tu sistema.",
     "examplesTitle": "Ejemplos válidos",
     "platforms": {
-      "linux": "Linux",
       "macos": "macOS",
       "windows": "Windows"
     },
     "recommended": {
-      "linux": {
-        "0": "Ctrl+Space",
-        "1": "Super+S",
-        "2": "Alt+D",
-        "3": "Shift+J",
-        "4": "Alt+Space"
-      },
       "macos": {
         "0": "⌃Space",
         "1": "⌥S",
@@ -689,7 +664,6 @@
     "hotkeyLabel": "Atajo",
     "modeLabel": "Shortcut type",
     "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
-    "modifierOnlyUnavailable": "Modifier-only shortcuts are not available with your current shortcut system. Choose a key combo instead.",
     "modifiersLabel": "Modifiers",
     "modes": {
       "keyCombo": "Key combo",
@@ -750,30 +724,6 @@
     "selectPlaceholder": "Selecciona un micrófono",
     "systemDefault": "Predeterminado del sistema",
     "unknownDevice": "Dispositivo desconocido"
-  },
-  "pasteToolsInfo": {
-    "checking": "Verificando capacidades del sistema...",
-    "installCommands": {
-      "archLinux": "# Arch Linux",
-      "debianUbuntu": "# Debian / Ubuntu",
-      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
-      "fedoraRhel": "# Fedora / RHEL"
-    },
-    "installPrefix": "Para pegado automático de texto, instala",
-    "methodReady": "para pegado automático de texto",
-    "noteXwaylandAlso": "Nota: para apps XWayland, xdotool también funciona.",
-    "noteXwaylandOnly": "Nota: el pegado automático funciona solo en apps XWayland.",
-    "optionalEnableTitle": "Opcional: activar pegado automático",
-    "readyTitle": "Pegado automático listo",
-    "recheck": "Verificar de nuevo",
-    "recheckChecking": "Verificando...",
-    "title": "Pegado automático",
-    "usingMethodPrefix": "Usando",
-    "waylandClipboardDescription": "El pegado automático no está disponible en esta sesión Wayland. Mouthpiece copiará el texto al portapapeles para que puedas pegarlo manualmente con Ctrl+V.",
-    "waylandClipboardTitle": "Modo portapapeles en Wayland",
-    "windowsReady": "Windows es compatible con el pegado automático de forma nativa. ¡No se requiere configuración!",
-    "withoutToolPrefix": "Sin esta herramienta, Mouthpiece copiará el texto al portapapeles. Luego puedes pegarlo manualmente con Ctrl+V.",
-    "xwaylandAppsOnly": "el pegado automático funciona solo en apps XWayland"
   },
   "promptStudio": {
     "common": {
@@ -1010,7 +960,6 @@
       "hotkey": {
         "activationBehavior": "Activación automática",
         "activationBehaviorDescription": "Una pulsación corta activa o detiene el dictado. Una pulsación larga graba solo mientras mantienes la tecla presionada cuando el sistema puede detectar la liberación.",
-        "activationBehaviorFallback": "Tu sistema actual de atajos solo admite la pulsación corta, así que Mouthpiece cambiará automáticamente.",
         "activationMode": "Modo de activación",
         "description": "La combinación de teclas que inicia y detiene el dictado por voz",
         "resetToDefault": "Restablecer a {{hotkey}}",

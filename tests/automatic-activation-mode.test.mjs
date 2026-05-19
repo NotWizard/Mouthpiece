@@ -181,22 +181,8 @@ test("automatic activation falls back to tap when key release cannot be detected
 
   assert.deepEqual(
     getAutomaticActivationSupport({
-      platform: "linux",
-      hotkey: "Alt+R",
-      isUsingGnome: true,
-    }),
-    {
-      supportsHold: false,
-      mode: "tap-only",
-      reason: "gnome-shortcut",
-    }
-  );
-
-  assert.deepEqual(
-    getAutomaticActivationSupport({
       platform: "darwin",
       hotkey: "Control+A",
-      isUsingGnome: false,
     }),
     {
       supportsHold: false,
@@ -209,7 +195,6 @@ test("automatic activation falls back to tap when key release cannot be detected
     getAutomaticActivationSupport({
       platform: "darwin",
       hotkey: "GLOBE",
-      isUsingGnome: false,
     }),
     {
       supportsHold: true,

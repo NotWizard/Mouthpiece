@@ -129,7 +129,7 @@ export function isCompoundHotkey(hotkey: string): boolean {
 /**
  * Gets the default hotkey for the current platform.
  * - macOS: GLOBE key (Fn key on modern Macs)
- * - Windows/Linux: Control+K
+ * - Windows: Control+K
  */
 export function getDefaultHotkey(): string {
   const platform = getPlatform();

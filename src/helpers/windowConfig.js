@@ -1,11 +1,6 @@
 const path = require("path");
 const ERROR_SURFACE_LAYOUT = require("../config/errorSurfaceLayout.json");
 
-const isGnomeWayland =
-  process.platform === "linux" &&
-  process.env.XDG_SESSION_TYPE === "wayland" &&
-  /gnome|ubuntu|unity/i.test(process.env.XDG_CURRENT_DESKTOP || "");
-
 const DICTATION_TOAST_WINDOW_WIDTH = Math.max(
   344,
   ERROR_SURFACE_LAYOUT.dictationToast.widthPx +
@@ -42,14 +37,7 @@ const MAIN_WINDOW_CONFIG = {
   fullScreenable: false,
   hasShadow: false,
   acceptsFirstMouse: true,
-  type:
-    process.platform === "darwin"
-      ? "panel"
-      : process.platform === "linux"
-        ? isGnomeWayland
-          ? "normal"
-          : "toolbar"
-        : "normal",
+  type: process.platform === "darwin" ? "panel" : "normal",
 };
 
 // Control panel window configuration
@@ -110,8 +98,6 @@ class WindowPositionUtil {
       }
     } else if (process.platform === "win32") {
       window.setAlwaysOnTop(true, "pop-up-menu");
-    } else if (isGnomeWayland) {
-      window.setAlwaysOnTop(true, "floating");
     } else {
       window.setAlwaysOnTop(true, "screen-saver");
     }

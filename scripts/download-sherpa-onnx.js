@@ -34,12 +34,6 @@ const BINARIES = {
     outputName: "sherpa-onnx-ws-win32-x64.exe",
     libPattern: "*.dll",
   },
-  "linux-x64": {
-    archiveName: `sherpa-onnx-v${SHERPA_ONNX_VERSION}-linux-x64-shared.tar.bz2`,
-    binaryPath: "sherpa-onnx-offline-websocket-server",
-    outputName: "sherpa-onnx-ws-linux-x64",
-    libPattern: "*.so*",
-  },
 };
 
 const BIN_DIR = path.join(__dirname, "..", "resources", "bin");
@@ -151,7 +145,7 @@ async function downloadBinary(platformArch, config, isForce = false) {
           console.log(`  ${platformArch}: Copied library ${libName}`);
         }
 
-        // Replace unversioned copies with symlinks to versioned ones (macOS/Linux only)
+        // Replace unversioned copies with symlinks to versioned ones (macOS only)
         if (process.platform !== "win32") {
           for (const [baseName, versionedName] of versionedLibs) {
             const basePath = path.join(BIN_DIR, baseName);

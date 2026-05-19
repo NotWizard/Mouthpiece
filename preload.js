@@ -99,7 +99,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   resetAccessibilityPermissions: () => ipcRenderer.invoke("reset-accessibility-permissions"),
   readClipboard: () => ipcRenderer.invoke("read-clipboard"),
   writeClipboard: (text) => ipcRenderer.invoke("write-clipboard", text),
-  checkPasteTools: () => ipcRenderer.invoke("check-paste-tools"),
 
   // Local Whisper functions (whisper.cpp)
   transcribeLocalWhisper: (audioBlob, options) =>
@@ -185,7 +184,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   updateHotkey: (hotkey) => ipcRenderer.invoke("update-hotkey", hotkey),
   setHotkeyListeningMode: (enabled, newHotkey) =>
     ipcRenderer.invoke("set-hotkey-listening-mode", enabled, newHotkey),
-  getHotkeyModeInfo: () => ipcRenderer.invoke("get-hotkey-mode-info"),
   startWindowDrag: () => ipcRenderer.invoke("start-window-drag"),
   stopWindowDrag: () => ipcRenderer.invoke("stop-window-drag"),
   setMainWindowInteractivity: (interactive) =>

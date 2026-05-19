@@ -8,7 +8,6 @@ import WindowControls from "./WindowControls";
 import PermissionCard from "./ui/PermissionCard";
 import SupportDropdown from "./ui/SupportDropdown";
 import MicPermissionWarning from "./ui/MicPermissionWarning";
-import PasteToolsInfo from "./ui/PasteToolsInfo";
 import StepProgress from "./ui/StepProgress";
 import { AlertDialog, ConfirmDialog } from "./ui/dialog";
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -65,7 +64,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [hotkey, setHotkey] = useState(dictationKey || getDefaultHotkey());
   const [skipAuth, setSkipAuth] = useState(false);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
-  const [isUsingGnomeHotkeys, setIsUsingGnomeHotkeys] = useState(false);
   const readableHotkey = formatHotkeyLabel(hotkey);
   const { alertDialog, confirmDialog, showAlertDialog, hideAlertDialog, hideConfirmDialog } =
     useDialogs();
@@ -106,20 +104,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   });
 
   const showProgress = currentStep > 0;
-
-  useEffect(() => {
-    const checkHotkeyMode = async () => {
-      try {
-        const info = await window.electronAPI?.getHotkeyModeInfo();
-        if (info?.isUsingGnome) {
-          setIsUsingGnomeHotkeys(true);
-        }
-      } catch (error) {
-        logger.error("Failed to check hotkey mode", { error }, "onboarding");
-      }
-    };
-    checkHotkeyMode();
-  }, []);
 
   const activationStepIndex = getActivationStepIndex();
   const hotkeySetupStepIndex = getHotkeySetupStepIndex();
@@ -281,7 +265,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         );
 
       case 1: // Permissions
-        const platform = permissionsHook.pasteToolsInfo?.platform;
+        const platform = getPlatform();
         const isMacOS = platform === "darwin";
 
         return (
@@ -331,16 +315,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               />
             )}
 
-            {/* Linux paste tools - only when needed */}
-            {platform === "linux" &&
-              permissionsHook.pasteToolsInfo &&
-              !permissionsHook.pasteToolsInfo.available && (
-                <PasteToolsInfo
-                  pasteToolsInfo={permissionsHook.pasteToolsInfo}
-                  isChecking={permissionsHook.isCheckingPasteTools}
-                  onCheck={permissionsHook.checkPasteToolsAvailability}
-                />
-              )}
           </div>
         );
 
@@ -413,11 +387,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           <p className="text-xs text-muted-foreground/70 mt-0.5">
             {t("onboarding.activation.modeDescription")}
           </p>
-          {isUsingGnomeHotkeys && (
-            <p className="text-xs text-muted-foreground/60">
-              {t("onboarding.activation.modeFallbackDescription")}
-            </p>
-          )}
         </div>
       </div>
 
@@ -448,7 +417,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         if (!permissionsHook.micPermissionGranted) {
           return false;
         }
-        const currentPlatform = permissionsHook.pasteToolsInfo?.platform;
+        const currentPlatform = getPlatform();
         if (currentPlatform === "darwin") {
           return permissionsHook.accessibilityPermissionGranted;
         }

@@ -38,9 +38,6 @@ The first time you use a model, Mouthpiece downloads it automatically.
 
 Whisper model files are stored under the Mouthpiece cache namespace:
 
-- macOS: `~/.cache/mouthpiece/whisper-models/`
-- Windows: `%USERPROFILE%\.cache\mouthpiece\whisper-models\`
-- Linux: `~/.cache/mouthpiece/whisper-models/`
 
 If you are upgrading from an older build, the legacy `openwhispr` cache directory (e.g. `~/.cache/openwhispr/`) may still be present and is read as a fallback for backward compatibility.
 

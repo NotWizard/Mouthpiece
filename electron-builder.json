@@ -87,7 +87,6 @@
     "resources/bin/macos-globe-listener",
     "resources/bin/macos-fast-paste",
     "resources/bin/macos-permission-flow",
-    "resources/bin/linux-fast-paste",
     {
       "from": "resources/bin/",
       "to": "bin/",
@@ -99,8 +98,7 @@
         "windows-key-listener*",
         "windows-fast-paste*",
         "*.dylib",
-        "*.dll",
-        "*.so*"
+        "*.dll"
       ]
     }
   ],
@@ -126,56 +124,6 @@
         "from": "resources/bin/nircmd.exe",
         "to": "bin/nircmd.exe"
       }
-    ]
-  },
-  "linux": {
-    "target": ["AppImage", "deb", "rpm", "tar.gz"],
-    "icon": "src/assets/icon.png",
-    "category": "Utility",
-    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
-  },
-  "flatpak": {
-    "runtime": "org.freedesktop.Platform",
-    "runtimeVersion": "24.08",
-    "sdk": "org.freedesktop.Sdk",
-    "useWaylandFlags": true,
-    "finishArgs": [
-      "--socket=wayland",
-      "--socket=fallback-x11",
-      "--share=network",
-      "--share=ipc",
-      "--device=dri",
-      "--socket=pulseaudio",
-      "--filesystem=home",
-      "--filesystem=xdg-documents",
-      "--filesystem=xdg-download",
-      "--talk-name=org.freedesktop.Notifications",
-      "--talk-name=org.freedesktop.portal.Desktop"
-    ]
-  },
-  "deb": {
-    "maintainer": "Mouthpiece Contributors <notwizard@users.noreply.github.com>",
-    "afterRemove": "resources/linux/after-remove.sh",
-    "depends": ["ydotool"],
-    "fpm": [
-      "--deb-suggests",
-      "xdotool",
-      "--deb-suggests",
-      "wtype",
-      "--deb-recommends",
-      "wl-clipboard"
-    ]
-  },
-  "rpm": {
-    "fpm": [
-      "--rpm-tag",
-      "Requires: ydotool",
-      "--rpm-tag",
-      "Suggests: xdotool",
-      "--rpm-tag",
-      "Suggests: wtype",
-      "--rpm-tag",
-      "Recommends: wl-clipboard"
     ]
   },
   "nsis": {

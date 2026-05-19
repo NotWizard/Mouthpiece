@@ -35,10 +35,6 @@ test("clipboard restore paths honor preserveClipboard across platforms", async (
   );
   assert.match(
     source,
-    /async pasteLinux\(originalClipboard, options = \{\}\) \{[\s\S]*?const shouldRestoreClipboard = !options\?\.preserveClipboard;/
-  );
-  assert.match(
-    source,
     /if \(shouldRestoreClipboard\) \{[\s\S]*?clipboard\.writeText\(originalClipboard\);[\s\S]*?this\.safeLog\("🔄 Clipboard restored"\);[\s\S]*?\}/
   );
 });

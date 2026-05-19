@@ -131,20 +131,6 @@ test("macOS packaging workflows can fall back when Apple signing secrets are una
   }
 });
 
-test("Release workflow installs Linux native build dependencies before packaging", () => {
-  const source = fs.readFileSync(
-    path.join(repoRoot, ".github", "workflows", "release.yml"),
-    "utf8"
-  );
-
-  assert.ok(
-    source.includes(
-      "sudo apt-get install -y rpm pkg-config libx11-dev libxtst-dev libatspi2.0-dev libglib2.0-dev"
-    ),
-    "release.yml should install the Linux native build dependencies required by compile:native"
-  );
-});
-
 test("Windows packaging workflows prepare MSVC for native fallback compilation", () => {
   const workflows = [".github/workflows/release.yml", ".github/workflows/build-and-notarize.yml"];
 

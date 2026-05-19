@@ -16,68 +16,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Cache native binaries
-        uses: actions/cache@v4
-        with:
-          path: resources/bin
-          key: linux-x64-bin-${{ hashFiles('scripts/download-*.js') }}
-
-      - name: Download whisper.cpp binaries
-        run: node scripts/download-whisper-cpp.js --current
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-
-      - name: Download llama-server binaries
-        run: node scripts/download-llama-server.js --current
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-
-      - name: Download sherpa-onnx binaries
-        run: node scripts/download-sherpa-onnx.js --current
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-
-      - name: Cache Electron
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/electron
-          key: linux-electron-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: linux-electron-
-
-      - name: Install Linux build and packaging dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y rpm pkg-config libx11-dev libxtst-dev libatspi2.0-dev libglib2.0-dev
-
-      - name: Build Application
-        run: npm run build:linux -- --publish never
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-          VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
-          VITE_MOUTHPIECE_API_URL: ${{ vars.VITE_MOUTHPIECE_API_URL || vars.VITE_OPENWHISPR_API_URL }}
-          VITE_MOUTHPIECE_OAUTH_CALLBACK_URL: ${{ vars.VITE_MOUTHPIECE_OAUTH_CALLBACK_URL || vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-build
-          path: dist/
-          retention-days: 7
-
   build-windows:
     runs-on: windows-latest
     steps:

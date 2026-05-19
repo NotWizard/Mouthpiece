@@ -35,11 +35,6 @@ const BINARIES = {
     outputName: "whisper-server-win32-x64.exe",
     companionPattern: /\.dll$/i,
   },
-  "linux-x64": {
-    binaryName: "whisper-server",
-    outputName: "whisper-server-linux-x64",
-    companionPattern: /\.so(\.\d+)*$/i,
-  },
 };
 
 const BIN_DIR = path.join(__dirname, "..", "resources", "bin");

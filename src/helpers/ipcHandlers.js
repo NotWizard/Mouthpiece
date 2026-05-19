@@ -5,7 +5,6 @@ const https = require("https");
 const crypto = require("crypto");
 const AppUtils = require("../utils");
 const debugLogger = require("./debugLogger");
-const GnomeShortcutManager = require("./gnomeShortcut");
 const AssemblyAiStreaming = require("./assemblyAiStreaming");
 const { i18nMain, changeLanguage } = require("./i18nMain");
 const DeepgramStreaming = require("./deepgramStreaming");
@@ -564,10 +563,6 @@ class IPCHandlers {
       return this.clipboardManager.writeClipboard(text, event.sender);
     });
 
-    ipcMain.handle("check-paste-tools", async () => {
-      return this.clipboardManager.checkPasteTools();
-    });
-
     ipcMain.handle("get-target-app-info", async () => {
       const info = this.targetAppCapture?.getLastTargetAppInfo?.() || {};
       const hasMainProcessData = Boolean(info.appName) || Number.isInteger(info.processId);
@@ -1096,14 +1091,6 @@ class IPCHandlers {
             globeKeyManager.stop();
           }
         }
-
-        // On GNOME Wayland, unregister the keybinding during capture
-        if (hotkeyManager.isUsingGnome() && hotkeyManager.gnomeManager) {
-          debugLogger.log("[IPC] Unregistering GNOME keybinding for hotkey capture mode");
-          await hotkeyManager.gnomeManager.unregisterKeybinding().catch((err) => {
-            debugLogger.warn("[IPC] Failed to unregister GNOME keybinding:", err.message);
-          });
-        }
       } else {
         // Exiting capture mode - re-register globalShortcut if not already registered
         if (effectiveHotkey && !usesNativeListener(effectiveHotkey)) {
@@ -1148,27 +1135,9 @@ class IPCHandlers {
             globeKeyManager.start();
           }
         }
-
-        // On GNOME Wayland, re-register the keybinding with the effective hotkey
-        if (hotkeyManager.isUsingGnome() && hotkeyManager.gnomeManager && effectiveHotkey) {
-          const gnomeHotkey = GnomeShortcutManager.convertToGnomeFormat(effectiveHotkey);
-          debugLogger.log(
-            `[IPC] Re-registering GNOME keybinding "${gnomeHotkey}" after capture mode`
-          );
-          const success = await hotkeyManager.gnomeManager.registerKeybinding(gnomeHotkey);
-          if (success) {
-            hotkeyManager.currentHotkey = effectiveHotkey;
-          }
-        }
       }
 
       return { success: true };
-    });
-
-    ipcMain.handle("get-hotkey-mode-info", async () => {
-      return {
-        isUsingGnome: this.windowManager.isUsingGnomeHotkeys(),
-      };
     });
 
     ipcMain.handle("start-window-drag", async (event) => {

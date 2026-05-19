@@ -1,6 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
@@ -33,7 +32,6 @@ test("platform defaults follow the new single-step hotkey rules", () => {
   assert.equal(typeof mod.getDefaultHotkeyForPlatform, "function");
   assert.equal(mod.getDefaultHotkeyForPlatform("darwin"), "GLOBE");
   assert.equal(mod.getDefaultHotkeyForPlatform("win32"), "Control+K");
-  assert.equal(mod.getDefaultHotkeyForPlatform("linux"), "Control+K");
 });
 
 test("hotkey startup restore prefers env first, then renderer storage, then the legacy renderer key, then platform defaults", () => {
@@ -45,7 +43,7 @@ test("hotkey startup restore prefers env first, then renderer storage, then the 
     envHotkey: "Alt+R",
     rendererDictationKey: "F8",
     rendererLegacyHotkey: "F9",
-    platform: "linux",
+    platform: "win32",
   });
   assert.equal(envFirst.hotkey, "Alt+R");
   assert.equal(envFirst.source, "env");
@@ -56,7 +54,7 @@ test("hotkey startup restore prefers env first, then renderer storage, then the 
     envHotkey: "",
     rendererDictationKey: "Control+Shift+Space",
     rendererLegacyHotkey: "F9",
-    platform: "linux",
+    platform: "win32",
   });
   assert.equal(rendererFirst.hotkey, "Control+Shift+Space");
   assert.equal(rendererFirst.source, "renderer");
@@ -110,16 +108,3 @@ test("onboarding hotkey draft follows a late-hydrated saved hotkey until the use
   );
 });
 
-test("GNOME startup restore reuses the shared persisted hotkey resolver instead of reading only dictationKey directly", async () => {
-  const source = await fs.readFile(
-    path.resolve(process.cwd(), "src/helpers/hotkeyManager.js"),
-    "utf8"
-  );
-
-  assert.match(source, /resolvePersistedHotkey/);
-  assert.match(source, /localStorage\.getItem\("hotkey"\)/);
-  assert.doesNotMatch(
-    source,
-    /const savedHotkey = await mainWindow\.webContents\.executeJavaScript\(\s*`[\s\S]*localStorage\.getItem\("dictationKey"\) \|\| ""[\s\S]*`\s*\);/
-  );
-});

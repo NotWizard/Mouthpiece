@@ -20,12 +20,6 @@ const VULKAN_ASSETS = {
     outputName: "llama-server-vulkan.exe",
     libPattern: /\.dll$/i,
   },
-  "linux-x64": {
-    assetPattern: /^llama-.*-bin-ubuntu-vulkan-x64\.tar\.gz$/,
-    binaryName: "llama-server",
-    outputName: "llama-server-vulkan",
-    libPattern: /\.so(\.\d+)*$/,
-  },
 };
 
 class LlamaVulkanManager {

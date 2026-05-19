@@ -20,7 +20,7 @@ function withProcessPlatform(platform, arch, fn) {
 }
 
 test("Qwen ASR reports unavailable on non Apple Silicon platforms", async () => {
-  await withProcessPlatform("linux", "x64", async () => {
+  await withProcessPlatform("win32", "x64", async () => {
     const manager = new QwenAsrManager();
     const status = await manager.checkInstallation();
 

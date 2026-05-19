@@ -25,20 +25,18 @@ async function main() {
   const releaseJsonPath = getArgValue("--release-json");
 
   if (!releaseJsonPath) {
-    throw new Error("Usage: node scripts/validate-release-assets.mjs --release-json <file> [--latest-windows <file>] [--latest-linux <file>] [--latest-mac <file>] [--latest-arm64 <file>] [--latest-x64 <file>]");
+    throw new Error("Usage: node scripts/validate-release-assets.mjs --release-json <file> [--latest-windows <file>] [--latest-mac <file>] [--latest-arm64 <file>] [--latest-x64 <file>]");
   }
 
   const [
     releaseJsonText,
     latestWindowsYaml,
-    latestLinuxYaml,
     latestMacYaml,
     latestArm64Yaml,
     latestX64Yaml,
   ] = await Promise.all([
     fs.readFile(releaseJsonPath, "utf8"),
     readOptionalFile(getArgValue("--latest-windows")),
-    readOptionalFile(getArgValue("--latest-linux")),
     readOptionalFile(getArgValue("--latest-mac")),
     readOptionalFile(getArgValue("--latest-arm64")),
     readOptionalFile(getArgValue("--latest-x64")),
@@ -47,7 +45,6 @@ async function main() {
   validateReleaseAssets({
     assetNames: getAssetNamesFromReleaseJson(releaseJsonText),
     latestWindowsYaml,
-    latestLinuxYaml,
     latestMacYaml,
     latestArm64Yaml,
     latestX64Yaml,

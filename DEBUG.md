@@ -39,7 +39,6 @@ Mouthpiece stores runtime settings in `app.getPath("userData")`. Typical product
 
 - macOS: `~/Library/Application Support/Mouthpiece/.env`
 - Windows: `%APPDATA%\Mouthpiece\.env`
-- Linux: `~/.config/Mouthpiece/.env`
 
 Development and staging builds may use a suffixed directory such as `Mouthpiece-development`.
 
@@ -49,7 +48,6 @@ Debug logs are written to the `logs/` folder inside the same user-data directory
 
 - macOS: `~/Library/Application Support/Mouthpiece/logs/debug-*.log`
 - Windows: `%APPDATA%\Mouthpiece\logs\debug-*.log`
-- Linux: `~/.config/Mouthpiece/logs/debug-*.log`
 
 If you are troubleshooting an older install, also check legacy directories such as `OpenWhispr` if the app migrated from a previous build.
 
@@ -90,9 +88,6 @@ Look for:
 - `Microphone Access Denied`
 - `Accessibility permissions needed`
 - `clipboard`
-- `ydotool`
-- `wtype`
-- `xdotool`
 
 ## Sharing Logs
 

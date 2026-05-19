@@ -169,44 +169,19 @@ export function HotkeyInput({
 }: HotkeyInputProps & HotkeyInputVariant) {
   const { t } = useTranslation();
   const platform = getPlatform();
-  const [isUsingGnome, setIsUsingGnome] = useState(false);
   const [validationWarning, setValidationWarning] = useState<string | null>(null);
   const [isCapturingPrimaryKey, setIsCapturingPrimaryKey] = useState(false);
   const primaryKeyButtonRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadModeInfo = async () => {
-      try {
-        const info = await window.electronAPI?.getHotkeyModeInfo?.();
-        if (isMounted && info?.isUsingGnome) {
-          setIsUsingGnome(true);
-        }
-      } catch {
-        if (isMounted) {
-          setIsUsingGnome(false);
-        }
-      }
-    };
-
-    void loadModeInfo();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
   const capabilities = useMemo(
-    () => getHotkeyBuilderCapabilities({ platform, isUsingGnome }),
-    [platform, isUsingGnome]
+    () => getHotkeyBuilderCapabilities({ platform }),
+    [platform]
   );
 
   const [draft, setDraft] = useState(() =>
     parseHotkeyToBuilderState({
       hotkey: value,
       platform,
-      isUsingGnome,
     })
   );
 
@@ -214,10 +189,9 @@ export function HotkeyInput({
     const nextDraft = parseHotkeyToBuilderState({
       hotkey: value,
       platform,
-      isUsingGnome,
     });
     setDraft(nextDraft);
-  }, [value, platform, isUsingGnome]);
+  }, [value, platform]);
 
   useEffect(() => {
     if (autoFocus && primaryKeyButtonRef.current && !disabled) {
@@ -444,11 +418,6 @@ export function HotkeyInput({
           {draft.mode === HOTKEY_BUILDER_MODES.keyCombo && (
             <p className="text-xs leading-relaxed text-muted-foreground/70">
               {t("hotkeyInput.comboModifierHint")}
-            </p>
-          )}
-          {!showModifierOnlyMode && draft.mode === HOTKEY_BUILDER_MODES.keyCombo && isUsingGnome && (
-            <p className="text-xs leading-relaxed text-muted-foreground/70">
-              {t("hotkeyInput.modifierOnlyUnavailable")}
             </p>
           )}
         </div>

@@ -104,7 +104,7 @@ class MenuManager {
       const menu = Menu.buildFromTemplate(template);
       Menu.setApplicationMenu(menu);
     } else {
-      // For Windows/Linux, keep the window-specific menu
+      // For Windows, keep the window-specific menu
       const template = [
         {
           label: i18nMain.t("menu.file"),

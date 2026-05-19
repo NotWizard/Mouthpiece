@@ -5,7 +5,7 @@
 
 /**
  * Determines if a microphone device is a built-in device based on its label.
- * Works across macOS, Windows, and Linux platforms.
+ * Works across macOS and Windows platforms.
  */
 export function isBuiltInMicrophone(label: string): boolean {
   const lowerLabel = label.toLowerCase();

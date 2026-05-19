@@ -213,8 +213,6 @@ class LlamaServerManager {
 
     if (process.platform === "darwin") {
       env.DYLD_LIBRARY_PATH = binDir + (env.DYLD_LIBRARY_PATH ? `:${env.DYLD_LIBRARY_PATH}` : "");
-    } else if (process.platform === "linux") {
-      env.LD_LIBRARY_PATH = binDir + (env.LD_LIBRARY_PATH ? `:${env.LD_LIBRARY_PATH}` : "");
     } else if (process.platform === "win32") {
       env.PATH = binDir + (env.PATH ? `;${env.PATH}` : "");
     }

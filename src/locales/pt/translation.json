@@ -71,7 +71,7 @@
   },
   "systemSettings": {
     "microphone": "Abra as configurações do sistema para configurar as permissões de microfone.",
-    "sound": "Abra as configurações de som do sistema (por exemplo, pavucontrol).",
+    "sound": "Abra as configurações de som do sistema para escolher um dispositivo de entrada.",
     "accessibility": "As configurações de acessibilidade não estão disponíveis nesta plataforma."
   },
   "windows": {
@@ -145,7 +145,6 @@
       "hotkey": "Atalho",
       "mode": "Modo",
       "modeDescription": "Um toque curto inicia ou para o ditado. Um toque longo grava apenas enquanto você mantiver a tecla pressionada quando o sistema oferecer suporte.",
-      "modeFallbackDescription": "Seu sistema atual de atalhos só oferece ativação por toque curto, então o Mouthpiece fará o fallback automaticamente quando não houver detecção de soltura.",
       "tapDescription": "Pressione para iniciar/parar",
       "holdDescription": "Segure enquanto fala",
       "test": "Teste",
@@ -391,9 +390,7 @@
     "permissions": {
       "paths": {
         "windowsMicrophone": "Configurações -> Privacidade -> Microfone",
-        "linuxSound": "as configurações de som do sistema",
         "defaultSound": "Configurações do sistema -> Som -> Entrada",
-        "linuxPrivacy": "as configurações de privacidade do sistema",
         "defaultPrivacy": "Configurações do sistema -> Privacidade e Segurança -> Microfone"
       },
       "micErrors": {
@@ -420,34 +417,20 @@
         "microphoneUnavailable": "Microfone indisponível",
         "microphonePermissionRequired": "Permissão de microfone obrigatória",
         "accessibilityNeeded": "Permissões de acessibilidade necessárias",
-        "readyToGo": "Tudo pronto!",
-        "waylandClipboardMode": "Modo área de transferência no Wayland",
-        "optionalPasteTool": "Opcional: instalar ferramenta de colagem"
+        "readyToGo": "Tudo pronto!"
       },
       "descriptions": {
         "accessibilityNeeded": "Conceda permissões de acessibilidade nas configurações do sistema para habilitar colagem automática.",
-        "windowsReady": "O Windows não exige permissões especiais para colagem automática. Tudo pronto!",
-        "linuxReadyWithMethod": "A colagem automática está disponível usando {{method}}. Tudo pronto!",
-        "waylandClipboardMode": "A colagem automática não está disponível nesta sessão Wayland. O Mouthpiece copiará o texto para a área de transferência e você poderá colar com Ctrl+V.",
-        "optionalPasteTool": "Para colagem automática, instale {{tool}}:\n\n{{installCmd}}{{waylandNote}}\n\nSem isso, você ainda pode usar o Mouthpiece — o texto será copiado para a área de transferência e você poderá colar com Ctrl+V."
+        "windowsReady": "O Windows não exige permissões especiais para colagem automática. Tudo pronto!"
       },
       "alerts": {
         "accessibilityNeeded": "Permissões de acessibilidade necessárias! Conceda nas configurações do sistema."
-      },
-      "notes": {
-        "waylandWtype": "\n\nNota: para apps XWayland, xdotool também funciona.",
-        "waylandXwaylandOnly": "\n\nNota: a colagem automática funciona apenas para apps XWayland."
-      },
-      "labels": {
-        "defaultPasteTool": "xdotool",
-        "xdotoolXwayland": "xdotool (apps XWayland)"
       },
       "accessibilityTestText": "teste de acessibilidade do Mouthpiece",
       "warning": {
         "messages": {
           "macos": "Verifique as configurações de Som para selecionar o dispositivo de entrada",
-          "windows": "Verifique as configurações do Windows para selecionar o dispositivo de entrada",
-          "linux": "Verifique as configurações de som do sistema para selecionar o dispositivo de entrada"
+          "windows": "Verifique as configurações do Windows para selecionar o dispositivo de entrada"
         },
         "soundLabel": "Som",
         "privacyLabel": "Privacidade"
@@ -627,18 +610,10 @@
     "description": "Use essas regras de plataforma para escolher um atalho que não entre em conflito com o sistema.",
     "examplesTitle": "Exemplos válidos",
     "platforms": {
-      "linux": "Linux",
       "macos": "macOS",
       "windows": "Windows"
     },
     "recommended": {
-      "linux": {
-        "0": "Ctrl+Space",
-        "1": "Super+S",
-        "2": "Alt+D",
-        "3": "Shift+J",
-        "4": "Alt+Space"
-      },
       "macos": {
         "0": "⌃Space",
         "1": "⌥S",
@@ -676,7 +651,6 @@
     "hotkeyLabel": "Atalho",
     "modeLabel": "Shortcut type",
     "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
-    "modifierOnlyUnavailable": "Modifier-only shortcuts are not available with your current shortcut system. Choose a key combo instead.",
     "modifiersLabel": "Modifiers",
     "modes": {
       "keyCombo": "Key combo",
@@ -737,30 +711,6 @@
     "selectPlaceholder": "Selecione um microfone",
     "systemDefault": "Padrão do sistema",
     "unknownDevice": "Dispositivo desconhecido"
-  },
-  "pasteToolsInfo": {
-    "checking": "Verificando capacidades do sistema...",
-    "installCommands": {
-      "archLinux": "# Arch Linux",
-      "debianUbuntu": "# Debian / Ubuntu",
-      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
-      "fedoraRhel": "# Fedora / RHEL"
-    },
-    "installPrefix": "Para colagem automática de texto, instale",
-    "methodReady": "para colagem automática de texto",
-    "noteXwaylandAlso": "Nota: para apps XWayland, xdotool também funciona.",
-    "noteXwaylandOnly": "Nota: a colagem automática funciona apenas para apps XWayland.",
-    "optionalEnableTitle": "Opcional: ativar colagem automática",
-    "readyTitle": "Colagem automática pronta",
-    "recheck": "Verificar novamente",
-    "recheckChecking": "Verificando...",
-    "title": "Colagem automática",
-    "usingMethodPrefix": "Usando",
-    "waylandClipboardDescription": "A colagem automática não está disponível nesta sessão Wayland. O Mouthpiece copiará o texto para a área de transferência para que você cole manualmente com Ctrl+V.",
-    "waylandClipboardTitle": "Modo área de transferência no Wayland",
-    "windowsReady": "O Windows suporta colagem automática nativamente. Nenhuma configuração necessária!",
-    "withoutToolPrefix": "Sem essa ferramenta, o Mouthpiece copiará o texto para a área de transferência. Você poderá colar manualmente com Ctrl+V.",
-    "xwaylandAppsOnly": "a colagem automática funciona apenas para apps XWayland"
   },
   "promptStudio": {
     "common": {
@@ -997,7 +947,6 @@
       "hotkey": {
         "activationBehavior": "Ativação automática",
         "activationBehaviorDescription": "Um toque curto inicia ou para o ditado. Um toque longo grava apenas enquanto você mantiver a tecla pressionada quando o sistema puder detectar a soltura.",
-        "activationBehaviorFallback": "Seu sistema atual de atalhos só oferece ativação por toque curto, então o Mouthpiece fará o fallback automaticamente.",
         "activationMode": "Modo de ativação",
         "description": "A combinação de teclas que inicia e para o ditado por voz",
         "resetToDefault": "Redefinir para {{hotkey}}",

@@ -85,12 +85,10 @@ function assertAssetPresent(assetNames, assetName, context) {
 function validateRequiredAssetPatterns(assetNames) {
   const requiredPatterns = [
     [/^latest\.yml$/, "latest.yml"],
-    [/^latest-linux\.yml$/, "latest-linux.yml"],
     [/^latest-mac\.yml$/, "latest-mac.yml"],
     [/^latest-arm64-mac\.yml$/, "latest-arm64-mac.yml"],
     [/^latest-x64-mac\.yml$/, "latest-x64-mac.yml"],
     [/^Mouthpiece-Setup-.*\.exe$/, "Windows NSIS installer"],
-    [/^Mouthpiece-.*-linux-.*\.AppImage$/, "Linux AppImage"],
     [/^Mouthpiece-(?!.*arm64).*?-mac\.zip$/, "macOS x64 zip"],
     [/^Mouthpiece-.*-arm64-mac\.zip$/, "macOS arm64 zip"],
     [/^Mouthpiece-(?!.*arm64).*\.dmg$/, "macOS x64 DMG"],
@@ -122,19 +120,6 @@ function validateWindowsMetadata(assetNames, latestWindowsYaml) {
 
   if (!metadata.files.some((fileInfo) => fileInfo.url.endsWith(".exe"))) {
     throw new Error("latest.yml must reference the NSIS installer.");
-  }
-}
-
-function validateLinuxMetadata(assetNames, latestLinuxYaml) {
-  if (!latestLinuxYaml) {
-    return;
-  }
-
-  const metadata = parseUpdateMetadata(latestLinuxYaml, "latest-linux.yml");
-  validateReferencedAssets(assetNames, metadata, "latest-linux.yml");
-
-  if (!metadata.files.some((fileInfo) => fileInfo.url.endsWith(".AppImage"))) {
-    throw new Error("latest-linux.yml must reference an AppImage asset.");
   }
 }
 
@@ -304,7 +289,6 @@ end
 export function validateReleaseAssets({
   assetNames,
   latestWindowsYaml = "",
-  latestLinuxYaml = "",
   latestMacYaml = "",
   latestArm64Yaml = "",
   latestX64Yaml = "",
@@ -315,7 +299,6 @@ export function validateReleaseAssets({
 
   validateRequiredAssetPatterns(assetNames);
   validateWindowsMetadata(assetNames, latestWindowsYaml);
-  validateLinuxMetadata(assetNames, latestLinuxYaml);
   validateMergedMacMetadata(assetNames, latestMacYaml);
   validateMacArchMetadata(assetNames, latestArm64Yaml, "latest-arm64-mac.yml", true);
   validateMacArchMetadata(assetNames, latestX64Yaml, "latest-x64-mac.yml", false);

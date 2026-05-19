@@ -1,6 +1,6 @@
 # Troubleshooting
 
-This guide covers the most common Mouthpiece problems across macOS, Windows, and Linux.
+This guide covers the most common Mouthpiece problems across macOS and Windows.
 
 ## Quick Diagnostics
 
@@ -75,12 +75,6 @@ Fixes:
 2. Turn on microphone access for desktop apps
 3. Confirm the correct input device under `Settings -> Sound -> Input`
 
-#### Linux
-
-1. Open your sound settings or `pavucontrol`
-2. Select the expected input device
-3. Verify your desktop environment is not muting the device
-
 ## Empty or Bad Transcriptions
 
 Symptoms:
@@ -122,32 +116,6 @@ Mouthpiece's local Whisper mode uses a bundled `whisper-server` binary plus mode
 2. Run `npm run setup`
 3. Rebuild or reinstall the app if a packaged dependency is missing
 4. Check debug logs to see whether Mouthpiece found the bundled FFmpeg binary
-
-## Clipboard and Paste Problems on Linux
-
-### Wayland clipboard issues
-
-Symptoms:
-
-- Mouthpiece copies text but the target app says the clipboard is empty
-- paste simulation runs but nothing appears
-- native Wayland apps cannot read clipboard data
-
-Cause:
-
-Electron clipboard behavior differs between X11, XWayland, and native Wayland apps, so Mouthpiece has to fall back across several paste methods.
-
-Try this:
-
-1. Install `wl-clipboard`
-   - Debian/Ubuntu: `sudo apt install wl-clipboard`
-   - Fedora/RHEL: `sudo dnf install wl-clipboard`
-   - Arch: `sudo pacman -S wl-clipboard`
-2. Install at least one paste automation tool
-   - `xdotool` for X11 or XWayland apps
-   - `wtype` for wlroots-based Wayland sessions such as Sway or Hyprland
-   - `ydotool` if you already run `ydotoold`
-3. Restart Mouthpiece after installing new tools
 
 ## Windows-Specific Problems
 

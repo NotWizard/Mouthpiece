@@ -185,10 +185,6 @@ build/
 .worktrees/
 *.dmg
 *.exe
-*.deb
-*.rpm
-*.AppImage
-*.snap
 
 # Generated Globe listener binary
 resources/bin/
@@ -316,7 +312,6 @@ Thumbs.db
 .macos-globe-listener.*.hash
 .macos-fast-paste.hash
 .macos-fast-paste.*.hash
-.linux-fast-paste.hash
 
 # Code signing — defensive: in case anyone redirects the cert script's output into the repo.
 # The script writes to ~/.mouthpiece-signing by default; never commit signing material.
