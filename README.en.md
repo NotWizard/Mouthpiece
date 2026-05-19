@@ -42,7 +42,8 @@ You can use local models, or bring your own API key for cloud providers. Account
 
 ### 1. Install or run it
 
-- Packaged app users: download the right build from [GitHub Releases](https://github.com/NotWizard/Mouthpiece/releases)
+- macOS Homebrew users: `brew install --cask notwizard/mouthpiece/mouthpiece` (tracks the latest release automatically)
+- Packaged app users: download the right build from [GitHub Releases](https://github.com/NotWizard/Mouthpiece/releases) (macOS DMG / Windows EXE)
 - Source users: see “Run from source” below
 
 ### 2. Go through onboarding
@@ -85,7 +86,7 @@ Then decide whether you want optional AI post-processing on top.
 | Mode | Best for | Current support |
 | --- | --- | --- |
 | Local transcription | Privacy, offline workflows, on-device control | OpenAI Whisper, NVIDIA Parakeet, Qwen ASR MLX |
-| Cloud transcription | Hosted providers, provider choice, some realtime paths | OpenAI, Groq, Deepgram, Mistral, Soniox, Alibaba Bailian |
+| Cloud transcription | Hosted providers, provider choice, some realtime paths | OpenAI, Deepgram, Groq, Mistral, Soniox, Alibaba Bailian, Custom (any OpenAI-compatible endpoint) |
 
 ### Local transcription
 
@@ -96,11 +97,12 @@ Then decide whether you want optional AI post-processing on top.
 ### Cloud transcription
 
 - **OpenAI**
-- **Groq**
 - **Deepgram**
+- **Groq**
 - **Mistral**
 - **Soniox**
 - **Alibaba Bailian**
+- **Custom**: any OpenAI-compatible endpoint with your own baseUrl and API key
 
 Some providers offer explicit realtime vs non-realtime switching in the app, depending on the provider and the selected settings.
 

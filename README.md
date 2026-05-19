@@ -20,7 +20,7 @@ Mouthpiece 适合想把语音输入接到日常桌面工作流中的用户，例
 
 - 需要在任意应用里快速输入中文、英文或中英混合文本
 - 希望在本地模型和云端模型之间自由切换
-- 想要用自定义词典、术语和自动学习提升专有名词命中率
+- 想要用自定义词典和术语提升专有名词命中率
 - 需要在转录之后继续做清理、改写、格式化或轻量智能处理
 - 希望保留历史记录，并在自动插入失败时有可靠的剪贴板回退
 
@@ -32,7 +32,7 @@ Mouthpiece 适合想把语音输入接到日常桌面工作流中的用户，例
 - 通过全局热键启动听写，并在短按/长按之间自动匹配合适的激活方式
 - 使用悬浮录音胶囊显示录音状态、音量反馈和实时文本
 - 在本地转录与云端转录之间切换，按隐私、速度和成本偏好选择
-- 通过自定义词典、术语、自动学习和后处理归一化改善识别结果
+- 通过自定义词典、术语和后处理归一化改善识别结果
 - 在转录后接入可选智能层，通过 Prompt Studio 做清理、改写或格式整理
 - 把文本自动插入当前应用；如果自动插入失败，会回退到剪贴板并给出明确提示
 - 保存历史记录，支持回看、复制和再次使用
@@ -42,8 +42,9 @@ Mouthpiece 适合想把语音输入接到日常桌面工作流中的用户，例
 
 ### 1. 安装或运行
 
-- 安装包用户：从 [GitHub Releases](https://github.com/NotWizard/Mouthpiece/releases) 下载对应平台版本
-- 源码用户：见本文末尾的“从源码运行”
+- macOS Homebrew 用户：`brew install --cask notwizard/mouthpiece/mouthpiece`（自动跟踪最新版本）
+- 安装包用户：从 [GitHub Releases](https://github.com/NotWizard/Mouthpiece/releases) 下载对应平台版本（macOS DMG / Windows EXE）
+- 源码用户：见本文末尾的”从源码运行”
 
 ### 2. 首次启动
 
@@ -85,7 +86,7 @@ Mouthpiece 适合想把语音输入接到日常桌面工作流中的用户，例
 | 模式 | 适合场景 | 当前支持 |
 | --- | --- | --- |
 | 本地转录 | 更注重隐私、离线能力、可控性 | OpenAI Whisper、NVIDIA Parakeet、Qwen ASR MLX |
-| 云端转录 | 更注重云端 provider 选择、部分实时链路和托管能力 | OpenAI、Groq、Deepgram、Mistral、Soniox、Alibaba Bailian |
+| 云端转录 | 更注重云端 provider 选择、部分实时链路和托管能力 | OpenAI、Deepgram、Groq、Mistral、Soniox、Alibaba Bailian、Custom（任意 OpenAI 兼容端点） |
 
 ### 本地转录
 
@@ -96,11 +97,12 @@ Mouthpiece 适合想把语音输入接到日常桌面工作流中的用户，例
 ### 云端转录
 
 - **OpenAI**
-- **Groq**
 - **Deepgram**
+- **Groq**
 - **Mistral**
 - **Soniox**
 - **Alibaba Bailian**
+- **Custom**：任意 OpenAI 兼容端点，自填 baseUrl 与 API Key
 
 其中部分 provider 支持更明确的实时/非实时切换。是否开启 realtime，取决于所选 provider 和当前设置。
 
@@ -120,13 +122,12 @@ Mouthpiece 的智能层不是强制主流程，而是一个可选增强层。<br
 - 云端：OpenAI、Anthropic、Google Gemini、Groq、Alibaba Bailian
 - 本地：Qwen、Mistral、Meta Llama、OpenAI OSS、Gemma
 
-### 词典、术语与自动学习
+### 词典与术语
 
 词典系统已经不是单一的“手动加词”：
 
 - 支持自定义词典
 - 支持术语配置
-- 支持自动学习修正结果
 - 支持在后处理阶段做字典归一化
 
 如果你经常输入人名、产品名、内部术语或中英混合短语，这部分会明显改善稳定性。
