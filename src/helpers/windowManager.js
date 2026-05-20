@@ -654,13 +654,17 @@ class WindowManager {
       if (this.mainWindow.isMinimized()) {
         this.mainWindow.restore();
       }
-      if (!this.mainWindow.isVisible()) {
+      this.refreshMainWindowForCurrentSpace();
+      if (process.platform === "darwin" && typeof this.mainWindow.showInactive === "function") {
+        this.mainWindow.showInactive();
+      } else if (!this.mainWindow.isVisible()) {
         if (typeof this.mainWindow.showInactive === "function") {
           this.mainWindow.showInactive();
         } else {
           this.mainWindow.show();
         }
       }
+      this.refreshMainWindowForCurrentSpace();
       if (focus) {
         this.mainWindow.focus();
       }
@@ -725,6 +729,18 @@ class WindowManager {
   enforceMainWindowOnTop() {
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       WindowPositionUtil.setupAlwaysOnTop(this.mainWindow);
+    }
+  }
+
+  refreshMainWindowForCurrentSpace() {
+    if (!this.mainWindow || this.mainWindow.isDestroyed()) {
+      return;
+    }
+
+    this.enforceMainWindowOnTop();
+
+    if (process.platform === "darwin" && typeof this.mainWindow.moveTop === "function") {
+      this.mainWindow.moveTop();
     }
   }
 
