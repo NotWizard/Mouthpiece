@@ -192,6 +192,8 @@
       "copyRow": "文字起こしをコピー",
       "copyAction": "文字起こしをコピー",
       "deleteAction": "文字起こしを削除",
+      "viewRawTranscript": "元の文字起こしを表示",
+      "rawTranscriptLabel": "元の文字起こし",
       "couldNotCopyTitle": "コピーできませんでした",
       "couldNotCopyDescription": "クリップボードへのコピー中に問題が発生しました。もう一度お試しください。",
       "deleteTitle": "文字起こしを削除",

@@ -192,6 +192,8 @@
       "copyRow": "Copier la transcription",
       "copyAction": "Copier la transcription",
       "deleteAction": "Supprimer la transcription",
+      "viewRawTranscript": "Afficher la transcription brute",
+      "rawTranscriptLabel": "Transcription brute",
       "couldNotCopyTitle": "Impossible de copier",
       "couldNotCopyDescription": "Un problème est survenu pendant la copie. Réessayez.",
       "deleteTitle": "Supprimer la transcription",

@@ -192,6 +192,8 @@
       "copyRow": "Copiar transcripción",
       "copyAction": "Copiar transcripción",
       "deleteAction": "Eliminar transcripción",
+      "viewRawTranscript": "Ver transcripción original",
+      "rawTranscriptLabel": "Transcripción original",
       "couldNotCopyTitle": "No se pudo copiar",
       "couldNotCopyDescription": "Ocurrió un problema al copiar al portapapeles. Inténtalo de nuevo.",
       "deleteTitle": "Eliminar transcripción",

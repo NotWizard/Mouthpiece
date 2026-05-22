@@ -192,6 +192,8 @@
       "copyRow": "複製轉錄記錄",
       "copyAction": "複製轉錄記錄",
       "deleteAction": "刪除轉錄記錄",
+      "viewRawTranscript": "檢視原始轉錄",
+      "rawTranscriptLabel": "原始轉錄",
       "couldNotCopyTitle": "無法複製",
       "couldNotCopyDescription": "複製到剪貼簿時發生錯誤。請再試一次。",
       "deleteTitle": "刪除轉錄記錄",

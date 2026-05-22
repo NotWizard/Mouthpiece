@@ -87,9 +87,27 @@ export default function TranscriptionItem({ item, onCopy, onDelete }: Transcript
           </span>
         )}
 
-        <p className="flex-1 min-w-0 text-foreground text-sm leading-[1.5] break-words">
-          {item.text}
-        </p>
+        <div className="flex-1 min-w-0">
+          <p className="text-foreground text-sm leading-[1.5] break-words">
+            {item.text}
+          </p>
+          {item.raw_text && item.raw_text.trim() !== item.text.trim() && (
+            <details
+              className="mt-2 ml-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <summary className="cursor-pointer text-[11px] text-muted-foreground hover:text-foreground select-none list-none">
+                ▸ {t("controlPanel.history.viewRawTranscript")}
+              </summary>
+              <div className="mt-1 ml-3 pl-2 border-l border-border/40 text-[11px] text-muted-foreground/80 whitespace-pre-wrap break-words leading-[1.5]">
+                <span className="block text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1">
+                  {t("controlPanel.history.rawTranscriptLabel")}
+                </span>
+                {item.raw_text}
+              </div>
+            </details>
+          )}
+        </div>
 
         <div
           className={cn(

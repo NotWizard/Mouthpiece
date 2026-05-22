@@ -192,6 +192,8 @@
       "copyRow": "Transkription kopieren",
       "copyAction": "Transkription kopieren",
       "deleteAction": "Transkription löschen",
+      "viewRawTranscript": "Rohtranskription anzeigen",
+      "rawTranscriptLabel": "Rohtranskription",
       "couldNotCopyTitle": "Kopieren fehlgeschlagen",
       "couldNotCopyDescription": "Beim Kopieren in die Zwischenablage ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
       "deleteTitle": "Transkription löschen",

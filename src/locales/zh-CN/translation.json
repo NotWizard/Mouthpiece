@@ -192,6 +192,8 @@
       "copyRow": "复制转录记录",
       "copyAction": "复制转录记录",
       "deleteAction": "删除转录记录",
+      "viewRawTranscript": "查看原始转录",
+      "rawTranscriptLabel": "原始转录",
       "couldNotCopyTitle": "无法复制",
       "couldNotCopyDescription": "复制到剪贴板时出错，请重试。",
       "deleteTitle": "删除转录记录",

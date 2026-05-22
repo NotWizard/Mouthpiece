@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - AI Translation Output: a Settings toggle that unifies multilingual dictation into a single target language. Translation and cleanup share the same provider/model in a single LLM call.
 - PromptStudio shows an inline banner when translation is enabled, explaining the {{TARGET_LANG_INSTRUCTION}} placeholder and offering a one-click insert button at the cursor.
+- History items now disclose the raw transcript (pre-cleanup / pre-translation) on demand via an expandable "View raw transcript" toggle. Legacy items without a recorded raw transcript continue to show only the final text.
 
 ## [1.4.2] - 2026-05-21
 
