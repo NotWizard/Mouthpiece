@@ -777,6 +777,12 @@
       "customPrompt": "Benutzerdefinierter Prompt",
       "defaultPrompt": "Standard-Prompt",
       "modified": "Geändert"
+    },
+    "translationBanner": {
+      "title": "Übersetzung aktiviert → Ziel: {{lang}}",
+      "explainer": "Die Übersetzungsregeln werden an der Stelle dieses Platzhalters in deinem Prompt eingefügt: {{placeholder}}. Fehlt der Platzhalter, werden die Regeln am Ende des Prompts angehängt.",
+      "example": "Beispiel:",
+      "insertButton": "Platzhalter an Cursor einfügen"
     }
   },
   "resetPassword": {

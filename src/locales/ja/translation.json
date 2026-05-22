@@ -777,6 +777,12 @@
       "customPrompt": "カスタムプロンプト",
       "defaultPrompt": "デフォルトプロンプト",
       "modified": "変更済み"
+    },
+    "translationBanner": {
+      "title": "翻訳が有効 → 対象言語: {{lang}}",
+      "explainer": "翻訳ルールはプロンプト内のこのプレースホルダーの位置に挿入されます: {{placeholder}}。プレースホルダーがない場合、ルールはプロンプトの末尾に追加されます。",
+      "example": "例:",
+      "insertButton": "カーソル位置にプレースホルダーを挿入"
     }
   },
   "resetPassword": {

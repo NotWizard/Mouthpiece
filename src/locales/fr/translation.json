@@ -777,6 +777,12 @@
       "customPrompt": "Prompt personnalisé",
       "defaultPrompt": "Prompt par défaut",
       "modified": "Modifié"
+    },
+    "translationBanner": {
+      "title": "Traduction activée → cible : {{lang}}",
+      "explainer": "Les règles de traduction sont insérées à l'emplacement de cet espace réservé dans votre prompt : {{placeholder}}. Si l'espace réservé est absent, les règles sont ajoutées à la fin du prompt.",
+      "example": "Exemple :",
+      "insertButton": "Insérer l'espace réservé au curseur"
     }
   },
   "resetPassword": {

@@ -777,6 +777,12 @@
       "customPrompt": "自訂提示詞",
       "defaultPrompt": "預設提示詞",
       "modified": "已修改"
+    },
+    "translationBanner": {
+      "title": "翻譯已啟用 → 目標語言: {{lang}}",
+      "explainer": "翻譯規則會插入到提示詞中此佔位符所在的位置: {{placeholder}}。若佔位符缺失,規則將附加到提示詞末尾。",
+      "example": "範例:",
+      "insertButton": "在游標位置插入佔位符"
     }
   },
   "resetPassword": {

@@ -777,6 +777,12 @@
       "customPrompt": "Prompt personalizado",
       "defaultPrompt": "Prompt predeterminado",
       "modified": "Modificado"
+    },
+    "translationBanner": {
+      "title": "Traducción activada → destino: {{lang}}",
+      "explainer": "Las reglas de traducción se insertan en la ubicación de este marcador en tu prompt: {{placeholder}}. Si falta el marcador, las reglas se añaden al final del prompt.",
+      "example": "Ejemplo:",
+      "insertButton": "Insertar marcador en el cursor"
     }
   },
   "resetPassword": {

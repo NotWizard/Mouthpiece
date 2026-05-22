@@ -777,6 +777,12 @@
       "customPrompt": "Custom prompt",
       "defaultPrompt": "Default prompt",
       "modified": "Modified"
+    },
+    "translationBanner": {
+      "title": "Translation enabled → target: {{lang}}",
+      "explainer": "Translation rules are inserted at this placeholder location in your prompt: {{placeholder}}. When the placeholder is missing, the rules are appended to the end of the prompt.",
+      "example": "Example:",
+      "insertButton": "Insert placeholder at cursor"
     }
   },
   "resetPassword": {
