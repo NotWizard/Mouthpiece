@@ -87,18 +87,18 @@ export function renderTargetLangBlock(targetLang: string, uiLanguage?: string): 
   if (!targetLang) return "";
   const isZh = (uiLanguage || "zh-CN").startsWith("zh");
   if (isZh) {
-    return `TODO_PROMPT_TEXT_TARGET_LANG_ZH (target: ${targetLang})`;
+    return `最终的输出内容翻译成 ${targetLang} 语言。`;
   }
-  return `TODO_PROMPT_TEXT_TARGET_LANG_EN (target: ${targetLang})`;
+  return `Translate the final output to ${targetLang}.`;
 }
 
 export function renderDictTranslationRuleBlock(targetLang: string, uiLanguage?: string): string {
   if (!targetLang) return "";
   const isZh = (uiLanguage || "zh-CN").startsWith("zh");
   if (isZh) {
-    return `TODO_PROMPT_TEXT_DICT_RULE_ZH (target: ${targetLang})`;
+    return "";
   }
-  return `TODO_PROMPT_TEXT_DICT_RULE_EN (target: ${targetLang})`;
+  return "";
 }
 
 export function getSystemPrompt(
