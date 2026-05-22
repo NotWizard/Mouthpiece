@@ -187,7 +187,7 @@ build/
 *.exe
 
 # Generated Globe listener binary
-resources/bin/
+resources/bin
 
 # macOS
 .DS_Store
