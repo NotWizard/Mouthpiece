@@ -26,10 +26,15 @@ export abstract class BaseReasoningService {
   }
 
   protected getSystemPrompt(): string {
+    const settings = getSettings();
     return getSystemPrompt(
       this.getCustomDictionary(),
       this.getUiLanguage(),
-      this.getTerminologyProfile()
+      this.getTerminologyProfile(),
+      {
+        enabled: !!settings.translationEnabled,
+        targetLang: settings.translationTargetLang || "",
+      }
     );
   }
 
