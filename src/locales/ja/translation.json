@@ -1078,6 +1078,16 @@
           "description": "Allow the cleanup layer to reorganize structure when that clearly improves the result."
         }
       }
+    },
+    "aiTranslation": {
+      "title": "AI 翻訳出力",
+      "description": "多言語の音声入力を 1 つの対象言語に統合します。クリーンアップと組み合わせて 1 回の LLM 呼び出しで実行されます。",
+      "enableLabel": "出力を対象言語に翻訳",
+      "enableDescription": "有効にすると、クリーンアップと翻訳が同じプロバイダーとモデルを共有し、1 回の LLM 呼び出しで実行されます。",
+      "targetLangLabel": "対象言語",
+      "targetLangDescription": "すべての文字起こしをこの言語に統合します。入力がすでにこの言語の場合は、クリーンアップのみ実行されます。",
+      "providerNote": "翻訳はクリーンアップと同じプロバイダーとモデルを使用します(1 回の LLM 呼び出し)。失敗した場合は通知とともに元の文字起こしに戻ります。",
+      "requireTargetLang": "翻訳を有効にする前に対象言語を選択してください。"
     }
   },
   "models": {

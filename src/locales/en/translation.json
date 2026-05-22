@@ -1078,6 +1078,16 @@
     "transcription": {
       "description": "Choose how Mouthpiece transcribes your voice",
       "title": "Speech to Text"
+    },
+    "aiTranslation": {
+      "title": "AI Translation Output",
+      "description": "Unify multilingual dictation into a single target language. Combined into one LLM call with cleanup.",
+      "enableLabel": "Translate output to target language",
+      "enableDescription": "When enabled, cleanup and translation share the same provider/model in a single LLM call.",
+      "targetLangLabel": "Target language",
+      "targetLangDescription": "All transcripts are unified into this language. If the input is already in this language, only cleanup runs.",
+      "providerNote": "Translation uses the same provider and model as cleanup (a single LLM call). Failures fall back to the raw transcript with a notice.",
+      "requireTargetLang": "Please pick a target language before enabling translation."
     }
   },
   "models": {

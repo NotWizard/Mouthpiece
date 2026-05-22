@@ -1078,6 +1078,16 @@
     "transcription": {
       "description": "Scegli come Mouthpiece trascrive la tua voce",
       "title": "Riconoscimento vocale"
+    },
+    "aiTranslation": {
+      "title": "Output con traduzione IA",
+      "description": "Unifica la dettatura multilingue in un'unica lingua di destinazione. Combinata con la pulizia in una sola chiamata LLM.",
+      "enableLabel": "Traduci l'output nella lingua di destinazione",
+      "enableDescription": "Quando è attivo, pulizia e traduzione condividono lo stesso provider e modello in una sola chiamata LLM.",
+      "targetLangLabel": "Lingua di destinazione",
+      "targetLangDescription": "Tutte le trascrizioni vengono unificate in questa lingua. Se l'input è già in questa lingua, viene eseguita solo la pulizia.",
+      "providerNote": "La traduzione usa lo stesso provider e modello della pulizia (un'unica chiamata LLM). In caso di errori, viene ripristinata la trascrizione originale con un avviso.",
+      "requireTargetLang": "Scegli una lingua di destinazione prima di attivare la traduzione."
     }
   },
   "models": {

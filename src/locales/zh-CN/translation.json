@@ -1078,6 +1078,16 @@
     "transcription": {
       "description": "选择 Mouthpiece 转录语音的方式",
       "title": "语音转文字"
+    },
+    "aiTranslation": {
+      "title": "AI 翻译输出",
+      "description": "将多语言听写统一为单一目标语言。与清理合并为一次 LLM 调用。",
+      "enableLabel": "将输出翻译为目标语言",
+      "enableDescription": "启用后,清理和翻译共用同一提供商和模型,在一次 LLM 调用中完成。",
+      "targetLangLabel": "目标语言",
+      "targetLangDescription": "所有转录都会统一为该语言。如果输入已为该语言,则仅执行清理。",
+      "providerNote": "翻译使用与清理相同的提供商和模型(一次 LLM 调用)。失败时回退到原始转录并提示。",
+      "requireTargetLang": "请先选择目标语言再启用翻译。"
     }
   },
   "models": {
