@@ -79,10 +79,14 @@ export default function LanguageSelector({
       // fixed positioning is relative to that ancestor, not the viewport.
       const offsetX = target === document.body ? 0 : target.getBoundingClientRect().left;
       const offsetY = target === document.body ? 0 : target.getBoundingClientRect().top;
+      const dropdownWidth = Math.max(triggerRect.width, 260);
+      const idealLeft = triggerRect.left - offsetX;
+      const maxLeft = window.innerWidth - dropdownWidth - 16 - offsetX;
+      const left = Math.max(16, Math.min(idealLeft, maxLeft));
       setDropdownPosition({
         top: triggerRect.bottom + 4 - offsetY,
-        left: triggerRect.left - offsetX,
-        width: Math.max(triggerRect.width, 260),
+        left,
+        width: dropdownWidth,
       });
       requestAnimationFrame(() => {
         searchInputRef.current?.focus();
