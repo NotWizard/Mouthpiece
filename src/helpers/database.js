@@ -24,10 +24,35 @@ class DatabaseManager {
         CREATE TABLE IF NOT EXISTS transcriptions (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           text TEXT NOT NULL,
+          raw_text TEXT,
           timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
+
+      // Idempotent backfill of raw_text for legacy DBs.
+      try {
+        const columns = this.db.prepare("PRAGMA table_info(transcriptions)").all();
+        const hasRawText = columns.some((c) => c.name === "raw_text");
+        if (!hasRawText) {
+          this.db.exec("ALTER TABLE transcriptions ADD COLUMN raw_text TEXT");
+        }
+      } catch (error) {
+        debugLogger.error(
+          "raw_text migration failed",
+          { error: error.message },
+          "database"
+        );
+      }
+
+      // Post-verify: if ALTER silently failed, fail fast here so callers don't hit
+      // a delayed "no such column: raw_text" later in saveTranscription/getTranscriptions.
+      const verifyColumns = this.db.prepare("PRAGMA table_info(transcriptions)").all();
+      if (!verifyColumns.some((c) => c.name === "raw_text")) {
+        throw new Error(
+          "transcriptions.raw_text column missing after migration attempt"
+        );
+      }
 
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS custom_dictionary (
