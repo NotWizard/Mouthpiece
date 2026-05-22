@@ -16,6 +16,11 @@ export const REGISTRY_OPTIONS: LanguageOption[] = registry.languages.map(({ code
   flag,
 }));
 
+export function getLanguageLabel(code: string): string {
+  if (!code) return "";
+  return REGISTRY_OPTIONS.find((o) => o.value === code)?.label ?? code;
+}
+
 interface LanguageSelectorProps {
   value: string;
   onChange: (value: string) => void;
@@ -77,7 +82,7 @@ export default function LanguageSelector({
       setDropdownPosition({
         top: triggerRect.bottom + 4 - offsetY,
         left: triggerRect.left - offsetX,
-        width: triggerRect.width,
+        width: Math.max(triggerRect.width, 260),
       });
       requestAnimationFrame(() => {
         searchInputRef.current?.focus();

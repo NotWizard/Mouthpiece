@@ -20,6 +20,7 @@ import { getModelProvider } from "../../models/ModelRegistry";
 import logger from "../../utils/logger";
 import { UNIFIED_SYSTEM_PROMPT } from "../../config/prompts";
 import { useSettingsStore, selectIsCloudReasoningMode } from "../../stores/settingsStore";
+import { getLanguageLabel } from "./LanguageSelector";
 import {
   CUSTOM_CLEANUP_PROMPT_KEY,
   migrateLegacyVoiceModeStorage,
@@ -232,7 +233,7 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
               <div className="px-5 py-3 border-b border-border/40 dark:border-border-subtle">
                 <div className="rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 px-3 py-2 text-xs">
                   <span className="font-medium text-foreground">
-                    {t("promptStudio.translationBanner.viewTabHintTitle", { lang: translationTargetLang })}
+                    {t("promptStudio.translationBanner.viewTabHintTitle", { lang: getLanguageLabel(translationTargetLang) })}
                   </span>{" "}
                   <span className="text-muted-foreground">
                     {t("promptStudio.translationBanner.viewTabHint")}
@@ -297,7 +298,7 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
               <div className="px-5 py-4 border-b border-border/40 dark:border-border-subtle">
                 <div className="rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 px-4 py-3 space-y-2">
                   <p className="text-xs font-medium text-foreground">
-                    {t("promptStudio.translationBanner.title", { lang: translationTargetLang })}
+                    {t("promptStudio.translationBanner.title", { lang: getLanguageLabel(translationTargetLang) })}
                   </p>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {t("promptStudio.translationBanner.explainer", {
