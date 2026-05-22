@@ -203,6 +203,7 @@ const BOOLEAN_SETTINGS = new Set([
   "useReasoningModel",
   "bailianReasoningEnableThinking",
   "customReasoningEnableThinking",
+  "translationEnabled",
   "cloudBackupEnabled",
   "sensitiveAppProtectionEnabled",
   "sensitiveAppBlockInsertion",
@@ -265,6 +266,8 @@ export interface SettingsState
   setUseReasoningModel: (value: boolean) => void;
   setReasoningModel: (value: string) => void;
   setReasoningProvider: (value: string) => void;
+  setTranslationEnabled: (value: boolean) => void;
+  setTranslationTargetLang: (value: string) => void;
   setUiLanguage: (language: string) => void;
 
   setOpenaiApiKey: (key: string) => void;
@@ -470,6 +473,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   useReasoningModel: readBoolean("useReasoningModel", true),
   reasoningModel: readString("reasoningModel", ""),
   reasoningProvider: readString("reasoningProvider", "openai"),
+  translationEnabled: readBoolean("translationEnabled", false),
+  translationTargetLang: readString("translationTargetLang", ""),
 
   openaiApiKey: "",
   anthropicApiKey: "",
@@ -526,6 +531,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setUseReasoningModel: createBooleanSetter("useReasoningModel"),
   setReasoningModel: createStringSetter("reasoningModel"),
   setReasoningProvider: createStringSetter("reasoningProvider"),
+  setTranslationEnabled: createBooleanSetter("translationEnabled"),
+  setTranslationTargetLang: createStringSetter("translationTargetLang"),
 
   setCustomDictionary: (words: string[]) => {
     const terminologyProfile = normalizeTerminologyProfile({
