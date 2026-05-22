@@ -332,6 +332,10 @@
         "title": "Fallback Mode",
         "description": "Local Whisper failed. Used OpenAI API instead."
       },
+      "translationFallback": {
+        "title": "Translation unavailable",
+        "description": "We pasted the original transcript instead. Check your reasoning provider and try again."
+      },
       "noAudio": {
         "title": "No Audio Detected",
         "description": "The recording contained no detectable audio. Please try again."

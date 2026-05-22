@@ -332,6 +332,10 @@
         "title": "Fallback-Modus",
         "description": "Lokales Whisper ist fehlgeschlagen. Stattdessen wurde die OpenAI API verwendet."
       },
+      "translationFallback": {
+        "title": "Übersetzung nicht verfügbar",
+        "description": "Stattdessen wurde das Originaltranskript eingefügt. Bitte überprüfe deinen Reasoning-Anbieter und versuche es erneut."
+      },
       "noAudio": {
         "title": "Kein Audio erkannt",
         "description": "Die Aufnahme enthielt kein erkennbares Audio. Bitte versuchen Sie es erneut."

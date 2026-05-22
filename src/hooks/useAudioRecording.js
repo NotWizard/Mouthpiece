@@ -605,6 +605,16 @@ export const useAudioRecording = (toast, options = {}) => {
           audioManagerRef.current._lastRawText ?? null
         );
 
+        const fallbackReason = audioManagerRef.current._lastFallbackReason;
+        const settingsForToast = getSettings();
+        if (fallbackReason === "reasoning_failed" && settingsForToast.translationEnabled) {
+          toast({
+            title: t("hooks.audioRecording.translationFallback.title"),
+            description: t("hooks.audioRecording.translationFallback.description"),
+            variant: "destructive",
+          });
+        }
+
         if (shouldShowFallbackToast(result)) {
           toast({
             title: t("hooks.audioRecording.fallback.title"),

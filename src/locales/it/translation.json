@@ -332,6 +332,10 @@
         "title": "Modalità fallback",
         "description": "Whisper locale non riuscito. Utilizzata l'API OpenAI."
       },
+      "translationFallback": {
+        "title": "Traduzione non disponibile",
+        "description": "Abbiamo incollato la trascrizione originale. Controlla il tuo provider di ragionamento e riprova."
+      },
       "noAudio": {
         "title": "Nessun audio rilevato",
         "description": "La registrazione non contiene audio rilevabile. Riprova."
