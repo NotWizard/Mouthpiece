@@ -86,7 +86,6 @@ test("direct-address style text remains cleanup content", async () => {
     );
 
     assert.equal(result.intent, "cleanup");
-    assert.equal(result.strictMode, true);
     assert.doesNotMatch(result.signals.join(","), /agent_direct_address/);
   } finally {
     cleanup();

@@ -108,23 +108,26 @@ test("macOS workflows pin dedicated runners for x64 and arm64 builds", () => {
   }
 });
 
-test("macOS packaging workflows can fall back when Apple signing secrets are unavailable", () => {
-  const workflows = [".github/workflows/release.yml", ".github/workflows/build-and-notarize.yml"];
+test("macOS packaging workflows can fall back when signing secrets are unavailable", () => {
+  const workflows = [
+    { path: ".github/workflows/release.yml", envVar: "MAC_SIGNING_ENABLED" },
+    { path: ".github/workflows/build-and-notarize.yml", envVar: "APPLE_SIGNING_ENABLED" },
+  ];
 
-  for (const relativePath of workflows) {
+  for (const { path: relativePath, envVar } of workflows) {
     const source = fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
 
     assert.ok(
-      source.includes("APPLE_SIGNING_ENABLED"),
-      `${relativePath} should compute whether Apple signing secrets are actually available`
+      source.includes(envVar),
+      `${relativePath} should compute whether ${envVar} secrets are actually available`
     );
     assert.ok(
-      source.includes("if: env.APPLE_SIGNING_ENABLED == 'true'"),
+      source.includes(`if: env.${envVar} == 'true'`),
       `${relativePath} should skip macOS signing setup when signing secrets are unavailable`
     );
     assert.ok(
       source.includes(
-        "CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.APPLE_SIGNING_ENABLED == 'true' && 'true' || 'false' }}"
+        `CSC_IDENTITY_AUTO_DISCOVERY: \${{ env.${envVar} == 'true' && 'true' || 'false' }}`
       ),
       `${relativePath} should disable code-signing auto-discovery when signing is unavailable`
     );

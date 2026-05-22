@@ -157,7 +157,7 @@ test("audio manager gates Bailian realtime partials until speech is detected and
   );
   assert.match(
     source,
-    /if\s*\(\s*!this\.streamingSpeechGateState\.speechDetected\s*\)\s*\{\s*this\.streamingHeldPartialText = isStructuredBailianPayload \? partialPayload : cleanedText;\s*return;\s*\}/s
+    /if\s*\(\s*!this\.streamingSpeechGateState\.speechDetected\s*\)\s*\{\s*this\.streamingHeldPartialText = isStructuredBailianPayload \? partialPayload : normalizedText;\s*return;\s*\}/s
   );
   assert.match(
     source,

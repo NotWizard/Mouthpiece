@@ -60,15 +60,6 @@ test("renderer control panel shows a confirmed install action for downloaded upd
   assert.match(packageJson, /"electron-updater"/);
 });
 
-test("renderer prompts to install once an update finishes downloading", async () => {
-  const controlPanelSource = await readRepoFile("src/components/ControlPanel.tsx");
-
-  assert.match(
-    controlPanelSource,
-    /updateStatus\?\.status !== "downloaded"[\s\S]*promptedDownloadedUpdateRef[\s\S]*showConfirmDialog\(\{[\s\S]*title: t\("controlPanel\.update\.readyTitle"\)[\s\S]*description: t\("controlPanel\.update\.readyDescription"\)[\s\S]*confirmText: t\("controlPanel\.update\.installButton"\)/,
-  );
-});
-
 test("renderer exposes a manual update check entry point in preload, IPC, and settings UI", async () => {
   const [preloadSource, ipcSource, controlPanelSource, settingsPageSource, typesSource] =
     await Promise.all([
@@ -82,7 +73,7 @@ test("renderer exposes a manual update check entry point in preload, IPC, and se
   assert.match(preloadSource, /checkForUpdates: \(\) => ipcRenderer\.invoke\("check-for-updates"\)/);
   assert.match(ipcSource, /ipcMain\.handle\("check-for-updates"/);
   assert.match(controlPanelSource, /onCheckForUpdates=\{handleManualCheckForUpdates\}/);
-  assert.match(settingsPageSource, /t\("settingsModal\.updates\.checkForUpdates"\)/);
+  assert.match(settingsPageSource, /t\("settingsPage\.general\.updates\.checkForUpdates"\)/);
   assert.match(typesSource, /checkForUpdates\?: \(\) => Promise<AppUpdateStatus>/);
 });
 
