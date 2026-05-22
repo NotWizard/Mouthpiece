@@ -82,10 +82,30 @@ function getTerminologyInstruction(
   return sections.join("\n");
 }
 
+// Phase 3 — translation prompt blocks. Text supplied by user; do not invent.
+export function renderTargetLangBlock(targetLang: string, uiLanguage?: string): string {
+  if (!targetLang) return "";
+  const isZh = (uiLanguage || "zh-CN").startsWith("zh");
+  if (isZh) {
+    return `TODO_PROMPT_TEXT_TARGET_LANG_ZH (target: ${targetLang})`;
+  }
+  return `TODO_PROMPT_TEXT_TARGET_LANG_EN (target: ${targetLang})`;
+}
+
+export function renderDictTranslationRuleBlock(targetLang: string, uiLanguage?: string): string {
+  if (!targetLang) return "";
+  const isZh = (uiLanguage || "zh-CN").startsWith("zh");
+  if (isZh) {
+    return `TODO_PROMPT_TEXT_DICT_RULE_ZH (target: ${targetLang})`;
+  }
+  return `TODO_PROMPT_TEXT_DICT_RULE_EN (target: ${targetLang})`;
+}
+
 export function getSystemPrompt(
   customDictionary?: string[],
   uiLanguage?: string,
-  terminologyProfile?: Partial<TerminologyProfile> | null
+  terminologyProfile?: Partial<TerminologyProfile> | null,
+  translationContext?: { enabled: boolean; targetLang: string }
 ): string {
   const prompts = getPromptBundle(uiLanguage);
 
@@ -108,6 +128,29 @@ export function getSystemPrompt(
   const terminologyInstruction = getTerminologyInstruction(terminologyProfile);
   if (terminologyInstruction) {
     prompt += `\n\n${terminologyInstruction}`;
+  }
+
+  const translationEnabled = !!translationContext?.enabled && !!translationContext?.targetLang;
+  const dictNonEmpty = !!customDictionary && customDictionary.length > 0;
+
+  const targetLangBlock = translationEnabled
+    ? renderTargetLangBlock(translationContext!.targetLang, uiLanguage)
+    : "";
+  const dictRuleBlock =
+    translationEnabled && dictNonEmpty
+      ? renderDictTranslationRuleBlock(translationContext!.targetLang, uiLanguage)
+      : "";
+
+  if (prompt.includes("{{TARGET_LANG_INSTRUCTION}}")) {
+    prompt = prompt.replaceAll("{{TARGET_LANG_INSTRUCTION}}", targetLangBlock);
+  } else if (targetLangBlock) {
+    prompt = `${prompt}\n\n${targetLangBlock}`;
+  }
+
+  if (prompt.includes("{{DICTIONARY_TRANSLATION_RULE}}")) {
+    prompt = prompt.replaceAll("{{DICTIONARY_TRANSLATION_RULE}}", dictRuleBlock);
+  } else if (dictRuleBlock) {
+    prompt = `${prompt}\n\n${dictRuleBlock}`;
   }
 
   return prompt;
