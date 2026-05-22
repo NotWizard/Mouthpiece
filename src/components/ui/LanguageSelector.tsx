@@ -10,7 +10,7 @@ export interface LanguageOption {
   flag: string;
 }
 
-const REGISTRY_OPTIONS: LanguageOption[] = registry.languages.map(({ code, label, flag }) => ({
+export const REGISTRY_OPTIONS: LanguageOption[] = registry.languages.map(({ code, label, flag }) => ({
   value: code,
   label,
   flag,

@@ -35,7 +35,7 @@ import { getPlatform, getCachedPlatform } from "../utils/platform";
 import { getDefaultHotkey, formatHotkeyLabel } from "../utils/hotkeys";
 import { Toggle } from "./ui/toggle";
 import DeveloperSection from "./DeveloperSection";
-import LanguageSelector from "./ui/LanguageSelector";
+import LanguageSelector, { REGISTRY_OPTIONS } from "./ui/LanguageSelector";
 import { useToast } from "./ui/Toast";
 import { useTheme } from "../hooks/useTheme";
 import type { AppUpdateStatus, LocalTranscriptionProvider } from "../types/electron";
@@ -275,6 +275,11 @@ interface AiModelsSectionProps {
   setCustomReasoningApiKey: (key: string) => void;
   customReasoningEnableThinking: boolean;
   setCustomReasoningEnableThinking: (enabled: boolean) => void;
+  translationEnabled: boolean;
+  setTranslationEnabled: (value: boolean) => void;
+  translationTargetLang: string;
+  setTranslationTargetLang: (value: string) => void;
+  showAlertDialog: (options: { title: string; description: string }) => void;
 }
 
 function AiModelsSection({
@@ -304,6 +309,11 @@ function AiModelsSection({
   setCustomReasoningApiKey,
   customReasoningEnableThinking,
   setCustomReasoningEnableThinking,
+  translationEnabled,
+  setTranslationEnabled,
+  translationTargetLang,
+  setTranslationTargetLang,
+  showAlertDialog,
 }: AiModelsSectionProps) {
   const { t } = useTranslation();
 
@@ -361,6 +371,52 @@ function AiModelsSection({
           setCustomReasoningEnableThinking={setCustomReasoningEnableThinking}
         />
       )}
+
+      <div>
+        <SectionHeader
+          title={t("settingsPage.aiTranslation.title")}
+          description={t("settingsPage.aiTranslation.description")}
+        />
+        <SettingsPanel>
+          <SettingsPanelRow>
+            <SettingsRow
+              label={t("settingsPage.aiTranslation.enableLabel")}
+              description={t("settingsPage.aiTranslation.enableDescription")}
+            >
+              <Toggle
+                checked={translationEnabled}
+                onChange={(value) => {
+                  if (value && !translationTargetLang) {
+                    showAlertDialog({
+                      title: t("settingsPage.aiTranslation.title"),
+                      description: t("settingsPage.aiTranslation.requireTargetLang"),
+                    });
+                    return;
+                  }
+                  setTranslationEnabled(value);
+                }}
+              />
+            </SettingsRow>
+          </SettingsPanelRow>
+          <SettingsPanelRow>
+            <SettingsRow
+              label={t("settingsPage.aiTranslation.targetLangLabel")}
+              description={t("settingsPage.aiTranslation.targetLangDescription")}
+            >
+              <LanguageSelector
+                value={translationTargetLang}
+                onChange={(value) => setTranslationTargetLang(value)}
+                options={REGISTRY_OPTIONS.filter((opt) => opt.value !== "auto")}
+              />
+            </SettingsRow>
+          </SettingsPanelRow>
+          <SettingsPanelRow>
+            <p className="text-xs text-muted-foreground px-1">
+              {t("settingsPage.aiTranslation.providerNote")}
+            </p>
+          </SettingsPanelRow>
+        </SettingsPanel>
+      </div>
     </div>
   );
 }
@@ -423,6 +479,10 @@ export default function SettingsPage({
     setReasoningProvider,
     setBailianReasoningEnableThinking,
     setCustomReasoningEnableThinking,
+    translationEnabled,
+    translationTargetLang,
+    setTranslationEnabled,
+    setTranslationTargetLang,
     setOpenaiApiKey,
     setDeepgramApiKey,
     setAnthropicApiKey,
@@ -976,6 +1036,11 @@ export default function SettingsPage({
             setCustomReasoningApiKey={setCustomReasoningApiKey}
             customReasoningEnableThinking={customReasoningEnableThinking}
             setCustomReasoningEnableThinking={setCustomReasoningEnableThinking}
+            translationEnabled={translationEnabled}
+            setTranslationEnabled={setTranslationEnabled}
+            translationTargetLang={translationTargetLang}
+            setTranslationTargetLang={setTranslationTargetLang}
+            showAlertDialog={showAlertDialog}
           />
         );
 
@@ -1027,6 +1092,11 @@ export default function SettingsPage({
               setCustomReasoningApiKey={setCustomReasoningApiKey}
               customReasoningEnableThinking={customReasoningEnableThinking}
               setCustomReasoningEnableThinking={setCustomReasoningEnableThinking}
+              translationEnabled={translationEnabled}
+              setTranslationEnabled={setTranslationEnabled}
+              translationTargetLang={translationTargetLang}
+              setTranslationTargetLang={setTranslationTargetLang}
+              showAlertDialog={showAlertDialog}
             />
             {/* System Prompt */}
             {useReasoningModel && (

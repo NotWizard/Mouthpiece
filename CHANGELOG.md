@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- AI Translation Output: a Settings toggle that unifies multilingual dictation into a single target language. Translation and cleanup share the same provider/model in a single LLM call.
+
 ## [1.4.2] - 2026-05-21
 
 ### Internal
