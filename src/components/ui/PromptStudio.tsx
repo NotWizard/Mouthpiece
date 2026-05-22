@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./button";
 import { Textarea } from "./textarea";
@@ -64,6 +64,7 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
   const [testResult, setTestResult] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [copiedPlaceholder, setCopiedPlaceholder] = useState(false);
 
   const { alertDialog, showAlertDialog, hideAlertDialog } = useDialogs();
 
@@ -74,7 +75,6 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
   const translationEnabled = useSettingsStore((s) => s.translationEnabled);
   const translationTargetLang = useSettingsStore((s) => s.translationTargetLang);
 
-  const editorRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     migrateLegacyVoiceModeStorage(localStorage);
@@ -228,6 +228,18 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
         {/* ── View Tab ── */}
         {activeTab === "current" && (
           <div className="divide-y divide-border/40 dark:divide-border-subtle">
+            {translationEnabled && translationTargetLang && (
+              <div className="px-5 py-3 border-b border-border/40 dark:border-border-subtle">
+                <div className="rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 px-3 py-2 text-xs">
+                  <span className="font-medium text-foreground">
+                    {t("promptStudio.translationBanner.viewTabHintTitle", { lang: translationTargetLang })}
+                  </span>{" "}
+                  <span className="text-muted-foreground">
+                    {t("promptStudio.translationBanner.viewTabHint")}
+                  </span>
+                </div>
+              </div>
+            )}
             <div className="px-5 py-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -292,36 +304,27 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
                       placeholder: "{{TARGET_LANG_INSTRUCTION}}",
                     })}
                   </p>
-                  <div className="text-xs text-muted-foreground">
-                    <p className="mb-1">{t("promptStudio.translationBanner.example")}</p>
-                    <pre className="text-xs font-mono bg-muted/30 dark:bg-surface-raised/30 border border-border/30 rounded p-2 leading-relaxed">
-{`Please clean up the spoken transcript into formal writing.
-{{TARGET_LANG_INSTRUCTION}}
-Do not change meaning. Preserve proper nouns.`}
-                    </pre>
-                  </div>
                   <Button
                     size="sm"
                     variant="outline"
                     className="h-7 text-xs"
                     onClick={() => {
-                      const el = editorRef.current;
-                      if (!el) return;
-                      const start = el.selectionStart ?? editedPrompt.length;
-                      const end = el.selectionEnd ?? editedPrompt.length;
-                      const next =
-                        editedPrompt.slice(0, start) +
-                        "{{TARGET_LANG_INSTRUCTION}}" +
-                        editedPrompt.slice(end);
-                      setEditedPrompt(next);
-                      requestAnimationFrame(() => {
-                        el.focus();
-                        const cursor = start + "{{TARGET_LANG_INSTRUCTION}}".length;
-                        el.setSelectionRange(cursor, cursor);
-                      });
+                      navigator.clipboard.writeText("{{TARGET_LANG_INSTRUCTION}}");
+                      setCopiedPlaceholder(true);
+                      setTimeout(() => setCopiedPlaceholder(false), 2000);
                     }}
                   >
-                    {t("promptStudio.translationBanner.insertButton")}
+                    {copiedPlaceholder ? (
+                      <>
+                        <Check className="w-3 h-3 mr-1 text-success" />
+                        {t("promptStudio.translationBanner.copied")}
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3 mr-1" />
+                        {t("promptStudio.translationBanner.copyButton")}
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -329,7 +332,6 @@ Do not change meaning. Preserve proper nouns.`}
 
             <div className="px-5 py-4">
               <Textarea
-                ref={editorRef}
                 value={editedPrompt}
                 onChange={(e) => setEditedPrompt(e.target.value)}
                 rows={16}

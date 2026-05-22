@@ -786,9 +786,11 @@
     },
     "translationBanner": {
       "title": "Traduction activée → cible : {{lang}}",
-      "explainer": "Les règles de traduction sont insérées à l'emplacement de cet espace réservé dans votre prompt : {{placeholder}}. Si l'espace réservé est absent, les règles sont ajoutées à la fin du prompt.",
-      "example": "Exemple :",
-      "insertButton": "Insérer l'espace réservé au curseur"
+      "explainer": "Placez {{placeholder}} dans votre prompt pour contrôler l'endroit où la règle de traduction est insérée. À défaut, elle est ajoutée à la fin.",
+      "copyButton": "Copier l'espace réservé",
+      "copied": "Copié",
+      "viewTabHintTitle": "Traduction activée → {{lang}}",
+      "viewTabHint": "Passez en mode Personnaliser pour insérer {{TARGET_LANG_INSTRUCTION}} là où vous voulez la règle."
     }
   },
   "resetPassword": {

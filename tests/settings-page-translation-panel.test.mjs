@@ -21,6 +21,9 @@ test("SettingsPage threads translation settings through props", () => {
   assert.match(source, /setTranslationTargetLang:\s*\(value:\s*string\)\s*=>\s*void/);
 });
 
-test("Toggling translation on with empty target language is blocked at UI", () => {
-  assert.match(source, /settingsPage\.aiTranslation\.requireTargetLang/);
+test("Toggling translation on with empty target language auto-defaults to en", () => {
+  assert.match(
+    source,
+    /if \(value && !translationTargetLang\) \{\s*setTranslationTargetLang\("en"\);/
+  );
 });

@@ -786,9 +786,11 @@
     },
     "translationBanner": {
       "title": "Übersetzung aktiviert → Ziel: {{lang}}",
-      "explainer": "Die Übersetzungsregeln werden an der Stelle dieses Platzhalters in deinem Prompt eingefügt: {{placeholder}}. Fehlt der Platzhalter, werden die Regeln am Ende des Prompts angehängt.",
-      "example": "Beispiel:",
-      "insertButton": "Platzhalter an Cursor einfügen"
+      "explainer": "Platzieren Sie {{placeholder}} in Ihrem Prompt, um zu steuern, wo die Übersetzungsregel landet. Fehlt sie, wird die Regel am Ende angefügt.",
+      "copyButton": "Platzhalter kopieren",
+      "copied": "Kopiert",
+      "viewTabHintTitle": "Übersetzung aktiviert → {{lang}}",
+      "viewTabHint": "Wechseln Sie zu Anpassen, um {{TARGET_LANG_INSTRUCTION}} an der gewünschten Stelle einzufügen."
     }
   },
   "resetPassword": {

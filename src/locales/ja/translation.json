@@ -786,9 +786,11 @@
     },
     "translationBanner": {
       "title": "翻訳が有効 → 対象言語: {{lang}}",
-      "explainer": "翻訳ルールはプロンプト内のこのプレースホルダーの位置に挿入されます: {{placeholder}}。プレースホルダーがない場合、ルールはプロンプトの末尾に追加されます。",
-      "example": "例:",
-      "insertButton": "カーソル位置にプレースホルダーを挿入"
+      "explainer": "{{placeholder}} をプロンプトに配置して翻訳ルールの挿入位置を指定できます。なければ末尾に追加されます。",
+      "copyButton": "プレースホルダーをコピー",
+      "copied": "コピーしました",
+      "viewTabHintTitle": "翻訳が有効 → {{lang}}",
+      "viewTabHint": "「カスタマイズ」に切り替えて {{TARGET_LANG_INSTRUCTION}} を好きな位置に挿入してください。"
     }
   },
   "resetPassword": {

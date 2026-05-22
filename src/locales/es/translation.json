@@ -786,9 +786,11 @@
     },
     "translationBanner": {
       "title": "Traducción activada → destino: {{lang}}",
-      "explainer": "Las reglas de traducción se insertan en la ubicación de este marcador en tu prompt: {{placeholder}}. Si falta el marcador, las reglas se añaden al final del prompt.",
-      "example": "Ejemplo:",
-      "insertButton": "Insertar marcador en el cursor"
+      "explainer": "Coloca {{placeholder}} en tu prompt para controlar dónde se inserta la regla de traducción. Si no está, se añade al final.",
+      "copyButton": "Copiar marcador",
+      "copied": "Copiado",
+      "viewTabHintTitle": "Traducción activada → {{lang}}",
+      "viewTabHint": "Cambia a Personalizar para insertar {{TARGET_LANG_INSTRUCTION}} donde quieras la regla."
     }
   },
   "resetPassword": {

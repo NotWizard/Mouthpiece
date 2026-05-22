@@ -387,18 +387,16 @@ function AiModelsSection({
                 checked={translationEnabled}
                 onChange={(value) => {
                   if (value && !translationTargetLang) {
-                    showAlertDialog({
-                      title: t("settingsPage.aiTranslation.title"),
-                      description: t("settingsPage.aiTranslation.requireTargetLang"),
-                    });
-                    return;
+                    setTranslationTargetLang("en");
                   }
                   setTranslationEnabled(value);
                 }}
               />
             </SettingsRow>
           </SettingsPanelRow>
-          <SettingsPanelRow>
+          {translationEnabled && (
+            <>
+              <SettingsPanelRow>
             <SettingsRow
               label={t("settingsPage.aiTranslation.targetLangLabel")}
               description={t("settingsPage.aiTranslation.targetLangDescription")}
@@ -415,6 +413,8 @@ function AiModelsSection({
               {t("settingsPage.aiTranslation.providerNote")}
             </p>
           </SettingsPanelRow>
+            </>
+          )}
         </SettingsPanel>
       </div>
     </div>

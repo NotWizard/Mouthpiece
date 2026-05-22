@@ -773,9 +773,11 @@
     },
     "translationBanner": {
       "title": "Tradução ativada → destino: {{lang}}",
-      "explainer": "As regras de tradução são inseridas no local deste marcador em seu prompt: {{placeholder}}. Quando o marcador está ausente, as regras são anexadas ao final do prompt.",
-      "example": "Exemplo:",
-      "insertButton": "Inserir marcador no cursor"
+      "explainer": "Coloque {{placeholder}} no seu prompt para controlar onde a regra de tradução é inserida. Sem ele, a regra é anexada ao final.",
+      "copyButton": "Copiar marcador",
+      "copied": "Copiado",
+      "viewTabHintTitle": "Tradução ativada → {{lang}}",
+      "viewTabHint": "Mude para Personalizar para inserir {{TARGET_LANG_INSTRUCTION}} onde quiser a regra."
     }
   },
   "resetPassword": {

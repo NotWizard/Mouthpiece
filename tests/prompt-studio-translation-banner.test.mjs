@@ -12,6 +12,6 @@ test("PromptStudio reads translation settings and renders banner when enabled", 
   assert.match(source, /translationEnabled\b/);
   assert.match(source, /translationTargetLang\b/);
   assert.match(source, /promptStudio\.translationBanner\.title/);
-  assert.match(source, /promptStudio\.translationBanner\.insertButton/);
+  assert.match(source, /promptStudio\.translationBanner\.copyButton/);
   assert.match(source, /\{\{TARGET_LANG_INSTRUCTION\}\}/);
 });

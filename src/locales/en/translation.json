@@ -786,9 +786,11 @@
     },
     "translationBanner": {
       "title": "Translation enabled → target: {{lang}}",
-      "explainer": "Translation rules are inserted at this placeholder location in your prompt: {{placeholder}}. When the placeholder is missing, the rules are appended to the end of the prompt.",
-      "example": "Example:",
-      "insertButton": "Insert placeholder at cursor"
+      "explainer": "Place {{placeholder}} in your prompt to control where the translation rule lands. If absent, the rule is appended to the end.",
+      "copyButton": "Copy placeholder",
+      "copied": "Copied",
+      "viewTabHintTitle": "Translation enabled → {{lang}}",
+      "viewTabHint": "Switch to Customize to insert {{TARGET_LANG_INSTRUCTION}} where you want the rule."
     }
   },
   "resetPassword": {

@@ -786,9 +786,11 @@
     },
     "translationBanner": {
       "title": "Traduzione attivata → destinazione: {{lang}}",
-      "explainer": "Le regole di traduzione vengono inserite nella posizione di questo segnaposto nel tuo prompt: {{placeholder}}. Quando il segnaposto non è presente, le regole vengono aggiunte alla fine del prompt.",
-      "example": "Esempio:",
-      "insertButton": "Inserisci segnaposto al cursore"
+      "explainer": "Inserisci {{placeholder}} nel tuo prompt per controllare dove finisce la regola di traduzione. Se manca, viene aggiunta alla fine.",
+      "copyButton": "Copia segnaposto",
+      "copied": "Copiato",
+      "viewTabHintTitle": "Traduzione attivata → {{lang}}",
+      "viewTabHint": "Passa a Personalizza per inserire {{TARGET_LANG_INSTRUCTION}} dove vuoi la regola."
     }
   },
   "resetPassword": {
