@@ -1564,7 +1564,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
       if (result.success && result.text) {
         const reasoningStart = performance.now();
-        const text = await this.processTranscription(result.text, "local");
+        const {
+          finalText: text,
+          rawText,
+          fallbackReason,
+        } = await this.processTranscription(result.text, "local");
+        this._lastRawText = rawText;
+        this._lastFallbackReason = fallbackReason;
         timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
 
         if (text !== null && text !== undefined) {
@@ -1637,7 +1643,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
       if (result.success && result.text) {
         const reasoningStart = performance.now();
-        const text = await this.processTranscription(result.text, "local-parakeet");
+        const {
+          finalText: text,
+          rawText,
+          fallbackReason,
+        } = await this.processTranscription(result.text, "local-parakeet");
+        this._lastRawText = rawText;
+        this._lastFallbackReason = fallbackReason;
         timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
 
         if (text !== null && text !== undefined) {
@@ -1717,7 +1729,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
       if (result.success && result.text) {
         const reasoningStart = performance.now();
-        const text = await this.processTranscription(result.text, "local-qwen-asr");
+        const {
+          finalText: text,
+          rawText,
+          fallbackReason,
+        } = await this.processTranscription(result.text, "local-qwen-asr");
+        this._lastRawText = rawText;
+        this._lastFallbackReason = fallbackReason;
         timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
 
         if (text !== null && text !== undefined) {
@@ -2195,7 +2213,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         source,
         reason: "Empty text after normalization",
       });
-      return normalizedText;
+      return { finalText: normalizedText, rawText: normalizedText, fallbackReason: null };
     }
 
     logger.logReasoning("TRANSCRIPTION_RECEIVED", {
@@ -2212,7 +2230,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       logger.logReasoning("REASONING_SKIPPED", {
         reason: "No reasoning model selected",
       });
-      return normalizedText;
+      return { finalText: normalizedText, rawText: normalizedText, fallbackReason: null };
     }
 
     const useReasoning = await this.isReasoningAvailable();
@@ -2241,7 +2259,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             matchedRuleId: sensitiveAppPolicy.ruleId,
             action: sensitiveAppPolicy.action,
           });
-          return normalizedText;
+          return { finalText: normalizedText, rawText: normalizedText, fallbackReason: null };
         }
         const result = await this.processWithReasoningModel(
           normalizedText,
@@ -2255,7 +2273,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           processingTime: new Date().toISOString(),
         });
 
-        return result;
+        return { finalText: result, rawText: normalizedText, fallbackReason: null };
       } catch (error) {
         logger.logReasoning("REASONING_FAILED", {
           error: error.message,
@@ -2263,6 +2281,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           fallbackToCleanup: true,
         });
         logger.warn("Reasoning failed", { source, error: error.message }, "reasoning");
+        return {
+          finalText: normalizedText,
+          rawText: normalizedText,
+          fallbackReason: "reasoning_failed",
+        };
       }
     }
 
@@ -2270,7 +2293,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       reason: useReasoning ? "Reasoning failed" : "Reasoning not enabled",
     });
 
-    return normalizedText;
+    return { finalText: normalizedText, rawText: normalizedText, fallbackReason: null };
   }
 
   shouldStreamTranscription(model, provider) {
@@ -2731,7 +2754,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
     timings.transcriptionProcessingDurationMs = Math.round(performance.now() - apiCallStart);
     const reasoningStart = performance.now();
-    const text = await this.processTranscription(sonioxText, "soniox");
+    const {
+      finalText: text,
+      rawText,
+      fallbackReason,
+    } = await this.processTranscription(sonioxText, "soniox");
+    this._lastRawText = rawText;
+    this._lastFallbackReason = fallbackReason;
     timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
 
     const source = (await this.isReasoningAvailable()) ? "soniox-reasoned" : "soniox";
@@ -2847,7 +2876,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         if (proxyText && proxyText.trim().length > 0) {
           timings.transcriptionProcessingDurationMs = Math.round(performance.now() - apiCallStart);
           const reasoningStart = performance.now();
-          const text = await this.processTranscription(proxyText, "mistral");
+          const {
+            finalText: text,
+            rawText,
+            fallbackReason,
+          } = await this.processTranscription(proxyText, "mistral");
+          this._lastRawText = rawText;
+          this._lastFallbackReason = fallbackReason;
           timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
 
           const source = (await this.isReasoningAvailable()) ? "mistral-reasoned" : "mistral";
@@ -3127,7 +3162,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         timings.transcriptionProcessingDurationMs = Math.round(performance.now() - apiCallStart);
 
         const reasoningStart = performance.now();
-        const text = await this.processTranscription(transcribedText, "openai");
+        const {
+          finalText: text,
+          rawText,
+          fallbackReason,
+        } = await this.processTranscription(transcribedText, "openai");
+        this._lastRawText = rawText;
+        this._lastFallbackReason = fallbackReason;
         timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
 
         const sourceBase =
@@ -3208,7 +3249,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           const result = await window.electronAPI.transcribeLocalWhisper(arrayBuffer, options);
 
           if (result.success && result.text) {
-            const text = await this.processTranscription(result.text, "local-fallback");
+            const {
+              finalText: text,
+              rawText,
+              fallbackReason,
+            } = await this.processTranscription(result.text, "local-fallback");
+            this._lastRawText = rawText;
+            this._lastFallbackReason = fallbackReason;
             if (text) {
               return { success: true, text, source: "local-fallback" };
             }
@@ -3509,9 +3556,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     }
   }
 
-  async saveTranscription(text) {
+  async saveTranscription(text, rawText) {
     try {
-      await window.electronAPI.saveTranscription(text);
+      await window.electronAPI.saveTranscription(text, rawText ?? null);
       return true;
     } catch (error) {
       return false;
@@ -4083,7 +4130,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     if (isByokDeepgramStreaming && finalText) {
       const reasoningStart = performance.now();
       try {
-        const processedText = await this.processTranscription(finalText, "deepgram-streaming");
+        const {
+          finalText: processedText,
+          rawText,
+          fallbackReason,
+        } = await this.processTranscription(finalText, "deepgram-streaming");
+        this._lastRawText = rawText;
+        this._lastFallbackReason = fallbackReason;
         if (processedText) {
           finalText = processedText;
           usedGenericStreamingProcessing = true;
@@ -4103,7 +4156,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     } else if (isByokBailianStreaming && finalText) {
       const reasoningStart = performance.now();
       try {
-        const processedText = await this.processTranscription(finalText, "bailian-streaming");
+        const {
+          finalText: processedText,
+          rawText,
+          fallbackReason,
+        } = await this.processTranscription(finalText, "bailian-streaming");
+        this._lastRawText = rawText;
+        this._lastFallbackReason = fallbackReason;
         if (processedText) {
           finalText = processedText;
           usedGenericStreamingProcessing = true;

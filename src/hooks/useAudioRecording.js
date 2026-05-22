@@ -600,7 +600,10 @@ export const useAudioRecording = (toast, options = {}) => {
           "streaming"
         );
 
-        audioManagerRef.current.saveTranscription(result.text);
+        audioManagerRef.current.saveTranscription(
+          result.text,
+          audioManagerRef.current._lastRawText ?? null
+        );
 
         if (shouldShowFallbackToast(result)) {
           toast({
