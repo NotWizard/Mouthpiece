@@ -374,8 +374,8 @@ class IPCHandlers {
       return this.environmentManager.createProductionEnvFile(apiKey);
     });
 
-    ipcMain.handle("db-save-transcription", async (event, text) => {
-      const result = this.databaseManager.saveTranscription(text);
+    ipcMain.handle("db-save-transcription", async (event, text, rawText) => {
+      const result = this.databaseManager.saveTranscription(text, rawText);
       if (result?.success && result?.transcription) {
         setImmediate(() => {
           this.broadcastToWindows("transcription-added", result.transcription);

@@ -5,6 +5,7 @@ export type LocalTranscriptionProvider = "whisper" | "nvidia" | "qwen";
 export interface TranscriptionItem {
   id: number;
   text: string;
+  raw_text?: string | null;
   timestamp: string;
   created_at: string;
 }
@@ -393,7 +394,7 @@ declare global {
       } | null>;
 
       // Database operations
-      saveTranscription: (text: string) => Promise<{ id: number; success: boolean }>;
+      saveTranscription: (text: string, rawText?: string | null) => Promise<{ id: number; success: boolean }>;
       getTranscriptions: (limit?: number) => Promise<TranscriptionItem[]>;
       clearTranscriptions: () => Promise<{ cleared: number; success: boolean }>;
       deleteTranscription: (id: number) => Promise<{ success: boolean }>;

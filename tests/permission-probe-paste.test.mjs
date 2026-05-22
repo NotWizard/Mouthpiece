@@ -75,6 +75,6 @@ test("save transcription IPC still returns the database result payload", async (
 
   assert.match(
     source,
-    /ipcMain\.handle\("db-save-transcription",[\s\S]*const result = this\.databaseManager\.saveTranscription\(text\);[\s\S]*return result;/
+    /ipcMain\.handle\("db-save-transcription",[\s\S]*const result = this\.databaseManager\.saveTranscription\(text, rawText\);[\s\S]*return result;/
   );
 });

@@ -69,13 +69,15 @@ class DatabaseManager {
     }
   }
 
-  saveTranscription(text) {
+  saveTranscription(text, rawText) {
     try {
       if (!this.db) {
         throw new Error("Database not initialized");
       }
-      const stmt = this.db.prepare("INSERT INTO transcriptions (text) VALUES (?)");
-      const result = stmt.run(text);
+      const stmt = this.db.prepare(
+        "INSERT INTO transcriptions (text, raw_text) VALUES (?, ?)"
+      );
+      const result = stmt.run(text, rawText ?? null);
 
       const fetchStmt = this.db.prepare("SELECT * FROM transcriptions WHERE id = ?");
       const transcription = fetchStmt.get(result.lastInsertRowid);
