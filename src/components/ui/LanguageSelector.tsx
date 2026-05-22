@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import { ChevronDown, Search, X, Check } from "lucide-react";
@@ -38,6 +38,20 @@ export default function LanguageSelector({
 }: LanguageSelectorProps) {
   const { t } = useTranslation();
   const items = options ?? REGISTRY_OPTIONS;
+  const contentWidth = useMemo(() => {
+    if (typeof document === "undefined") return 0;
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return 0;
+    ctx.font = "14px -apple-system, system-ui, sans-serif";
+    let max = 0;
+    for (const item of items) {
+      const w = ctx.measureText(item.label).width;
+      if (w > max) max = w;
+    }
+    // flag(~24) + gap(8) + text + horizontal padding(32) + scrollbar slack(16) = + 80
+    return Math.ceil(max + 80);
+  }, [items]);
   const showSearch = items.length > SEARCH_THRESHOLD;
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -79,7 +93,7 @@ export default function LanguageSelector({
       // fixed positioning is relative to that ancestor, not the viewport.
       const offsetX = target === document.body ? 0 : target.getBoundingClientRect().left;
       const offsetY = target === document.body ? 0 : target.getBoundingClientRect().top;
-      const dropdownWidth = Math.max(triggerRect.width, 260);
+      const dropdownWidth = Math.max(triggerRect.width, contentWidth, 180);
       const idealLeft = triggerRect.left - offsetX;
       const maxLeft = window.innerWidth - dropdownWidth - 16 - offsetX;
       const left = Math.max(16, Math.min(idealLeft, maxLeft));
