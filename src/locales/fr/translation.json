@@ -1100,7 +1100,18 @@
       "targetLangLabel": "Langue cible",
       "targetLangDescription": "Toutes les transcriptions sont unifiées dans cette langue. Si l'entrée est déjà dans cette langue, seul le nettoyage s'exécute.",
       "providerNote": "La traduction utilise le même fournisseur et modèle que le nettoyage (un seul appel au LLM). En cas d'échec, l'application revient à la transcription brute avec un avis.",
-      "disableWarnPlaceholderRemains": "Votre prompt contient encore {{placeholder}}. La traduction est désormais désactivée, donc l'espace réservé sera supprimé (remplacé par du vide) à chaque appel. Modifiez votre prompt dans PromptStudio si vous voulez retirer la phrase qui l'entoure."
+      "disableWarnPlaceholderRemains": "Votre prompt contient encore {{placeholder}}. La traduction est désormais désactivée, donc l'espace réservé sera supprimé (remplacé par du vide) à chaque appel. Modifiez votre prompt dans PromptStudio si vous voulez retirer la phrase qui l'entoure.",
+      "hotkeyRowLabel": "Raccourci de traduction",
+      "hotkeyRowDescription": "La traduction ne s'exécute que lorsque ce raccourci dédié est déclenché. Cliquez pour le configurer.",
+      "hotkeyUnset": "Non défini"
+    },
+    "translationHotkey": {
+      "title": "Raccourci de traduction",
+      "description": "Un raccourci distinct qui déclenche le pipeline de traduction (transcrire + nettoyer + traduire). Le raccourci principal ci-dessus reste limité au nettoyage.",
+      "conflictWithMain": "Conflit avec le raccourci principal de dictée. Choisissez une combinaison différente.",
+      "clear": "Effacer le raccourci de traduction",
+      "activationBehavior": "Activation",
+      "activationBehaviorDescription": "Le raccourci de traduction ne prend en charge que le tap-to-toggle (appuyez pour démarrer, appuyez de nouveau pour arrêter). Le push-to-talk (modificateur uniquement) n'est pas pris en charge ici."
     }
   },
   "models": {

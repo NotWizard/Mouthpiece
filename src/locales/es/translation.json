@@ -1100,7 +1100,18 @@
       "targetLangLabel": "Idioma de destino",
       "targetLangDescription": "Todas las transcripciones se unifican en este idioma. Si la entrada ya está en este idioma, solo se ejecuta la limpieza.",
       "providerNote": "La traducción usa el mismo proveedor y modelo que la limpieza (una sola llamada al LLM). Si falla, vuelve a la transcripción original con un aviso.",
-      "disableWarnPlaceholderRemains": "Tu prompt aún contiene {{placeholder}}. La traducción ahora está desactivada, así que el marcador se eliminará (se sustituirá por vacío) en cada llamada. Edita tu prompt en PromptStudio si quieres quitar la frase que lo rodea."
+      "disableWarnPlaceholderRemains": "Tu prompt aún contiene {{placeholder}}. La traducción ahora está desactivada, así que el marcador se eliminará (se sustituirá por vacío) en cada llamada. Edita tu prompt en PromptStudio si quieres quitar la frase que lo rodea.",
+      "hotkeyRowLabel": "Atajo de traducción",
+      "hotkeyRowDescription": "La traducción solo se ejecuta al activar este atajo dedicado. Haz clic para configurarlo.",
+      "hotkeyUnset": "Sin configurar"
+    },
+    "translationHotkey": {
+      "title": "Atajo de traducción",
+      "description": "Un atajo separado que activa el pipeline de traducción (transcribir + limpiar + traducir). El atajo principal arriba se mantiene solo de limpieza.",
+      "conflictWithMain": "Conflicto con el atajo principal de dictado. Elige una combinación diferente.",
+      "clear": "Borrar atajo de traducción",
+      "activationBehavior": "Activación",
+      "activationBehaviorDescription": "El atajo de traducción solo admite tap-to-toggle (pulsa para empezar, pulsa de nuevo para parar). Push-to-talk (solo modificador) no se admite aquí."
     }
   },
   "models": {

@@ -416,6 +416,9 @@ export default function ControlPanel() {
                 <Suspense fallback={null}>
                   <SettingsPage
                     activeSection={activeView}
+                    onActiveSectionChange={(section) =>
+                      setActiveView(section as ControlPanelView)
+                    }
                     updateStatus={updateStatus}
                     onCheckForUpdates={handleManualCheckForUpdates}
                     onInstallUpdate={handleInstallUpdate}

@@ -1100,7 +1100,18 @@
       "targetLangLabel": "対象言語",
       "targetLangDescription": "すべての文字起こしをこの言語に統合します。入力がすでにこの言語の場合は、クリーンアップのみ実行されます。",
       "providerNote": "翻訳はクリーンアップと同じプロバイダーとモデルを使用します(1 回の LLM 呼び出し)。失敗した場合は通知とともに元の文字起こしに戻ります。",
-      "disableWarnPlaceholderRemains": "プロンプトにまだ {{placeholder}} が含まれています。翻訳がオフになったため、プレースホルダーは呼び出しごとに削除(空に置換)されます。周囲の文も削除したい場合は、PromptStudio でプロンプトを編集してください。"
+      "disableWarnPlaceholderRemains": "プロンプトにまだ {{placeholder}} が含まれています。翻訳がオフになったため、プレースホルダーは呼び出しごとに削除(空に置換)されます。周囲の文も削除したい場合は、PromptStudio でプロンプトを編集してください。",
+      "hotkeyRowLabel": "翻訳ホットキー",
+      "hotkeyRowDescription": "翻訳はこの専用ホットキーで起動した場合にのみ実行されます。クリックして設定してください。",
+      "hotkeyUnset": "未設定"
+    },
+    "translationHotkey": {
+      "title": "翻訳ホットキー",
+      "description": "翻訳パイプライン (転記 + 整理 + 翻訳) を起動するための独立したホットキー。上の主ホットキーは整理のみのままです。",
+      "conflictWithMain": "メインの読み上げホットキーと衝突しています。別の組み合わせを選んでください。",
+      "clear": "翻訳ホットキーをクリア",
+      "activationBehavior": "起動方式",
+      "activationBehaviorDescription": "翻訳ホットキーは tap-to-toggle (一度押して開始、もう一度押して停止) のみをサポートします。push-to-talk (修飾キーのみ) はここではサポートされません。"
     }
   },
   "models": {

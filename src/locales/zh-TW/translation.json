@@ -1100,7 +1100,18 @@
       "targetLangLabel": "目標語言",
       "targetLangDescription": "所有轉錄都會統一為該語言。如果輸入已為該語言,則僅執行清理。",
       "providerNote": "翻譯使用與清理相同的提供商和模型(一次 LLM 呼叫)。失敗時退回原始轉錄並提示。",
-      "disableWarnPlaceholderRemains": "你的 prompt 中仍包含 {{placeholder}}。翻譯已關閉,該佔位符在每次呼叫時會被剝離為空字串。如要去除佔位符所在的整句,請到「提示詞工作室」編輯 prompt。"
+      "disableWarnPlaceholderRemains": "你的 prompt 中仍包含 {{placeholder}}。翻譯已關閉,該佔位符在每次呼叫時會被剝離為空字串。如要去除佔位符所在的整句,請到「提示詞工作室」編輯 prompt。",
+      "hotkeyRowLabel": "翻譯快捷鍵",
+      "hotkeyRowDescription": "翻譯僅在通過此專屬快捷鍵觸發時執行。點擊進行設定。",
+      "hotkeyUnset": "未設定"
+    },
+    "translationHotkey": {
+      "title": "翻譯快捷鍵",
+      "description": "獨立的快捷鍵,用於觸發翻譯管線(轉錄 + 清理 + 翻譯)。上方主快捷鍵仍然僅做清理。",
+      "conflictWithMain": "與主聽寫快捷鍵衝突,請選擇不同的組合。",
+      "clear": "清除翻譯快捷鍵",
+      "activationBehavior": "觸發方式",
+      "activationBehaviorDescription": "翻譯快捷鍵僅支援 tap-to-toggle (按一下開始,再按一下結束)。此處不支援 push-to-talk (僅修飾鍵)。"
     }
   },
   "models": {

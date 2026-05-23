@@ -1100,7 +1100,18 @@
       "targetLangLabel": "Target language",
       "targetLangDescription": "All transcripts are unified into this language. If the input is already in this language, only cleanup runs.",
       "providerNote": "Translation uses the same provider and model as cleanup (a single LLM call). Failures fall back to the raw transcript with a notice.",
-      "disableWarnPlaceholderRemains": "Your prompt still contains {{placeholder}}. Translation is now off, so the placeholder will be stripped (replaced with empty) at every call. Edit your prompt in PromptStudio if you want to remove the surrounding sentence."
+      "disableWarnPlaceholderRemains": "Your prompt still contains {{placeholder}}. Translation is now off, so the placeholder will be stripped (replaced with empty) at every call. Edit your prompt in PromptStudio if you want to remove the surrounding sentence.",
+      "hotkeyRowLabel": "Translation hotkey",
+      "hotkeyRowDescription": "Translation runs only when triggered by this dedicated hotkey. Click to set it.",
+      "hotkeyUnset": "Not set"
+    },
+    "translationHotkey": {
+      "title": "Translation hotkey",
+      "description": "A separate hotkey that triggers the translation pipeline (transcribe + cleanup + translate). The main hotkey above stays cleanup-only.",
+      "conflictWithMain": "Conflicts with the main dictation hotkey. Pick a different combination.",
+      "clear": "Clear translation hotkey",
+      "activationBehavior": "Activation",
+      "activationBehaviorDescription": "Translation hotkey only supports tap-to-toggle (press to start, press again to stop). Push-to-talk (modifier-only) is not supported here."
     }
   },
   "models": {

@@ -1100,7 +1100,18 @@
       "targetLangLabel": "Zielsprache",
       "targetLangDescription": "Alle Transkripte werden in dieser Sprache vereinheitlicht. Liegt die Eingabe bereits in dieser Sprache vor, läuft nur die Bereinigung.",
       "providerNote": "Die Übersetzung verwendet denselben Anbieter und das gleiche Modell wie die Bereinigung (ein einziger LLM-Aufruf). Bei Fehlern wird mit einem Hinweis auf das rohe Transkript zurückgegriffen.",
-      "disableWarnPlaceholderRemains": "Ihr Prompt enthält noch {{placeholder}}. Die Übersetzung ist jetzt deaktiviert, daher wird der Platzhalter bei jedem Aufruf entfernt (durch leer ersetzt). Bearbeiten Sie Ihren Prompt in PromptStudio, wenn Sie den umgebenden Satz entfernen möchten."
+      "disableWarnPlaceholderRemains": "Ihr Prompt enthält noch {{placeholder}}. Die Übersetzung ist jetzt deaktiviert, daher wird der Platzhalter bei jedem Aufruf entfernt (durch leer ersetzt). Bearbeiten Sie Ihren Prompt in PromptStudio, wenn Sie den umgebenden Satz entfernen möchten.",
+      "hotkeyRowLabel": "Übersetzungs-Tastenkürzel",
+      "hotkeyRowDescription": "Die Übersetzung läuft nur, wenn dieses dedizierte Tastenkürzel ausgelöst wird. Zum Festlegen klicken.",
+      "hotkeyUnset": "Nicht festgelegt"
+    },
+    "translationHotkey": {
+      "title": "Übersetzungs-Tastenkürzel",
+      "description": "Ein separates Tastenkürzel, das die Übersetzungs-Pipeline auslöst (transkribieren + bereinigen + übersetzen). Das Haupt-Tastenkürzel oben bleibt nur für die Bereinigung.",
+      "conflictWithMain": "Konflikt mit dem Haupt-Diktierkürzel. Wähle eine andere Kombination.",
+      "clear": "Übersetzungs-Tastenkürzel löschen",
+      "activationBehavior": "Aktivierung",
+      "activationBehaviorDescription": "Das Übersetzungs-Tastenkürzel unterstützt nur Tap-to-toggle (Drücken zum Starten, erneut zum Stoppen). Push-to-talk (nur Modifikator) wird hier nicht unterstützt."
     }
   },
   "models": {

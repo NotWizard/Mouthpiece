@@ -60,6 +60,7 @@ export type SettingsSectionType =
 
 interface SettingsPageProps {
   activeSection?: SettingsSectionType;
+  onActiveSectionChange?: (section: SettingsSectionType) => void;
   updateStatus?: AppUpdateStatus | null;
   onCheckForUpdates?: () => void;
   onInstallUpdate?: () => void;
@@ -281,7 +282,9 @@ interface AiModelsSectionProps {
   setTranslationEnabled: (value: boolean) => void;
   translationTargetLang: string;
   setTranslationTargetLang: (value: string) => void;
+  translationDictationKey: string;
   showAlertDialog: (options: { title: string; description: string }) => void;
+  onJumpToHotkeys?: () => void;
 }
 
 function AiModelsSection({
@@ -315,7 +318,9 @@ function AiModelsSection({
   setTranslationEnabled,
   translationTargetLang,
   setTranslationTargetLang,
+  translationDictationKey,
   showAlertDialog,
+  onJumpToHotkeys,
 }: AiModelsSectionProps) {
   const { t } = useTranslation();
 
@@ -427,6 +432,23 @@ function AiModelsSection({
             </SettingsRow>
           </SettingsPanelRow>
           <SettingsPanelRow>
+            <SettingsRow
+              label={t("settingsPage.aiTranslation.hotkeyRowLabel")}
+              description={t("settingsPage.aiTranslation.hotkeyRowDescription")}
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2.5 text-xs"
+                onClick={() => onJumpToHotkeys?.()}
+              >
+                {translationDictationKey
+                  ? formatHotkeyLabel(translationDictationKey)
+                  : t("settingsPage.aiTranslation.hotkeyUnset")}
+              </Button>
+            </SettingsRow>
+          </SettingsPanelRow>
+          <SettingsPanelRow>
             <p className="text-xs text-muted-foreground px-1">
               {t("settingsPage.aiTranslation.providerNote")}
             </p>
@@ -441,6 +463,7 @@ function AiModelsSection({
 
 export default function SettingsPage({
   activeSection = "general",
+  onActiveSectionChange,
   updateStatus = null,
   onCheckForUpdates,
   onInstallUpdate,
@@ -499,8 +522,10 @@ export default function SettingsPage({
     setCustomReasoningEnableThinking,
     translationEnabled,
     translationTargetLang,
+    translationDictationKey,
     setTranslationEnabled,
     setTranslationTargetLang,
+    setTranslationDictationKey,
     setOpenaiApiKey,
     setDeepgramApiKey,
     setAnthropicApiKey,
@@ -971,6 +996,46 @@ export default function SettingsPage({
                 </SettingsPanelRow>
               </SettingsPanel>
             </div>
+
+            {/* Translation Hotkey (P8.3) */}
+            <div>
+              <SectionHeader
+                title={t("settingsPage.translationHotkey.title")}
+                description={t("settingsPage.translationHotkey.description")}
+              />
+              <SettingsPanel>
+                <SettingsPanelRow>
+                  <HotkeyInput
+                    value={translationDictationKey}
+                    onChange={(newHotkey) => {
+                      setTranslationDictationKey(newHotkey || "");
+                    }}
+                    validate={(hotkey) => {
+                      if (hotkey && hotkey === dictationKey) {
+                        return t("settingsPage.translationHotkey.conflictWithMain");
+                      }
+                      return null;
+                    }}
+                  />
+                  {translationDictationKey && (
+                    <button
+                      onClick={() => setTranslationDictationKey("")}
+                      className="mt-2 text-xs text-muted-foreground/70 hover:text-foreground transition-colors"
+                    >
+                      {t("settingsPage.translationHotkey.clear")}
+                    </button>
+                  )}
+                </SettingsPanelRow>
+                <SettingsPanelRow className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground/80">
+                    {t("settingsPage.translationHotkey.activationBehavior")}
+                  </p>
+                  <p className="text-xs leading-relaxed text-muted-foreground/70">
+                    {t("settingsPage.translationHotkey.activationBehaviorDescription")}
+                  </p>
+                </SettingsPanelRow>
+              </SettingsPanel>
+            </div>
           </div>
         );
 
@@ -1058,7 +1123,9 @@ export default function SettingsPage({
             setTranslationEnabled={setTranslationEnabled}
             translationTargetLang={translationTargetLang}
             setTranslationTargetLang={setTranslationTargetLang}
+            translationDictationKey={translationDictationKey}
             showAlertDialog={showAlertDialog}
+            onJumpToHotkeys={() => onActiveSectionChange?.("hotkeys")}
           />
         );
 
@@ -1114,7 +1181,9 @@ export default function SettingsPage({
               setTranslationEnabled={setTranslationEnabled}
               translationTargetLang={translationTargetLang}
               setTranslationTargetLang={setTranslationTargetLang}
+              translationDictationKey={translationDictationKey}
               showAlertDialog={showAlertDialog}
+              onJumpToHotkeys={() => onActiveSectionChange?.("hotkeys")}
             />
             {/* System Prompt */}
             {useReasoningModel && (
