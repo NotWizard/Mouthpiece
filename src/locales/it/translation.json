@@ -976,7 +976,8 @@
         "activationMode": "Modalità di attivazione",
         "description": "La combinazione di tasti che avvia e ferma la dettatura vocale",
         "resetToDefault": "Ripristina a {{hotkey}}",
-        "title": "Scorciatoia di dettatura"
+        "title": "Scorciatoia di dettatura",
+        "modifierOnlyRequired": "La scorciatoia principale deve essere solo un modificatore (es. Right Command, Right Option, Globe). Le combinazioni non sono supportate qui."
       },
       "microphone": {
         "description": "Seleziona il dispositivo di ingresso da usare per la dettatura",
@@ -1112,7 +1113,8 @@
       "clear": "Cancella scorciatoia di traduzione",
       "activationBehavior": "Attivazione",
       "activationBehaviorDescription": "La scorciatoia di traduzione supporta solo tap-to-toggle (premi per iniziare, premi di nuovo per fermare). Push-to-talk (solo modificatore) non è supportato qui.",
-      "modifierOnlyRejected": "La scorciatoia di traduzione non può essere solo un modificatore (es. Right Option). Usa una combinazione come Cmd+Shift+T o backtick."
+      "modifierOnlyRejected": "La scorciatoia di traduzione non può essere solo un modificatore (es. Right Option). Usa una combinazione come Cmd+Shift+T o backtick.",
+      "missingMainModifierPrefix": "La scorciatoia di traduzione deve includere tutti i modificatori della scorciatoia principale (impostata sopra) più almeno un tasto normale (es. Right Command + T)."
     }
   },
   "models": {

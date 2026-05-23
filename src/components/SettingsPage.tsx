@@ -32,7 +32,7 @@ import ReasoningModelSelector from "./ReasoningModelSelector";
 import { HotkeyInput } from "./ui/HotkeyInput";
 import HotkeyGuidanceAccordion from "./ui/HotkeyGuidanceAccordion";
 import { useHotkeyRegistration } from "../hooks/useHotkeyRegistration";
-import { getValidationMessage, isModifierOnlyAccelerator } from "../utils/hotkeyValidator";
+import { getValidationMessage, isModifierOnlyAccelerator, containsAllModifiersOf } from "../utils/hotkeyValidator";
 import { getPlatform, getCachedPlatform } from "../utils/platform";
 import { getDefaultHotkey, formatHotkeyLabel } from "../utils/hotkeys";
 import { Toggle } from "./ui/toggle";
@@ -602,8 +602,32 @@ export default function SettingsPage({
   });
 
   const validateHotkeyForInput = useCallback(
-    (hotkey: string) => getValidationMessage(hotkey, getPlatform()),
-    []
+    (hotkey: string) => {
+      // Main dictation hotkey is enforced as modifier-only so the translation
+      // hotkey can be a strict prefix-of-main + primary-key combo.
+      if (hotkey && !isModifierOnlyAccelerator(hotkey)) {
+        return t("settingsPage.general.hotkey.modifierOnlyRequired");
+      }
+      return getValidationMessage(hotkey, getPlatform());
+    },
+    [t]
+  );
+
+  const validateTranslationHotkeyForInput = useCallback(
+    (hotkey: string) => {
+      if (!hotkey) return null;
+      if (hotkey === dictationKey) {
+        return t("settingsPage.translationHotkey.conflictWithMain");
+      }
+      if (isModifierOnlyAccelerator(hotkey)) {
+        return t("settingsPage.translationHotkey.modifierOnlyRejected");
+      }
+      if (!containsAllModifiersOf(hotkey, dictationKey)) {
+        return t("settingsPage.translationHotkey.missingMainModifierPrefix");
+      }
+      return null;
+    },
+    [dictationKey, t]
   );
 
   const platform = getCachedPlatform();
@@ -1010,15 +1034,7 @@ export default function SettingsPage({
                     onChange={(newHotkey) => {
                       setTranslationDictationKey(newHotkey || "");
                     }}
-                    validate={(hotkey) => {
-                      if (hotkey && hotkey === dictationKey) {
-                        return t("settingsPage.translationHotkey.conflictWithMain");
-                      }
-                      if (hotkey && isModifierOnlyAccelerator(hotkey)) {
-                        return t("settingsPage.translationHotkey.modifierOnlyRejected");
-                      }
-                      return null;
-                    }}
+                    validate={validateTranslationHotkeyForInput}
                   />
                   {translationDictationKey && (
                     <button

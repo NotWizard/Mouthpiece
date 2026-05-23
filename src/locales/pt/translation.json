@@ -963,7 +963,8 @@
         "activationMode": "Modo de ativação",
         "description": "A combinação de teclas que inicia e para o ditado por voz",
         "resetToDefault": "Redefinir para {{hotkey}}",
-        "title": "Atalho de ditado"
+        "title": "Atalho de ditado",
+        "modifierOnlyRequired": "O atalho principal deve ser apenas um modificador (ex.: Right Command, Right Option, Globe). Combinações não são suportadas aqui."
       },
       "microphone": {
         "description": "Selecione qual dispositivo de entrada usar para ditado",
@@ -1099,7 +1100,8 @@
       "clear": "Limpar atalho de tradução",
       "activationBehavior": "Ativação",
       "activationBehaviorDescription": "O atalho de tradução só suporta tap-to-toggle (pressione para iniciar, pressione novamente para parar). Push-to-talk (apenas modificador) não é suportado aqui.",
-      "modifierOnlyRejected": "O atalho de tradução não pode ser apenas um modificador (ex.: Right Option). Use uma combinação como Cmd+Shift+T ou backtick."
+      "modifierOnlyRejected": "O atalho de tradução não pode ser apenas um modificador (ex.: Right Option). Use uma combinação como Cmd+Shift+T ou backtick.",
+      "missingMainModifierPrefix": "O atalho de tradução deve incluir todos os modificadores do atalho principal (definido acima) mais pelo menos uma tecla regular (ex.: Right Command + T)."
     }
   },
   "models": {

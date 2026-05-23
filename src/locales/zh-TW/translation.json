@@ -976,7 +976,8 @@
         "activationMode": "啟用模式",
         "description": "用來開始和停止語音輸入的組合鍵",
         "resetToDefault": "重置為 {{hotkey}}",
-        "title": "語音輸入快捷鍵"
+        "title": "語音輸入快捷鍵",
+        "modifierOnlyRequired": "主快捷鍵必須是修飾鍵(例如 Right Command、Right Option、Globe),此處不支援組合鍵。"
       },
       "microphone": {
         "description": "選擇用於語音輸入的輸入裝置",
@@ -1112,7 +1113,8 @@
       "clear": "清除翻譯快捷鍵",
       "activationBehavior": "觸發方式",
       "activationBehaviorDescription": "翻譯快捷鍵僅支援 tap-to-toggle (按一下開始,再按一下結束)。此處不支援 push-to-talk (僅修飾鍵)。",
-      "modifierOnlyRejected": "翻譯快捷鍵不能只是修飾鍵(例如 Right Option)。請使用組合鍵(如 Cmd+Shift+T 或 backtick)。"
+      "modifierOnlyRejected": "翻譯快捷鍵不能只是修飾鍵(例如 Right Option)。請使用組合鍵(如 Cmd+Shift+T 或 backtick)。",
+      "missingMainModifierPrefix": "翻譯快捷鍵必須包含主快捷鍵(上面設定的)的所有修飾鍵 + 至少一個普通鍵(例如 Right Command + T)。"
     }
   },
   "models": {

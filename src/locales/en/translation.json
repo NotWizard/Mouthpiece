@@ -976,7 +976,8 @@
         "activationMode": "Activation Mode",
         "description": "The key combination that starts and stops voice dictation",
         "resetToDefault": "Reset to {{hotkey}}",
-        "title": "Dictation Hotkey"
+        "title": "Dictation Hotkey",
+        "modifierOnlyRequired": "Main hotkey must be modifier-only (e.g., Right Command, Right Option, Globe). Combo keys are not supported here."
       },
       "microphone": {
         "description": "Select which input device to use for dictation",
@@ -1112,7 +1113,8 @@
       "clear": "Clear translation hotkey",
       "activationBehavior": "Activation",
       "activationBehaviorDescription": "Translation hotkey only supports tap-to-toggle (press to start, press again to stop). Push-to-talk (modifier-only) is not supported here.",
-      "modifierOnlyRejected": "Translation hotkey can't be modifier-only (e.g., Right Option). Use a combo like Cmd+Shift+T or backtick."
+      "modifierOnlyRejected": "Translation hotkey can't be modifier-only (e.g., Right Option). Use a combo like Cmd+Shift+T or backtick.",
+      "missingMainModifierPrefix": "Translation hotkey must include all of the main hotkey's modifiers (set above) plus at least one regular key (e.g., Right Command + T)."
     }
   },
   "models": {

@@ -976,7 +976,8 @@
         "activationMode": "Aktivierungsmodus",
         "description": "Die Tastenkombination, die das Sprachdiktat startet und stoppt",
         "resetToDefault": "Auf {{hotkey}} zurücksetzen",
-        "title": "Diktat-Hotkey"
+        "title": "Diktat-Hotkey",
+        "modifierOnlyRequired": "Das Haupt-Tastenkürzel darf nur ein Modifikator sein (z. B. Right Command, Right Option, Globe). Kombinationen werden hier nicht unterstützt."
       },
       "microphone": {
         "description": "Wählen Sie das Eingabegerät für das Diktat",
@@ -1112,7 +1113,8 @@
       "clear": "Übersetzungs-Tastenkürzel löschen",
       "activationBehavior": "Aktivierung",
       "activationBehaviorDescription": "Das Übersetzungs-Tastenkürzel unterstützt nur Tap-to-toggle (Drücken zum Starten, erneut zum Stoppen). Push-to-talk (nur Modifikator) wird hier nicht unterstützt.",
-      "modifierOnlyRejected": "Übersetzungs-Tastenkürzel darf nicht nur ein Modifikator sein (z. B. Right Option). Verwenden Sie eine Kombination wie Cmd+Shift+T oder Backtick."
+      "modifierOnlyRejected": "Übersetzungs-Tastenkürzel darf nicht nur ein Modifikator sein (z. B. Right Option). Verwenden Sie eine Kombination wie Cmd+Shift+T oder Backtick.",
+      "missingMainModifierPrefix": "Das Übersetzungs-Tastenkürzel muss alle Modifikatoren des Haupt-Tastenkürzels (oben festgelegt) plus mindestens eine reguläre Taste enthalten (z. B. Right Command + T)."
     }
   },
   "models": {

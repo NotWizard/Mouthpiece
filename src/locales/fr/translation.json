@@ -976,7 +976,8 @@
         "activationMode": "Mode d'activation",
         "description": "La combinaison de touches qui démarre et arrête la dictée vocale",
         "resetToDefault": "Réinitialiser à {{hotkey}}",
-        "title": "Raccourci de dictée"
+        "title": "Raccourci de dictée",
+        "modifierOnlyRequired": "Le raccourci principal doit être uniquement un modificateur (par ex. Right Command, Right Option, Globe). Les combinaisons ne sont pas prises en charge ici."
       },
       "microphone": {
         "description": "Sélectionnez le périphérique d'entrée à utiliser pour la dictée",
@@ -1112,7 +1113,8 @@
       "clear": "Effacer le raccourci de traduction",
       "activationBehavior": "Activation",
       "activationBehaviorDescription": "Le raccourci de traduction ne prend en charge que le tap-to-toggle (appuyez pour démarrer, appuyez de nouveau pour arrêter). Le push-to-talk (modificateur uniquement) n'est pas pris en charge ici.",
-      "modifierOnlyRejected": "Le raccourci de traduction ne peut pas être uniquement un modificateur (par ex. Right Option). Utilisez une combinaison comme Cmd+Shift+T ou backtick."
+      "modifierOnlyRejected": "Le raccourci de traduction ne peut pas être uniquement un modificateur (par ex. Right Option). Utilisez une combinaison comme Cmd+Shift+T ou backtick.",
+      "missingMainModifierPrefix": "Le raccourci de traduction doit inclure tous les modificateurs du raccourci principal (défini ci-dessus) plus au moins une touche ordinaire (par ex. Right Command + T)."
     }
   },
   "models": {

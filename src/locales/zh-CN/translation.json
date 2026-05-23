@@ -976,7 +976,8 @@
         "activationMode": "激活模式",
         "description": "用于开始和停止语音听写的组合键",
         "resetToDefault": "重置为 {{hotkey}}",
-        "title": "听写快捷键"
+        "title": "听写快捷键",
+        "modifierOnlyRequired": "主快捷键必须是修饰键(例如 Right Command、Right Option、Globe),此处不支持组合键。"
       },
       "microphone": {
         "description": "选择用于听写的输入设备",
@@ -1112,7 +1113,8 @@
       "clear": "清除翻译快捷键",
       "activationBehavior": "触发方式",
       "activationBehaviorDescription": "翻译快捷键仅支持 tap-to-toggle (按一下开始,再按一下结束)。此处不支持 push-to-talk (仅修饰键)。",
-      "modifierOnlyRejected": "翻译快捷键不能只是修饰键(例如 Right Option)。请使用组合键(如 Cmd+Shift+T 或 backtick)。"
+      "modifierOnlyRejected": "翻译快捷键不能只是修饰键(例如 Right Option)。请使用组合键(如 Cmd+Shift+T 或 backtick)。",
+      "missingMainModifierPrefix": "翻译快捷键必须包含主快捷键(上面设置的)的所有修饰键 + 至少一个普通键(例如 Right Command + T)。"
     }
   },
   "models": {

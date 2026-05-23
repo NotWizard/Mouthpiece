@@ -58,6 +58,46 @@ export function isModifierOnlyAccelerator(hotkey: string): boolean {
   });
 }
 
+function isModifierPart(part: string): boolean {
+  const normalized = part.replace(/[-_ ]/g, "").toLowerCase();
+  return MODIFIERS.has(part) || RIGHT_SIDE_MODIFIERS.has(normalized);
+}
+
+// Return the modifier subset of a hotkey (preserves left/right + Fn distinctions).
+export function getModifiersOf(hotkey: string): string[] {
+  if (!hotkey) return [];
+  return hotkey
+    .split("+")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter(isModifierPart);
+}
+
+// Return the non-modifier parts (the "primary keys").
+export function getPrimaryKeysOf(hotkey: string): string[] {
+  if (!hotkey) return [];
+  return hotkey
+    .split("+")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter((part) => !isModifierPart(part));
+}
+
+// True when translationHotkey contains every modifier present in mainHotkey
+// (used to enforce the translation hotkey shape "main modifiers + primary key").
+// The Globe/Fn key is treated as the modifier "GLOBE" for prefix matching.
+export function containsAllModifiersOf(
+  translationHotkey: string,
+  mainHotkey: string
+): boolean {
+  if (!translationHotkey || !mainHotkey) return false;
+  const isGlobeMain = isGlobeLikeHotkey(mainHotkey);
+  const mainModifiers = isGlobeMain ? ["GLOBE"] : getModifiersOf(mainHotkey);
+  if (mainModifiers.length === 0) return false;
+  const translationModifiers = getModifiersOf(translationHotkey);
+  return mainModifiers.every((mod) => translationModifiers.includes(mod));
+}
+
 const SPECIAL_KEYS = new Set(
   [
     "GLOBE",
