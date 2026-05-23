@@ -14,6 +14,8 @@ import {
   type TerminologyProfile,
 } from "../utils/terminologyProfile";
 import { migrateStoredTerminologyProfile } from "../utils/terminologyMigration";
+import { getDefaultHotkey } from "../utils/hotkeys";
+import { isModifierOnlyAccelerator, containsAllModifiersOf } from "../utils/hotkeyValidator";
 import logger from "../utils/logger";
 import type { LocalTranscriptionProvider } from "../types/electron";
 import type {
@@ -227,6 +229,34 @@ function migratePreferredLanguage() {
 }
 
 migratePreferredLanguage();
+
+// One-shot migration for the modifier-only main hotkey requirement (P9.2).
+// Existing users on combo-key main hotkeys (e.g., the legacy Windows default
+// "Control+K", or any custom combo) get reset to the platform default
+// modifier-only hotkey. The translation hotkey is also cleared if it no longer
+// satisfies the new prefix-of-main shape.
+function migrateToModifierOnlyMainHotkey() {
+  if (!isBrowser) return;
+  const storedMain = localStorage.getItem("dictationKey");
+  const platformDefault = getDefaultHotkey();
+  let mainHotkey = storedMain || platformDefault;
+  if (storedMain && !isModifierOnlyAccelerator(storedMain)) {
+    mainHotkey = platformDefault;
+    localStorage.setItem("dictationKey", platformDefault);
+  }
+  const storedTranslation = localStorage.getItem("translationDictationKey");
+  if (storedTranslation) {
+    const conflicts =
+      storedTranslation === mainHotkey ||
+      isModifierOnlyAccelerator(storedTranslation) ||
+      !containsAllModifiersOf(storedTranslation, mainHotkey);
+    if (conflicts) {
+      localStorage.setItem("translationDictationKey", "");
+    }
+  }
+}
+
+migrateToModifierOnlyMainHotkey();
 
 export interface SettingsState
   extends

@@ -133,7 +133,12 @@ export function isCompoundHotkey(hotkey: string): boolean {
  */
 export function getDefaultHotkey(): string {
   const platform = getPlatform();
-  return platform === "darwin" ? "GLOBE" : "Control+K";
+  // Both platform defaults are modifier-only push-to-talk hotkeys, served by
+  // the native key listeners (macos-globe-listener / windows-key-listener).
+  // Combo-key main hotkeys are no longer supported (the translation hotkey
+  // must prefix-match the main hotkey, which only makes sense when the main
+  // hotkey is purely modifier-only).
+  return platform === "darwin" ? "GLOBE" : "RightControl";
 }
 
 /**
