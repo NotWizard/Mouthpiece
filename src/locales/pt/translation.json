@@ -1088,7 +1088,6 @@
       "targetLangLabel": "Idioma de destino",
       "targetLangDescription": "Todas as transcrições são unificadas neste idioma. Se a entrada já estiver neste idioma, somente a limpeza é executada.",
       "providerNote": "A tradução usa o mesmo provedor e modelo da limpeza (uma única chamada de LLM). Em caso de falha, retorna à transcrição original com um aviso.",
-      "requireTargetLang": "Escolha um idioma de destino antes de ativar a tradução.",
       "disableWarnPlaceholderRemains": "Seu prompt ainda contém {{placeholder}}. A tradução agora está desativada, então o marcador será removido (substituído por vazio) a cada chamada. Edite seu prompt no PromptStudio se quiser remover a frase ao redor."
     }
   },

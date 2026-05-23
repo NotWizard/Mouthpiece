@@ -1101,7 +1101,6 @@
       "targetLangLabel": "目标语言",
       "targetLangDescription": "所有转录都会统一为该语言。如果输入已为该语言,则仅执行清理。",
       "providerNote": "翻译使用与清理相同的提供商和模型(一次 LLM 调用)。失败时回退到原始转录并提示。",
-      "requireTargetLang": "请先选择目标语言再启用翻译。",
       "disableWarnPlaceholderRemains": "你的 prompt 中仍包含 {{placeholder}}。翻译已关闭,该占位符在每次调用时会被剥离为空字符串。如要去除占位符所在的整句,请到「提示词工作室」编辑 prompt。"
     }
   },

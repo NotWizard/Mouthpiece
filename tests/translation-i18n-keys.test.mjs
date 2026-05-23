@@ -12,7 +12,6 @@ const REQUIRED_KEYS = [
   "settingsPage.aiTranslation.targetLangLabel",
   "settingsPage.aiTranslation.targetLangDescription",
   "settingsPage.aiTranslation.providerNote",
-  "settingsPage.aiTranslation.requireTargetLang",
 ];
 
 function get(obj, dotted) {

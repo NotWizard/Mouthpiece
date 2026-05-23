@@ -1101,7 +1101,6 @@
       "targetLangLabel": "Target language",
       "targetLangDescription": "All transcripts are unified into this language. If the input is already in this language, only cleanup runs.",
       "providerNote": "Translation uses the same provider and model as cleanup (a single LLM call). Failures fall back to the raw transcript with a notice.",
-      "requireTargetLang": "Please pick a target language before enabling translation.",
       "disableWarnPlaceholderRemains": "Your prompt still contains {{placeholder}}. Translation is now off, so the placeholder will be stripped (replaced with empty) at every call. Edit your prompt in PromptStudio if you want to remove the surrounding sentence."
     }
   },
