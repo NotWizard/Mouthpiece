@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import { ChevronDown, Search, X, Check } from "lucide-react";
-import { REGISTRY_OPTIONS, getLanguageLabel, type LanguageOption } from "../../utils/languageRegistry";
-export { REGISTRY_OPTIONS, getLanguageLabel };
+import { REGISTRY_OPTIONS, getLanguageLabel, getLanguageShortCode, type LanguageOption } from "../../utils/languageRegistry";
+export { REGISTRY_OPTIONS, getLanguageLabel, getLanguageShortCode };
 export type { LanguageOption };
 
 interface LanguageSelectorProps {

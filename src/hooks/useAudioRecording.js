@@ -121,6 +121,7 @@ export const useAudioRecording = (toast, options = {}) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isStartingRecording, setIsStartingRecording] = useState(false);
+  const [isCurrentSessionTranslation, setIsCurrentSessionTranslation] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
   const [transcript, setTranscript] = useState("");
@@ -679,6 +680,7 @@ export const useAudioRecording = (toast, options = {}) => {
 
     const disposeToggleTranslation = window.electronAPI.onToggleTranslationDictation?.(() => {
       audioManagerRef.current?.setNextSessionWithTranslation?.(true);
+      setIsCurrentSessionTranslation(true);
       handleToggle();
       onToggle?.();
     });
@@ -820,12 +822,28 @@ export const useAudioRecording = (toast, options = {}) => {
     sessionSummary,
   });
 
+  // Reset the session-translation flag once the dictation session is fully done
+  // (recording stopped, processing finished, no streaming). Read by the capsule
+  // to drive the Variant B language-pill badge.
+  useEffect(() => {
+    if (
+      !isRecording &&
+      !isProcessing &&
+      !isTranscribing &&
+      !isStreaming &&
+      !isStartingRecording
+    ) {
+      setIsCurrentSessionTranslation(false);
+    }
+  }, [isRecording, isProcessing, isTranscribing, isStreaming, isStartingRecording]);
+
   return {
     isStarting: isStartingRecording,
     isRecording,
     isProcessing,
     isTranscribing,
     isStreaming,
+    isCurrentSessionTranslation,
     dictationState,
     sessionSummary,
     audioLevel,

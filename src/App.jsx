@@ -6,6 +6,8 @@ import { useToast } from "./components/ui/Toast";
 import { useAudioRecording } from "./hooks/useAudioRecording";
 import { useHotkey } from "./hooks/useHotkey";
 import { useWindowDrag } from "./hooks/useWindowDrag";
+import { useSettingsStore } from "./stores/settingsStore";
+import { getLanguageShortCode } from "./utils/languageRegistry";
 import {
   DICTATION_CAPSULE_BOTTOM_OFFSET_PX,
   DICTATION_WINDOW_IDLE_HIDE_DELAY_MS,
@@ -84,6 +86,7 @@ export default function App() {
     isRecording,
     isProcessing,
     isTranscribing,
+    isCurrentSessionTranslation,
     dictationState,
     audioLevel,
     partialTranscript,
@@ -104,6 +107,15 @@ export default function App() {
     isTranscribing,
     isProcessing,
   });
+
+  // Variant B translation badge: blue pill with the target language ISO code,
+  // shown only while the current dictation session was triggered by the
+  // dedicated translation hotkey.
+  const translationTargetLang = useSettingsStore((s) => s.translationTargetLang);
+  const translationModeBadge =
+    isCurrentSessionTranslation && translationTargetLang
+      ? getLanguageShortCode(translationTargetLang)
+      : null;
   const shouldKeepWindowVisible = shouldKeepDictationWindowVisible({
     dictationState,
     isRecording,
@@ -302,6 +314,7 @@ export default function App() {
                 isProcessing={isProcessing}
                 isTranscribing={capsuleIsBusy}
                 isDragging={isDragging}
+                translationModeBadge={translationModeBadge}
                 onMouseDown={(event) => {
                   setIsCommandMenuOpen(false);
                   setDragStartPos({ x: event.clientX, y: event.clientY });

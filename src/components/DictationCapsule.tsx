@@ -62,6 +62,7 @@ interface DictationCapsuleProps {
   onContextMenu: (event: MouseEvent<HTMLButtonElement>) => void;
   onFocus: () => void;
   onBlur: () => void;
+  translationModeBadge?: string | null;
 }
 
 function AssistantGlyph() {
@@ -174,6 +175,7 @@ export default function DictationCapsule({
   onContextMenu,
   onFocus,
   onBlur,
+  translationModeBadge = null,
 }: DictationCapsuleProps) {
   const helperText = isRecording || isProcessing || isTranscribing ? secondaryLabel : hotkeyLabel;
   const livePreviewTargetText = normalizeLiveTranscriptText(
@@ -498,6 +500,15 @@ export default function DictationCapsule({
       }}
     >
       <div className="pointer-events-none absolute inset-x-4 bottom-0 h-6 rounded-t-full bg-[radial-gradient(circle_at_50%_0%,rgba(0,0,0,0.18),transparent_68%)] opacity-35 blur-xl" />
+
+      {translationModeBadge && (
+        <div
+          className="pointer-events-none absolute top-1 right-1.5 z-10 flex items-center rounded-full bg-primary text-white px-1.5 py-px text-[9px] font-bold tracking-[0.04em] leading-none shadow-[0_1px_3px_rgba(37,99,235,0.4)]"
+          aria-hidden="true"
+        >
+          {translationModeBadge}
+        </div>
+      )}
 
       <div className="relative h-full w-full">
         {liveShellActive && (
