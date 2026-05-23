@@ -296,37 +296,41 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
 
             {translationEnabled && translationTargetLang && (
               <div className="px-5 py-4 border-b border-border/40 dark:border-border-subtle">
-                <div className="rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 px-4 py-3 space-y-2">
-                  <p className="text-xs font-medium text-foreground">
-                    {t("promptStudio.translationBanner.title", { lang: getLanguageLabel(translationTargetLang) })}
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {t("promptStudio.translationBanner.explainer", {
-                      placeholder: "{{TARGET_LANG_INSTRUCTION}}",
-                    })}
-                  </p>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs"
-                    onClick={() => {
-                      navigator.clipboard.writeText("{{TARGET_LANG_INSTRUCTION}}");
-                      setCopiedPlaceholder(true);
-                      setTimeout(() => setCopiedPlaceholder(false), 2000);
-                    }}
-                  >
-                    {copiedPlaceholder ? (
-                      <>
-                        <Check className="w-3 h-3 mr-1 text-success" />
-                        {t("promptStudio.translationBanner.copied")}
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3 h-3 mr-1" />
-                        {t("promptStudio.translationBanner.copyButton")}
-                      </>
-                    )}
-                  </Button>
+                <div className="rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <p className="text-xs font-medium text-foreground">
+                        {t("promptStudio.translationBanner.title", { lang: getLanguageLabel(translationTargetLang) })}
+                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {t("promptStudio.translationBanner.explainer", {
+                          placeholder: "{{TARGET_LANG_INSTRUCTION}}",
+                        })}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        navigator.clipboard.writeText("{{TARGET_LANG_INSTRUCTION}}");
+                        setCopiedPlaceholder(true);
+                        setTimeout(() => setCopiedPlaceholder(false), 2000);
+                      }}
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs shrink-0"
+                    >
+                      {copiedPlaceholder ? (
+                        <>
+                          <Check className="w-3 h-3 mr-1 text-success" />{" "}
+                          {t("promptStudio.translationBanner.copied")}
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3 mr-1" />
+                          {t("promptStudio.translationBanner.copyButton")}
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
