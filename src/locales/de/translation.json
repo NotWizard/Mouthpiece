@@ -790,7 +790,7 @@
       "copyButton": "Platzhalter kopieren",
       "copied": "Kopiert",
       "viewTabHintTitle": "Übersetzung aktiviert → {{lang}}",
-      "viewTabHint": "Wechseln Sie zu Anpassen, um {{TARGET_LANG_INSTRUCTION}} an der gewünschten Stelle einzufügen."
+      "viewTabHint": "Wechseln Sie zu Anpassen, um {{TARGET_LANGUAGE}} an der gewünschten Stelle einzufügen."
     }
   },
   "resetPassword": {

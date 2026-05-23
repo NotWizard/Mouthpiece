@@ -777,7 +777,7 @@
       "copyButton": "Copiar marcador",
       "copied": "Copiado",
       "viewTabHintTitle": "Tradução ativada → {{lang}}",
-      "viewTabHint": "Mude para Personalizar para inserir {{TARGET_LANG_INSTRUCTION}} onde quiser a regra."
+      "viewTabHint": "Mude para Personalizar para inserir {{TARGET_LANGUAGE}} onde quiser a regra."
     }
   },
   "resetPassword": {

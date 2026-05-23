@@ -790,7 +790,7 @@
       "copyButton": "Copy placeholder",
       "copied": "Copied",
       "viewTabHintTitle": "Translation enabled → {{lang}}",
-      "viewTabHint": "Switch to Customize to insert {{TARGET_LANG_INSTRUCTION}} where you want the rule."
+      "viewTabHint": "Switch to Customize to insert {{TARGET_LANGUAGE}} where you want the rule."
     }
   },
   "resetPassword": {

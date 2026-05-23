@@ -9,7 +9,7 @@ const source = await import("node:fs").then((fs) =>
 test("prompts.ts exports the translation placeholder constant", () => {
   assert.match(
     source,
-    /export const TRANSLATION_PLACEHOLDER = "\{\{TARGET_LANG_INSTRUCTION\}\}";/
+    /export const TRANSLATION_PLACEHOLDER = "\{\{TARGET_LANGUAGE\}\}";/
   );
 });
 

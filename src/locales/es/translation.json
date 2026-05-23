@@ -790,7 +790,7 @@
       "copyButton": "Copiar marcador",
       "copied": "Copiado",
       "viewTabHintTitle": "Traducción activada → {{lang}}",
-      "viewTabHint": "Cambia a Personalizar para insertar {{TARGET_LANG_INSTRUCTION}} donde quieras la regla."
+      "viewTabHint": "Cambia a Personalizar para insertar {{TARGET_LANGUAGE}} donde quieras la regla."
     }
   },
   "resetPassword": {

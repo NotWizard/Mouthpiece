@@ -790,7 +790,7 @@
       "copyButton": "Скопировать плейсхолдер",
       "copied": "Скопировано",
       "viewTabHintTitle": "Перевод включён → {{lang}}",
-      "viewTabHint": "Перейдите в «Настроить», чтобы вставить {{TARGET_LANG_INSTRUCTION}} в нужное место."
+      "viewTabHint": "Перейдите в «Настроить», чтобы вставить {{TARGET_LANGUAGE}} в нужное место."
     }
   },
   "resetPassword": {

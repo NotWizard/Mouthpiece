@@ -790,7 +790,7 @@
       "copyButton": "プレースホルダーをコピー",
       "copied": "コピーしました",
       "viewTabHintTitle": "翻訳が有効 → {{lang}}",
-      "viewTabHint": "「カスタマイズ」に切り替えて {{TARGET_LANG_INSTRUCTION}} を好きな位置に挿入してください。"
+      "viewTabHint": "「カスタマイズ」に切り替えて {{TARGET_LANGUAGE}} を好きな位置に挿入してください。"
     }
   },
   "resetPassword": {

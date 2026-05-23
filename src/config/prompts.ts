@@ -8,7 +8,7 @@ import type { TerminologyProfile } from "../utils/terminologyProfile";
 export const CLEANUP_PROMPT = promptData.CLEANUP_PROMPT;
 export const UNIFIED_SYSTEM_PROMPT = promptData.CLEANUP_PROMPT;
 
-export const TRANSLATION_PLACEHOLDER = "{{TARGET_LANG_INSTRUCTION}}";
+export const TRANSLATION_PLACEHOLDER = "{{TARGET_LANGUAGE}}";
 
 function getPromptBundle(uiLanguage?: string): PromptBundle {
   const locale = normalizeUiLanguage(uiLanguage || "zh-CN");

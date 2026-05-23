@@ -790,7 +790,7 @@
       "copyButton": "複製佔位符",
       "copied": "已複製",
       "viewTabHintTitle": "翻譯已啟用 → {{lang}}",
-      "viewTabHint": "切到「自訂」可把 {{TARGET_LANG_INSTRUCTION}} 佔位符放到你想要的位置。"
+      "viewTabHint": "切到「自訂」可把 {{TARGET_LANGUAGE}} 佔位符放到你想要的位置。"
     }
   },
   "resetPassword": {

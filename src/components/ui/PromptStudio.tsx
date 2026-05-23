@@ -304,13 +304,13 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
                       </p>
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         {t("promptStudio.translationBanner.explainer", {
-                          placeholder: "{{TARGET_LANG_INSTRUCTION}}",
+                          placeholder: "{{TARGET_LANGUAGE}}",
                         })}
                       </p>
                     </div>
                     <Button
                       onClick={() => {
-                        navigator.clipboard.writeText("{{TARGET_LANG_INSTRUCTION}}");
+                        navigator.clipboard.writeText("{{TARGET_LANGUAGE}}");
                         setCopiedPlaceholder(true);
                         setTimeout(() => setCopiedPlaceholder(false), 2000);
                       }}

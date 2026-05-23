@@ -790,7 +790,7 @@
       "copyButton": "Copia segnaposto",
       "copied": "Copiato",
       "viewTabHintTitle": "Traduzione attivata → {{lang}}",
-      "viewTabHint": "Passa a Personalizza per inserire {{TARGET_LANG_INSTRUCTION}} dove vuoi la regola."
+      "viewTabHint": "Passa a Personalizza per inserire {{TARGET_LANGUAGE}} dove vuoi la regola."
     }
   },
   "resetPassword": {
