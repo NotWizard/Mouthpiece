@@ -187,6 +187,60 @@ let debugLogger = null;
 let environmentManager = null;
 let windowManager = null;
 let hotkeyManager = null;
+
+// Translation-hotkey state (P8.2). Renderer settings sync via the
+// "apply-translation-hotkey" IPC channel.
+let currentTranslationAccelerator = null;
+function applyTranslationHotkey({ enabled, hotkey, mainHotkey } = {}) {
+  const trimmed = typeof hotkey === "string" ? hotkey.trim() : "";
+  const trimmedMain = typeof mainHotkey === "string" ? mainHotkey.trim() : "";
+  const shouldRegister =
+    !!enabled &&
+    !!trimmed &&
+    trimmed !== trimmedMain; // refuse if equal to main hotkey
+
+  // Unregister the previously-registered translation accelerator (if any) before
+  // re-applying. Idempotent.
+  if (currentTranslationAccelerator) {
+    try {
+      globalShortcut.unregister(currentTranslationAccelerator);
+    } catch (_) {
+      /* ignore */
+    }
+    currentTranslationAccelerator = null;
+  }
+
+  if (!shouldRegister) {
+    return { registered: false, reason: !enabled ? "disabled" : !trimmed ? "empty" : "conflict" };
+  }
+
+  try {
+    const success = globalShortcut.register(trimmed, () => {
+      if (windowManager?.sendToggleTranslationDictation) {
+        windowManager.sendToggleTranslationDictation();
+      }
+    });
+    if (success) {
+      currentTranslationAccelerator = trimmed;
+      return { registered: true, accelerator: trimmed };
+    }
+    return { registered: false, reason: "register_failed" };
+  } catch (error) {
+    debugLogger?.error?.(
+      "Translation hotkey register threw",
+      { error: error?.message },
+      "translation-hotkey"
+    );
+    return { registered: false, reason: "exception" };
+  }
+}
+module.exports.applyTranslationHotkey = applyTranslationHotkey;
+
+// IPC bridge: renderer settings store calls window.electronAPI.applyTranslationHotkey
+// whenever translationEnabled / translationDictationKey / dictationKey changes.
+ipcMain.on("apply-translation-hotkey", (_event, config) => {
+  applyTranslationHotkey(config || {});
+});
 let databaseManager = null;
 let clipboardManager = null;
 let whisperManager = null;

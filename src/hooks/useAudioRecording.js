@@ -677,6 +677,12 @@ export const useAudioRecording = (toast, options = {}) => {
       onToggle?.();
     });
 
+    const disposeToggleTranslation = window.electronAPI.onToggleTranslationDictation?.(() => {
+      audioManagerRef.current?.setNextSessionWithTranslation?.(true);
+      handleToggle();
+      onToggle?.();
+    });
+
     const handleNoAudioDetected = () => {
       toast({
         title: t("hooks.audioRecording.noAudio.title"),

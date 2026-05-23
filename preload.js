@@ -50,6 +50,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onToggleDictation: registerListener("toggle-dictation", (callback) => () => callback()),
   onStartDictation: registerListener("start-dictation", (callback) => () => callback()),
   onStopDictation: registerListener("stop-dictation", (callback) => () => callback()),
+  onToggleTranslationDictation: registerListener("toggle-translation-dictation", (callback) => () => callback()),
+  applyTranslationHotkey: (config) => ipcRenderer.send("apply-translation-hotkey", config),
   onCancelDictation: registerListener(
     "cancel-dictation",
     (callback) => (_event, data) => callback(data)

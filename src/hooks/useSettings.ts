@@ -148,6 +148,23 @@ function useSettingsInternal() {
     reasoningModel,
   ]);
 
+  // Sync translation hotkey config to main process so globalShortcut stays in sync
+  // with translationEnabled / translationDictationKey / dictationKey edits.
+  const {
+    translationEnabled: translationEnabledForSync,
+    translationDictationKey: translationDictationKeyForSync,
+    dictationKey: dictationKeyForSync,
+  } = store;
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.electronAPI?.applyTranslationHotkey) return;
+    window.electronAPI.applyTranslationHotkey({
+      enabled: translationEnabledForSync,
+      hotkey: translationDictationKeyForSync,
+      mainHotkey: dictationKeyForSync,
+    });
+  }, [translationEnabledForSync, translationDictationKeyForSync, dictationKeyForSync]);
+
   return {
     useLocalWhisper: store.useLocalWhisper,
     whisperModel: store.whisperModel,

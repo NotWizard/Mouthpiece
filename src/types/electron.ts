@@ -383,6 +383,12 @@ declare global {
       onToggleDictation: (callback: () => void) => () => void;
       onStartDictation?: (callback: () => void) => () => void;
       onStopDictation?: (callback: () => void) => () => void;
+      onToggleTranslationDictation?: (callback: () => void) => () => void;
+      applyTranslationHotkey?: (config: {
+        enabled: boolean;
+        hotkey: string;
+        mainHotkey: string;
+      }) => void;
       onCancelDictation?: (callback: (data?: { source?: string }) => void) => () => void;
       setDictationCancelEnabled?: (enabled: boolean) => Promise<{ success: boolean }>;
 

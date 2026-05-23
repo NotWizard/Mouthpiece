@@ -671,6 +671,11 @@ class AudioManager {
     this.onAudioLevel = null;
     this.cachedApiKey = null;
     this.cachedApiKeyProvider = null;
+    // Per-session translation flag set by useAudioRecording when the dedicated
+    // translation hotkey fires. processTranscription reads it as default value
+    // and resets it after consuming so subsequent main-hotkey dictations stay
+    // cleanup-only.
+    this._nextSessionWithTranslation = false;
 
     this._onApiKeyChanged = () => {
       this.cachedApiKey = null;
@@ -2205,7 +2210,15 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     }
   }
 
-  async processTranscription(text, source, withTranslation = false) {
+  async processTranscription(text, source, withTranslation) {
+    // Default to the per-session flag set via setNextSessionWithTranslation so the
+    // 9 historical callers (main-hotkey path) keep behaving as cleanup-only by
+    // default; the translation-hotkey path stamps the flag right before triggering
+    // start, and we consume it (reset to false) on first read.
+    if (withTranslation === undefined) {
+      withTranslation = this._nextSessionWithTranslation;
+    }
+    this._nextSessionWithTranslation = false;
     const normalizedText = typeof text === "string" ? text.trim() : "";
 
     if (!normalizedText) {
@@ -3555,6 +3568,10 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         reason: "paste_ipc_failed",
       };
     }
+  }
+
+  setNextSessionWithTranslation(flag) {
+    this._nextSessionWithTranslation = !!flag;
   }
 
   async saveTranscription(text, rawText) {

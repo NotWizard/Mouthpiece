@@ -487,6 +487,16 @@ class WindowManager {
     }
   }
 
+  sendToggleTranslationDictation() {
+    if (this.hotkeyManager.isInListeningMode()) {
+      return;
+    }
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.showDictationPanel();
+      this.mainWindow.webContents.send("toggle-translation-dictation");
+    }
+  }
+
   setWindowsNativeHotkeyEnabled(enabled) {
     this.windowsNativeHotkeyEnabled = Boolean(enabled);
   }
