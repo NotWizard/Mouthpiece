@@ -214,6 +214,12 @@ function applyTranslationHotkey({ enabled, hotkey, mainHotkey } = {}) {
   }
 
   if (!shouldRegister) {
+    debugLogger?.debug?.("[TranslationHotkey] apply skipped", {
+      enabled: !!enabled,
+      hotkey: trimmed,
+      mainHotkey: trimmedMain,
+      reason: !enabled ? "disabled" : !trimmed ? "empty" : "conflict",
+    });
     return { registered: false, reason: !enabled ? "disabled" : !trimmed ? "empty" : "conflict" };
   }
 
@@ -222,6 +228,10 @@ function applyTranslationHotkey({ enabled, hotkey, mainHotkey } = {}) {
   // actual keyDown detection.
   if (process.platform === "darwin") {
     currentTranslationAccelerator = trimmed;
+    debugLogger?.debug?.("[TranslationHotkey] stored for native (darwin)", {
+      accelerator: trimmed,
+      mainHotkey: trimmedMain,
+    });
     return { registered: true, accelerator: trimmed, transport: "native-key-listener" };
   }
 
@@ -236,6 +246,10 @@ function applyTranslationHotkey({ enabled, hotkey, mainHotkey } = {}) {
       windowsKeyManager.startTranslation(trimmed);
     }
     currentTranslationAccelerator = trimmed;
+    debugLogger?.debug?.("[TranslationHotkey] stored for native (win32)", {
+      accelerator: trimmed,
+      mainHotkey: trimmedMain,
+    });
     return { registered: true, accelerator: trimmed, transport: "native-key-listener" };
   }
 
@@ -876,8 +890,14 @@ async function startApp() {
     // dictation push-to-talk path) before forwarding the toggle to the
     // renderer.
     globeKeyManager.on("key-down-with-mods", (chord) => {
-      if (!currentTranslationAccelerator) return;
-      if (chord !== currentTranslationAccelerator) return;
+      const matches = !!currentTranslationAccelerator && chord === currentTranslationAccelerator;
+      debugLogger?.debug?.("[TranslationHotkey] chord observed", {
+        chord,
+        storedAccelerator: currentTranslationAccelerator,
+        matches,
+        mainWindowLive: isLiveWindow(windowManager.mainWindow),
+      });
+      if (!matches) return;
       if (!isLiveWindow(windowManager.mainWindow)) return;
 
       const mainOutcome = globeAutoSession.abort();

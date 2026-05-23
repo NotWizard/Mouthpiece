@@ -701,6 +701,7 @@ export const useAudioRecording = (toast, options = {}) => {
       disposeToggle?.();
       disposeStart?.();
       disposeStop?.();
+      disposeToggleTranslation?.();
       disposeNoAudio?.();
       audioManagerRef.current?.clearActiveSession?.();
       if (audioManagerRef.current) {
