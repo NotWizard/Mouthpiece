@@ -11,7 +11,7 @@ const source = fs.readFileSync(
 test("BaseReasoningService.getSystemPrompt forwards translation context", () => {
   assert.match(
     source,
-    /getSystemPrompt\(\)\s*:\s*string\s*\{[\s\S]*?translationEnabled[\s\S]*?translationTargetLang/
+    /getSystemPrompt\(withTranslation = false\)\s*:\s*string\s*\{[\s\S]*?translationEnabled[\s\S]*?translationTargetLang/
   );
   assert.match(
     source,

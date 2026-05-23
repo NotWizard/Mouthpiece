@@ -2205,7 +2205,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     }
   }
 
-  async processTranscription(text, source) {
+  async processTranscription(text, source, withTranslation = false) {
     const normalizedText = typeof text === "string" ? text.trim() : "";
 
     if (!normalizedText) {
@@ -2252,6 +2252,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         let contextClassification = await this.buildReasoningContext(normalizedText);
         contextClassification = this.enforceCleanupOnlyReasoningContext(contextClassification);
         const reasoningConfig = this.buildReasoningConfig(contextClassification);
+        reasoningConfig.withTranslation = !!withTranslation;
         const sensitiveAppPolicy = this.getSensitiveAppPolicy(contextClassification?.targetApp);
         if (this.shouldBlockCloudReasoning(sensitiveAppPolicy)) {
           logger.logReasoning("REASONING_SKIPPED_SENSITIVE_APP", {

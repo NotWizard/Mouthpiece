@@ -8,6 +8,7 @@ export interface ReasoningConfig {
   contextSize?: number;
   systemPrompt?: string;
   contextClassification?: ContextClassification;
+  withTranslation?: boolean;
 }
 
 export abstract class BaseReasoningService {
@@ -25,7 +26,7 @@ export abstract class BaseReasoningService {
     return getSettings().uiLanguage || "zh-CN";
   }
 
-  protected getSystemPrompt(): string {
+  protected getSystemPrompt(withTranslation = false): string {
     const settings = getSettings();
     return getSystemPrompt(
       this.getCustomDictionary(),
@@ -34,6 +35,7 @@ export abstract class BaseReasoningService {
       {
         enabled: !!settings.translationEnabled,
         targetLang: settings.translationTargetLang || "",
+        triggeredByHotkey: !!withTranslation,
       }
     );
   }

@@ -37,6 +37,7 @@ export interface ReasoningSettings {
   customReasoningEnableThinking: boolean;
   translationEnabled: boolean;
   translationTargetLang: string;
+  translationDictationKey: string;
 }
 
 export interface HotkeySettings {
@@ -181,6 +182,7 @@ function useSettingsInternal() {
     reasoningProvider: store.reasoningProvider,
     translationEnabled: store.translationEnabled,
     translationTargetLang: store.translationTargetLang,
+    translationDictationKey: store.translationDictationKey,
     openaiApiKey: store.openaiApiKey,
     anthropicApiKey: store.anthropicApiKey,
     deepgramApiKey: store.deepgramApiKey,
@@ -216,6 +218,7 @@ function useSettingsInternal() {
     setReasoningProvider: store.setReasoningProvider,
     setTranslationEnabled: store.setTranslationEnabled,
     setTranslationTargetLang: store.setTranslationTargetLang,
+    setTranslationDictationKey: store.setTranslationDictationKey,
     setOpenaiApiKey: store.setOpenaiApiKey,
     setAnthropicApiKey: store.setAnthropicApiKey,
     setDeepgramApiKey: store.setDeepgramApiKey,

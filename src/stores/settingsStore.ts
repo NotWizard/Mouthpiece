@@ -268,6 +268,7 @@ export interface SettingsState
   setReasoningProvider: (value: string) => void;
   setTranslationEnabled: (value: boolean) => void;
   setTranslationTargetLang: (value: string) => void;
+  setTranslationDictationKey: (value: string) => void;
   setUiLanguage: (language: string) => void;
 
   setOpenaiApiKey: (key: string) => void;
@@ -475,6 +476,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   reasoningProvider: readString("reasoningProvider", "openai"),
   translationEnabled: readBoolean("translationEnabled", false),
   translationTargetLang: readString("translationTargetLang", ""),
+  translationDictationKey: readString("translationDictationKey", ""),
 
   openaiApiKey: "",
   anthropicApiKey: "",
@@ -533,6 +535,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setReasoningProvider: createStringSetter("reasoningProvider"),
   setTranslationEnabled: createBooleanSetter("translationEnabled"),
   setTranslationTargetLang: createStringSetter("translationTargetLang"),
+  setTranslationDictationKey: createStringSetter("translationDictationKey"),
 
   setCustomDictionary: (words: string[]) => {
     const terminologyProfile = normalizeTerminologyProfile({

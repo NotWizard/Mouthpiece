@@ -11,7 +11,7 @@ const source = fs.readFileSync(
 test("processTranscription returns an object containing finalText and rawText", () => {
   assert.match(
     source,
-    /async\s+processTranscription\(text,\s*source\)\s*\{[\s\S]*?return\s*\{[\s\S]*?finalText[\s\S]*?rawText/,
+    /async\s+processTranscription\(text,\s*source,\s*withTranslation = false\)\s*\{[\s\S]*?return\s*\{[\s\S]*?finalText[\s\S]*?rawText/,
     "processTranscription must return { finalText, rawText, ... }"
   );
 });

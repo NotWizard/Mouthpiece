@@ -47,3 +47,26 @@ test("getSystemPrompt strips the placeholder when translation is off", () => {
     /\/\/ Translation off:[\s\S]*?prompt = prompt\.replaceAll\(TRANSLATION_PLACEHOLDER, ""\);/
   );
 });
+
+test("translationContext type now includes triggeredByHotkey", () => {
+  assert.match(
+    source,
+    /translationContext\?:\s*\{[\s\S]*?triggeredByHotkey\?:\s*boolean/
+  );
+});
+
+test("default sentence append is gated by triggeredByHotkey", () => {
+  assert.match(
+    source,
+    /if \(translationContext!\.triggeredByHotkey\)\s*\{[\s\S]*?fallbackSentence/
+  );
+});
+
+test("placeholder replace runs regardless of triggeredByHotkey when translation enabled", () => {
+  // The replaceAll must NOT be inside the triggeredByHotkey gate; it stays in the
+  // outer translationEnabled branch so user-written placeholders always resolve.
+  assert.match(
+    source,
+    /\}\s*\n\s*prompt = prompt\.replaceAll\(TRANSLATION_PLACEHOLDER, langDisplayName\);/
+  );
+});
