@@ -207,6 +207,50 @@ export function isModifierToken(token, platform = "darwin") {
   return Boolean(normalizeModifierToken(token, platform));
 }
 
+/**
+ * Apply optional "lock" constraints to a builder draft. Used by the
+ * HotkeyInput component to enforce:
+ *   - lockedMode: pin the builder into a specific mode and hide the mode
+ *     switcher (e.g. the main dictation hotkey is always modifier-only).
+ *   - lockedModifiers: pin a set of modifiers that the user cannot deselect or
+ *     add to (e.g. the translation hotkey must always carry every modifier of
+ *     the main hotkey as a prefix).
+ *
+ * Pure function; safe to call from React render and unit tests.
+ */
+export function applyHotkeyBuilderLocks(draft, { lockedMode, lockedModifiers } = {}) {
+  let next = {
+    mode: draft?.mode ?? KEY_COMBO_MODE,
+    selectedModifiers: Array.isArray(draft?.selectedModifiers)
+      ? draft.selectedModifiers.slice()
+      : [],
+    primaryKey: typeof draft?.primaryKey === "string" ? draft.primaryKey : "",
+  };
+
+  if (lockedMode) {
+    next = {
+      ...next,
+      mode: lockedMode,
+      // Modifier-only mode must never carry a primary key. Strip it so the
+      // resulting hotkey can never accidentally re-acquire a residual key the
+      // user picked under a different mode.
+      primaryKey: lockedMode === MODIFIER_ONLY_MODE ? "" : next.primaryKey,
+    };
+  }
+
+  if (Array.isArray(lockedModifiers) && lockedModifiers.length > 0) {
+    const merged = next.selectedModifiers.slice();
+    for (const modifier of lockedModifiers) {
+      if (!merged.includes(modifier)) {
+        merged.unshift(modifier);
+      }
+    }
+    next = { ...next, selectedModifiers: merged };
+  }
+
+  return next;
+}
+
 export const HOTKEY_BUILDER_MODES = {
   modifierOnly: MODIFIER_ONLY_MODE,
   singleKey: SINGLE_KEY_MODE,

@@ -669,6 +669,7 @@
     "hotkeyLabel": "ホットキー",
     "modeLabel": "Shortcut type",
     "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
+    "lockedModifiersHint": "これらの修飾キーはメインのホットキーから引き継がれているため必須です。",
     "modifiersLabel": "Modifiers",
     "modes": {
       "keyCombo": "Key combo",
@@ -1114,7 +1115,8 @@
       "activationBehavior": "起動方式",
       "activationBehaviorDescription": "翻訳ホットキーは tap-to-toggle (一度押して開始、もう一度押して停止) のみをサポートします。push-to-talk (修飾キーのみ) はここではサポートされません。",
       "modifierOnlyRejected": "翻訳ホットキーは修飾キーのみ (例: Right Option) では設定できません。Cmd+Shift+T や backtick のような組み合わせを使用してください。",
-      "missingMainModifierPrefix": "翻訳ホットキーには、上で設定したメインホットキーの修飾キーすべてに加えて、少なくとも 1 つの通常キーが必要です (例: Right Command + T)。"
+      "missingMainModifierPrefix": "翻訳ホットキーには、上で設定したメインホットキーの修飾キーすべてに加えて、少なくとも 1 つの通常キーが必要です (例: Right Command + T)。",
+      "lockedModifiersHint": "修飾キーはメインのホットキー ({{hotkey}}) に固定されています。下で主キーを選んでください。"
     }
   },
   "models": {

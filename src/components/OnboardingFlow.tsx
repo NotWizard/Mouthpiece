@@ -22,7 +22,7 @@ import { useAuth } from "../hooks/useAuth";
 import { NEON_AUTH_URL } from "../lib/neonAuth";
 import { HotkeyInput } from "./ui/HotkeyInput";
 import { useHotkeyRegistration } from "../hooks/useHotkeyRegistration";
-import { getValidationMessage } from "../utils/hotkeyValidator";
+import { getValidationMessage, isModifierOnlyAccelerator } from "../utils/hotkeyValidator";
 import { getPlatform } from "../utils/platform";
 import logger from "../utils/logger";
 import {
@@ -82,8 +82,15 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   });
 
   const validateHotkeyForInput = useCallback(
-    (hotkey: string) => getValidationMessage(hotkey, getPlatform()),
-    []
+    (hotkey: string) => {
+      // Main dictation hotkey must stay modifier-only so the translation hotkey
+      // (set later in Settings) can prefix-match it.
+      if (hotkey && !isModifierOnlyAccelerator(hotkey)) {
+        return t("settingsPage.general.hotkey.modifierOnlyRequired");
+      }
+      return getValidationMessage(hotkey, getPlatform());
+    },
+    [t]
   );
 
   const permissionsHook = usePermissions(showAlertDialog);
@@ -357,6 +364,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             disabled={isHotkeyRegistering}
             variant="hero"
             validate={validateHotkeyForInput}
+            lockedMode="modifier-only"
           />
         </div>
       </div>

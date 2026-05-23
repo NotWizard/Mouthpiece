@@ -140,3 +140,70 @@ test("builder parses persisted hotkeys back into editable builder state", async 
     }
   );
 });
+
+test("applyHotkeyBuilderLocks pins the mode and drops the primary key in modifier-only lock", async () => {
+  const mod = await loadHotkeyBuilderModule();
+
+  assert.equal(typeof mod.applyHotkeyBuilderLocks, "function");
+
+  const result = mod.applyHotkeyBuilderLocks(
+    { mode: "key-combo", selectedModifiers: ["Command"], primaryKey: "K" },
+    { lockedMode: "modifier-only" }
+  );
+
+  assert.equal(result.mode, "modifier-only");
+  assert.equal(result.primaryKey, "");
+});
+
+test("applyHotkeyBuilderLocks merges locked modifiers without dropping the user's primary key", async () => {
+  const mod = await loadHotkeyBuilderModule();
+
+  const result = mod.applyHotkeyBuilderLocks(
+    { mode: "key-combo", selectedModifiers: [], primaryKey: "K" },
+    { lockedMode: "key-combo", lockedModifiers: ["GLOBE"] }
+  );
+
+  assert.equal(result.mode, "key-combo");
+  assert.deepEqual(result.selectedModifiers, ["GLOBE"]);
+  assert.equal(result.primaryKey, "K");
+});
+
+test("applyHotkeyBuilderLocks preserves already-locked modifiers without duplication", async () => {
+  const mod = await loadHotkeyBuilderModule();
+
+  const result = mod.applyHotkeyBuilderLocks(
+    { mode: "key-combo", selectedModifiers: ["GLOBE"], primaryKey: "K" },
+    { lockedMode: "key-combo", lockedModifiers: ["GLOBE"] }
+  );
+
+  assert.deepEqual(result.selectedModifiers, ["GLOBE"]);
+});
+
+test("applyHotkeyBuilderLocks tolerates missing or partial draft input", async () => {
+  const mod = await loadHotkeyBuilderModule();
+
+  const fromEmpty = mod.applyHotkeyBuilderLocks(
+    {},
+    { lockedMode: "modifier-only", lockedModifiers: ["RightCommand"] }
+  );
+
+  assert.equal(fromEmpty.mode, "modifier-only");
+  assert.deepEqual(fromEmpty.selectedModifiers, ["RightCommand"]);
+  assert.equal(fromEmpty.primaryKey, "");
+});
+
+test("buildHotkeyFromBuilderState produces a Globe-prefixed combo hotkey for translation lock", async () => {
+  const mod = await loadHotkeyBuilderModule();
+
+  // After applyHotkeyBuilderLocks pins GLOBE as the modifier prefix, the
+  // builder must emit "GLOBE+<key>" so the translation hotkey can satisfy the
+  // P9.1 prefix-match invariant against a Globe-only main hotkey.
+  const result = mod.buildHotkeyFromBuilderState({
+    mode: "key-combo",
+    selectedModifiers: ["GLOBE"],
+    primaryKey: "K",
+    platform: "darwin",
+  });
+
+  assert.equal(result, "GLOBE+K");
+});

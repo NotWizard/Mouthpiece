@@ -5,6 +5,7 @@ import { formatHotkeyLabel } from "../../utils/hotkeys";
 import { getPlatform } from "../../utils/platform";
 import {
   HOTKEY_BUILDER_MODES,
+  applyHotkeyBuilderLocks,
   buildHotkeyFromBuilderState,
   getHotkeyBuilderCapabilities,
   parseHotkeyToBuilderState,
@@ -122,6 +123,25 @@ export interface HotkeyInputProps {
   disabled?: boolean;
   autoFocus?: boolean;
   validate?: (hotkey: string) => string | null | undefined;
+  /**
+   * Force the builder into a specific mode and hide the mode switcher.
+   * Used to prevent users from picking an obviously-invalid mode (e.g., the
+   * main dictation hotkey must always be modifier-only; the translation
+   * hotkey must always be key-combo).
+   */
+  lockedMode?: "modifier-only" | "key-combo" | "single-key";
+  /**
+   * Pin a set of modifiers that the user cannot deselect or add to. When set,
+   * the regular modifier picker is hidden and a disabled-chip row is rendered
+   * instead with the explanatory hint from `lockedModifiersHint`. Used by the
+   * translation hotkey row so the user can only configure the primary key.
+   */
+  lockedModifiers?: string[];
+  /**
+   * Optional override for the explanatory hint rendered above the locked
+   * modifier chips. Falls back to a generic translation key.
+   */
+  lockedModifiersHint?: string;
 }
 
 export interface HotkeyInputVariant {
@@ -158,6 +178,20 @@ function getVariantClasses(variant: "default" | "hero") {
   };
 }
 
+interface BuilderDraft {
+  mode: string;
+  selectedModifiers: string[];
+  primaryKey: string;
+}
+
+function applyLocks(
+  draft: BuilderDraft,
+  lockedMode: HotkeyInputProps["lockedMode"],
+  lockedModifiers: string[]
+): BuilderDraft {
+  return applyHotkeyBuilderLocks(draft, { lockedMode, lockedModifiers });
+}
+
 export function HotkeyInput({
   value,
   onChange,
@@ -166,6 +200,9 @@ export function HotkeyInput({
   autoFocus = false,
   variant = "default",
   validate,
+  lockedMode,
+  lockedModifiers,
+  lockedModifiersHint,
 }: HotkeyInputProps & HotkeyInputVariant) {
   const { t } = useTranslation();
   const platform = getPlatform();
@@ -178,20 +215,28 @@ export function HotkeyInput({
     [platform]
   );
 
-  const [draft, setDraft] = useState(() =>
-    parseHotkeyToBuilderState({
-      hotkey: value,
-      platform,
-    })
+  const lockedModifiersKey = (lockedModifiers ?? []).join("|");
+  const stableLockedModifiers = useMemo(
+    () => lockedModifiers ?? [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lockedModifiersKey]
   );
 
-  useEffect(() => {
-    const nextDraft = parseHotkeyToBuilderState({
+  const [draft, setDraft] = useState(() => {
+    const parsed = parseHotkeyToBuilderState({
       hotkey: value,
       platform,
     });
-    setDraft(nextDraft);
-  }, [value, platform]);
+    return applyLocks(parsed, lockedMode, stableLockedModifiers);
+  });
+
+  useEffect(() => {
+    const parsed = parseHotkeyToBuilderState({
+      hotkey: value,
+      platform,
+    });
+    setDraft(applyLocks(parsed, lockedMode, stableLockedModifiers));
+  }, [value, platform, lockedMode, stableLockedModifiers]);
 
   useEffect(() => {
     if (autoFocus && primaryKeyButtonRef.current && !disabled) {
@@ -200,11 +245,12 @@ export function HotkeyInput({
   }, [autoFocus, disabled]);
 
   const applyDraft = useCallback(
-    (nextDraft: { mode: string; selectedModifiers: string[]; primaryKey: string }) => {
-      setDraft(nextDraft);
+    (nextDraft: BuilderDraft) => {
+      const lockedDraft = applyLocks(nextDraft, lockedMode, stableLockedModifiers);
+      setDraft(lockedDraft);
 
       const hotkey = buildHotkeyFromBuilderState({
-        ...nextDraft,
+        ...lockedDraft,
         platform,
       });
 
@@ -222,12 +268,12 @@ export function HotkeyInput({
       setValidationWarning(null);
       onChange(hotkey);
     },
-    [onChange, platform, validate]
+    [lockedMode, onChange, platform, stableLockedModifiers, validate]
   );
 
   const handleModeChange = useCallback(
     (mode: string) => {
-      if (disabled) {
+      if (disabled || lockedMode) {
         return;
       }
 
@@ -241,12 +287,18 @@ export function HotkeyInput({
       });
       setIsCapturingPrimaryKey(false);
     },
-    [applyDraft, disabled, draft.mode, draft.primaryKey, draft.selectedModifiers]
+    [applyDraft, disabled, draft.mode, draft.primaryKey, draft.selectedModifiers, lockedMode]
   );
 
   const handleModifierToggle = useCallback(
     (modifier: string) => {
       if (disabled) {
+        return;
+      }
+      // Locked modifiers come from a parent constraint (e.g., the main hotkey
+      // dictates which modifiers the translation hotkey must start with) and
+      // cannot be toggled off from within the input itself.
+      if (stableLockedModifiers.includes(modifier)) {
         return;
       }
 
@@ -306,6 +358,7 @@ export function HotkeyInput({
       capabilities.modifierOnlyOptions,
       disabled,
       draft,
+      stableLockedModifiers,
     ]
   );
 
@@ -341,84 +394,117 @@ export function HotkeyInput({
     platform,
   });
 
+  const hasLockedModifiers = stableLockedModifiers.length > 0;
   const classes = getVariantClasses(variant);
+  const showModeSwitcher = !lockedMode;
   const showModifierOnlyMode = capabilities.allowModifierOnlyMode;
   const comboNeedsModifier =
     draft.mode === HOTKEY_BUILDER_MODES.keyCombo && draft.selectedModifiers.length === 0;
   const showModifierPicker =
     draft.mode === HOTKEY_BUILDER_MODES.modifierOnly || draft.mode === HOTKEY_BUILDER_MODES.keyCombo;
+  // When the parent pins a specific modifier prefix (translation hotkey path)
+  // we hide the regular modifier picker chips. Otherwise users would also see
+  // the togglable Cmd/Ctrl/Alt/Shift options below the locked chips, which is
+  // confusing because adding extras would silently violate the "exactly main's
+  // modifiers + primary key" UX we want for translation hotkeys.
+  const showRegularModifierOptions = !hasLockedModifiers;
   const showPrimaryKeyInput =
     draft.mode === HOTKEY_BUILDER_MODES.singleKey || draft.mode === HOTKEY_BUILDER_MODES.keyCombo;
   const modifierOnlyOptions =
     draft.mode === HOTKEY_BUILDER_MODES.modifierOnly ? capabilities.modifierOnlyOptions : [];
   const comboModifierOptions = capabilities.comboModifierOptions;
+  const resolvedLockedModifiersHint =
+    lockedModifiersHint ?? (hasLockedModifiers ? t("hotkeyInput.lockedModifiersHint") : "");
 
   return (
     <div className={classes.container}>
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground/80">{t("hotkeyInput.modeLabel")}</p>
-        <div className="flex flex-wrap gap-2">
-          {showModifierOnlyMode && (
+      {showModeSwitcher && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground/80">{t("hotkeyInput.modeLabel")}</p>
+          <div className="flex flex-wrap gap-2">
+            {showModifierOnlyMode && (
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => handleModeChange(HOTKEY_BUILDER_MODES.modifierOnly)}
+                className={`${classes.modeButton} border transition-colors ${
+                  draft.mode === HOTKEY_BUILDER_MODES.modifierOnly
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : "border-border/60 bg-surface-1 text-foreground hover:border-border-hover"
+                } disabled:cursor-not-allowed disabled:opacity-50`}
+              >
+                {t("hotkeyInput.modes.modifierOnly")}
+              </button>
+            )}
             <button
               type="button"
               disabled={disabled}
-              onClick={() => handleModeChange(HOTKEY_BUILDER_MODES.modifierOnly)}
+              onClick={() => handleModeChange(HOTKEY_BUILDER_MODES.keyCombo)}
               className={`${classes.modeButton} border transition-colors ${
-                draft.mode === HOTKEY_BUILDER_MODES.modifierOnly
+                draft.mode === HOTKEY_BUILDER_MODES.keyCombo
                   ? "border-primary/40 bg-primary/10 text-primary"
                   : "border-border/60 bg-surface-1 text-foreground hover:border-border-hover"
               } disabled:cursor-not-allowed disabled:opacity-50`}
             >
-              {t("hotkeyInput.modes.modifierOnly")}
+              {t("hotkeyInput.modes.keyCombo")}
             </button>
-          )}
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => handleModeChange(HOTKEY_BUILDER_MODES.keyCombo)}
-            className={`${classes.modeButton} border transition-colors ${
-              draft.mode === HOTKEY_BUILDER_MODES.keyCombo
-                ? "border-primary/40 bg-primary/10 text-primary"
-                : "border-border/60 bg-surface-1 text-foreground hover:border-border-hover"
-            } disabled:cursor-not-allowed disabled:opacity-50`}
-          >
-            {t("hotkeyInput.modes.keyCombo")}
-          </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {showModifierPicker && (
         <div className="space-y-2">
           <p className="text-xs font-medium text-muted-foreground/80">
             {t("hotkeyInput.modifiersLabel")}
           </p>
-          <div className="flex flex-wrap gap-2">
-            {(draft.mode === HOTKEY_BUILDER_MODES.modifierOnly
-              ? modifierOnlyOptions
-              : comboModifierOptions
-            ).map((option) => {
-              const isSelected = draft.selectedModifiers.includes(option.hotkey);
-              return (
-                <button
-                  key={option.hotkey}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => handleModifierToggle(option.hotkey)}
-                  className={`${classes.chip} border transition-colors ${
-                    isSelected
-                      ? "border-primary/40 bg-primary/10 text-primary"
-                      : "border-border/60 bg-surface-1 text-foreground hover:border-border-hover"
-                  } disabled:cursor-not-allowed disabled:opacity-50`}
+          {hasLockedModifiers && (
+            <div className="flex flex-wrap gap-2">
+              {stableLockedModifiers.map((modifier) => (
+                <span
+                  key={`locked-${modifier}`}
+                  className={`${classes.chip} cursor-not-allowed border border-primary/40 bg-primary/10 text-primary opacity-90`}
+                  title={resolvedLockedModifiersHint}
                 >
-                  {formatHotkeyLabel(option.hotkey)}
-                </button>
-              );
-            })}
-          </div>
-          {draft.mode === HOTKEY_BUILDER_MODES.keyCombo && (
+                  {formatHotkeyLabel(modifier)}
+                </span>
+              ))}
+            </div>
+          )}
+          {showRegularModifierOptions && (
+            <div className="flex flex-wrap gap-2">
+              {(draft.mode === HOTKEY_BUILDER_MODES.modifierOnly
+                ? modifierOnlyOptions
+                : comboModifierOptions
+              ).map((option) => {
+                const isSelected = draft.selectedModifiers.includes(option.hotkey);
+                return (
+                  <button
+                    key={option.hotkey}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => handleModifierToggle(option.hotkey)}
+                    className={`${classes.chip} border transition-colors ${
+                      isSelected
+                        ? "border-primary/40 bg-primary/10 text-primary"
+                        : "border-border/60 bg-surface-1 text-foreground hover:border-border-hover"
+                    } disabled:cursor-not-allowed disabled:opacity-50`}
+                  >
+                    {formatHotkeyLabel(option.hotkey)}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {hasLockedModifiers ? (
             <p className="text-xs leading-relaxed text-muted-foreground/70">
-              {t("hotkeyInput.comboModifierHint")}
+              {resolvedLockedModifiersHint}
             </p>
+          ) : (
+            draft.mode === HOTKEY_BUILDER_MODES.keyCombo && (
+              <p className="text-xs leading-relaxed text-muted-foreground/70">
+                {t("hotkeyInput.comboModifierHint")}
+              </p>
+            )
           )}
         </div>
       )}

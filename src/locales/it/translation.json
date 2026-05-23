@@ -669,6 +669,7 @@
     "hotkeyLabel": "Scorciatoia",
     "modeLabel": "Shortcut type",
     "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
+    "lockedModifiersHint": "Questi modificatori sono obbligatori perché provengono dal tuo tasto rapido principale.",
     "modifiersLabel": "Modifiers",
     "modes": {
       "keyCombo": "Key combo",
@@ -1114,7 +1115,8 @@
       "activationBehavior": "Attivazione",
       "activationBehaviorDescription": "La scorciatoia di traduzione supporta solo tap-to-toggle (premi per iniziare, premi di nuovo per fermare). Push-to-talk (solo modificatore) non è supportato qui.",
       "modifierOnlyRejected": "La scorciatoia di traduzione non può essere solo un modificatore (es. Right Option). Usa una combinazione come Cmd+Shift+T o backtick.",
-      "missingMainModifierPrefix": "La scorciatoia di traduzione deve includere tutti i modificatori della scorciatoia principale (impostata sopra) più almeno un tasto normale (es. Right Command + T)."
+      "missingMainModifierPrefix": "La scorciatoia di traduzione deve includere tutti i modificatori della scorciatoia principale (impostata sopra) più almeno un tasto normale (es. Right Command + T).",
+      "lockedModifiersHint": "I modificatori sono bloccati sul tuo tasto rapido principale ({{hotkey}}). Scegli sotto il tasto principale."
     }
   },
   "models": {

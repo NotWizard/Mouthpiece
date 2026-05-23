@@ -656,6 +656,7 @@
     "hotkeyLabel": "Atalho",
     "modeLabel": "Shortcut type",
     "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
+    "lockedModifiersHint": "Estes modificadores são obrigatórios porque vêm do seu atalho principal.",
     "modifiersLabel": "Modifiers",
     "modes": {
       "keyCombo": "Key combo",
@@ -1101,7 +1102,8 @@
       "activationBehavior": "Ativação",
       "activationBehaviorDescription": "O atalho de tradução só suporta tap-to-toggle (pressione para iniciar, pressione novamente para parar). Push-to-talk (apenas modificador) não é suportado aqui.",
       "modifierOnlyRejected": "O atalho de tradução não pode ser apenas um modificador (ex.: Right Option). Use uma combinação como Cmd+Shift+T ou backtick.",
-      "missingMainModifierPrefix": "O atalho de tradução deve incluir todos os modificadores do atalho principal (definido acima) mais pelo menos uma tecla regular (ex.: Right Command + T)."
+      "missingMainModifierPrefix": "O atalho de tradução deve incluir todos os modificadores do atalho principal (definido acima) mais pelo menos uma tecla regular (ex.: Right Command + T).",
+      "lockedModifiersHint": "Os modificadores estão presos ao atalho principal ({{hotkey}}). Escolha abaixo a tecla principal."
     }
   },
   "models": {

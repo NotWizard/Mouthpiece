@@ -669,6 +669,7 @@
     "hotkeyLabel": "Raccourci",
     "modeLabel": "Shortcut type",
     "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
+    "lockedModifiersHint": "Ces modificateurs sont obligatoires car ils proviennent de votre raccourci principal.",
     "modifiersLabel": "Modifiers",
     "modes": {
       "keyCombo": "Key combo",
@@ -1114,7 +1115,8 @@
       "activationBehavior": "Activation",
       "activationBehaviorDescription": "Le raccourci de traduction ne prend en charge que le tap-to-toggle (appuyez pour démarrer, appuyez de nouveau pour arrêter). Le push-to-talk (modificateur uniquement) n'est pas pris en charge ici.",
       "modifierOnlyRejected": "Le raccourci de traduction ne peut pas être uniquement un modificateur (par ex. Right Option). Utilisez une combinaison comme Cmd+Shift+T ou backtick.",
-      "missingMainModifierPrefix": "Le raccourci de traduction doit inclure tous les modificateurs du raccourci principal (défini ci-dessus) plus au moins une touche ordinaire (par ex. Right Command + T)."
+      "missingMainModifierPrefix": "Le raccourci de traduction doit inclure tous les modificateurs du raccourci principal (défini ci-dessus) plus au moins une touche ordinaire (par ex. Right Command + T).",
+      "lockedModifiersHint": "Les modificateurs sont verrouillés sur votre raccourci principal ({{hotkey}}). Choisissez la touche principale ci-dessous."
     }
   },
   "models": {

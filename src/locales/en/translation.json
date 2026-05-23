@@ -669,6 +669,7 @@
     "hotkeyLabel": "Hotkey",
     "modeLabel": "Shortcut type",
     "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
+    "lockedModifiersHint": "These modifiers are required because they come from your main hotkey.",
     "modifiersLabel": "Modifiers",
     "modes": {
       "keyCombo": "Key combo",
@@ -1114,7 +1115,8 @@
       "activationBehavior": "Activation",
       "activationBehaviorDescription": "Translation hotkey only supports tap-to-toggle (press to start, press again to stop). Push-to-talk (modifier-only) is not supported here.",
       "modifierOnlyRejected": "Translation hotkey can't be modifier-only (e.g., Right Option). Use a combo like Cmd+Shift+T or backtick.",
-      "missingMainModifierPrefix": "Translation hotkey must include all of the main hotkey's modifiers (set above) plus at least one regular key (e.g., Right Command + T)."
+      "missingMainModifierPrefix": "Translation hotkey must include all of the main hotkey's modifiers (set above) plus at least one regular key (e.g., Right Command + T).",
+      "lockedModifiersHint": "Modifiers are locked to your main hotkey ({{hotkey}}). Pick the primary key below."
     }
   },
   "models": {

@@ -32,9 +32,9 @@ import ReasoningModelSelector from "./ReasoningModelSelector";
 import { HotkeyInput } from "./ui/HotkeyInput";
 import HotkeyGuidanceAccordion from "./ui/HotkeyGuidanceAccordion";
 import { useHotkeyRegistration } from "../hooks/useHotkeyRegistration";
-import { getValidationMessage, isModifierOnlyAccelerator, containsAllModifiersOf } from "../utils/hotkeyValidator";
+import { getValidationMessage, isModifierOnlyAccelerator, containsAllModifiersOf, getModifiersOf } from "../utils/hotkeyValidator";
 import { getPlatform, getCachedPlatform } from "../utils/platform";
-import { getDefaultHotkey, formatHotkeyLabel } from "../utils/hotkeys";
+import { getDefaultHotkey, formatHotkeyLabel, isGlobeLikeHotkey } from "../utils/hotkeys";
 import { Toggle } from "./ui/toggle";
 import DeveloperSection from "./DeveloperSection";
 import LanguageSelector, { REGISTRY_OPTIONS } from "./ui/LanguageSelector";
@@ -630,6 +630,16 @@ export default function SettingsPage({
     [dictationKey, t]
   );
 
+  // Derive the modifier prefix the translation hotkey input must lock to. The
+  // main hotkey is always modifier-only (P9.1), so its modifiers become the
+  // mandatory prefix for the translation hotkey. Globe/Fn is treated as the
+  // pseudo-modifier "GLOBE" for prefix-matching purposes.
+  const translationLockedModifiers = useMemo(() => {
+    if (!dictationKey) return [];
+    if (isGlobeLikeHotkey(dictationKey)) return ["GLOBE"];
+    return getModifiersOf(dictationKey);
+  }, [dictationKey]);
+
   const platform = getCachedPlatform();
 
   const [autoStartEnabled, setAutoStartEnabled] = useState(false);
@@ -996,6 +1006,7 @@ export default function SettingsPage({
                     }}
                     disabled={isHotkeyRegistering}
                     validate={validateHotkeyForInput}
+                    lockedMode="modifier-only"
                   />
                   {dictationKey && dictationKey !== getDefaultHotkey() && (
                     <button
@@ -1035,6 +1046,11 @@ export default function SettingsPage({
                       setTranslationDictationKey(newHotkey || "");
                     }}
                     validate={validateTranslationHotkeyForInput}
+                    lockedMode="key-combo"
+                    lockedModifiers={translationLockedModifiers}
+                    lockedModifiersHint={t("settingsPage.translationHotkey.lockedModifiersHint", {
+                      hotkey: formatHotkeyLabel(dictationKey),
+                    })}
                   />
                   {translationDictationKey && (
                     <button

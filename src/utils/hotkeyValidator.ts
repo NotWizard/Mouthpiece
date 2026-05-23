@@ -52,6 +52,10 @@ export function isModifierOnlyAccelerator(hotkey: string): boolean {
     .filter(Boolean);
   if (parts.length === 0) return false;
   return parts.every((part) => {
+    // GLOBE/Fn are not Electron modifiers but they act as modifier-only
+    // push-to-talk triggers via the native macOS listener, so treat them as
+    // modifier-eligible here too.
+    if (part === "GLOBE" || part === "Fn") return true;
     const normalized = part.replace(/[-_ ]/g, "").toLowerCase();
     if (RIGHT_SIDE_MODIFIERS.has(normalized)) return true;
     return MODIFIERS.has(part);
@@ -59,6 +63,11 @@ export function isModifierOnlyAccelerator(hotkey: string): boolean {
 }
 
 function isModifierPart(part: string): boolean {
+  // GLOBE and Fn are not real Electron modifiers, but for the purposes of
+  // prefix-matching the translation hotkey against the main hotkey we treat
+  // them as modifier-eligible tokens so that "GLOBE+K" counts as carrying the
+  // "GLOBE" modifier of a Globe-only main hotkey.
+  if (part === "GLOBE" || part === "Fn") return true;
   const normalized = part.replace(/[-_ ]/g, "").toLowerCase();
   return MODIFIERS.has(part) || RIGHT_SIDE_MODIFIERS.has(normalized);
 }

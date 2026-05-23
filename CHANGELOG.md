@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - History items now disclose the raw transcript (pre-cleanup / pre-translation) on demand via an expandable "View raw transcript" toggle. Legacy items without a recorded raw transcript continue to show only the final text.
 - Translation failure fallback: when the cleanup + translate LLM call fails (network, quota, etc.) the original transcript is pasted and an inline toast notifies the user. Only fires when translation is enabled.
 
+### Changed
+
+- Main and translation hotkey inputs are now guided rather than free-form. The main dictation hotkey input in Settings → Hotkeys and in Onboarding only exposes the "Modifier only" shortcut type, and the translation hotkey input only exposes "Key combo" with the modifier prefix pinned to whatever the main hotkey uses (e.g., if main is Globe, the translation modifier chip is locked to Globe and only the primary key is editable). This replaces the previous flow where users could pick an obviously-invalid combination and only learn about it from a post-hoc validation warning. The Globe / Fn key is now also recognised as a modifier for prefix-matching, so a Globe-only main hotkey can finally produce a valid `Globe + K` style translation hotkey.
+
+### Fixed
+
+- macOS users whose main dictation hotkey is the default Globe / Fn key no longer see a spurious "Hotkey must be modifier-only" warning when they re-confirm the same Globe choice in the Settings → Hotkeys → Main dictation hotkey input. The hotkey validator now treats Globe / Fn as a modifier-only token, matching how the native push-to-talk listener already handled it.
+
 ## [1.4.2] - 2026-05-21
 
 ### Internal

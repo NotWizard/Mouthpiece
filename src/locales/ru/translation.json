@@ -669,6 +669,7 @@
     "hotkeyLabel": "Горячая клавиша",
     "modeLabel": "Shortcut type",
     "comboModifierHint": "Choose exactly one modifier first. Then record the main key.",
+    "lockedModifiersHint": "Эти модификаторы обязательны, поскольку наследуются от основной горячей клавиши.",
     "modifiersLabel": "Modifiers",
     "modes": {
       "keyCombo": "Key combo",
@@ -1114,7 +1115,8 @@
       "activationBehavior": "Активация",
       "activationBehaviorDescription": "Горячая клавиша перевода поддерживает только tap-to-toggle (нажать для запуска, нажать снова для остановки). Push-to-talk (только модификатор) здесь не поддерживается.",
       "modifierOnlyRejected": "Горячая клавиша перевода не может быть только модификатором (например, Right Option). Используйте комбинацию вроде Cmd+Shift+T или backtick.",
-      "missingMainModifierPrefix": "Горячая клавиша перевода должна включать все модификаторы основной горячей клавиши (заданной выше) плюс хотя бы одну обычную клавишу (например, Right Command + T)."
+      "missingMainModifierPrefix": "Горячая клавиша перевода должна включать все модификаторы основной горячей клавиши (заданной выше) плюс хотя бы одну обычную клавишу (например, Right Command + T).",
+      "lockedModifiersHint": "Модификаторы привязаны к основной горячей клавише ({{hotkey}}). Выберите основную клавишу ниже."
     }
   },
   "models": {

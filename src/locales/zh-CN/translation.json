@@ -669,6 +669,7 @@
     "hotkeyLabel": "快捷键",
     "modeLabel": "快捷键类型",
     "comboModifierHint": "请先选择且只选择一个修饰键，然后再录入主键。",
+    "lockedModifiersHint": "这些修饰键是必需的，因为它们继承自你的主快捷键。",
     "modifiersLabel": "修饰键",
     "modes": {
       "keyCombo": "按键组合",
@@ -1114,7 +1115,8 @@
       "activationBehavior": "触发方式",
       "activationBehaviorDescription": "翻译快捷键仅支持 tap-to-toggle (按一下开始,再按一下结束)。此处不支持 push-to-talk (仅修饰键)。",
       "modifierOnlyRejected": "翻译快捷键不能只是修饰键(例如 Right Option)。请使用组合键(如 Cmd+Shift+T 或 backtick)。",
-      "missingMainModifierPrefix": "翻译快捷键必须包含主快捷键(上面设置的)的所有修饰键 + 至少一个普通键(例如 Right Command + T)。"
+      "missingMainModifierPrefix": "翻译快捷键必须包含主快捷键(上面设置的)的所有修饰键 + 至少一个普通键(例如 Right Command + T)。",
+      "lockedModifiersHint": "修饰键已锁定为主快捷键 ({{hotkey}})，请在下方选择主键。"
     }
   },
   "models": {
