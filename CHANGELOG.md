@@ -9,10 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- AI Translation Output: a Settings toggle that unifies multilingual dictation into a single target language. Translation and cleanup share the same provider/model in a single LLM call.
-- PromptStudio shows an inline banner when translation is enabled, explaining the {{TARGET_LANG_INSTRUCTION}} placeholder and offering a one-click insert button at the cursor.
+- AI Translation Output: enable it in Settings → AI Models → AI Translation Output, pick a target language, then set a dedicated "Translation hotkey" in Settings → Hotkeys → Translation hotkey. The main dictation hotkey stays cleanup-only; the translation hotkey runs transcribe + cleanup + translate against the same provider / model in a single LLM call. Power users can also drop `{{TARGET_LANGUAGE}}` into a custom cleanup prompt to make the main hotkey translate as well.
+- Translation-mode capsule badge: while a dictation session was triggered by the translation hotkey, the floating capsule shows a small blue pill with the target language ISO code (EN / ZH / JA…) so you can tell at a glance which mode this take is in.
+- PromptStudio surface for the translation placeholder: when translation is enabled, the View tab shows a hint pointing to Customize, and the Edit tab shows a banner with a "Copy placeholder" button. The placeholder `{{TARGET_LANGUAGE}}` is replaced with the language display name at runtime.
 - History items now disclose the raw transcript (pre-cleanup / pre-translation) on demand via an expandable "View raw transcript" toggle. Legacy items without a recorded raw transcript continue to show only the final text.
-- Translation failure fallback: when the combined cleanup+translate LLM call fails (network, quota, etc.) the original transcript is pasted and an inline toast notifies the user. Only fires when translation is enabled.
+- Translation failure fallback: when the cleanup + translate LLM call fails (network, quota, etc.) the original transcript is pasted and an inline toast notifies the user. Only fires when translation is enabled.
 
 ## [1.4.2] - 2026-05-21
 
