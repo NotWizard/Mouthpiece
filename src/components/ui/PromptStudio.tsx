@@ -314,7 +314,7 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
                         setCopiedPlaceholder(true);
                         setTimeout(() => setCopiedPlaceholder(false), 2000);
                       }}
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       className="h-7 px-2 text-xs shrink-0"
                     >
