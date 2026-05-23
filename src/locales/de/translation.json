@@ -786,7 +786,7 @@
     },
     "translationBanner": {
       "title": "Übersetzung aktiviert → Ziel: {{lang}}",
-      "explainer": "Platzieren Sie {{placeholder}} in Ihrem Prompt, um zu steuern, wo die Übersetzungsregel landet. Fehlt sie, wird die Regel am Ende angefügt.",
+      "explainer": "Platzieren Sie {{placeholder}} in Ihrem Prompt – es wird zur Laufzeit durch die Zielsprache ersetzt (z. B. „English (US)\"). Andernfalls wird eine Zeile „Die Ausgabesprache muss … sein\" angehängt.",
       "copyButton": "Platzhalter kopieren",
       "copied": "Kopiert",
       "viewTabHintTitle": "Übersetzung aktiviert → {{lang}}",
@@ -1101,7 +1101,8 @@
       "targetLangLabel": "Zielsprache",
       "targetLangDescription": "Alle Transkripte werden in dieser Sprache vereinheitlicht. Liegt die Eingabe bereits in dieser Sprache vor, läuft nur die Bereinigung.",
       "providerNote": "Die Übersetzung verwendet denselben Anbieter und das gleiche Modell wie die Bereinigung (ein einziger LLM-Aufruf). Bei Fehlern wird mit einem Hinweis auf das rohe Transkript zurückgegriffen.",
-      "requireTargetLang": "Bitte wählen Sie eine Zielsprache, bevor Sie die Übersetzung aktivieren."
+      "requireTargetLang": "Bitte wählen Sie eine Zielsprache, bevor Sie die Übersetzung aktivieren.",
+      "disableWarnPlaceholderRemains": "Ihr Prompt enthält noch {{placeholder}}. Die Übersetzung ist jetzt deaktiviert, daher wird der Platzhalter bei jedem Aufruf entfernt (durch leer ersetzt). Bearbeiten Sie Ihren Prompt in PromptStudio, wenn Sie den umgebenden Satz entfernen möchten."
     }
   },
   "models": {

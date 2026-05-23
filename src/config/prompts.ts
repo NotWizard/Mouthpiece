@@ -2,10 +2,13 @@ import promptData from "./promptData.json";
 import i18n, { normalizeUiLanguage } from "../i18n";
 import { en as enPrompts, type PromptBundle } from "../locales/prompts";
 import { readCustomCleanupPrompt } from "../utils/promptStorage";
+import { getLanguageLabel } from "../utils/languageRegistry";
 import type { TerminologyProfile } from "../utils/terminologyProfile";
 
 export const CLEANUP_PROMPT = promptData.CLEANUP_PROMPT;
 export const UNIFIED_SYSTEM_PROMPT = promptData.CLEANUP_PROMPT;
+
+export const TRANSLATION_PLACEHOLDER = "{{TARGET_LANG_INSTRUCTION}}";
 
 function getPromptBundle(uiLanguage?: string): PromptBundle {
   const locale = normalizeUiLanguage(uiLanguage || "zh-CN");
@@ -82,25 +85,6 @@ function getTerminologyInstruction(
   return sections.join("\n");
 }
 
-// Phase 3 — translation prompt blocks. Text supplied by user; do not invent.
-export function renderTargetLangBlock(targetLang: string, uiLanguage?: string): string {
-  if (!targetLang) return "";
-  const isZh = (uiLanguage || "zh-CN").startsWith("zh");
-  if (isZh) {
-    return `最终的输出内容翻译成 ${targetLang} 语言。`;
-  }
-  return `Translate the final output to ${targetLang}.`;
-}
-
-export function renderDictTranslationRuleBlock(targetLang: string, uiLanguage?: string): string {
-  if (!targetLang) return "";
-  const isZh = (uiLanguage || "zh-CN").startsWith("zh");
-  if (isZh) {
-    return "";
-  }
-  return "";
-}
-
 export function getSystemPrompt(
   customDictionary?: string[],
   uiLanguage?: string,
@@ -130,27 +114,22 @@ export function getSystemPrompt(
     prompt += `\n\n${terminologyInstruction}`;
   }
 
-  const translationEnabled = !!translationContext?.enabled && !!translationContext?.targetLang;
-  const dictNonEmpty = !!customDictionary && customDictionary.length > 0;
+  const translationEnabled =
+    !!translationContext?.enabled && !!translationContext?.targetLang;
 
-  const targetLangBlock = translationEnabled
-    ? renderTargetLangBlock(translationContext!.targetLang, uiLanguage)
-    : "";
-  const dictRuleBlock =
-    translationEnabled && dictNonEmpty
-      ? renderDictTranslationRuleBlock(translationContext!.targetLang, uiLanguage)
-      : "";
-
-  if (prompt.includes("{{TARGET_LANG_INSTRUCTION}}")) {
-    prompt = prompt.replaceAll("{{TARGET_LANG_INSTRUCTION}}", targetLangBlock);
-  } else if (targetLangBlock) {
-    prompt = `${prompt}\n\n${targetLangBlock}`;
-  }
-
-  if (prompt.includes("{{DICTIONARY_TRANSLATION_RULE}}")) {
-    prompt = prompt.replaceAll("{{DICTIONARY_TRANSLATION_RULE}}", dictRuleBlock);
-  } else if (dictRuleBlock) {
-    prompt = `${prompt}\n\n${dictRuleBlock}`;
+  if (translationEnabled) {
+    const langDisplayName = getLanguageLabel(translationContext!.targetLang);
+    if (!prompt.includes(TRANSLATION_PLACEHOLDER)) {
+      const isZh = (uiLanguage || "zh-CN").startsWith("zh");
+      const fallbackSentence = isZh
+        ? `输出结果的语言必须是：${TRANSLATION_PLACEHOLDER}`
+        : `The output language must be: ${TRANSLATION_PLACEHOLDER}`;
+      prompt = `${prompt}\n\n${fallbackSentence}`;
+    }
+    prompt = prompt.replaceAll(TRANSLATION_PLACEHOLDER, langDisplayName);
+  } else {
+    // Translation off: strip any leftover placeholder so it never reaches the LLM verbatim.
+    prompt = prompt.replaceAll(TRANSLATION_PLACEHOLDER, "");
   }
 
   return prompt;
@@ -164,6 +143,7 @@ export function getWordBoost(customDictionary?: string[]): string[] {
 export default {
   CLEANUP_PROMPT,
   UNIFIED_SYSTEM_PROMPT,
+  TRANSLATION_PLACEHOLDER,
   getSystemPrompt,
   getWordBoost,
 };

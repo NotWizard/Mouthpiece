@@ -786,7 +786,7 @@
     },
     "translationBanner": {
       "title": "翻訳が有効 → 対象言語: {{lang}}",
-      "explainer": "{{placeholder}} をプロンプトに配置して翻訳ルールの挿入位置を指定できます。なければ末尾に追加されます。",
+      "explainer": "{{placeholder}} をプロンプトに配置すると、実行時にターゲット言語(例:「English (US)」)に置き換えられます。配置しなかった場合、「出力言語は …」という行が末尾に追加されます。",
       "copyButton": "プレースホルダーをコピー",
       "copied": "コピーしました",
       "viewTabHintTitle": "翻訳が有効 → {{lang}}",
@@ -1101,7 +1101,8 @@
       "targetLangLabel": "対象言語",
       "targetLangDescription": "すべての文字起こしをこの言語に統合します。入力がすでにこの言語の場合は、クリーンアップのみ実行されます。",
       "providerNote": "翻訳はクリーンアップと同じプロバイダーとモデルを使用します(1 回の LLM 呼び出し)。失敗した場合は通知とともに元の文字起こしに戻ります。",
-      "requireTargetLang": "翻訳を有効にする前に対象言語を選択してください。"
+      "requireTargetLang": "翻訳を有効にする前に対象言語を選択してください。",
+      "disableWarnPlaceholderRemains": "プロンプトにまだ {{placeholder}} が含まれています。翻訳がオフになったため、プレースホルダーは呼び出しごとに削除(空に置換)されます。周囲の文も削除したい場合は、PromptStudio でプロンプトを編集してください。"
     }
   },
   "models": {

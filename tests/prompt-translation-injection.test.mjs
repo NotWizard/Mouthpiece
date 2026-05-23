@@ -6,12 +6,17 @@ const source = await import("node:fs").then((fs) =>
   fs.promises.readFile(promptsPath, "utf8")
 );
 
-test("prompts.ts exports renderTargetLangBlock and renderDictTranslationRuleBlock", () => {
-  assert.match(source, /export\s+function\s+renderTargetLangBlock\s*\(targetLang:\s*string,\s*uiLanguage\?:\s*string\)/);
+test("prompts.ts exports the translation placeholder constant", () => {
   assert.match(
     source,
-    /export\s+function\s+renderDictTranslationRuleBlock\s*\(targetLang:\s*string,\s*uiLanguage\?:\s*string\)/
+    /export const TRANSLATION_PLACEHOLDER = "\{\{TARGET_LANG_INSTRUCTION\}\}";/
   );
+});
+
+test("prompts.ts no longer ships the deprecated translation block helpers", () => {
+  assert.doesNotMatch(source, /export function renderTargetLangBlock/);
+  assert.doesNotMatch(source, /export function renderDictTranslationRuleBlock/);
+  assert.doesNotMatch(source, /\{\{DICTIONARY_TRANSLATION_RULE\}\}/);
 });
 
 test("getSystemPrompt signature accepts translation context", () => {
@@ -21,12 +26,24 @@ test("getSystemPrompt signature accepts translation context", () => {
   );
 });
 
-test("getSystemPrompt injects via placeholder when present", () => {
-  assert.match(source, /\{\{TARGET_LANG_INSTRUCTION\}\}/);
-  assert.match(source, /\{\{DICTIONARY_TRANSLATION_RULE\}\}/);
-  assert.match(source, /replaceAll\("\{\{TARGET_LANG_INSTRUCTION\}\}",/);
+test("getSystemPrompt resolves placeholder to language display name when translation is enabled", () => {
+  assert.match(source, /import \{ getLanguageLabel \} from "\.\.\/utils\/languageRegistry"/);
+  assert.match(
+    source,
+    /const langDisplayName = getLanguageLabel\(translationContext!\.targetLang\)/
+  );
+  assert.match(source, /prompt\.replaceAll\(TRANSLATION_PLACEHOLDER, langDisplayName\)/);
 });
 
-test("getSystemPrompt strips empty placeholders when translation is off", () => {
-  assert.match(source, /replaceAll\("\{\{TARGET_LANG_INSTRUCTION\}\}",\s*targetLangBlock\)/);
+test("getSystemPrompt appends a default sentence when prompt has no placeholder", () => {
+  assert.match(source, /输出结果的语言必须是：\$\{TRANSLATION_PLACEHOLDER\}/);
+  assert.match(source, /The output language must be: \$\{TRANSLATION_PLACEHOLDER\}/);
+  assert.match(source, /if \(!prompt\.includes\(TRANSLATION_PLACEHOLDER\)\)/);
+});
+
+test("getSystemPrompt strips the placeholder when translation is off", () => {
+  assert.match(
+    source,
+    /\/\/ Translation off:[\s\S]*?prompt = prompt\.replaceAll\(TRANSLATION_PLACEHOLDER, ""\);/
+  );
 });

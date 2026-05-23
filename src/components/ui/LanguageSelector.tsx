@@ -2,24 +2,9 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import { ChevronDown, Search, X, Check } from "lucide-react";
-import registry from "../../config/languageRegistry.json";
-
-export interface LanguageOption {
-  value: string;
-  label: string;
-  flag: string;
-}
-
-export const REGISTRY_OPTIONS: LanguageOption[] = registry.languages.map(({ code, label, flag }) => ({
-  value: code,
-  label,
-  flag,
-}));
-
-export function getLanguageLabel(code: string): string {
-  if (!code) return "";
-  return REGISTRY_OPTIONS.find((o) => o.value === code)?.label ?? code;
-}
+import { REGISTRY_OPTIONS, getLanguageLabel, type LanguageOption } from "../../utils/languageRegistry";
+export { REGISTRY_OPTIONS, getLanguageLabel };
+export type { LanguageOption };
 
 interface LanguageSelectorProps {
   value: string;
