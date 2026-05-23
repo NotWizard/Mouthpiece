@@ -193,7 +193,6 @@
       "copyAction": "Copy transcription",
       "deleteAction": "Delete transcription",
       "viewRawTranscript": "View raw transcript",
-      "rawTranscriptLabel": "Raw transcript",
       "couldNotCopyTitle": "Couldn't copy",
       "couldNotCopyDescription": "Something went wrong copying to your clipboard. Try again.",
       "deleteTitle": "Delete Transcription",

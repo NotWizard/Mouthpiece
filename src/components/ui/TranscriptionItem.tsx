@@ -100,9 +100,6 @@ export default function TranscriptionItem({ item, onCopy, onDelete }: Transcript
                 ▸ {t("controlPanel.history.viewRawTranscript")}
               </summary>
               <div className="mt-1 ml-3 pl-2 border-l border-border/40 text-[11px] text-muted-foreground/80 whitespace-pre-wrap break-words leading-[1.5]">
-                <span className="block text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1">
-                  {t("controlPanel.history.rawTranscriptLabel")}
-                </span>
                 {item.raw_text}
               </div>
             </details>

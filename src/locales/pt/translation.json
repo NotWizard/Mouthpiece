@@ -180,7 +180,6 @@
       "copyAction": "Copiar transcrição",
       "deleteAction": "Excluir transcrição",
       "viewRawTranscript": "Ver transcrição bruta",
-      "rawTranscriptLabel": "Transcrição bruta",
       "couldNotCopyTitle": "Não foi possível copiar",
       "couldNotCopyDescription": "Ocorreu um erro ao copiar para a área de transferência. Tente novamente.",
       "deleteTitle": "Excluir transcrição",

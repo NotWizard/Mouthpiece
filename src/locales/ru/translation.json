@@ -193,7 +193,6 @@
       "copyAction": "Скопировать транскрипцию",
       "deleteAction": "Удалить транскрипцию",
       "viewRawTranscript": "Показать исходную транскрипцию",
-      "rawTranscriptLabel": "Исходная транскрипция",
       "couldNotCopyTitle": "Не удалось скопировать",
       "couldNotCopyDescription": "Произошла ошибка при копировании в буфер обмена. Попробуйте снова.",
       "deleteTitle": "Удалить транскрипцию",
