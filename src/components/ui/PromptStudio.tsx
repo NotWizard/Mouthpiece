@@ -297,7 +297,7 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
             {translationEnabled && translationTargetLang && (
               <div className="px-5 py-4 border-b border-border/40 dark:border-border-subtle">
                 <div className="rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 px-4 py-3">
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center justify-between gap-3">
                     <div className="flex-1 min-w-0 space-y-1">
                       <p className="text-xs font-medium text-foreground">
                         {t("promptStudio.translationBanner.title", { lang: getLanguageLabel(translationTargetLang) })}
