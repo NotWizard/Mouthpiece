@@ -20,6 +20,14 @@ class WindowsKeyManager extends EventEmitter {
     this.currentKey = null;
     this.isReady = false;
     this._isStopping = false;
+    // P9.6 — a second listener child process dedicated to the translation
+    // hotkey chord (e.g. "Control+K"). Kept separate from the main push-to-
+    // talk listener above because the main listener's state machine assumes
+    // a single key with KEY_DOWN/KEY_UP semantics while the translation
+    // chord is tap-to-toggle and only cares about KEY_DOWN.
+    this._translationProcess = null;
+    this._translationKey = null;
+    this._isStoppingTranslation = false;
   }
 
   /**
@@ -143,6 +151,113 @@ class WindowsKeyManager extends EventEmitter {
     }
     this.isReady = false;
     this.currentKey = null;
+  }
+
+  /**
+   * Start listening for the translation hotkey chord (e.g. "Control+K").
+   * Spawns a second native listener child process whose only job is to emit a
+   * "translation-key-down" event when the chord fires. Tap-to-toggle, so we
+   * ignore the binary's KEY_UP lines on this channel.
+   *
+   * @param {string} key - The chord to listen for (Electron accelerator format)
+   */
+  startTranslation(key) {
+    if (!this.isSupported) return;
+    if (!key || typeof key !== "string") return;
+
+    if (this._translationProcess && this._translationKey === key) {
+      return; // idempotent
+    }
+
+    this.stopTranslation();
+
+    const listenerPath = this.resolveListenerBinary();
+    if (!listenerPath) {
+      // No binary — the translation hotkey just doesn't work on this install.
+      // Don't escalate; main push-to-talk has its own unavailable path.
+      return;
+    }
+
+    this._isStoppingTranslation = false;
+    this._translationKey = key;
+
+    debugLogger.debug("[WindowsKeyManager] Starting translation listener", { key });
+
+    let child;
+    try {
+      child = spawn(listenerPath, [key], {
+        stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true,
+      });
+    } catch (error) {
+      debugLogger.warn("[WindowsKeyManager] Failed to spawn translation listener", {
+        error: error.message,
+      });
+      return;
+    }
+    this._translationProcess = child;
+
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      if (this._translationProcess !== child) return;
+      chunk
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .forEach((line) => {
+          if (line === "KEY_DOWN") {
+            debugLogger.debug("[WindowsKeyManager] translation KEY_DOWN", { key });
+            this.emit("translation-key-down", key);
+          }
+          // KEY_UP and READY intentionally ignored — translation is tap-to-toggle.
+        });
+    });
+
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", (data) => {
+      if (this._translationProcess !== child) return;
+      const message = data.toString().trim();
+      if (message.length > 0) {
+        debugLogger.debug("[WindowsKeyManager] translation stderr", { message });
+      }
+    });
+
+    child.on("error", (error) => {
+      if (this._translationProcess !== child) return;
+      debugLogger.warn("[WindowsKeyManager] translation listener error", {
+        error: error.message,
+      });
+      this._translationProcess = null;
+    });
+
+    child.on("exit", (code, signal) => {
+      if (this._translationProcess !== child) return;
+      this._translationProcess = null;
+      if (this._isStoppingTranslation) return;
+      if (code !== 0) {
+        debugLogger.warn("[WindowsKeyManager] translation listener exited unexpectedly", {
+          code,
+          signal,
+        });
+      }
+    });
+  }
+
+  /**
+   * Stop the translation hotkey listener (if any).
+   */
+  stopTranslation() {
+    if (this._translationProcess) {
+      debugLogger.debug("[WindowsKeyManager] Stopping translation listener");
+      this._isStoppingTranslation = true;
+      try {
+        this._translationProcess.kill();
+      } catch {
+        // Ignore
+      }
+      this._translationProcess = null;
+    }
+    this._translationKey = null;
   }
 
   /**

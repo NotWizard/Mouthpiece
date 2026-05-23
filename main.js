@@ -190,6 +190,12 @@ let hotkeyManager = null;
 
 // Translation-hotkey state (P8.2). Renderer settings sync via the
 // "apply-translation-hotkey" IPC channel.
+//
+// Both platforms now route the chord through their native key listener so
+// the prefix-match rule from P9.1 ("translation hotkey = main modifier prefix
+// + a regular key") works even when the prefix is something Electron's
+// globalShortcut can't accept (Globe, RightCommand/RightOption, RightControl
+// etc.). globalShortcut is no longer involved on either path.
 let currentTranslationAccelerator = null;
 function applyTranslationHotkey({ enabled, hotkey, mainHotkey } = {}) {
   const trimmed = typeof hotkey === "string" ? hotkey.trim() : "";
@@ -199,13 +205,10 @@ function applyTranslationHotkey({ enabled, hotkey, mainHotkey } = {}) {
     !!trimmed &&
     trimmed !== trimmedMain; // refuse if equal to main hotkey
 
-  // Unregister the previously-registered translation accelerator (if any) before
-  // re-applying. Idempotent.
+  // Tear down any previously-active translation listener before re-applying.
   if (currentTranslationAccelerator) {
-    try {
-      globalShortcut.unregister(currentTranslationAccelerator);
-    } catch (_) {
-      /* ignore */
+    if (process.platform === "win32" && windowsKeyManager?.stopTranslation) {
+      windowsKeyManager.stopTranslation();
     }
     currentTranslationAccelerator = null;
   }
@@ -214,25 +217,33 @@ function applyTranslationHotkey({ enabled, hotkey, mainHotkey } = {}) {
     return { registered: false, reason: !enabled ? "disabled" : !trimmed ? "empty" : "conflict" };
   }
 
-  try {
-    const success = globalShortcut.register(trimmed, () => {
-      if (windowManager?.sendToggleTranslationDictation) {
-        windowManager.sendToggleTranslationDictation();
-      }
-    });
-    if (success) {
-      currentTranslationAccelerator = trimmed;
-      return { registered: true, accelerator: trimmed };
-    }
-    return { registered: false, reason: "register_failed" };
-  } catch (error) {
-    debugLogger?.error?.(
-      "Translation hotkey register threw",
-      { error: error?.message },
-      "translation-hotkey"
-    );
-    return { registered: false, reason: "exception" };
+  // macOS: store the chord so the "key-down-with-mods" listener (registered
+  // against globeKeyManager) can match it. The native Swift binary does the
+  // actual keyDown detection.
+  if (process.platform === "darwin") {
+    currentTranslationAccelerator = trimmed;
+    return { registered: true, accelerator: trimmed, transport: "native-key-listener" };
   }
+
+  // Windows: spawn a second native listener child process via
+  // windowsKeyManager.startTranslation, which emits "translation-key-down"
+  // when the chord fires. We fall through to a degraded "stored only" state
+  // if the listener binary is unavailable so the renderer still treats the
+  // hotkey as registered for UI purposes — the unavailable case already
+  // surfaces via the main listener's "unavailable" event.
+  if (process.platform === "win32") {
+    if (windowsKeyManager?.startTranslation) {
+      windowsKeyManager.startTranslation(trimmed);
+    }
+    currentTranslationAccelerator = trimmed;
+    return { registered: true, accelerator: trimmed, transport: "native-key-listener" };
+  }
+
+  // Linux / other: no native listener path, accept the chord as a stored
+  // value so the renderer doesn't show a register-failed UI, but the chord
+  // simply won't trigger anything until a future native path lands.
+  currentTranslationAccelerator = trimmed;
+  return { registered: false, reason: "unsupported_platform" };
 }
 module.exports.applyTranslationHotkey = applyTranslationHotkey;
 
@@ -857,6 +868,31 @@ async function startApp() {
       }
     });
 
+    // P9.5 — Translation hotkey routed through the native key listener on
+    // macOS. The Swift binary emits the full chord (e.g. "GLOBE+K" or
+    // "RightCommand+T") on every keyDown; we match it against the stored
+    // translation accelerator and, on a match, abort any in-flight main-hotkey
+    // session (so the same Globe/Right-modifier press doesn't also fire the
+    // dictation push-to-talk path) before forwarding the toggle to the
+    // renderer.
+    globeKeyManager.on("key-down-with-mods", (chord) => {
+      if (!currentTranslationAccelerator) return;
+      if (chord !== currentTranslationAccelerator) return;
+      if (!isLiveWindow(windowManager.mainWindow)) return;
+
+      const mainOutcome = globeAutoSession.abort();
+      const rightOutcome = rightModifierAutoSession.abort();
+      debugLogger?.debug("[Globe] translation chord matched", {
+        chord,
+        mainOutcome,
+        rightOutcome,
+      });
+
+      if (windowManager?.sendToggleTranslationDictation) {
+        windowManager.sendToggleTranslationDictation();
+      }
+    });
+
     // Wait for hotkeyManager to resolve the saved hotkey BEFORE spawning the
     // Globe listener. Otherwise the listener observes a ~1-second window where
     // currentHotkey is still the platform default ("GLOBE"), and Fn presses
@@ -915,6 +951,17 @@ async function startApp() {
     windowsKeyManager.on("key-up", () => {
       if (!isLiveWindow(windowManager.mainWindow)) return;
       windowManager.handleWindowsPushKeyUp();
+    });
+
+    // P9.6 — Translation hotkey chord routed through the same native
+    // listener path as the main push-to-talk key. Tap-to-toggle, so we only
+    // care about KEY_DOWN. Abort any in-flight main-hotkey session first so
+    // a Control-held → K-pressed sequence doesn't start both the main
+    // dictation and the translation flow in parallel.
+    windowsKeyManager.on("translation-key-down", () => {
+      if (!isLiveWindow(windowManager.mainWindow)) return;
+      windowManager.resetWindowsPushState?.();
+      windowManager.sendToggleTranslationDictation?.();
     });
 
     windowsKeyManager.on("error", (error) => {

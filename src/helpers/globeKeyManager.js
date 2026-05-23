@@ -115,6 +115,17 @@ class GlobeKeyManager extends EventEmitter {
             if (modifier) {
               this.emit("modifier-up", modifier);
             }
+          } else if (line.startsWith("KEY_DOWN_WITH_MODS:")) {
+            // Native listener tells us "<sorted modifier tokens>+<key>" using
+            // the same accelerator shape the renderer persists, so consumers
+            // can compare against a stored hotkey string with no further
+            // normalisation. Skipped silently when the payload is empty
+            // (which would only happen if the binary ever drifts and emits a
+            // malformed line).
+            const hotkey = line.replace("KEY_DOWN_WITH_MODS:", "").trim();
+            if (hotkey) {
+              this.emit("key-down-with-mods", hotkey);
+            }
           }
         });
     });
