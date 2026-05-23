@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - macOS users whose main dictation hotkey is the default Globe / Fn key no longer see a spurious "Hotkey must be modifier-only" warning when they re-confirm the same Globe choice in the Settings → Hotkeys → Main dictation hotkey input. The hotkey validator now treats Globe / Fn as a modifier-only token, matching how the native push-to-talk listener already handled it.
+- Translation hotkey now actually fires when the main hotkey uses a token Electron's `globalShortcut` doesn't accept. Previously the translation chord was routed through `globalShortcut.register`, which silently refuses Globe-prefixed accelerators (e.g., `Globe+K`) on macOS and modifier-only-prefix combos that confuse its parser; the registration succeeded in the renderer's eyes but no keypress ever reached the handler. On macOS the chord is now detected by the existing native Swift listener (`resources/macos-globe-listener.swift`), which emits the held modifiers + primary key on every keyDown and is matched against the stored translation accelerator inside `main.js`. On Windows a second native key-listener child process (started via `windowsKeyManager.startTranslation`) handles the chord with the same tap-to-toggle semantics. Either listener aborts any in-flight push-to-talk session before firing the translation toggle, so a Control-held → K-pressed (or Globe-held → K-pressed) sequence no longer starts both the main dictation and the translation flow in parallel.
 
 ## [1.4.2] - 2026-05-21
 
