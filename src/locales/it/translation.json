@@ -1111,7 +1111,8 @@
       "conflictWithMain": "Conflitto con la scorciatoia principale di dettatura. Scegli una combinazione diversa.",
       "clear": "Cancella scorciatoia di traduzione",
       "activationBehavior": "Attivazione",
-      "activationBehaviorDescription": "La scorciatoia di traduzione supporta solo tap-to-toggle (premi per iniziare, premi di nuovo per fermare). Push-to-talk (solo modificatore) non è supportato qui."
+      "activationBehaviorDescription": "La scorciatoia di traduzione supporta solo tap-to-toggle (premi per iniziare, premi di nuovo per fermare). Push-to-talk (solo modificatore) non è supportato qui.",
+      "modifierOnlyRejected": "La scorciatoia di traduzione non può essere solo un modificatore (es. Right Option). Usa una combinazione come Cmd+Shift+T o backtick."
     }
   },
   "models": {

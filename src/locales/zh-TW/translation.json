@@ -1111,7 +1111,8 @@
       "conflictWithMain": "與主聽寫快捷鍵衝突,請選擇不同的組合。",
       "clear": "清除翻譯快捷鍵",
       "activationBehavior": "觸發方式",
-      "activationBehaviorDescription": "翻譯快捷鍵僅支援 tap-to-toggle (按一下開始,再按一下結束)。此處不支援 push-to-talk (僅修飾鍵)。"
+      "activationBehaviorDescription": "翻譯快捷鍵僅支援 tap-to-toggle (按一下開始,再按一下結束)。此處不支援 push-to-talk (僅修飾鍵)。",
+      "modifierOnlyRejected": "翻譯快捷鍵不能只是修飾鍵(例如 Right Option)。請使用組合鍵(如 Cmd+Shift+T 或 backtick)。"
     }
   },
   "models": {

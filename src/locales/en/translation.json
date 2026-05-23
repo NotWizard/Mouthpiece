@@ -1111,7 +1111,8 @@
       "conflictWithMain": "Conflicts with the main dictation hotkey. Pick a different combination.",
       "clear": "Clear translation hotkey",
       "activationBehavior": "Activation",
-      "activationBehaviorDescription": "Translation hotkey only supports tap-to-toggle (press to start, press again to stop). Push-to-talk (modifier-only) is not supported here."
+      "activationBehaviorDescription": "Translation hotkey only supports tap-to-toggle (press to start, press again to stop). Push-to-talk (modifier-only) is not supported here.",
+      "modifierOnlyRejected": "Translation hotkey can't be modifier-only (e.g., Right Option). Use a combo like Cmd+Shift+T or backtick."
     }
   },
   "models": {

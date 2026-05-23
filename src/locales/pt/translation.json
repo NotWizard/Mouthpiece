@@ -1098,7 +1098,8 @@
       "conflictWithMain": "Conflito com o atalho principal de ditado. Escolha uma combinação diferente.",
       "clear": "Limpar atalho de tradução",
       "activationBehavior": "Ativação",
-      "activationBehaviorDescription": "O atalho de tradução só suporta tap-to-toggle (pressione para iniciar, pressione novamente para parar). Push-to-talk (apenas modificador) não é suportado aqui."
+      "activationBehaviorDescription": "O atalho de tradução só suporta tap-to-toggle (pressione para iniciar, pressione novamente para parar). Push-to-talk (apenas modificador) não é suportado aqui.",
+      "modifierOnlyRejected": "O atalho de tradução não pode ser apenas um modificador (ex.: Right Option). Use uma combinação como Cmd+Shift+T ou backtick."
     }
   },
   "models": {

@@ -39,6 +39,25 @@ function isRightSideModifier(part: string): boolean {
   return RIGHT_SIDE_MODIFIERS.has(normalized);
 }
 
+// True when the hotkey contains only modifier keys (no real activation key).
+// Such hotkeys can only be served by the native push-to-talk binaries
+// (GlobeKeyManager / WindowsKeyManager); Electron's globalShortcut won't accept
+// them. Used by the translation hotkey row to inline-reject Right Option / Fn /
+// modifier-only combos before they silently fail at register time.
+export function isModifierOnlyAccelerator(hotkey: string): boolean {
+  if (!hotkey || !hotkey.trim()) return false;
+  const parts = hotkey
+    .split("+")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return false;
+  return parts.every((part) => {
+    const normalized = part.replace(/[-_ ]/g, "").toLowerCase();
+    if (RIGHT_SIDE_MODIFIERS.has(normalized)) return true;
+    return MODIFIERS.has(part);
+  });
+}
+
 const SPECIAL_KEYS = new Set(
   [
     "GLOBE",

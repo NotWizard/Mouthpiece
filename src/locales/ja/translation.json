@@ -1111,7 +1111,8 @@
       "conflictWithMain": "メインの読み上げホットキーと衝突しています。別の組み合わせを選んでください。",
       "clear": "翻訳ホットキーをクリア",
       "activationBehavior": "起動方式",
-      "activationBehaviorDescription": "翻訳ホットキーは tap-to-toggle (一度押して開始、もう一度押して停止) のみをサポートします。push-to-talk (修飾キーのみ) はここではサポートされません。"
+      "activationBehaviorDescription": "翻訳ホットキーは tap-to-toggle (一度押して開始、もう一度押して停止) のみをサポートします。push-to-talk (修飾キーのみ) はここではサポートされません。",
+      "modifierOnlyRejected": "翻訳ホットキーは修飾キーのみ (例: Right Option) では設定できません。Cmd+Shift+T や backtick のような組み合わせを使用してください。"
     }
   },
   "models": {

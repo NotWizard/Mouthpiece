@@ -32,7 +32,7 @@ import ReasoningModelSelector from "./ReasoningModelSelector";
 import { HotkeyInput } from "./ui/HotkeyInput";
 import HotkeyGuidanceAccordion from "./ui/HotkeyGuidanceAccordion";
 import { useHotkeyRegistration } from "../hooks/useHotkeyRegistration";
-import { getValidationMessage } from "../utils/hotkeyValidator";
+import { getValidationMessage, isModifierOnlyAccelerator } from "../utils/hotkeyValidator";
 import { getPlatform, getCachedPlatform } from "../utils/platform";
 import { getDefaultHotkey, formatHotkeyLabel } from "../utils/hotkeys";
 import { Toggle } from "./ui/toggle";
@@ -1013,6 +1013,9 @@ export default function SettingsPage({
                     validate={(hotkey) => {
                       if (hotkey && hotkey === dictationKey) {
                         return t("settingsPage.translationHotkey.conflictWithMain");
+                      }
+                      if (hotkey && isModifierOnlyAccelerator(hotkey)) {
+                        return t("settingsPage.translationHotkey.modifierOnlyRejected");
                       }
                       return null;
                     }}

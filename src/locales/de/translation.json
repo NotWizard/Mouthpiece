@@ -1111,7 +1111,8 @@
       "conflictWithMain": "Konflikt mit dem Haupt-Diktierkürzel. Wähle eine andere Kombination.",
       "clear": "Übersetzungs-Tastenkürzel löschen",
       "activationBehavior": "Aktivierung",
-      "activationBehaviorDescription": "Das Übersetzungs-Tastenkürzel unterstützt nur Tap-to-toggle (Drücken zum Starten, erneut zum Stoppen). Push-to-talk (nur Modifikator) wird hier nicht unterstützt."
+      "activationBehaviorDescription": "Das Übersetzungs-Tastenkürzel unterstützt nur Tap-to-toggle (Drücken zum Starten, erneut zum Stoppen). Push-to-talk (nur Modifikator) wird hier nicht unterstützt.",
+      "modifierOnlyRejected": "Übersetzungs-Tastenkürzel darf nicht nur ein Modifikator sein (z. B. Right Option). Verwenden Sie eine Kombination wie Cmd+Shift+T oder Backtick."
     }
   },
   "models": {

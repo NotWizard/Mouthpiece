@@ -1111,7 +1111,8 @@
       "conflictWithMain": "Conflicto con el atajo principal de dictado. Elige una combinación diferente.",
       "clear": "Borrar atajo de traducción",
       "activationBehavior": "Activación",
-      "activationBehaviorDescription": "El atajo de traducción solo admite tap-to-toggle (pulsa para empezar, pulsa de nuevo para parar). Push-to-talk (solo modificador) no se admite aquí."
+      "activationBehaviorDescription": "El atajo de traducción solo admite tap-to-toggle (pulsa para empezar, pulsa de nuevo para parar). Push-to-talk (solo modificador) no se admite aquí.",
+      "modifierOnlyRejected": "El atajo de traducción no puede ser solo un modificador (p. ej., Right Option). Usa una combinación como Cmd+Shift+T o backtick."
     }
   },
   "models": {

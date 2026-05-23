@@ -1111,7 +1111,8 @@
       "conflictWithMain": "Conflit avec le raccourci principal de dictée. Choisissez une combinaison différente.",
       "clear": "Effacer le raccourci de traduction",
       "activationBehavior": "Activation",
-      "activationBehaviorDescription": "Le raccourci de traduction ne prend en charge que le tap-to-toggle (appuyez pour démarrer, appuyez de nouveau pour arrêter). Le push-to-talk (modificateur uniquement) n'est pas pris en charge ici."
+      "activationBehaviorDescription": "Le raccourci de traduction ne prend en charge que le tap-to-toggle (appuyez pour démarrer, appuyez de nouveau pour arrêter). Le push-to-talk (modificateur uniquement) n'est pas pris en charge ici.",
+      "modifierOnlyRejected": "Le raccourci de traduction ne peut pas être uniquement un modificateur (par ex. Right Option). Utilisez une combinaison comme Cmd+Shift+T ou backtick."
     }
   },
   "models": {
