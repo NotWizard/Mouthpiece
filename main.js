@@ -210,6 +210,11 @@ function applyTranslationHotkey({ enabled, hotkey, mainHotkey } = {}) {
     if (process.platform === "win32" && windowsKeyManager?.stopTranslation) {
       windowsKeyManager.stopTranslation();
     }
+    if (process.platform === "darwin" && globeKeyManager?.setTranslationChord) {
+      // Clear the swallow-list on the native listener so a removed chord
+      // stops eating keyDowns it used to handle.
+      globeKeyManager.setTranslationChord(null);
+    }
     currentTranslationAccelerator = null;
   }
 
@@ -224,10 +229,15 @@ function applyTranslationHotkey({ enabled, hotkey, mainHotkey } = {}) {
   }
 
   // macOS: store the chord so the "key-down-with-mods" listener (registered
-  // against globeKeyManager) can match it. The native Swift binary does the
-  // actual keyDown detection.
+  // against globeKeyManager) can match it. Also push the chord into the
+  // native Swift listener via stdin so it knows to SWALLOW the matching
+  // keyDown (otherwise the OS input method also receives the primary key
+  // and pops up a candidate, e.g. "X" for a Chinese IME on Right-Shift+X).
   if (process.platform === "darwin") {
     currentTranslationAccelerator = trimmed;
+    if (globeKeyManager?.setTranslationChord) {
+      globeKeyManager.setTranslationChord(trimmed);
+    }
     debugLogger?.debug?.("[TranslationHotkey] stored for native (darwin)", {
       accelerator: trimmed,
       mainHotkey: trimmedMain,

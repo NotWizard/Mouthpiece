@@ -26,6 +26,10 @@ class GlobeKeyManager extends EventEmitter {
     this._isStopping = false;
     this._restartCount = 0;
     this._restartResetTimer = null;
+    // Translation-hotkey chord to swallow at the native listener level.
+    // setTranslationChord() can be called before start() spawns the process,
+    // so we cache the pending value and flush it once stdin is available.
+    this._pendingTranslationChord = null;
   }
 
   start() {
@@ -77,6 +81,9 @@ class GlobeKeyManager extends EventEmitter {
     this.hasReportedError = false;
     this.process = spawn(listenerPath);
     debugLogger.info("[GlobeKeyManager] Process spawned", { pid: this.process.pid });
+    // Flush any translation-chord state queued before the listener spawned
+    // so the native binary starts swallowing the right chord immediately.
+    this._flushTranslationChord();
 
     // After sustained uptime, reset the restart counter so future sleep/wake
     // cycles get a fresh set of restart attempts
@@ -206,6 +213,39 @@ class GlobeKeyManager extends EventEmitter {
     if (this.process) {
       this.process.kill();
       this.process = null;
+    }
+  }
+
+  /**
+   * Push the current translation-hotkey chord to the native listener so it
+   * can SWALLOW the matching keyDown and prevent the active app's input
+   * method (Chinese IME, etc.) from surfacing the primary key (e.g. an "X"
+   * candidate when Right-Shift+X is the translation hotkey). Pass null/""
+   * to clear and let all keyDowns pass through unmodified.
+   *
+   * Cached so that if the caller sets the chord before start() spawns the
+   * listener (the renderer's apply-translation-hotkey IPC can race ahead of
+   * hotkeyManager's "hotkey-ready" event), we still publish it as soon as
+   * the listener is up.
+   */
+  setTranslationChord(chord) {
+    if (!this.isSupported) return;
+    const trimmed = typeof chord === "string" ? chord.trim() : "";
+    this._pendingTranslationChord = trimmed || null;
+    this._flushTranslationChord();
+  }
+
+  _flushTranslationChord() {
+    if (!this.process || !this.process.stdin) return;
+    const line = this._pendingTranslationChord
+      ? `SET_TRANSLATION_CHORD:${this._pendingTranslationChord}\n`
+      : "CLEAR_TRANSLATION_CHORD\n";
+    try {
+      this.process.stdin.write(line);
+    } catch (err) {
+      debugLogger.warn("[GlobeKeyManager] Failed to push translation chord", {
+        error: err?.message,
+      });
     }
   }
 

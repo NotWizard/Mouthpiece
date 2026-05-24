@@ -56,6 +56,31 @@ let releases: [(CGEventFlags, String)] = [
 // because it isn't part of the regular modifier mask.
 var heldModifiers: Set<String> = []
 
+// The translation-hotkey chord we should SWALLOW (not just observe) on
+// keyDown. main.js sends it via stdin whenever the renderer's settings
+// change (and clears it when translation is disabled). Without swallowing,
+// the original keyDown reaches the active app's input method and Right-
+// Shift+X ends up surfacing an "X" candidate in the IME popup even when
+// we've already routed the chord to the translation pipeline.
+var translationChord: String? = nil
+let translationChordLock = NSLock()
+
+func setTranslationChord(_ chord: String?) {
+    translationChordLock.lock()
+    defer { translationChordLock.unlock() }
+    if let chord, !chord.isEmpty {
+        translationChord = chord
+    } else {
+        translationChord = nil
+    }
+}
+
+func currentTranslationChord() -> String? {
+    translationChordLock.lock()
+    defer { translationChordLock.unlock() }
+    return translationChord
+}
+
 // Order modifier tokens to match src/utils/hotkeyBuilder.js MODIFIER_SORT_ORDER
 // so the emitted hotkey string lines up with what the renderer persisted.
 let modifierSortOrder: [String] = [
@@ -175,6 +200,13 @@ func eventTapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent,
         reconcileHeldModifiers(currentFlags: flags)
         if let hotkey = buildKeyDownHotkey(keyCode: keyCode) {
             emit("KEY_DOWN_WITH_MODS:\(hotkey)")
+            // Swallow the keyDown when the chord matches the translation
+            // hotkey so the active app's input method never sees the
+            // primary key. Modifier-only main hotkeys are unaffected because
+            // they don't carry a primary key and never match this branch.
+            if let trans = currentTranslationChord(), trans == hotkey {
+                return nil
+            }
         }
         return Unmanaged.passUnretained(event)
     }
@@ -217,7 +249,12 @@ func eventTapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent,
 
 guard let createdTap = CGEvent.tapCreate(tap: .cgAnnotatedSessionEventTap,
                                          place: .tailAppendEventTap,
-                                         options: .listenOnly,
+                                         // .defaultTap (not .listenOnly) so the callback can
+                                         // return nil to swallow the translation-hotkey keyDown
+                                         // and prevent the active app's input method from
+                                         // surfacing the primary key (e.g. an "X" candidate in
+                                         // a Chinese IME when Right-Shift+X fires translation).
+                                         options: .defaultTap,
                                          eventsOfInterest: mask,
                                          callback: eventTapCallback,
                                          userInfo: nil) else {
@@ -230,6 +267,25 @@ eventTap = createdTap
 let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, createdTap, 0)
 CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
 CGEvent.tapEnable(tap: createdTap, enable: true)
+
+// Background stdin reader so the parent process can push the current
+// translation-hotkey chord into the listener without re-spawning. Protocol:
+//   "SET_TRANSLATION_CHORD:<chord>\n"   — start swallowing this chord
+//   "CLEAR_TRANSLATION_CHORD\n"          — stop swallowing
+// Anything else is ignored.
+let stdinQueue = DispatchQueue(label: "globe-listener.stdin", qos: .utility)
+stdinQueue.async {
+    while let raw = readLine(strippingNewline: true) {
+        let line = raw.trimmingCharacters(in: .whitespaces)
+        if line.hasPrefix("SET_TRANSLATION_CHORD:") {
+            let chord = String(line.dropFirst("SET_TRANSLATION_CHORD:".count))
+                .trimmingCharacters(in: .whitespaces)
+            setTranslationChord(chord)
+        } else if line == "CLEAR_TRANSLATION_CHORD" {
+            setTranslationChord(nil)
+        }
+    }
+}
 
 let signalSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
 signal(SIGTERM, SIG_IGN)
