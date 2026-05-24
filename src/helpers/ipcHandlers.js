@@ -5,11 +5,23 @@ const https = require("https");
 const crypto = require("crypto");
 const AppUtils = require("../utils");
 const debugLogger = require("./debugLogger");
-const AssemblyAiStreaming = require("./assemblyAiStreaming");
 const { i18nMain, changeLanguage } = require("./i18nMain");
-const DeepgramStreaming = require("./deepgramStreaming");
-const QwenRealtimeStreaming = require("./qwenRealtimeStreaming");
-const SonioxStreaming = require("./sonioxStreaming");
+// Streaming-provider classes (each pulls in the `ws` WebSocket client and
+// the provider-specific glue). Resolved lazily on first `new` so a renderer
+// using only the selected provider doesn't parse the other three at startup.
+const lazyStreamingClass = (modulePath) => {
+  let cls = null;
+  return new Proxy(function () {}, {
+    construct(_target, args) {
+      if (!cls) cls = require(modulePath);
+      return new cls(...args);
+    },
+  });
+};
+const AssemblyAiStreaming = lazyStreamingClass("./assemblyAiStreaming");
+const DeepgramStreaming = lazyStreamingClass("./deepgramStreaming");
+const QwenRealtimeStreaming = lazyStreamingClass("./qwenRealtimeStreaming");
+const SonioxStreaming = lazyStreamingClass("./sonioxStreaming");
 const { buildSonioxAsyncPayload } = require("./sonioxShared");
 const { shouldRestoreDictationPanelAfterPaste } = require("./pasteUiState");
 const { resolveSensitiveAppPolicy } = require("../config/sensitiveAppPolicy.js");
