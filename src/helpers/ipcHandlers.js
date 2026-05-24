@@ -22,6 +22,18 @@ const AssemblyAiStreaming = lazyStreamingClass("./assemblyAiStreaming");
 const DeepgramStreaming = lazyStreamingClass("./deepgramStreaming");
 const QwenRealtimeStreaming = lazyStreamingClass("./qwenRealtimeStreaming");
 const SonioxStreaming = lazyStreamingClass("./sonioxStreaming");
+
+// Lazy module references for handler hot-path lookups. require() caches
+// modules after the first call, so wrapping them in a let + ??= avoids
+// re-doing the module-cache Map.get() lookup at every IPC invocation
+// across the 15+ call sites these two appear at.
+let _modelManagerBridge = null;
+const getModelManagerBridge = () =>
+  (_modelManagerBridge ??= require("./modelManagerBridge").default);
+let _localReasoningBridge = null;
+const getLocalReasoningBridge = () =>
+  (_localReasoningBridge ??= require("../services/localReasoningBridge").default);
+
 const { buildSonioxAsyncPayload } = require("./sonioxShared");
 const { shouldRestoreDictationPanelAfterPaste } = require("./pasteUiState");
 const { resolveSensitiveAppPolicy } = require("../config/sensitiveAppPolicy.js");
@@ -269,6 +281,10 @@ class IPCHandlers {
     this.macOSPermissionFlowManager = managers.macOSPermissionFlowManager;
     this.getTrayManager = managers.getTrayManager;
     this.getGlobeKeyManager = managers.getGlobeKeyManager;
+    // Cache app.getVersion() once: it's a string the user can't change at
+    // runtime, and it was being called twice per cloud-transcribe request
+    // (appVersion + clientVersion) plus inside getVersion IPC.
+    this.appVersion = app.getVersion();
     this.whisperCudaManager = managers.whisperCudaManager;
     this.sessionId = crypto.randomUUID();
     this.assemblyAiStreaming = null;
@@ -1204,7 +1220,7 @@ class IPCHandlers {
     ipcMain.handle("model-get-all", async () => {
       try {
         debugLogger.debug("model-get-all called", undefined, "ipc");
-        const modelManager = require("./modelManagerBridge").default;
+        const modelManager = getModelManagerBridge();
         const models = await modelManager.getModelsWithStatus();
         debugLogger.debug("Returning models", { count: models.length }, "ipc");
         return models;
@@ -1215,13 +1231,13 @@ class IPCHandlers {
     });
 
     ipcMain.handle("model-check", async (_, modelId) => {
-      const modelManager = require("./modelManagerBridge").default;
+      const modelManager = getModelManagerBridge();
       return modelManager.isModelDownloaded(modelId);
     });
 
     ipcMain.handle("model-download", async (event, modelId) => {
       try {
-        const modelManager = require("./modelManagerBridge").default;
+        const modelManager = getModelManagerBridge();
         const result = await modelManager.downloadModel(
           modelId,
           (progress, downloadedSize, totalSize) => {
@@ -1248,7 +1264,7 @@ class IPCHandlers {
 
     ipcMain.handle("model-delete", async (event, modelId) => {
       try {
-        const modelManager = require("./modelManagerBridge").default;
+        const modelManager = getModelManagerBridge();
         await modelManager.deleteModel(modelId);
         return { success: true };
       } catch (error) {
@@ -1263,7 +1279,7 @@ class IPCHandlers {
 
     ipcMain.handle("model-delete-all", async () => {
       try {
-        const modelManager = require("./modelManagerBridge").default;
+        const modelManager = getModelManagerBridge();
         await modelManager.deleteAllModels();
         return { success: true };
       } catch (error) {
@@ -1278,7 +1294,7 @@ class IPCHandlers {
 
     ipcMain.handle("model-cancel-download", async (event, modelId) => {
       try {
-        const modelManager = require("./modelManagerBridge").default;
+        const modelManager = getModelManagerBridge();
         const cancelled = modelManager.cancelDownload(modelId);
         return { success: cancelled };
       } catch (error) {
@@ -1291,7 +1307,7 @@ class IPCHandlers {
 
     ipcMain.handle("model-check-runtime", async (event) => {
       try {
-        const modelManager = require("./modelManagerBridge").default;
+        const modelManager = getModelManagerBridge();
         await modelManager.ensureLlamaCpp();
         return { available: true };
       } catch (error) {
@@ -1651,7 +1667,7 @@ class IPCHandlers {
       Object.assign(setVars, reasoningUpdate.setVars);
       clearVars.push(...reasoningUpdate.clearVars);
       if (reasoningUpdate.stopLlamaServer) {
-        const modelManager = require("./modelManagerBridge").default;
+        const modelManager = getModelManagerBridge();
         modelManager.stopServer().catch((err) => {
           debugLogger.error("Failed to stop llama-server on provider switch", {
             error: err.message,
@@ -1664,7 +1680,7 @@ class IPCHandlers {
 
     ipcMain.handle("process-local-reasoning", async (event, text, modelId, config) => {
       try {
-        const LocalReasoningService = require("../services/localReasoningBridge").default;
+        const LocalReasoningService = getLocalReasoningBridge();
         const result = await LocalReasoningService.processText(text, modelId, config);
         return { success: true, text: result };
       } catch (error) {
@@ -1765,7 +1781,7 @@ class IPCHandlers {
 
     ipcMain.handle("check-local-reasoning-available", async () => {
       try {
-        const LocalReasoningService = require("../services/localReasoningBridge").default;
+        const LocalReasoningService = getLocalReasoningBridge();
         return await LocalReasoningService.isAvailable();
       } catch (error) {
         return false;
@@ -1805,7 +1821,7 @@ class IPCHandlers {
 
     ipcMain.handle("llama-server-start", async (event, modelId) => {
       try {
-        const modelManager = require("./modelManagerBridge").default;
+        const modelManager = getModelManagerBridge();
         const modelInfo = modelManager.findModelById(modelId);
         if (!modelInfo) {
           return { success: false, error: `Model "${modelId}" not found` };
@@ -1829,7 +1845,7 @@ class IPCHandlers {
 
     ipcMain.handle("llama-server-stop", async () => {
       try {
-        const modelManager = require("./modelManagerBridge").default;
+        const modelManager = getModelManagerBridge();
         await modelManager.stopServer();
         return { success: true };
       } catch (error) {
@@ -1839,7 +1855,7 @@ class IPCHandlers {
 
     ipcMain.handle("llama-server-status", async () => {
       try {
-        const modelManager = require("./modelManagerBridge").default;
+        const modelManager = getModelManagerBridge();
         return modelManager.getServerStatus();
       } catch (error) {
         return { available: false, running: false, error: error.message };
@@ -1848,7 +1864,7 @@ class IPCHandlers {
 
     ipcMain.handle("llama-gpu-reset", async () => {
       try {
-        const modelManager = require("./modelManagerBridge").default;
+        const modelManager = getModelManagerBridge();
         const previousModelId = modelManager.currentServerModelId;
         modelManager.serverManager.resetGpuDetection();
         await modelManager.stopServer();
@@ -1905,7 +1921,7 @@ class IPCHandlers {
         if (result.success) {
           process.env.LLAMA_VULKAN_ENABLED = "true";
           delete process.env.LLAMA_GPU_BACKEND;
-          const modelManager = require("./modelManagerBridge").default;
+          const modelManager = getModelManagerBridge();
           modelManager.serverManager.cachedServerBinaryPaths = null;
           this.environmentManager.saveAllKeysToEnvFile().catch(() => {});
         }
@@ -1930,7 +1946,7 @@ class IPCHandlers {
           this._llamaVulkanManager = new LlamaVulkanManager();
         }
 
-        const modelManager = require("./modelManagerBridge").default;
+        const modelManager = getModelManagerBridge();
         if (modelManager.serverManager.activeBackend === "vulkan") {
           await modelManager.stopServer();
         }
@@ -2187,8 +2203,8 @@ class IPCHandlers {
           prompt: opts.prompt,
           sendLogs: opts.sendLogs,
           clientType: "desktop",
-          appVersion: app.getVersion(),
-          clientVersion: app.getVersion(),
+          appVersion: this.appVersion,
+          clientVersion: this.appVersion,
           sessionId: this.sessionId,
         });
 
@@ -2270,8 +2286,8 @@ class IPCHandlers {
             locale: opts.locale,
             sessionId: this.sessionId,
             clientType: "desktop",
-            appVersion: app.getVersion(),
-            clientVersion: app.getVersion(),
+            appVersion: this.appVersion,
+            clientVersion: this.appVersion,
             sttProvider: opts.sttProvider,
             sttModel: opts.sttModel,
             sttProcessingMs: opts.sttProcessingMs,
@@ -2330,8 +2346,8 @@ class IPCHandlers {
               audioDurationSeconds,
               sessionId: this.sessionId,
               clientType: "desktop",
-              appVersion: app.getVersion(),
-              clientVersion: app.getVersion(),
+              appVersion: this.appVersion,
+              clientVersion: this.appVersion,
               sttProvider: opts.sttProvider,
               sttModel: opts.sttModel,
               sttProcessingMs: opts.sttProcessingMs,
@@ -2597,7 +2613,7 @@ class IPCHandlers {
     });
 
     ipcMain.handle("get-app-version", async () => {
-      return { version: app.getVersion() };
+      return { version: this.appVersion };
     });
 
     ipcMain.handle("get-update-status", async () => {

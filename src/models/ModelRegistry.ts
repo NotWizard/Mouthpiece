@@ -253,18 +253,37 @@ export interface ReasoningModelWithProvider extends ReasoningModel {
 }
 
 export function getAllReasoningModels(): ReasoningModelWithProvider[] {
-  return Object.entries(REASONING_PROVIDERS).flatMap(([providerId, provider]) =>
-    provider.models.map((model) => ({
-      ...model,
-      provider: providerId,
-      fullLabel: `${provider.name} ${model.label}`,
-    }))
-  );
+  // REASONING_PROVIDERS is built once at module load via
+  // buildReasoningProviders() and never mutated. Memoize the flat array
+  // (and the value→model index used by lookup helpers below) so the
+  // reasoning hot path stops re-running flatMap + map on every request.
+  if (!memoizedAllReasoningModels) {
+    memoizedAllReasoningModels = Object.entries(REASONING_PROVIDERS).flatMap(
+      ([providerId, provider]) =>
+        provider.models.map((model) => ({
+          ...model,
+          provider: providerId,
+          fullLabel: `${provider.name} ${model.label}`,
+        }))
+    );
+  }
+  return memoizedAllReasoningModels;
+}
+
+let memoizedAllReasoningModels: ReasoningModelWithProvider[] | null = null;
+let reasoningModelByValue: Map<string, ReasoningModelWithProvider> | null = null;
+
+function lookupReasoningModelByValue(modelId: string): ReasoningModelWithProvider | undefined {
+  if (!reasoningModelByValue) {
+    reasoningModelByValue = new Map(
+      getAllReasoningModels().map((model) => [model.value, model])
+    );
+  }
+  return reasoningModelByValue.get(modelId);
 }
 
 export function getReasoningModelLabel(modelId: string): string {
-  const model = getAllReasoningModels().find((m) => m.value === modelId);
-  return model?.fullLabel || modelId;
+  return lookupReasoningModelByValue(modelId)?.fullLabel || modelId;
 }
 
 export function getModelProvider(modelId: string): string {
@@ -280,7 +299,7 @@ export function getModelProvider(modelId: string): string {
     return "custom";
   }
 
-  const model = getAllReasoningModels().find((m) => m.value === modelId);
+  const model = lookupReasoningModelByValue(modelId);
 
   if (!model) {
     if (modelId.includes("claude")) return "anthropic";
