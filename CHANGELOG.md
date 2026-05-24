@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.3] - 2026-05-24
+
 ### Added
 
 - AI Translation Output: enable it in Settings → AI Models → AI Translation Output, pick a target language, then set a dedicated "Translation hotkey" in Settings → Hotkeys → Translation hotkey. The main dictation hotkey stays cleanup-only; the translation hotkey runs transcribe + cleanup + translate against the same provider / model in a single LLM call. The two hotkeys have a clean semantic split — there is no manual placeholder for the main hotkey to opt into translation.
