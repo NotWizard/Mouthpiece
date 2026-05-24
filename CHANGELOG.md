@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Dead code cleanup: `src/components/ui/MarkdownRenderer.tsx` and its sole dependency `react-markdown` (~10 KB min+gzip plus the chunk-splitting boilerplate in `src/vite.config.mjs`) had no callers anywhere in `src/`. The unused `src/assets/mouth-top.jpg` source-artwork stub (mentioned only in `src/assets/README.md`) is gone too. Drops one renderer-chunk pattern from the bundle, one transitive dep graph (`react-markdown` pulls in `remark-*`/`rehype-*`/`unified`/`micromark` — collectively ~100 KB min+gzip if Rollup ever decided not to tree-shake them) from `package.json`, and one stray asset from the source tree.
 
+### Internal
+
+- Renderer preload no longer pays a synchronous IPC round-trip at startup to fetch runtime config (`apiUrl` / `authUrl` / `enableMouthpieceCloud` / `oauth*`). Previously every renderer (Main dictation window + Control Panel) called `ipcRenderer.sendSync("get-runtime-config-sync")` inside `preload.js` before any renderer JS ran, blocking both processes for the round-trip. The config is now built once in a new `src/helpers/runtimeConfig.js` module and injected into each window via `webPreferences.additionalArguments` (`--runtime-config=<json>`); `preload.js` parses that argv entry instead. The async `ipcMain.handle("get-runtime-config")` fallback stays for any out-of-band caller, and the helper functions (`getApiUrl`, `getAuthUrl`, etc.) used throughout `ipcHandlers.js` are now thin re-exports of the shared module so behavior is unchanged for downstream callers.
+
 ## [1.4.2] - 2026-05-21
 
 ### Internal

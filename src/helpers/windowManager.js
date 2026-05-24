@@ -17,6 +17,22 @@ const {
   WINDOW_SIZES,
   WindowPositionUtil,
 } = require("./windowConfig");
+const { buildRuntimeConfig, RUNTIME_CONFIG_ARGV_PREFIX } = require("./runtimeConfig");
+
+// Build the runtime config argv string once at module load. Window
+// creation reads this via webPreferences.additionalArguments so preload.js
+// can pick it out of process.argv without a synchronous IPC round-trip.
+const runtimeConfigArg = `${RUNTIME_CONFIG_ARGV_PREFIX}${JSON.stringify(buildRuntimeConfig())}`;
+
+function mergeWebPreferencesWithRuntimeConfig(baseConfig) {
+  return {
+    ...baseConfig.webPreferences,
+    additionalArguments: [
+      ...(baseConfig.webPreferences?.additionalArguments || []),
+      runtimeConfigArg,
+    ],
+  };
+}
 
 class WindowManager {
   constructor() {
@@ -51,6 +67,7 @@ class WindowManager {
 
     this.mainWindow = new BrowserWindow({
       ...MAIN_WINDOW_CONFIG,
+      webPreferences: mergeWebPreferencesWithRuntimeConfig(MAIN_WINDOW_CONFIG),
       ...position,
     });
 
@@ -544,7 +561,10 @@ class WindowManager {
       return;
     }
 
-    this.controlPanelWindow = new BrowserWindow(CONTROL_PANEL_CONFIG);
+    this.controlPanelWindow = new BrowserWindow({
+      ...CONTROL_PANEL_CONFIG,
+      webPreferences: mergeWebPreferencesWithRuntimeConfig(CONTROL_PANEL_CONFIG),
+    });
 
     this.controlPanelWindow.webContents.on("will-navigate", (event, url) => {
       const appUrl = DevServerManager.getAppUrl(true);

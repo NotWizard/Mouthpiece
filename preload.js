@@ -1,5 +1,9 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
+// Runtime config is injected by windowManager via
+// webPreferences.additionalArguments, so we read it from process.argv
+// instead of paying a synchronous IPC round-trip at preload time.
+const RUNTIME_CONFIG_ARGV_PREFIX = "--runtime-config=";
 let runtimeConfig = {
   apiUrl: "",
   authUrl: "",
@@ -10,12 +14,19 @@ let runtimeConfig = {
 };
 
 try {
-  runtimeConfig = {
-    ...runtimeConfig,
-    ...(ipcRenderer.sendSync("get-runtime-config-sync") || {}),
-  };
+  const argvEntry = (process.argv || []).find((arg) =>
+    typeof arg === "string" && arg.startsWith(RUNTIME_CONFIG_ARGV_PREFIX)
+  );
+  if (argvEntry) {
+    runtimeConfig = {
+      ...runtimeConfig,
+      ...(JSON.parse(argvEntry.slice(RUNTIME_CONFIG_ARGV_PREFIX.length)) || {}),
+    };
+  }
 } catch {
-  // Leave empty defaults when the main-process runtime config is unavailable.
+  // Leave empty defaults if argv entry is missing or malformed; the async
+  // ipcRenderer.invoke("get-runtime-config") handler remains available as a
+  // last-resort fallback for any caller that needs to re-fetch later.
 }
 
 /**
