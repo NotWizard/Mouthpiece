@@ -233,6 +233,14 @@
     min-height: 100vh;
   }
 
+  .language-flag {
+    font-family:
+      "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", emoji,
+      sans-serif;
+    font-variant-emoji: emoji;
+    line-height: 1;
+  }
+
   /* Make dictation window (App) transparent, but keep control panel solid */
   body:has(.dictation-window) {
     background: transparent;

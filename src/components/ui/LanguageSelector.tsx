@@ -192,7 +192,7 @@ export default function LanguageSelector({
         aria-expanded={isOpen}
       >
         <span className="truncate text-foreground">
-          <span className="mr-1.5">
+          <span className="language-flag mr-1.5">
             {items.find((l) => l.value === value)?.flag ?? "\uD83C\uDF10"}
           </span>
           {items.find((l) => l.value === value)?.label ?? value}
@@ -276,7 +276,7 @@ export default function LanguageSelector({
                         aria-selected={isSelected}
                       >
                         <span className="truncate">
-                          <span className="mr-1.5">{language.flag}</span>
+                          <span className="language-flag mr-1.5">{language.flag}</span>
                           {language.label}
                         </span>
                         {isSelected && <Check className="w-3 h-3 shrink-0" />}

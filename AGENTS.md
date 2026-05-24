@@ -1,35 +1,59 @@
-# Mouthpiece AGENTS Guide
-
-This file defines repository-specific instructions for AI assistants working in this project.
-The technical reference below remains the primary architecture map for the current codebase.
-
-## Repository Baseline
-
-- Treat the files currently present in this directory as the canonical starting point for future work.
-
-## Worktree Requirement
-
-- For any feature addition, feature change, or code modification, first ask the user whether to create a new Git worktree and let the user decide.
-- If the user chooses to create a new Git worktree, implement the task inside that worktree.
-- If the current task is already being handled inside an existing Git worktree, continue there and do not create another worktree unless explicitly requested.
-
-## Subagent Usage
-
-- For every task, evaluate whether subagents can be used effectively.
-- When a task can be usefully delegated to subagents, use subagents as much as practical.
-- Set each subagent's reasoning depth to the highest available level.
-
-## Git Commit Rules
-
-- Write every Git commit in both Chinese and English.
-- Git commit messages must be complete and structured.
-- Use direct plain-text formatting in commit subjects and bodies. Spaces and line breaks are encouraged when they improve readability.
-- Do not use Markdown syntax in commit messages, including headings, bullet markers, checkboxes, fenced code blocks, or emphasis markers.
-- Prefer a bilingual subject line followed by a bilingual body that clearly explains scope, intent, and any important verification notes.
-
-## Mouthpiece Technical Reference for AI Assistants
+# Mouthpiece Technical Reference for AI Assistants
 
 This document provides comprehensive technical details about the Mouthpiece project architecture for AI assistants working on the codebase.
+
+## Repository Collaboration Rules
+
+### Git Commit Messages
+
+- Every Git commit must be concise, structured, and bilingual.
+- The subject line must place Chinese first and English second.
+- The body must place the full Chinese section first, followed by the full English section.
+- The body must include a concise summary of the current change and a structured, ordered description of the important modifications or verification notes.
+- Use real line breaks, blank lines, and spaces for formatting. Never simulate formatting with literal escape sequences such as `\n` or `\t`.
+- Do not use Markdown syntax in commit messages.
+
+Recommended plain-text structure:
+
+subject: 中文总结 / English summary
+
+中文
+  概述：一句话总结本次修改。
+  变更：
+    1. 第一项关键改动。
+    2. 第二项关键改动。
+  验证：
+    1. 相关验证信息。
+
+English
+  Summary: One-line overview of the change.
+  Changes:
+    1. First key update.
+    2. Second key update.
+  Verification:
+    1. Relevant verification notes.
+
+### Changelog Updates
+
+- Every commit that adds, changes, or removes user-visible behavior, fixes a bug, or alters developer workflow must update `CHANGELOG.md` in the same commit.
+- Place new entries under the `[Unreleased]` section until a version is bumped, then move them under the new version header on release.
+- Follow the Keep a Changelog format already in use: categorize each entry under `Added`, `Changed`, `Fixed`, `Removed`, or `Internal`.
+- Each entry must describe the user-visible symptom or behavior change in plain prose. Reference file paths or function names only when they help the reader locate the fix.
+- Pure refactors, test-only changes, or build-tooling tweaks belong under `Internal`. Skipping the changelog is acceptable only for trivial documentation typos and changes purely inside `tests/` that document existing behavior — when in doubt, add the entry.
+- Changelog text is written in English to match the existing format. The commit message itself remains bilingual per the rule above.
+
+### Git Worktree Confirmation
+
+- Before any feature addition, feature change, or code modification, first ask the user whether the task should be done in a Git worktree.
+- If the current task is already being handled inside an existing Git worktree, continue there and do not ask again unless the user asks to switch.
+- If the user explicitly instructs the assistant to work in the current workspace instead of a worktree, follow that instruction and treat it as an intentional exception for that task.
+
+### Agent Teams
+
+- Prefer using Agent Teams whenever a task can reasonably benefit from delegation, parallel exploration, or parallel implementation.
+- Create teammates dynamically according to the specific task instead of reusing a fixed team shape.
+- Give each teammate a narrow, explicit scope and integrate the results in the main thread.
+- Close and clean up teammates promptly after their work is complete.
 
 ## Project Overview
 
@@ -131,7 +155,7 @@ Mouthpiece is an Electron-based desktop dictation application that uses whisper.
 - **ReasoningService.ts**: AI text cleanup and post-processing
   - Routes transcribed text to the selected AI provider (OpenAI/Anthropic/Gemini/local)
   - Applies cleanup-only prompts, strict transcript safety, dictionary hints, and post-processing policy
-  - Supports GPT-5, Codex 4.6 (Opus/Sonnet/Haiku), and Gemini 3.1 Pro / 3 Flash models
+  - Supports GPT-5, Claude 4.6 (Opus/Sonnet/Haiku), and Gemini 3.1 Pro / 3 Flash models
 
 ### whisper.cpp Integration
 
@@ -260,9 +284,9 @@ Environment variables persisted to `.env` (via `saveAllKeysToEnvFile()`):
     - GPT-5 Nano (`gpt-5-nano`) - Ultra-fast, low latency
     - GPT-4.1 Series (`gpt-4.1`, `gpt-4.1-mini`, `gpt-4.1-nano`) - Strong baseline with 1M context
   - **Anthropic** (Via IPC bridge to avoid CORS):
-    - Codex Sonnet 4.6 (`Codex-sonnet-4-6`) - Balanced performance
-    - Codex Haiku 4.5 (`Codex-haiku-4-5`) - Fast with near-frontier intelligence
-    - Codex Opus 4.6 (`Codex-opus-4-6`) - Most capable Codex model
+    - Claude Sonnet 4.6 (`claude-sonnet-4-6`) - Balanced performance
+    - Claude Haiku 4.5 (`claude-haiku-4-5`) - Fast with near-frontier intelligence
+    - Claude Opus 4.6 (`claude-opus-4-6`) - Most capable Claude model
   - **Google Gemini** (Direct API integration):
     - Gemini 3.1 Pro (`gemini-3.1-pro-preview`) - Most capable Gemini model
     - Gemini 3 Flash (`gemini-3-flash-preview`) - Ultra-fast, high-capability next-gen model
@@ -305,7 +329,7 @@ All AI model definitions are centralized in `src/models/modelRegistryData.json` 
 **Anthropic Integration**:
 - Routes through IPC handler to avoid CORS issues in renderer process
 - Uses main process for API calls with proper error handling
-- Model IDs use alias format (e.g., `Codex-sonnet-4-6` not date-suffixed versions)
+- Model IDs use alias format (e.g., `claude-sonnet-4-6` not date-suffixed versions)
 
 **Gemini Integration**:
 - Direct API calls from renderer process
@@ -524,3 +548,60 @@ const { t } = useTranslation();
 - Cloud model selection
 - Batch transcription
 - Export formats beyond clipboard
+
+---
+
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+
+Tradeoff: These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+1. Think Before Coding
+Don't assume. Don't hide confusion. Surface tradeoffs.
+
+Before implementing:
+
+State your assumptions explicitly. If uncertain, ask.
+If multiple interpretations exist, present them - don't pick silently.
+If a simpler approach exists, say so. Push back when warranted.
+If something is unclear, stop. Name what's confusing. Ask.
+2. Simplicity First
+Minimum code that solves the problem. Nothing speculative.
+
+No features beyond what was asked.
+No abstractions for single-use code.
+No "flexibility" or "configurability" that wasn't requested.
+No error handling for impossible scenarios.
+If you write 200 lines and it could be 50, rewrite it.
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+3. Surgical Changes
+Touch only what you must. Clean up only your own mess.
+
+When editing existing code:
+
+Don't "improve" adjacent code, comments, or formatting.
+Don't refactor things that aren't broken.
+Match existing style, even if you'd do it differently.
+If you notice unrelated dead code, mention it - don't delete it.
+When your changes create orphans:
+
+Remove imports/variables/functions that YOUR changes made unused.
+Don't remove pre-existing dead code unless asked.
+The test: Every changed line should trace directly to the user's request.
+
+4. Goal-Driven Execution
+Define success criteria. Loop until verified.
+
+Transform tasks into verifiable goals:
+
+"Add validation" → "Write tests for invalid inputs, then make them pass"
+"Fix the bug" → "Write a test that reproduces it, then make it pass"
+"Refactor X" → "Ensure tests pass before and after"
+For multi-step tasks, state a brief plan:
+
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+These guidelines are working if: fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.。

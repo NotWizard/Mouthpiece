@@ -76,6 +76,7 @@ void i18n
     resources: {
       en: { translation: enTranslation, prompts: PROMPTS_BY_LOCALE.en },
     },
+    partialBundledLanguages: true,
     lng: initialLanguage,
     fallbackLng: "en",
     preload: initialLanguage === "en" ? ["en"] : ["en", initialLanguage],

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- UI language switching now loads non-English locale bundles correctly, so selecting Simplified Chinese in Settings updates the control panel instead of falling back to English.
+- The UI language selector now renders flag emoji with an explicit emoji font fallback, fixing the Traditional Chinese flag display on Electron/Chromium builds where the app font intercepted regional-indicator glyphs.
+
 ## [1.4.3] - 2026-05-24
 
 ### Added
