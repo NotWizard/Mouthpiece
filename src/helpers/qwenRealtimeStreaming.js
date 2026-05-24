@@ -578,7 +578,15 @@ class QwenRealtimeStreaming {
     }
 
     this.audioBytesSent += normalizedBuffer.length;
-    this.ws.send(JSON.stringify(this.buildAppendEvent(normalizedBuffer)));
+    // Hot path: ~50 Hz at 20 ms frames. Building the JSON via template
+    // literal directly skips JSON.stringify's object allocation + key
+    // walk + value escaping for the high-frequency append event. The
+    // event id (UUID / event_<ts>_<rand>) and the static type tag are
+    // ASCII-safe; base64 audio is [A-Za-z0-9+/=] so no escaping needed.
+    const eventId = this.createEventId();
+    this.ws.send(
+      `{"event_id":${JSON.stringify(eventId)},"type":"input_audio_buffer.append","audio":"${normalizedBuffer.toString("base64")}"}`
+    );
     return true;
   }
 
