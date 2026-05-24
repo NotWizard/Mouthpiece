@@ -17,36 +17,27 @@ const normalizeLevel = (value?: string | null): LogLevel | null => {
 
 const defaultLevel: LogLevel = "info";
 
-let cachedLevel: LogLevel | null = null;
-let levelPromise: Promise<LogLevel> | null = null;
+// Cached synchronously so the hot path (audioManager calls these ~120× per
+// dictation) doesn't pay the awaited resolveLogLevel + awaited IPC cost on
+// every call. The cache is seeded with the conservative default and
+// upgraded asynchronously once main returns the configured level — calls
+// during the brief startup window simply use the default, which matches
+// the previous async behaviour for the first few entries anyway.
+let cachedLevel: LogLevel = defaultLevel;
 
-const resolveLogLevel = async (): Promise<LogLevel> => {
-  if (cachedLevel) {
-    return cachedLevel;
+const refetchLogLevelFromMain = () => {
+  if (typeof window !== "undefined" && window.electronAPI?.getLogLevel) {
+    Promise.resolve(window.electronAPI.getLogLevel())
+      .then((level) => {
+        const normalized = normalizeLevel(level);
+        if (normalized) cachedLevel = normalized;
+      })
+      .catch(() => {});
   }
-  if (!levelPromise) {
-    levelPromise = (async () => {
-      if (typeof window !== "undefined" && window.electronAPI?.getLogLevel) {
-        try {
-          const level = normalizeLevel(await window.electronAPI.getLogLevel());
-          if (level) {
-            cachedLevel = level;
-            return level;
-          }
-        } catch {
-          // Fall back to default level
-        }
-      }
-      cachedLevel = defaultLevel;
-      return cachedLevel;
-    })();
-  }
-  return levelPromise;
 };
+refetchLogLevelFromMain();
 
-const shouldLog = (level: LogLevel, current: LogLevel) => {
-  return LOG_LEVELS[level] >= LOG_LEVELS[current];
-};
+const shouldLog = (level: LogLevel) => LOG_LEVELS[level] >= LOG_LEVELS[cachedLevel];
 
 const logToConsole = (level: LogLevel, message: string, meta?: any, scope?: string) => {
   const levelTag = `[${level.toUpperCase()}]`;
@@ -64,26 +55,26 @@ const logToConsole = (level: LogLevel, message: string, meta?: any, scope?: stri
   }
 };
 
-const log = async (level: LogLevel, message: string, meta?: any, scope?: string) => {
-  const currentLevel = await resolveLogLevel();
-  if (!shouldLog(level, currentLevel)) return;
+const log = (level: LogLevel, message: string, meta?: any, scope?: string) => {
+  if (!shouldLog(level)) return;
+
+  // Always write to console first so DevTools / dev runs see the entry
+  // without waiting on the main-process round-trip. Then fire-and-forget
+  // the IPC forward so the on-disk debug log still captures the entry,
+  // but the caller (and the microtask queue) is never blocked on it.
+  logToConsole(level, String(message), meta, scope);
 
   if (typeof window !== "undefined" && window.electronAPI?.log) {
-    try {
-      await window.electronAPI.log({
+    Promise.resolve(
+      window.electronAPI.log({
         level,
         message: String(message),
         meta,
         scope,
         source: "renderer",
-      });
-      return;
-    } catch {
-      // Fall back to console
-    }
+      })
+    ).catch(() => {});
   }
-
-  logToConsole(level, String(message), meta, scope);
 };
 
 const logger = {
@@ -95,8 +86,8 @@ const logger = {
   fatal: (message: string, meta?: any, scope?: string) => log("fatal", message, meta, scope),
   logReasoning: (stage: string, details?: any) => log("debug", stage, details, "reasoning"),
   refreshLogLevel: () => {
-    cachedLevel = null;
-    levelPromise = null;
+    cachedLevel = defaultLevel;
+    refetchLogLevelFromMain();
   },
 };
 
