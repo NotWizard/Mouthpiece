@@ -133,31 +133,52 @@ export default function SearchableModelSelect({
         cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [filteredModels.length, isOpen]);
+  }, [isOpen]);
 
   // Keep the portalled dropdown's position in sync with the trigger button as
   // the user scrolls or resizes the window. Without this the dropdown would
   // float at its initial-open coordinates while the page moves underneath.
+  // rAF-throttled + rect equality check so a scroll burst doesn't re-render
+  // the portal (with the full filteredModels list inside) on every wheel tick.
   useLayoutEffect(() => {
     if (!isOpen) {
       setAnchorRect(null);
       return;
     }
 
+    let rafId: number | null = null;
+    let lastRect: DOMRect | null = null;
+
+    const isSameRect = (a: DOMRect | null, b: DOMRect) =>
+      !!a &&
+      a.top === b.top &&
+      a.left === b.left &&
+      a.width === b.width &&
+      a.height === b.height;
+
     const updateAnchor = () => {
-      if (triggerRef.current) {
-        setAnchorRect(triggerRef.current.getBoundingClientRect());
-      }
+      rafId = null;
+      if (!triggerRef.current) return;
+      const next = triggerRef.current.getBoundingClientRect();
+      if (isSameRect(lastRect, next)) return;
+      lastRect = next;
+      setAnchorRect(next);
+    };
+
+    const scheduleUpdate = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(updateAnchor);
     };
 
     updateAnchor();
 
-    window.addEventListener("scroll", updateAnchor, true);
-    window.addEventListener("resize", updateAnchor);
+    window.addEventListener("scroll", scheduleUpdate, true);
+    window.addEventListener("resize", scheduleUpdate);
 
     return () => {
-      window.removeEventListener("scroll", updateAnchor, true);
-      window.removeEventListener("resize", updateAnchor);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", scheduleUpdate, true);
+      window.removeEventListener("resize", scheduleUpdate);
     };
   }, [isOpen]);
 
