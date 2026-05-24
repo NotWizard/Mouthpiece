@@ -22,6 +22,7 @@ Mouthpiece is built for people who want speech input to fit naturally into every
 - want to choose between local and cloud transcription
 - need dictionaries and terminology for proper nouns
 - want optional AI cleanup, rewriting, or formatting after transcription
+- want dictated text translated into a target language before it lands in the current app
 - expect history, clipboard fallback, and reliable desktop integration
 
 The default model is BYOK.  
@@ -34,6 +35,7 @@ You can use local models, or bring your own API key for cloud providers. Account
 - Switch between local transcription and cloud transcription depending on privacy, latency, and cost needs
 - Improve results with dictionaries, terminology, and post-processing normalization
 - Run optional AI post-processing through Prompt Studio for cleanup, rewriting, and formatting
+- Optional AI Translation Output: pick a target language and assign a dedicated translation hotkey — translation-hotkey dictations run transcribe + cleanup + translate in a single LLM call and insert the translated text directly into the current app
 - Insert text back into the current app automatically, with clipboard fallback when direct insertion is not safe or available
 - Save transcription history for review, copy, and reuse
 - Guide users through permissions, tray behavior, control panel setup, and packaged-app updates
@@ -122,6 +124,20 @@ Current reasoning coverage includes:
 
 - Cloud: OpenAI, Anthropic, Google Gemini, Groq, Alibaba Bailian
 - Local: Qwen, Mistral, Meta Llama, OpenAI OSS, Gemma
+
+### AI Translation Output
+
+Dictate in one language and get the result translated into a target language before it lands in the current app. To enable it:
+
+- Open Settings → AI Models → AI Translation Output, toggle it on, and pick a target language
+- In Settings → Hotkeys → Translation hotkey, set a dedicated translation hotkey. It must use the same modifier prefix as your main dictation hotkey plus one primary key (e.g. if your main hotkey is Right Shift, the translation hotkey is Right Shift + some letter), so the system can tell the two modes apart unambiguously
+
+The two hotkeys split the work:
+
+- Main hotkey: transcribe + optional cleanup, output stays in the original language
+- Translation hotkey: transcribe + cleanup + translate, all in a single LLM call, output in the target language
+
+A translation-hotkey session adds a small target-language badge (EN / ZH / JA …) in the top corner of the floating capsule so you can tell which mode the take is in. If the translation call fails (network, quota, provider error), the raw transcript is inserted instead and an inline toast notifies you. Translation reuses the same provider / model picked for the intelligence layer — no extra API key configuration required.
 
 ### Dictionary and terminology
 
