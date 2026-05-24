@@ -15,6 +15,31 @@ interface LanguageSelectorProps {
 
 const SEARCH_THRESHOLD = 12;
 
+// Module-level cache so two instances passing the same `items` reference
+// (or a single instance re-rendering with the same array identity) skip
+// the 61-call ctx.measureText loop after the first paint. Keyed by the
+// array reference, GC'd when no component still holds it.
+const contentWidthCache = new WeakMap<LanguageOption[], number>();
+
+function computeContentWidth(items: LanguageOption[]): number {
+  if (typeof document === "undefined") return 0;
+  const cached = contentWidthCache.get(items);
+  if (cached !== undefined) return cached;
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return 0;
+  ctx.font = "14px -apple-system, system-ui, sans-serif";
+  let max = 0;
+  for (const item of items) {
+    const w = ctx.measureText(item.label).width;
+    if (w > max) max = w;
+  }
+  // flag(~24) + gap(8) + text + horizontal padding(32) + scrollbar slack(16) = + 80
+  const result = Math.ceil(max + 80);
+  contentWidthCache.set(items, result);
+  return result;
+}
+
 export default function LanguageSelector({
   value,
   onChange,
@@ -23,20 +48,7 @@ export default function LanguageSelector({
 }: LanguageSelectorProps) {
   const { t } = useTranslation();
   const items = options ?? REGISTRY_OPTIONS;
-  const contentWidth = useMemo(() => {
-    if (typeof document === "undefined") return 0;
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return 0;
-    ctx.font = "14px -apple-system, system-ui, sans-serif";
-    let max = 0;
-    for (const item of items) {
-      const w = ctx.measureText(item.label).width;
-      if (w > max) max = w;
-    }
-    // flag(~24) + gap(8) + text + horizontal padding(32) + scrollbar slack(16) = + 80
-    return Math.ceil(max + 80);
-  }, [items]);
+  const contentWidth = useMemo(() => computeContentWidth(items), [items]);
   const showSearch = items.length > SEARCH_THRESHOLD;
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -47,13 +59,15 @@ export default function LanguageSelector({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const filteredLanguages = showSearch
-    ? items.filter(
-        (lang) =>
-          lang.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          lang.value.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : items;
+  const filteredLanguages = useMemo(() => {
+    if (!showSearch) return items;
+    const query = searchQuery.toLowerCase();
+    return items.filter(
+      (lang) =>
+        lang.label.toLowerCase().includes(query) ||
+        lang.value.toLowerCase().includes(query)
+    );
+  }, [items, searchQuery, showSearch]);
 
   useEffect(() => {
     setHighlightedIndex(0);
