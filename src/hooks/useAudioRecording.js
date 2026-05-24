@@ -117,6 +117,13 @@ function normalizeProviderLiveTranscriptSegments(text) {
 
 export const useAudioRecording = (toast, options = {}) => {
   const { t } = useTranslation();
+  // Track the latest `t` in a ref so the big audio-pipeline useEffect below
+  // can call it without listing `t` as a dependency. Without this, every
+  // i18n locale change tore down + re-registered 5 IPC listeners and
+  // reinitialised the audio manager — observable as a stutter on language
+  // switch.
+  const tRef = useRef(t);
+  tRef.current = t;
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -555,8 +562,8 @@ export const useAudioRecording = (toast, options = {}) => {
           window.electronAPI?.showDictationPanel?.();
           clearPasteFallbackToast();
           const stickyId = toast({
-            title: t("hooks.audioRecording.pasteCopied.title"),
-            description: t("hooks.audioRecording.pasteCopied.description"),
+            title: tRef.current("hooks.audioRecording.pasteCopied.title"),
+            description: tRef.current("hooks.audioRecording.pasteCopied.description"),
             duration: 0,
           });
           pasteFallbackToastIdRef.current = stickyId;
@@ -565,8 +572,8 @@ export const useAudioRecording = (toast, options = {}) => {
           clearPasteFallbackToast();
           window.electronAPI?.showDictationPanel?.();
           toast({
-            title: t("hooks.clipboard.pasteFailed.title"),
-            description: pasteResult?.message || t("hooks.clipboard.pasteFailed.description"),
+            title: tRef.current("hooks.clipboard.pasteFailed.title"),
+            description: pasteResult?.message || tRef.current("hooks.clipboard.pasteFailed.description"),
             variant: "destructive",
             duration: 8000,
           });
@@ -610,15 +617,15 @@ export const useAudioRecording = (toast, options = {}) => {
         const settingsForToast = getSettings();
         if (fallbackReason === "reasoning_failed" && settingsForToast.translationEnabled) {
           toast({
-            title: t("hooks.audioRecording.translationFallback.title"),
-            description: t("hooks.audioRecording.translationFallback.description"),
+            title: tRef.current("hooks.audioRecording.translationFallback.title"),
+            description: tRef.current("hooks.audioRecording.translationFallback.description"),
             variant: "destructive",
           });
         }
 
         if (shouldShowFallbackToast(result)) {
           toast({
-            title: t("hooks.audioRecording.fallback.title"),
+            title: tRef.current("hooks.audioRecording.fallback.title"),
             description: getFallbackToastDescription(result, t),
             variant: "default",
           });
@@ -687,8 +694,8 @@ export const useAudioRecording = (toast, options = {}) => {
 
     const handleNoAudioDetected = () => {
       toast({
-        title: t("hooks.audioRecording.noAudio.title"),
-        description: t("hooks.audioRecording.noAudio.description"),
+        title: tRef.current("hooks.audioRecording.noAudio.title"),
+        description: tRef.current("hooks.audioRecording.noAudio.description"),
         variant: "default",
       });
     };
@@ -713,7 +720,6 @@ export const useAudioRecording = (toast, options = {}) => {
     onToggle,
     performStartRecording,
     performStopRecording,
-    t,
     clearPasteFallbackToast,
     clearStablePartialTimer,
     resetPartialStabilizer,
