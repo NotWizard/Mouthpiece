@@ -2463,3 +2463,19 @@ a:hover {
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/*
+ * Pause all keyframe animations when the renderer is hidden
+ * (data-window-hidden="true" is toggled by main.jsx's visibilitychange
+ * listener). Electron doesn't background-throttle GPU compositing for
+ * always-running filter:blur animations like .glass-orb-{1..4},
+ * .activation-pulse, .referral-mesh-bg::before/::after — without this rule
+ * the Control Panel keeps painting a blurred mesh + drifting orbs even
+ * after the window is hidden behind another app. Pausing finite
+ * animations alongside is harmless; they resume on next visibility.
+ */
+html[data-window-hidden="true"] *,
+html[data-window-hidden="true"] *::before,
+html[data-window-hidden="true"] *::after {
+  animation-play-state: paused !important;
+}

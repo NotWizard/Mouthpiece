@@ -23,6 +23,20 @@ import logoIcon from "./assets/icon.png";
 import i18n from "./i18n";
 import "./index.css";
 
+// Track window visibility so CSS can pause infinite blur animations
+// (orb drift, mesh drift, activation breathe) when the renderer is hidden
+// — Electron doesn't background-throttle GPU compositing of always-on
+// `filter: blur(...)` keyframes, so without this they keep painting the
+// whole window when nobody can see it.
+if (typeof document !== "undefined") {
+  const syncWindowVisibility = () => {
+    document.documentElement.dataset.windowHidden =
+      document.visibilityState === "hidden" ? "true" : "false";
+  };
+  syncWindowVisibility();
+  document.addEventListener("visibilitychange", syncWindowVisibility);
+}
+
 const controlPanelImport = () => import("./components/ControlPanel.tsx");
 const onboardingFlowImport = () => import("./components/OnboardingFlow.tsx");
 const ControlPanel = React.lazy(controlPanelImport);
