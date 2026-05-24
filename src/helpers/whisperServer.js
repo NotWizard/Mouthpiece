@@ -8,7 +8,7 @@ const { app } = require("electron");
 const debugLogger = require("./debugLogger");
 const { killProcess } = require("../utils/process");
 const { getSafeTempDir } = require("./safeTempDir");
-const { convertToWav } = require("./ffmpegUtils");
+const { convertToWav, isWavFormat } = require("./ffmpegUtils");
 
 const PORT_RANGE_START = 8178;
 const PORT_RANGE_END = 8199;
@@ -416,12 +416,17 @@ class WhisperServerManager extends EventEmitter {
 
     const { language, initialPrompt } = options;
 
-    // Always convert to 16kHz mono WAV - whisper.cpp requires this exact format
+    // whisper.cpp requires 16 kHz mono WAV. If the renderer already produced
+    // that format (e.g. via samplesToWavBlob), short-circuit the FFmpeg
+    // transcode — saves hundreds of ms of FFmpeg startup + the temp-file
+    // round-trip per dictation. Mirrors parakeetServer's _ensureWav check.
     let finalBuffer = audioBuffer;
-    if (!this.canConvert) {
-      throw new Error("FFmpeg not found - required for audio conversion");
+    if (!isWavFormat(audioBuffer)) {
+      if (!this.canConvert) {
+        throw new Error("FFmpeg not found - required for audio conversion");
+      }
+      finalBuffer = await this._convertToWav(audioBuffer);
     }
-    finalBuffer = await this._convertToWav(audioBuffer);
 
     const boundary = `----WhisperBoundary${Date.now()}`;
     const parts = [];
