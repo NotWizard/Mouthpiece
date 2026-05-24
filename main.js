@@ -165,22 +165,22 @@ const WindowManager = require("./src/helpers/windowManager");
 const DatabaseManager = require("./src/helpers/database");
 const ClipboardManager = require("./src/helpers/clipboard");
 const WhisperManager = require("./src/helpers/whisper");
-const ParakeetManager = require("./src/helpers/parakeet");
-const QwenAsrManager = require("./src/helpers/qwenAsr");
 const TrayManager = require("./src/helpers/tray");
 const IPCHandlers = require("./src/helpers/ipcHandlers");
-const UpdateManager = require("./src/helpers/updateManager");
-const GlobeKeyManager = require("./src/helpers/globeKeyManager");
 const {
   isGlobeLikeHotkey: isGlobeLikeHotkeyForRecovery,
   isRightSideModifier: isRightSideModifierForRecovery,
 } = require("./src/helpers/hotkeyManager");
 const DevServerManager = require("./src/helpers/devServerManager");
-const WindowsKeyManager = require("./src/helpers/windowsKeyManager");
 const TargetAppCapture = require("./src/helpers/targetAppCapture");
-const WhisperCudaManager = require("./src/helpers/whisperCudaManager");
-const { MacOSPermissionFlowManager } = require("./src/helpers/macOSPermissionFlow");
 const { i18nMain, changeLanguage } = require("./src/helpers/i18nMain");
+// Provider-specific + platform-specific managers (ParakeetManager,
+// QwenAsrManager, UpdateManager, WhisperCudaManager, WindowsKeyManager,
+// MacOSPermissionFlowManager, GlobeKeyManager) are require()'d lazily inside
+// initializeCoreManagers / initializeDeferredManagers to push their module
+// parse + transitive require-graph (sherpa-onnx server wrapper, electron-
+// updater, mlx-asr server wrapper, etc.) out of the top-level synchronous
+// startup path.
 
 // Manager instances - initialized after app.whenReady()
 let debugLogger = null;
@@ -438,8 +438,14 @@ function initializeCoreManagers() {
   clipboardManager = new ClipboardManager();
   whisperManager = new WhisperManager();
   if (process.platform !== "darwin") {
+    const WhisperCudaManager = require("./src/helpers/whisperCudaManager");
     whisperCudaManager = new WhisperCudaManager();
   }
+  const ParakeetManager = require("./src/helpers/parakeet");
+  const QwenAsrManager = require("./src/helpers/qwenAsr");
+  const UpdateManager = require("./src/helpers/updateManager");
+  const WindowsKeyManager = require("./src/helpers/windowsKeyManager");
+  const { MacOSPermissionFlowManager } = require("./src/helpers/macOSPermissionFlow");
   parakeetManager = new ParakeetManager();
   qwenAsrManager = new QwenAsrManager();
   updateManager = new UpdateManager({
@@ -477,6 +483,7 @@ function initializeCoreManagers() {
 function initializeDeferredManagers() {
   clipboardManager.preWarmAccessibility();
   trayManager = new TrayManager();
+  const GlobeKeyManager = require("./src/helpers/globeKeyManager");
   globeKeyManager = new GlobeKeyManager();
 
   if (process.platform === "darwin") {
