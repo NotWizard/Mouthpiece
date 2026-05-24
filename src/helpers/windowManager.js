@@ -104,7 +104,17 @@ class WindowManager {
     });
 
     await this.loadMainWindow();
-    await this.initializeHotkey();
+    // Fire-and-forget so UI doesn't block on hotkey registration (which
+    // reads persisted settings + calls globalShortcut.register / spawns
+    // the native push-to-talk listener). If it throws, log but don't
+    // crash the window-creation chain.
+    this.initializeHotkey().catch((err) => {
+      debugLogger.error(
+        "Hotkey initialization failed (non-fatal)",
+        { error: err?.message || String(err) },
+        "hotkey"
+      );
+    });
     this.dragManager.setTargetWindow(this.mainWindow);
     MenuManager.setupMainMenu();
   }

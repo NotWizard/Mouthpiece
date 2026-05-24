@@ -712,14 +712,14 @@ async function startApp() {
     app.setActivationPolicy("regular");
   }
 
-  // In development, wait for Vite dev server to be ready
-  if (process.env.NODE_ENV === "development") {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
-
-  // Create windows FIRST so the user sees UI as soon as possible
-  await windowManager.createMainWindow();
-  await windowManager.createControlPanelWindow();
+  // Create windows in parallel — control panel HTML load no longer blocks
+  // main dictation window. DevServerManager.waitForDevServer (invoked by
+  // loadMainWindow / loadControlPanel) already gates the renderer URL load
+  // in dev, so no extra setTimeout buffer is required.
+  await Promise.all([
+    windowManager.createMainWindow(),
+    windowManager.createControlPanelWindow(),
+  ]);
 
   // Phase 2: Initialize remaining managers after windows are visible
   initializeDeferredManagers();
