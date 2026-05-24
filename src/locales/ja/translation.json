@@ -783,14 +783,6 @@
       "customPrompt": "カスタムプロンプト",
       "defaultPrompt": "デフォルトプロンプト",
       "modified": "変更済み"
-    },
-    "translationBanner": {
-      "title": "翻訳が有効 → 対象言語: {{lang}}",
-      "explainer": "{{placeholder}} をプロンプトに配置すると、実行時にターゲット言語(例:「English (US)」)に置き換えられます。配置しなかった場合、「出力言語は …」という行が末尾に追加されます。",
-      "copyButton": "プレースホルダーをコピー",
-      "copied": "コピーしました",
-      "viewTabHintTitle": "翻訳が有効 → {{lang}}",
-      "viewTabHint": "「カスタマイズ」に切り替えて {{TARGET_LANGUAGE}} を好きな位置に挿入してください。"
     }
   },
   "resetPassword": {
@@ -1102,7 +1094,6 @@
       "targetLangLabel": "対象言語",
       "targetLangDescription": "すべての文字起こしをこの言語に統合します。入力がすでにこの言語の場合は、クリーンアップのみ実行されます。",
       "providerNote": "翻訳はクリーンアップと同じプロバイダーとモデルを使用します(1 回の LLM 呼び出し)。失敗した場合は通知とともに元の文字起こしに戻ります。",
-      "disableWarnPlaceholderRemains": "プロンプトにまだ {{placeholder}} が含まれています。翻訳がオフになったため、プレースホルダーは呼び出しごとに削除(空に置換)されます。周囲の文も削除したい場合は、PromptStudio でプロンプトを編集してください。",
       "hotkeyRowLabel": "翻訳ホットキー",
       "hotkeyRowDescription": "翻訳はこの専用ホットキーで起動した場合にのみ実行されます。クリックして設定してください。",
       "hotkeyUnset": "未設定"

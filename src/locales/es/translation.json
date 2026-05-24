@@ -783,14 +783,6 @@
       "customPrompt": "Prompt personalizado",
       "defaultPrompt": "Prompt predeterminado",
       "modified": "Modificado"
-    },
-    "translationBanner": {
-      "title": "Traducción activada → destino: {{lang}}",
-      "explainer": "Coloca {{placeholder}} en tu prompt — se reemplazará por el idioma de destino (p. ej., \"English (US)\") en tiempo de ejecución. Si no, se añade una línea \"el idioma de salida debe ser …\".",
-      "copyButton": "Copiar marcador",
-      "copied": "Copiado",
-      "viewTabHintTitle": "Traducción activada → {{lang}}",
-      "viewTabHint": "Cambia a Personalizar para insertar {{TARGET_LANGUAGE}} donde quieras la regla."
     }
   },
   "resetPassword": {
@@ -1102,7 +1094,6 @@
       "targetLangLabel": "Idioma de destino",
       "targetLangDescription": "Todas las transcripciones se unifican en este idioma. Si la entrada ya está en este idioma, solo se ejecuta la limpieza.",
       "providerNote": "La traducción usa el mismo proveedor y modelo que la limpieza (una sola llamada al LLM). Si falla, vuelve a la transcripción original con un aviso.",
-      "disableWarnPlaceholderRemains": "Tu prompt aún contiene {{placeholder}}. La traducción ahora está desactivada, así que el marcador se eliminará (se sustituirá por vacío) en cada llamada. Edita tu prompt en PromptStudio si quieres quitar la frase que lo rodea.",
       "hotkeyRowLabel": "Atajo de traducción",
       "hotkeyRowDescription": "La traducción solo se ejecuta al activar este atajo dedicado. Haz clic para configurarlo.",
       "hotkeyUnset": "Sin configurar"

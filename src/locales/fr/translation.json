@@ -783,14 +783,6 @@
       "customPrompt": "Prompt personnalisé",
       "defaultPrompt": "Prompt par défaut",
       "modified": "Modifié"
-    },
-    "translationBanner": {
-      "title": "Traduction activée → cible : {{lang}}",
-      "explainer": "Placez {{placeholder}} dans votre prompt — il sera remplacé par la langue cible (par ex., « English (US) ») à l'exécution. Sinon, une ligne « la langue de sortie doit être … » est ajoutée.",
-      "copyButton": "Copier l'espace réservé",
-      "copied": "Copié",
-      "viewTabHintTitle": "Traduction activée → {{lang}}",
-      "viewTabHint": "Passez en mode Personnaliser pour insérer {{TARGET_LANGUAGE}} là où vous voulez la règle."
     }
   },
   "resetPassword": {
@@ -1102,7 +1094,6 @@
       "targetLangLabel": "Langue cible",
       "targetLangDescription": "Toutes les transcriptions sont unifiées dans cette langue. Si l'entrée est déjà dans cette langue, seul le nettoyage s'exécute.",
       "providerNote": "La traduction utilise le même fournisseur et modèle que le nettoyage (un seul appel au LLM). En cas d'échec, l'application revient à la transcription brute avec un avis.",
-      "disableWarnPlaceholderRemains": "Votre prompt contient encore {{placeholder}}. La traduction est désormais désactivée, donc l'espace réservé sera supprimé (remplacé par du vide) à chaque appel. Modifiez votre prompt dans PromptStudio si vous voulez retirer la phrase qui l'entoure.",
       "hotkeyRowLabel": "Raccourci de traduction",
       "hotkeyRowDescription": "La traduction ne s'exécute que lorsque ce raccourci dédié est déclenché. Cliquez pour le configurer.",
       "hotkeyUnset": "Non défini"

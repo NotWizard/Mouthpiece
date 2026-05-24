@@ -19,8 +19,6 @@ import MicrophoneSettings from "./ui/MicrophoneSettings";
 import PermissionCard from "./ui/PermissionCard";
 import TranscriptionModelPicker from "./TranscriptionModelPicker";
 import { ConfirmDialog, AlertDialog } from "./ui/dialog";
-import { readCustomCleanupPrompt } from "../utils/promptStorage";
-import { TRANSLATION_PLACEHOLDER } from "../config/prompts";
 import { useSettings } from "../hooks/useSettings";
 import { useDialogs } from "../hooks/useDialogs";
 import { useWhisper } from "../hooks/useWhisper";
@@ -393,24 +391,8 @@ function AiModelsSection({
               <Toggle
                 checked={translationEnabled}
                 onChange={(value) => {
-                  if (value) {
-                    if (!translationTargetLang) {
-                      setTranslationTargetLang("en");
-                    }
-                  } else {
-                    const customPrompt =
-                      typeof window !== "undefined"
-                        ? readCustomCleanupPrompt(window.localStorage)
-                        : null;
-                    if (customPrompt && customPrompt.includes(TRANSLATION_PLACEHOLDER)) {
-                      showAlertDialog({
-                        title: t("settingsPage.aiTranslation.title"),
-                        description: t(
-                          "settingsPage.aiTranslation.disableWarnPlaceholderRemains",
-                          { placeholder: TRANSLATION_PLACEHOLDER }
-                        ),
-                      });
-                    }
+                  if (value && !translationTargetLang) {
+                    setTranslationTargetLang("en");
                   }
                   setTranslationEnabled(value);
                 }}

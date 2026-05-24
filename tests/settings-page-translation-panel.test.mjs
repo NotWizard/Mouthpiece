@@ -24,15 +24,11 @@ test("SettingsPage threads translation settings through props", () => {
 test("Toggling translation on with empty target language auto-defaults to en", () => {
   assert.match(
     source,
-    /if \(!translationTargetLang\) \{\s*setTranslationTargetLang\("en"\);/
+    /if \(value && !translationTargetLang\) \{\s*setTranslationTargetLang\("en"\);/
   );
 });
 
-test("Toggling translation off warns when prompt still contains the placeholder", () => {
-  assert.match(source, /readCustomCleanupPrompt\(window\.localStorage\)/);
-  assert.match(source, /TRANSLATION_PLACEHOLDER/);
-  assert.match(
-    source,
-    /settingsPage\.aiTranslation\.disableWarnPlaceholderRemains/
-  );
+test("SettingsPage no longer references the legacy translation placeholder", () => {
+  assert.doesNotMatch(source, /TRANSLATION_PLACEHOLDER/);
+  assert.doesNotMatch(source, /disableWarnPlaceholderRemains/);
 });

@@ -783,14 +783,6 @@
       "customPrompt": "Custom prompt",
       "defaultPrompt": "Default prompt",
       "modified": "Modified"
-    },
-    "translationBanner": {
-      "title": "Translation enabled → target: {{lang}}",
-      "explainer": "Place {{placeholder}} in your prompt — it will be replaced with the target language (e.g., \"English (US)\") at runtime. Otherwise a default \"output language must be …\" line is appended.",
-      "copyButton": "Copy placeholder",
-      "copied": "Copied",
-      "viewTabHintTitle": "Translation enabled → {{lang}}",
-      "viewTabHint": "Switch to Customize to insert {{TARGET_LANGUAGE}} where you want the rule."
     }
   },
   "resetPassword": {
@@ -1102,7 +1094,6 @@
       "targetLangLabel": "Target language",
       "targetLangDescription": "All transcripts are unified into this language. If the input is already in this language, only cleanup runs.",
       "providerNote": "Translation uses the same provider and model as cleanup (a single LLM call). Failures fall back to the raw transcript with a notice.",
-      "disableWarnPlaceholderRemains": "Your prompt still contains {{placeholder}}. Translation is now off, so the placeholder will be stripped (replaced with empty) at every call. Edit your prompt in PromptStudio if you want to remove the surrounding sentence.",
       "hotkeyRowLabel": "Translation hotkey",
       "hotkeyRowDescription": "Translation runs only when triggered by this dedicated hotkey. Click to set it.",
       "hotkeyUnset": "Not set"

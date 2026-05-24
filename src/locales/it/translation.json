@@ -783,14 +783,6 @@
       "customPrompt": "Prompt personalizzato",
       "defaultPrompt": "Prompt predefinito",
       "modified": "Modificato"
-    },
-    "translationBanner": {
-      "title": "Traduzione attivata → destinazione: {{lang}}",
-      "explainer": "Inserisci {{placeholder}} nel tuo prompt — sarà sostituito dalla lingua di destinazione (es. \"English (US)\") al runtime. Altrimenti viene aggiunta una riga \"la lingua di output deve essere …\".",
-      "copyButton": "Copia segnaposto",
-      "copied": "Copiato",
-      "viewTabHintTitle": "Traduzione attivata → {{lang}}",
-      "viewTabHint": "Passa a Personalizza per inserire {{TARGET_LANGUAGE}} dove vuoi la regola."
     }
   },
   "resetPassword": {
@@ -1102,7 +1094,6 @@
       "targetLangLabel": "Lingua di destinazione",
       "targetLangDescription": "Tutte le trascrizioni vengono unificate in questa lingua. Se l'input è già in questa lingua, viene eseguita solo la pulizia.",
       "providerNote": "La traduzione usa lo stesso provider e modello della pulizia (un'unica chiamata LLM). In caso di errori, viene ripristinata la trascrizione originale con un avviso.",
-      "disableWarnPlaceholderRemains": "Il tuo prompt contiene ancora {{placeholder}}. La traduzione ora è disattivata, quindi il segnaposto verrà rimosso (sostituito con vuoto) a ogni chiamata. Modifica il tuo prompt in PromptStudio se vuoi rimuovere la frase circostante.",
       "hotkeyRowLabel": "Scorciatoia di traduzione",
       "hotkeyRowDescription": "La traduzione viene eseguita solo quando si attiva questa scorciatoia dedicata. Clicca per impostarla.",
       "hotkeyUnset": "Non impostata"

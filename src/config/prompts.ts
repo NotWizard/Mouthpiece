@@ -8,8 +8,6 @@ import type { TerminologyProfile } from "../utils/terminologyProfile";
 export const CLEANUP_PROMPT = promptData.CLEANUP_PROMPT;
 export const UNIFIED_SYSTEM_PROMPT = promptData.CLEANUP_PROMPT;
 
-export const TRANSLATION_PLACEHOLDER = "{{TARGET_LANGUAGE}}";
-
 function getPromptBundle(uiLanguage?: string): PromptBundle {
   const locale = normalizeUiLanguage(uiLanguage || "zh-CN");
   const t = i18n.getFixedT(locale, "prompts");
@@ -114,29 +112,21 @@ export function getSystemPrompt(
     prompt += `\n\n${terminologyInstruction}`;
   }
 
-  const translationEnabled =
-    !!translationContext?.enabled && !!translationContext?.targetLang;
-
-  if (translationEnabled) {
-    const langDisplayName = getLanguageLabel(translationContext!.targetLang);
-    if (!prompt.includes(TRANSLATION_PLACEHOLDER)) {
-      // Append the default sentence ONLY when this dictation was triggered by the
-      // dedicated translation hotkey. Main-hotkey dictations whose prompt does not
-      // contain the placeholder are left untouched (cleanup-only); advanced users
-      // who want the main hotkey to translate as well can write the placeholder
-      // into their custom prompt themselves.
-      if (translationContext!.triggeredByHotkey) {
-        const isZh = (uiLanguage || "zh-CN").startsWith("zh");
-        const fallbackSentence = isZh
-          ? `输出结果的语言必须是：${TRANSLATION_PLACEHOLDER}`
-          : `The output language must be: ${TRANSLATION_PLACEHOLDER}`;
-        prompt = `${prompt}\n\n${fallbackSentence}`;
-      }
-    }
-    prompt = prompt.replaceAll(TRANSLATION_PLACEHOLDER, langDisplayName);
-  } else {
-    // Translation off: strip any leftover placeholder so it never reaches the LLM verbatim.
-    prompt = prompt.replaceAll(TRANSLATION_PLACEHOLDER, "");
+  // Translation is auto-appended only when this dictation came from the
+  // dedicated translation hotkey AND AI translation is enabled with a target
+  // language. Main-hotkey dictations stay cleanup-only; there is no user-facing
+  // placeholder escape hatch — the two hotkeys have a clean semantic split.
+  if (
+    translationContext?.enabled &&
+    translationContext.targetLang &&
+    translationContext.triggeredByHotkey
+  ) {
+    const langDisplayName = getLanguageLabel(translationContext.targetLang);
+    const isZh = (uiLanguage || "zh-CN").startsWith("zh");
+    const fallbackSentence = isZh
+      ? `输出结果的语言必须是：${langDisplayName}`
+      : `The output language must be: ${langDisplayName}`;
+    prompt = `${prompt}\n\n${fallbackSentence}`;
   }
 
   return prompt;
@@ -150,7 +140,6 @@ export function getWordBoost(customDictionary?: string[]): string[] {
 export default {
   CLEANUP_PROMPT,
   UNIFIED_SYSTEM_PROMPT,
-  TRANSLATION_PLACEHOLDER,
   getSystemPrompt,
   getWordBoost,
 };

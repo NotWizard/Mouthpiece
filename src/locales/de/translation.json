@@ -783,14 +783,6 @@
       "customPrompt": "Benutzerdefinierter Prompt",
       "defaultPrompt": "Standard-Prompt",
       "modified": "Geändert"
-    },
-    "translationBanner": {
-      "title": "Übersetzung aktiviert → Ziel: {{lang}}",
-      "explainer": "Platzieren Sie {{placeholder}} in Ihrem Prompt – es wird zur Laufzeit durch die Zielsprache ersetzt (z. B. „English (US)\"). Andernfalls wird eine Zeile „Die Ausgabesprache muss … sein\" angehängt.",
-      "copyButton": "Platzhalter kopieren",
-      "copied": "Kopiert",
-      "viewTabHintTitle": "Übersetzung aktiviert → {{lang}}",
-      "viewTabHint": "Wechseln Sie zu Anpassen, um {{TARGET_LANGUAGE}} an der gewünschten Stelle einzufügen."
     }
   },
   "resetPassword": {
@@ -1102,7 +1094,6 @@
       "targetLangLabel": "Zielsprache",
       "targetLangDescription": "Alle Transkripte werden in dieser Sprache vereinheitlicht. Liegt die Eingabe bereits in dieser Sprache vor, läuft nur die Bereinigung.",
       "providerNote": "Die Übersetzung verwendet denselben Anbieter und das gleiche Modell wie die Bereinigung (ein einziger LLM-Aufruf). Bei Fehlern wird mit einem Hinweis auf das rohe Transkript zurückgegriffen.",
-      "disableWarnPlaceholderRemains": "Ihr Prompt enthält noch {{placeholder}}. Die Übersetzung ist jetzt deaktiviert, daher wird der Platzhalter bei jedem Aufruf entfernt (durch leer ersetzt). Bearbeiten Sie Ihren Prompt in PromptStudio, wenn Sie den umgebenden Satz entfernen möchten.",
       "hotkeyRowLabel": "Übersetzungs-Tastenkürzel",
       "hotkeyRowDescription": "Die Übersetzung läuft nur, wenn dieses dedizierte Tastenkürzel ausgelöst wird. Zum Festlegen klicken.",
       "hotkeyUnset": "Nicht festgelegt"

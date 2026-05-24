@@ -783,14 +783,6 @@
       "customPrompt": "自定义提示词",
       "defaultPrompt": "默认提示词",
       "modified": "已修改"
-    },
-    "translationBanner": {
-      "title": "翻译已启用 → 目标语言: {{lang}}",
-      "explainer": "在 prompt 中放置 {{placeholder}},调用时会被替换为目标语言(如 \"English (US)\")。若未放置,会在末尾自动追加 \"输出结果的语言必须是:…\"。",
-      "copyButton": "复制占位符",
-      "copied": "已复制",
-      "viewTabHintTitle": "翻译已启用 → {{lang}}",
-      "viewTabHint": "切到「自定义」可把 {{TARGET_LANGUAGE}} 占位符放到你想要的位置。"
     }
   },
   "resetPassword": {
@@ -1102,7 +1094,6 @@
       "targetLangLabel": "目标语言",
       "targetLangDescription": "所有转录都会统一为该语言。如果输入已为该语言,则仅执行清理。",
       "providerNote": "翻译使用与清理相同的提供商和模型(一次 LLM 调用)。失败时回退到原始转录并提示。",
-      "disableWarnPlaceholderRemains": "你的 prompt 中仍包含 {{placeholder}}。翻译已关闭,该占位符在每次调用时会被剥离为空字符串。如要去除占位符所在的整句,请到「提示词工作室」编辑 prompt。",
       "hotkeyRowLabel": "翻译快捷键",
       "hotkeyRowDescription": "翻译仅在通过此专属快捷键触发时执行。点击进行设置。",
       "hotkeyUnset": "未设置"

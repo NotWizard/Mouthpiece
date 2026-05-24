@@ -783,14 +783,6 @@
       "customPrompt": "自訂提示詞",
       "defaultPrompt": "預設提示詞",
       "modified": "已修改"
-    },
-    "translationBanner": {
-      "title": "翻譯已啟用 → 目標語言: {{lang}}",
-      "explainer": "在 prompt 中放置 {{placeholder}},呼叫時會被替換為目標語言(如 \"English (US)\")。若未放置,會在末尾自動追加 \"輸出結果的語言必須是:…\"。",
-      "copyButton": "複製佔位符",
-      "copied": "已複製",
-      "viewTabHintTitle": "翻譯已啟用 → {{lang}}",
-      "viewTabHint": "切到「自訂」可把 {{TARGET_LANGUAGE}} 佔位符放到你想要的位置。"
     }
   },
   "resetPassword": {
@@ -1102,7 +1094,6 @@
       "targetLangLabel": "目標語言",
       "targetLangDescription": "所有轉錄都會統一為該語言。如果輸入已為該語言,則僅執行清理。",
       "providerNote": "翻譯使用與清理相同的提供商和模型(一次 LLM 呼叫)。失敗時退回原始轉錄並提示。",
-      "disableWarnPlaceholderRemains": "你的 prompt 中仍包含 {{placeholder}}。翻譯已關閉,該佔位符在每次呼叫時會被剝離為空字串。如要去除佔位符所在的整句,請到「提示詞工作室」編輯 prompt。",
       "hotkeyRowLabel": "翻譯快捷鍵",
       "hotkeyRowDescription": "翻譯僅在通過此專屬快捷鍵觸發時執行。點擊進行設定。",
       "hotkeyUnset": "未設定"

@@ -20,7 +20,6 @@ import { getModelProvider } from "../../models/ModelRegistry";
 import logger from "../../utils/logger";
 import { UNIFIED_SYSTEM_PROMPT } from "../../config/prompts";
 import { useSettingsStore, selectIsCloudReasoningMode } from "../../stores/settingsStore";
-import { getLanguageLabel } from "./LanguageSelector";
 import {
   CUSTOM_CLEANUP_PROMPT_KEY,
   migrateLegacyVoiceModeStorage,
@@ -65,7 +64,6 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
   const [testResult, setTestResult] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
-  const [copiedPlaceholder, setCopiedPlaceholder] = useState(false);
 
   const { alertDialog, showAlertDialog, hideAlertDialog } = useDialogs();
 
@@ -73,8 +71,6 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
   const isCloudMode = useSettingsStore(selectIsCloudReasoningMode);
   const useReasoningModel = useSettingsStore((s) => s.useReasoningModel);
   const reasoningModel = useSettingsStore((s) => s.reasoningModel);
-  const translationEnabled = useSettingsStore((s) => s.translationEnabled);
-  const translationTargetLang = useSettingsStore((s) => s.translationTargetLang);
 
 
   useEffect(() => {
@@ -229,18 +225,6 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
         {/* ── View Tab ── */}
         {activeTab === "current" && (
           <div className="divide-y divide-border/40 dark:divide-border-subtle">
-            {translationEnabled && translationTargetLang && (
-              <div className="px-5 py-3 border-b border-border/40 dark:border-border-subtle">
-                <div className="rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 px-3 py-2 text-xs">
-                  <span className="font-medium text-foreground">
-                    {t("promptStudio.translationBanner.viewTabHintTitle", { lang: getLanguageLabel(translationTargetLang) })}
-                  </span>{" "}
-                  <span className="text-muted-foreground">
-                    {t("promptStudio.translationBanner.viewTabHint")}
-                  </span>
-                </div>
-              </div>
-            )}
             <div className="px-5 py-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -293,47 +277,6 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
                 {t("promptStudio.edit.cautionText")}
               </p>
             </div>
-
-            {translationEnabled && translationTargetLang && (
-              <div className="px-5 py-4 border-b border-border/40 dark:border-border-subtle">
-                <div className="rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 px-4 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <p className="text-xs font-medium text-foreground">
-                        {t("promptStudio.translationBanner.title", { lang: getLanguageLabel(translationTargetLang) })}
-                      </p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {t("promptStudio.translationBanner.explainer", {
-                          placeholder: "{{TARGET_LANGUAGE}}",
-                        })}
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => {
-                        navigator.clipboard.writeText("{{TARGET_LANGUAGE}}");
-                        setCopiedPlaceholder(true);
-                        setTimeout(() => setCopiedPlaceholder(false), 2000);
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="h-7 px-2 text-xs shrink-0"
-                    >
-                      {copiedPlaceholder ? (
-                        <>
-                          <Check className="w-3 h-3 mr-1 text-success" />{" "}
-                          {t("promptStudio.translationBanner.copied")}
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3 h-3 mr-1" />
-                          {t("promptStudio.translationBanner.copyButton")}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
 
             <div className="px-5 py-4">
               <Textarea
