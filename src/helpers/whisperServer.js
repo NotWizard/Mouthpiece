@@ -529,17 +529,17 @@ class WhisperServerManager extends EventEmitter {
     const tempWavPath = path.join(tempDir, `whisper-output-${timestamp}.wav`);
 
     try {
-      fs.writeFileSync(tempInputPath, audioBuffer);
+      await fs.promises.writeFile(tempInputPath, audioBuffer);
       await convertToWav(tempInputPath, tempWavPath, { sampleRate: 16000, channels: 1 });
-      return fs.readFileSync(tempWavPath);
+      return await fs.promises.readFile(tempWavPath);
     } finally {
-      for (const f of [tempInputPath, tempWavPath]) {
-        try {
-          if (fs.existsSync(f)) fs.unlinkSync(f);
-        } catch {
-          // ignore cleanup errors
-        }
-      }
+      // Async cleanup; ignore ENOENT etc. so cleanup never throws past the
+      // caller. Running in parallel keeps the await short.
+      await Promise.all(
+        [tempInputPath, tempWavPath].map((f) =>
+          fs.promises.unlink(f).catch(() => {})
+        )
+      );
     }
   }
 

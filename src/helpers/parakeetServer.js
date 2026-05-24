@@ -71,14 +71,14 @@ class ParakeetServerManager {
     const tempInputPath = path.join(tempDir, `parakeet-input-${timestamp}.webm`);
     const tempWavPath = path.join(tempDir, `parakeet-${timestamp}.wav`);
 
-    fs.writeFileSync(tempInputPath, audioBuffer);
+    await fs.promises.writeFile(tempInputPath, audioBuffer);
 
-    const inputStats = fs.statSync(tempInputPath);
+    const inputStats = await fs.promises.stat(tempInputPath);
     debugLogger.debug("Converting audio to WAV", { inputSize: inputStats.size });
 
     await convertToWav(tempInputPath, tempWavPath, { sampleRate: 16000, channels: 1 });
 
-    const wavBuffer = fs.readFileSync(tempWavPath);
+    const wavBuffer = await fs.promises.readFile(tempWavPath);
     return { wavBuffer, filesToCleanup: [tempInputPath, tempWavPath] };
   }
 
@@ -149,23 +149,28 @@ class ParakeetServerManager {
 
       return { text: texts.join(" "), elapsed: totalElapsed, language };
     } finally {
-      this._cleanupFiles(filesToCleanup);
+      await this._cleanupFiles(filesToCleanup);
     }
   }
 
-  _cleanupFiles(filePaths) {
-    for (const filePath of filePaths) {
-      try {
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
+  async _cleanupFiles(filePaths) {
+    // Parallel async unlink, swallow ENOENT silently so cleanup never
+    // throws past callers. Other errors still log so a real fs issue
+    // surfaces in debug output.
+    await Promise.all(
+      filePaths.map(async (filePath) => {
+        try {
+          await fs.promises.unlink(filePath);
+        } catch (err) {
+          if (err.code !== "ENOENT") {
+            debugLogger.warn("Failed to cleanup temp audio file", {
+              path: filePath,
+              error: err.message,
+            });
+          }
         }
-      } catch (err) {
-        debugLogger.warn("Failed to cleanup temp audio file", {
-          path: filePath,
-          error: err.message,
-        });
-      }
-    }
+      })
+    );
   }
 
   async startServer(modelName) {
