@@ -8,17 +8,6 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const DEFAULT_DEV_SERVER_PORT = 5183
-const MARKDOWN_VENDOR_PATTERNS = [
-  '/node_modules/react-markdown/',
-  '/node_modules/remark-',
-  '/node_modules/rehype-',
-  '/node_modules/unified/',
-  '/node_modules/micromark/',
-  '/node_modules/mdast-',
-  '/node_modules/hast-',
-  '/node_modules/unist-',
-  '/node_modules/vfile/',
-]
 const APP_DICTATION_PATTERNS = [
   '/src/helpers/audioManager.js',
   '/src/hooks/useAudioRecording.js',
@@ -82,10 +71,6 @@ const resolveVendorChunk = (id) => {
     normalizedId.includes('/node_modules/react-i18next/')
   ) {
     return 'vendor-i18n'
-  }
-
-  if (MARKDOWN_VENDOR_PATTERNS.some((pattern) => normalizedId.includes(pattern))) {
-    return 'vendor-markdown'
   }
 
   if (
