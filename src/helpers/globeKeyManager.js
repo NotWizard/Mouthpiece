@@ -26,6 +26,7 @@ class GlobeKeyManager extends EventEmitter {
     this._isStopping = false;
     this._restartCount = 0;
     this._restartResetTimer = null;
+    this._pendingRestartTimer = null;
     // Translation-hotkey chord to swallow at the native listener level.
     // setTranslationChord() can be called before start() spawns the process,
     // so we cache the pending value and flush it once stdin is available.
@@ -183,7 +184,13 @@ class GlobeKeyManager extends EventEmitter {
         debugLogger.warn(
           `[GlobeKeyManager] Unexpected exit (code 0), restarting (attempt ${this._restartCount}/${MAX_RESTART_ATTEMPTS})`
         );
-        setTimeout(() => {
+        // Track the restart timer so stop() can cancel a pending restart;
+        // without this, rapid stop/start cycles (settings save, sleep/wake)
+        // can stack multiple pending callbacks even though _isStopping
+        // prevents the spawn — clearing keeps the timer queue clean too.
+        if (this._pendingRestartTimer) clearTimeout(this._pendingRestartTimer);
+        this._pendingRestartTimer = setTimeout(() => {
+          this._pendingRestartTimer = null;
           if (!this._isStopping && !this.process) {
             this.start();
           }
@@ -209,6 +216,10 @@ class GlobeKeyManager extends EventEmitter {
     if (this._restartResetTimer) {
       clearTimeout(this._restartResetTimer);
       this._restartResetTimer = null;
+    }
+    if (this._pendingRestartTimer) {
+      clearTimeout(this._pendingRestartTimer);
+      this._pendingRestartTimer = null;
     }
     if (this.process) {
       this.process.kill();

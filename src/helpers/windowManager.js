@@ -670,7 +670,23 @@ class WindowManager {
           { reason: details.reason, exitCode: details.exitCode },
           "window"
         );
-        setTimeout(() => this.loadControlPanel(), 1000);
+        // Track the recovery reload so closing / destroying the window
+        // before it fires can cancel — otherwise the timer keeps a stale
+        // reference to a destroyed window and triggers a load on it.
+        if (this._controlPanelRecoveryTimer) {
+          clearTimeout(this._controlPanelRecoveryTimer);
+        }
+        this._controlPanelRecoveryTimer = setTimeout(() => {
+          this._controlPanelRecoveryTimer = null;
+          this.loadControlPanel();
+        }, 1000);
+      }
+    });
+
+    this.controlPanelWindow.on("closed", () => {
+      if (this._controlPanelRecoveryTimer) {
+        clearTimeout(this._controlPanelRecoveryTimer);
+        this._controlPanelRecoveryTimer = null;
       }
     });
 

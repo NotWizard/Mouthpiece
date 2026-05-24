@@ -691,7 +691,12 @@ async function startApp() {
       ...runtimeFingerprint,
       capturedAt: new Date().toISOString(),
     };
-    fs.writeFileSync(fingerprintPath, JSON.stringify(payload, null, 2), "utf-8");
+    // Fire-and-forget: fingerprint is observability only; nothing on the
+    // startup path waits for it, so use the non-blocking async write to
+    // keep the synchronous startup tick free.
+    fs.promises
+      .writeFile(fingerprintPath, JSON.stringify(payload, null, 2), "utf-8")
+      .catch(() => {});
     console.log("[RUNTIME_FINGERPRINT_FILE]", fingerprintPath);
   } catch (fingerprintError) {
     console.error(
