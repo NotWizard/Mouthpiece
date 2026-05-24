@@ -207,6 +207,10 @@ class DebugLogger {
   }
 
   log(...args) {
+    // Short-circuit before formatArgs() (JSON.stringify per object arg) so
+    // info-level callers don't pay the serialization cost when debug
+    // logging is off.
+    if (!this.shouldLog("debug")) return;
     this.write("debug", this.formatArgs(args));
   }
 
@@ -231,11 +235,13 @@ class DebugLogger {
   }
 
   error(...args) {
+    if (!this.shouldLog("error")) return;
     const message = `ERROR: ${this.formatArgs(args)}`;
     this.write("error", message);
   }
 
   fatal(...args) {
+    if (!this.shouldLog("fatal")) return;
     const message = `FATAL: ${this.formatArgs(args)}`;
     this.write("fatal", message);
   }
