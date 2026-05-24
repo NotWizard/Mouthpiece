@@ -3,6 +3,8 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  memo,
+  type CSSProperties,
   type MouseEvent,
   type RefObject,
 } from "react";
@@ -27,6 +29,62 @@ const LIVE_PREVIEW_GHOST_EXIT_DURATION_MS = 260;
 const LIVE_PREVIEW_SCROLL_DURATION_MS = 240;
 const LIVE_PREVIEW_EDGE_MASK =
   "linear-gradient(90deg, black 0px, black calc(100% - 16px), transparent 100%)";
+
+// Memoized waveform bar row. The compact layer and the recording layer both
+// render a 29-span row driven by the same `dots` array that ticks at audio
+// level cadence (~12.5 Hz). Extracting it lets React skip the rest of the
+// parent subtree when only `dots` / state colors changed. Style strings are
+// hoisted to module scope so identical bars don't allocate fresh inline
+// objects per render.
+const WAVEFORM_BAR_BASE_STYLE: Pick<
+  CSSProperties,
+  "width" | "height" | "transformOrigin" | "transition"
+> = {
+  width: "7px",
+  height: "3px",
+  transformOrigin: "center",
+  transition:
+    "transform 90ms ease-out, opacity 90ms ease-out, background-color 150ms ease",
+};
+
+interface WaveformBarsProps {
+  dots: number[];
+  containerClassName: string;
+  opacity: number;
+  background: string;
+  boxShadow: string;
+}
+
+const WaveformBars = memo(function WaveformBars({
+  dots,
+  containerClassName,
+  opacity,
+  background,
+  boxShadow,
+}: WaveformBarsProps) {
+  return (
+    <div className={containerClassName}>
+      {dots.map((value, index) => {
+        const waveformAmplitude = Math.max(0, value - 0.04);
+        const scaleY = 1 + waveformAmplitude * 7.2;
+        const scaleX = 1 + waveformAmplitude * 0.3;
+        return (
+          <span
+            key={index}
+            className="block shrink-0 rounded-full"
+            style={{
+              ...WAVEFORM_BAR_BASE_STYLE,
+              opacity,
+              transform: `scaleX(${scaleX}) scaleY(${scaleY})`,
+              background,
+              boxShadow,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+});
 
 function createSilentSamples() {
   return Array.from({ length: WAVEFORM_DOT_COUNT }, () => 0);
@@ -572,31 +630,13 @@ export default function DictationCapsule({
             </div>
             </div>
 
-            <div className="relative mt-auto flex h-3 items-center justify-between gap-[3px] px-0.5">
-              {dots.map((value, index) => {
-                const waveformAmplitude = Math.max(0, value - 0.04);
-                const scaleY = 1 + waveformAmplitude * 7.2;
-                const scaleX = 1 + waveformAmplitude * 0.3;
-
-                return (
-                  <span
-                    key={index}
-                    className="block shrink-0 rounded-full"
-                    style={{
-                      width: "7px",
-                      height: "3px",
-                      opacity: 0.92,
-                      transform: `scaleX(${scaleX}) scaleY(${scaleY})`,
-                      transformOrigin: "center",
-                      background: "rgba(53, 53, 53, 0.96)",
-                      boxShadow: "0 0 8px rgba(255,255,255,0.12) inset",
-                      transition:
-                        "transform 90ms ease-out, opacity 90ms ease-out, background-color 150ms ease",
-                    }}
-                  />
-                );
-              })}
-            </div>
+            <WaveformBars
+              dots={dots}
+              containerClassName="relative mt-auto flex h-3 items-center justify-between gap-[3px] px-0.5"
+              opacity={0.92}
+              background="rgba(53, 53, 53, 0.96)"
+              boxShadow="0 0 8px rgba(255,255,255,0.12) inset"
+            />
           </div>
         )}
 
@@ -632,36 +672,21 @@ export default function DictationCapsule({
               </div>
             </div>
 
-            <div className="relative mt-2.5 flex h-3 items-center justify-between gap-[3px] px-0.5">
-              {dots.map((value, index) => {
-                const waveformAmplitude = Math.max(0, value - 0.04);
-                const scaleY = 1 + waveformAmplitude * 7.2;
-                const scaleX = 1 + waveformAmplitude * 0.3;
-                const activeColor =
-                  isRecording || isProcessing ? "rgba(53, 53, 53, 0.96)" : "rgba(58, 58, 58, 0.88)";
-
-                return (
-                  <span
-                    key={index}
-                    className="block shrink-0 rounded-full"
-                    style={{
-                      width: "7px",
-                      height: "3px",
-                      opacity: isRecording ? 0.92 : 0.86,
-                      transform: `scaleX(${scaleX}) scaleY(${scaleY})`,
-                      transformOrigin: "center",
-                      background: activeColor,
-                      boxShadow:
-                        isRecording || isProcessing
-                          ? "0 0 8px rgba(255,255,255,0.12) inset"
-                          : "0 1px 2px rgba(255,255,255,0.08) inset",
-                      transition:
-                        "transform 90ms ease-out, opacity 90ms ease-out, background-color 150ms ease",
-                    }}
-                  />
-                );
-              })}
-            </div>
+            <WaveformBars
+              dots={dots}
+              containerClassName="relative mt-2.5 flex h-3 items-center justify-between gap-[3px] px-0.5"
+              opacity={isRecording ? 0.92 : 0.86}
+              background={
+                isRecording || isProcessing
+                  ? "rgba(53, 53, 53, 0.96)"
+                  : "rgba(58, 58, 58, 0.88)"
+              }
+              boxShadow={
+                isRecording || isProcessing
+                  ? "0 0 8px rgba(255,255,255,0.12) inset"
+                  : "0 1px 2px rgba(255,255,255,0.08) inset"
+              }
+            />
           </div>
         )}
 
