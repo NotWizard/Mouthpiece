@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import React, { lazy, Suspense, useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import {
@@ -17,7 +17,10 @@ import { NEON_AUTH_URL } from "../lib/neonAuth";
 import MicPermissionWarning from "./ui/MicPermissionWarning";
 import MicrophoneSettings from "./ui/MicrophoneSettings";
 import PermissionCard from "./ui/PermissionCard";
-import TranscriptionModelPicker from "./TranscriptionModelPicker";
+// Heavy picker / studio components rendered only when the user actually
+// opens their tab. React.lazy splits them into their own renderer chunks
+// so they don't ship in the SettingsPage initial bundle.
+const TranscriptionModelPicker = lazy(() => import("./TranscriptionModelPicker"));
 import { ConfirmDialog, AlertDialog } from "./ui/dialog";
 import { useSettings } from "../hooks/useSettings";
 import { useDialogs } from "../hooks/useDialogs";
@@ -25,8 +28,8 @@ import { useWhisper } from "../hooks/useWhisper";
 import { usePermissions } from "../hooks/usePermissions";
 import { useClipboard } from "../hooks/useClipboard";
 
-import PromptStudio from "./ui/PromptStudio";
-import ReasoningModelSelector from "./ReasoningModelSelector";
+const PromptStudio = lazy(() => import("./ui/PromptStudio"));
+const ReasoningModelSelector = lazy(() => import("./ReasoningModelSelector"));
 import { HotkeyInput } from "./ui/HotkeyInput";
 import HotkeyGuidanceAccordion from "./ui/HotkeyGuidanceAccordion";
 import { useHotkeyRegistration } from "../hooks/useHotkeyRegistration";
@@ -192,13 +195,14 @@ function TranscriptionSection({
         description={t("settingsPage.transcription.description")}
       />
 
-      <TranscriptionModelPicker
-        selectedCloudProvider={cloudTranscriptionProvider}
-        onCloudProviderSelect={setCloudTranscriptionProvider}
-        selectedCloudModel={cloudTranscriptionModel}
-        onCloudModelSelect={setCloudTranscriptionModel}
-        selectedLocalModel={
-          localTranscriptionProvider === "qwen"
+      <Suspense fallback={null}>
+        <TranscriptionModelPicker
+          selectedCloudProvider={cloudTranscriptionProvider}
+          onCloudProviderSelect={setCloudTranscriptionProvider}
+          selectedCloudModel={cloudTranscriptionModel}
+          onCloudModelSelect={setCloudTranscriptionModel}
+          selectedLocalModel={
+            localTranscriptionProvider === "qwen"
             ? qwenAsrModel
             : localTranscriptionProvider === "nvidia"
               ? parakeetModel
@@ -244,7 +248,8 @@ function TranscriptionSection({
         cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}
         setCloudTranscriptionBaseUrl={setCloudTranscriptionBaseUrl}
         variant="settings"
-      />
+        />
+      </Suspense>
     </div>
   );
 }
@@ -351,14 +356,15 @@ function AiModelsSection({
       </SettingsPanel>
 
       {useReasoningModel && (
-        <ReasoningModelSelector
-          reasoningModel={reasoningModel}
-          setReasoningModel={setReasoningModel}
-          localReasoningProvider={reasoningProvider}
-          setLocalReasoningProvider={setReasoningProvider}
-          cloudReasoningBaseUrl={cloudReasoningBaseUrl}
-          setCloudReasoningBaseUrl={setCloudReasoningBaseUrl}
-          openaiApiKey={openaiApiKey}
+        <Suspense fallback={null}>
+          <ReasoningModelSelector
+            reasoningModel={reasoningModel}
+            setReasoningModel={setReasoningModel}
+            localReasoningProvider={reasoningProvider}
+            setLocalReasoningProvider={setReasoningProvider}
+            cloudReasoningBaseUrl={cloudReasoningBaseUrl}
+            setCloudReasoningBaseUrl={setCloudReasoningBaseUrl}
+            openaiApiKey={openaiApiKey}
           setOpenaiApiKey={setOpenaiApiKey}
           anthropicApiKey={anthropicApiKey}
           setAnthropicApiKey={setAnthropicApiKey}
@@ -374,7 +380,8 @@ function AiModelsSection({
           setCustomReasoningApiKey={setCustomReasoningApiKey}
           customReasoningEnableThinking={customReasoningEnableThinking}
           setCustomReasoningEnableThinking={setCustomReasoningEnableThinking}
-        />
+          />
+        </Suspense>
       )}
 
       <div>
@@ -1154,7 +1161,9 @@ export default function SettingsPage({
               description={t("settingsPage.prompts.description")}
             />
 
-            <PromptStudio />
+            <Suspense fallback={null}>
+              <PromptStudio />
+            </Suspense>
           </div>
         );
 
@@ -1209,7 +1218,9 @@ export default function SettingsPage({
                   title={t("settingsPage.prompts.title")}
                   description={t("settingsPage.prompts.description")}
                 />
-                <PromptStudio />
+                <Suspense fallback={null}>
+              <PromptStudio />
+            </Suspense>
               </div>
             )}
           </div>

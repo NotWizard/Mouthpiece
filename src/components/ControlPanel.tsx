@@ -383,21 +383,23 @@ export default function ControlPanel() {
                 </div>
               )}
             {activeView === "home" && (
-              <HistoryView
-                history={history}
-                isLoading={isLoading}
-                hotkey={hotkey}
-                showCloudMigrationBanner={showCloudMigrationBanner}
-                setShowCloudMigrationBanner={setShowCloudMigrationBanner}
-                aiCTADismissed={aiCTADismissed}
-                setAiCTADismissed={setAiCTADismissed}
-                useReasoningModel={useReasoningModel}
-                copyToClipboard={copyToClipboard}
-                deleteTranscription={deleteTranscription}
-                onOpenSettings={(section) => {
-                  setActiveView(section as ControlPanelView);
-                }}
-              />
+              <Suspense fallback={null}>
+                <HistoryView
+                  history={history}
+                  isLoading={isLoading}
+                  hotkey={hotkey}
+                  showCloudMigrationBanner={showCloudMigrationBanner}
+                  setShowCloudMigrationBanner={setShowCloudMigrationBanner}
+                  aiCTADismissed={aiCTADismissed}
+                  setAiCTADismissed={setAiCTADismissed}
+                  useReasoningModel={useReasoningModel}
+                  copyToClipboard={copyToClipboard}
+                  deleteTranscription={deleteTranscription}
+                  onOpenSettings={(section) => {
+                    setActiveView(section as ControlPanelView);
+                  }}
+                />
+              </Suspense>
             )}
             {activeView === "dictionary" && (
               <div className={SIDEBAR_VIEW_CONTENT_CLASS_NAME}>
