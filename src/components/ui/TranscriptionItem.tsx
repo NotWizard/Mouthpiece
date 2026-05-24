@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./button";
@@ -12,7 +12,7 @@ interface TranscriptionItemProps {
   onDelete: (id: number) => void;
 }
 
-export default function TranscriptionItem({ item, onCopy, onDelete }: TranscriptionItemProps) {
+function TranscriptionItem({ item, onCopy, onDelete }: TranscriptionItemProps) {
   const { i18n, t } = useTranslation();
   const [isHovered, setIsHovered] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
@@ -142,3 +142,10 @@ export default function TranscriptionItem({ item, onCopy, onDelete }: Transcript
     </div>
   );
 }
+
+// React.memo so a HistoryView re-render (banner toggle, store reload, etc.)
+// doesn't re-render every transcript row when only sibling state changed.
+// Default shallow prop comparison is enough — `item` keeps its reference
+// when unchanged (history is stored as an array in the Zustand store), and
+// HistoryView passes stable useCallback'd onCopy / onDelete handlers.
+export default memo(TranscriptionItem);
