@@ -639,6 +639,19 @@ class WindowManager {
       this.controlPanelWindow = null;
     });
 
+    // Push maximize/unmaximize state changes to the renderer so WindowControls
+    // can drop its 1Hz polling loop in favour of an event-driven update.
+    const broadcastMaximized = (isMaximized) => {
+      if (!this.controlPanelWindow || this.controlPanelWindow.isDestroyed()) return;
+      try {
+        this.controlPanelWindow.webContents.send("window-maximized-changed", !!isMaximized);
+      } catch (_) {
+        // webContents may already be torn down — ignore.
+      }
+    };
+    this.controlPanelWindow.on("maximize", () => broadcastMaximized(true));
+    this.controlPanelWindow.on("unmaximize", () => broadcastMaximized(false));
+
     MenuManager.setupControlPanelMenu(this.controlPanelWindow);
 
     this.controlPanelWindow.webContents.on("did-finish-load", () => {

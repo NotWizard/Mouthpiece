@@ -652,6 +652,7 @@ declare global {
       windowMaximize: () => Promise<void>;
       windowClose: () => Promise<void>;
       windowIsMaximized: () => Promise<boolean>;
+      onWindowMaximizedChanged?: (callback: (isMaximized: boolean) => void) => () => void;
       getPlatform: () => string;
       getTargetAppInfo?: () => Promise<TargetAppInfo>;
       startWindowDrag: () => Promise<void>;

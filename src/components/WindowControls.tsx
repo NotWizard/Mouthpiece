@@ -17,12 +17,20 @@ export default function WindowControls() {
       } catch {}
     };
 
+    // Seed once, then prefer the push-based event when the host exposes it
+    // (Electron's controlPanelWindow emits maximize/unmaximize).  Fall back to
+    // a 1Hz poll only when the listener API is unavailable, so platforms
+    // without the event channel still behave like before.
     syncIsMaximized();
-    const intervalId = setInterval(syncIsMaximized, 1000);
+    const unsubscribe = window.electronAPI?.onWindowMaximizedChanged?.((maximized) => {
+      if (mounted) setIsMaximized(!!maximized);
+    });
+    const intervalId = unsubscribe ? null : setInterval(syncIsMaximized, 1000);
 
     return () => {
       mounted = false;
-      clearInterval(intervalId);
+      if (intervalId !== null) clearInterval(intervalId);
+      unsubscribe?.();
     };
   }, []);
 
