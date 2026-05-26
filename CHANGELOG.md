@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Reduced macOS paste latency: the pre-paste wait is now a clipboard-ready poll (capped at 50ms) instead of a flat 120ms sleep, so dictation results land in the target app roughly 100ms sooner on the common path.
+
 ### Fixed
 
 - UI language switching now loads non-English locale bundles correctly, so selecting Simplified Chinese in Settings updates the control panel instead of falling back to English.
