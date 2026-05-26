@@ -96,9 +96,40 @@ function GpuStatusBadge() {
           .catch(() => {});
       }
     };
-    poll();
-    const id = setInterval(poll, 5000);
-    return () => clearInterval(id);
+
+    // Pause the 5s poll while the window is hidden (minimised / background) —
+    // the badge state cannot change in a way the user can see anyway, and we
+    // avoid burning idle IPC calls.  Activation fast-poll (below) is not gated
+    // because it's a short-lived response to an explicit user action.
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    const startPolling = () => {
+      if (intervalId !== null) return;
+      poll();
+      intervalId = setInterval(poll, 5000);
+    };
+    const stopPolling = () => {
+      if (intervalId === null) return;
+      clearInterval(intervalId);
+      intervalId = null;
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    };
+
+    if (typeof document === "undefined" || document.visibilityState === "visible") {
+      startPolling();
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      stopPolling();
+    };
   }, [platform]);
 
   useEffect(() => {

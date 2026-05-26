@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Streaming dictation finalize now waits 80+220ms (was 120+300ms) between key release and provider finalize, shaving ~120ms off the end of every streaming take while keeping both safety waits intact.
 - MediaRecorder now records as audio/webm;codecs=opus at 32 kbps (with feature-detect fallback) and emits 100ms chunks via start(100), so blobs are ~3× smaller and the recorder's onstop fires faster because the last chunk is already encoded.
 - Control panel window controls react to maximize/unmaximize events directly instead of polling the main process once per second, removing ~86k idle IPC calls per day per open control panel.
+- The reasoning model selector's GPU status badge pauses its 5-second background poll while the window is hidden (minimised / background), so no idle IPC traffic runs against the local llama-server when the user isn't looking at the panel.
 
 ### Fixed
 
