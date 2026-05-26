@@ -4066,7 +4066,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
     // 3. Wait for flushed buffer to travel: port -> main thread -> IPC -> WebSocket -> server.
     //    Then mark streaming done so no further audio is forwarded.
-    await new Promise((resolve) => setTimeout(resolve, 120));
+    await new Promise((resolve) => setTimeout(resolve, 80));
     this.isStreaming = false;
 
     // 4. Finalize tells the provider to process any buffered audio and send final results.
@@ -4074,7 +4074,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const provider = this.getStreamingProvider();
     const streamingProviderName = this.getStreamingProviderName();
     provider.finalize?.();
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 220));
     const tForceEndpoint = performance.now();
 
     const stopResult = await provider.stop().catch((e) => {
