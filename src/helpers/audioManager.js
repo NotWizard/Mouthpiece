@@ -1124,7 +1124,14 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         this._peakRms = 1; // assume speech if level detection fails
       }
 
-      this.mediaRecorder = new MediaRecorder(stream);
+      const preferredRecorderMime = "audio/webm;codecs=opus";
+      const recorderOptions =
+        typeof MediaRecorder !== "undefined" &&
+        typeof MediaRecorder.isTypeSupported === "function" &&
+        MediaRecorder.isTypeSupported(preferredRecorderMime)
+          ? { mimeType: preferredRecorderMime, audioBitsPerSecond: 32000 }
+          : {};
+      this.mediaRecorder = new MediaRecorder(stream, recorderOptions);
       this.audioChunks = [];
       this.recordingStartTime = Date.now();
       this.recordingMimeType = this.mediaRecorder.mimeType || "audio/webm";
@@ -1161,7 +1168,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         stream.getTracks().forEach((track) => track.stop());
       };
 
-      this.mediaRecorder.start();
+      this.mediaRecorder.start(100);
       this.isRecording = true;
       this.onStateChange?.({ isRecording: true, isProcessing: false });
 
@@ -3748,11 +3755,18 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       // Start fallback recorder in case streaming produces no results
       try {
         this.streamingFallbackChunks = [];
-        this.streamingFallbackRecorder = new MediaRecorder(stream);
+        const preferredFallbackMime = "audio/webm;codecs=opus";
+        const fallbackOptions =
+          typeof MediaRecorder !== "undefined" &&
+          typeof MediaRecorder.isTypeSupported === "function" &&
+          MediaRecorder.isTypeSupported(preferredFallbackMime)
+            ? { mimeType: preferredFallbackMime, audioBitsPerSecond: 32000 }
+            : {};
+        this.streamingFallbackRecorder = new MediaRecorder(stream, fallbackOptions);
         this.streamingFallbackRecorder.ondataavailable = (e) => {
           if (e.data.size > 0) this.streamingFallbackChunks.push(e.data);
         };
-        this.streamingFallbackRecorder.start();
+        this.streamingFallbackRecorder.start(100);
       } catch (e) {
         logger.debug("Fallback recorder failed to start", { error: e.message }, "streaming");
         this.streamingFallbackRecorder = null;

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Reduced macOS paste latency: the pre-paste wait is now a clipboard-ready poll (capped at 50ms) instead of a flat 120ms sleep, so dictation results land in the target app roughly 100ms sooner on the common path.
 - Streaming dictation finalize now waits 80+220ms (was 120+300ms) between key release and provider finalize, shaving ~120ms off the end of every streaming take while keeping both safety waits intact.
+- MediaRecorder now records as audio/webm;codecs=opus at 32 kbps (with feature-detect fallback) and emits 100ms chunks via start(100), so blobs are ~3× smaller and the recorder's onstop fires faster because the last chunk is already encoded.
 
 ### Fixed
 
