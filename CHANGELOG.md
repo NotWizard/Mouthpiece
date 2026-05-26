@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed two unused runtime dependencies (`object-assign`, `shadcn-ui`) from package.json; `object-assign` remains as a transitive dependency only, and `shadcn-ui` is the CLI scaffolder which doesn't need to ship with the app.
 - Dropped the `APP_REASONING_POLICY_PATTERNS` manualChunks grouping in vite.config.mjs so Rollup can tree-shake `prompts.ts` and its siblings into the chunks that actually need them, instead of being force-pinned into a single large `app-reasoning-policy` chunk that the eager audio pipeline import pulled into the initial graph.
 - The `set-debug-logging` IPC handler now reads and writes the userData `.env` file via fs.promises instead of fs.readFileSync/writeFileSync, so toggling debug logging from Settings no longer briefly blocks the Electron main thread.
+- Replaced raw `console.log` calls in dragManager (per-drag start/stop) and modelDirUtils (cache migration) with debugLogger so they respect the configured log level instead of always firing in production.
 
 ### Fixed
 

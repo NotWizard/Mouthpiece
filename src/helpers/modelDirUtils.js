@@ -3,6 +3,7 @@ const os = require("os");
 const path = require("path");
 const fs = require("fs");
 const productIdentity = require("../config/productIdentity");
+const debugLogger = require("./debugLogger");
 
 function getCacheDir() {
   const homeDir = app?.getPath?.("home") || os.homedir();
@@ -25,9 +26,9 @@ function migrateCacheIfNeeded() {
   try {
     fs.mkdirSync(path.dirname(currentDir), { recursive: true });
     fs.renameSync(legacyDir, currentDir);
-    console.log(`[Cache Migration] Migrated from ${legacyDir} to ${currentDir}`);
+    debugLogger.info(`[Cache Migration] Migrated from ${legacyDir} to ${currentDir}`);
   } catch (err) {
-    console.error(`[Cache Migration] Failed to migrate cache: ${err.message}`);
+    debugLogger.error(`[Cache Migration] Failed to migrate cache: ${err.message}`);
   }
 }
 

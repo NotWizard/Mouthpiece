@@ -1,4 +1,5 @@
 const { screen } = require("electron");
+const debugLogger = require("./debugLogger");
 
 class DragManager {
   constructor() {
@@ -33,7 +34,7 @@ class DragManager {
       // Start tracking mouse movements
       this.setupMouseTracking();
 
-      console.log("🖱️ Window drag started");
+      debugLogger.debug("🖱️ Window drag started");
       return { success: true };
     } catch (error) {
       console.error("Failed to start window drag:", error);
@@ -46,7 +47,7 @@ class DragManager {
     try {
       this.isDragging = false;
       this.stopMouseTracking();
-      console.log("🖱️ Window drag stopped");
+      debugLogger.debug("🖱️ Window drag stopped");
       return { success: true };
     } catch (error) {
       console.error("Failed to stop window drag:", error);
