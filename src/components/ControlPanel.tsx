@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect, useCallback } from "react";
+import React, { Suspense, useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Zap } from "lucide-react";
@@ -271,17 +271,26 @@ export default function ControlPanel() {
     }
   }, [handleInstallUpdate, showAlertDialog, t]);
 
-  const updateAction =
-    updateStatus?.status === "downloaded" || updateStatus?.status === "installing"
-      ? {
-          label:
-            updateStatus.status === "installing"
-              ? t("controlPanel.update.installing")
-              : t("controlPanel.update.availableButton"),
-          disabled: updateStatus.status === "installing",
-          onClick: handleInstallUpdate,
-        }
-      : undefined;
+  const updateAction = useMemo(
+    () =>
+      updateStatus?.status === "downloaded" || updateStatus?.status === "installing"
+        ? {
+            label:
+              updateStatus.status === "installing"
+                ? t("controlPanel.update.installing")
+                : t("controlPanel.update.availableButton"),
+            disabled: updateStatus.status === "installing",
+            onClick: handleInstallUpdate,
+          }
+        : undefined,
+    [updateStatus?.status, handleInstallUpdate, t]
+  );
+
+  const handleOpenReferrals = useCallback(() => setShowReferrals(true), []);
+  const handleOpenSettings = useCallback(
+    (section: string) => setActiveView(section as ControlPanelView),
+    []
+  );
 
   return (
     <div className="control-panel-shell h-screen flex flex-col">
@@ -318,7 +327,7 @@ export default function ControlPanel() {
         <ControlPanelSidebar
           activeView={activeView}
           onViewChange={setActiveView}
-          onOpenReferrals={() => setShowReferrals(true)}
+          onOpenReferrals={handleOpenReferrals}
           userName={user?.name}
           userEmail={user?.email}
           userImage={user?.image}
@@ -395,9 +404,7 @@ export default function ControlPanel() {
                   useReasoningModel={useReasoningModel}
                   copyToClipboard={copyToClipboard}
                   deleteTranscription={deleteTranscription}
-                  onOpenSettings={(section) => {
-                    setActiveView(section as ControlPanelView);
-                  }}
+                  onOpenSettings={handleOpenSettings}
                 />
               </Suspense>
             )}
