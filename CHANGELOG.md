@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The reasoning model selector's GPU status badge pauses its 5-second background poll while the window is hidden (minimised / background), so no idle IPC traffic runs against the local llama-server when the user isn't looking at the panel.
 - Dictation capsule now memoises its per-frame visual state, layout calculations, and the four live-preview style objects, so the audio-rate parent re-render no longer re-allocates layout output and inline style literals every frame.
 - App.jsx now uses useCallback for the seven mouse / focus handlers it passes to the floating dictation capsule, so the memoised capsule actually skips re-renders when only sibling state changes.
+- Dictation capsule now consumes live-preview text as two primitive string props (livePreviewActiveText + livePreviewFullText) instead of a fresh object literal every audio frame, so React.memo's shallow comparison can finally short-circuit when the actual text hasn't changed.
 
 ### Fixed
 

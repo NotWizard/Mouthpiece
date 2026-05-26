@@ -100,13 +100,8 @@ interface DictationCapsuleProps {
   secondaryLabel: string;
   hotkeyLabel: string;
   showTranscriptPreview: boolean;
-  livePreviewSegments?:
-    | {
-        stableText?: string;
-        activeText?: string;
-        fullText?: string;
-      }
-    | null;
+  livePreviewActiveText?: string;
+  livePreviewFullText?: string;
   audioLevel: number;
   isHovered: boolean;
   isRecording: boolean;
@@ -219,7 +214,8 @@ export default function DictationCapsule({
   secondaryLabel,
   hotkeyLabel,
   showTranscriptPreview,
-  livePreviewSegments = null,
+  livePreviewActiveText = "",
+  livePreviewFullText = "",
   audioLevel,
   isHovered,
   isRecording,
@@ -238,24 +234,21 @@ export default function DictationCapsule({
 }: DictationCapsuleProps) {
   const helperText = isRecording || isProcessing || isTranscribing ? secondaryLabel : hotkeyLabel;
   const livePreviewTargetText = normalizeLiveTranscriptText(
-    showTranscriptPreview ? livePreviewSegments?.fullText || secondaryLabel : secondaryLabel,
+    showTranscriptPreview ? livePreviewFullText || secondaryLabel : secondaryLabel,
     {
       maxChars: LIVE_PREVIEW_RENDER_MAX_CHARS,
     }
   );
   const livePreviewCharacters = toCharacters(livePreviewTargetText);
   const livePreviewActiveCharCount = showTranscriptPreview
-    ? Math.min(
-        toCharacters(livePreviewSegments?.activeText || "").length,
-        livePreviewCharacters.length
-      )
+    ? Math.min(toCharacters(livePreviewActiveText).length, livePreviewCharacters.length)
     : 0;
   const livePreviewStableText = showTranscriptPreview
     ? livePreviewCharacters
         .slice(0, livePreviewCharacters.length - livePreviewActiveCharCount)
         .join("")
     : "";
-  const livePreviewActiveText = showTranscriptPreview
+  const livePreviewDisplayedActiveText = showTranscriptPreview
     ? livePreviewCharacters.slice(livePreviewCharacters.length - livePreviewActiveCharCount).join("")
     : "";
   const [sampleHistory, setSampleHistory] = useState<number[]>(() => createSilentSamples());
@@ -630,12 +623,12 @@ export default function DictationCapsule({
                   {showTranscriptPreview ? (
                     <>
                       <span data-live-transcript-role="stable">{livePreviewStableText}</span>
-                      {livePreviewActiveText ? (
+                      {livePreviewDisplayedActiveText ? (
                         <span
                           data-live-transcript-role="active"
                           className="text-[rgba(72,72,72,0.62)] transition-[color,opacity] duration-100 ease-out"
                         >
-                          {livePreviewActiveText}
+                          {livePreviewDisplayedActiveText}
                         </span>
                       ) : null}
                     </>

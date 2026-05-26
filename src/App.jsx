@@ -363,7 +363,8 @@ export default function App() {
                 secondaryLabel={secondaryLabel}
                 hotkeyLabel={hotkeyLabel}
                 showTranscriptPreview={showTranscriptPreview}
-                livePreviewSegments={partialTranscriptSegments}
+                livePreviewActiveText={partialTranscriptSegments?.activeText || ""}
+                livePreviewFullText={partialTranscriptSegments?.fullText || ""}
                 audioLevel={audioLevel}
                 isHovered={isHovered}
                 isRecording={isRecording}
