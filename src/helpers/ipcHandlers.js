@@ -2540,12 +2540,15 @@ class IPCHandlers {
       try {
         const path = require("path");
         const fs = require("fs");
+        const fsp = fs.promises;
         const envPath = path.join(app.getPath("userData"), ".env");
 
         // Read current .env content
         let envContent = "";
-        if (fs.existsSync(envPath)) {
-          envContent = fs.readFileSync(envPath, "utf8");
+        try {
+          envContent = await fsp.readFile(envPath, "utf8");
+        } catch (err) {
+          if (err && err.code !== "ENOENT") throw err;
         }
 
         // Parse lines - support both new and legacy variable names
@@ -2580,8 +2583,8 @@ class IPCHandlers {
           }
         }
 
-        // Write back
-        fs.writeFileSync(envPath, lines.join("\n"), "utf8");
+        // Write back without blocking the main thread
+        await fsp.writeFile(envPath, lines.join("\n"), "utf8");
 
         // Update environment variable - prefer new variable name
         process.env.MOUTHPIECE_LOG_LEVEL = enabled ? "debug" : "info";
