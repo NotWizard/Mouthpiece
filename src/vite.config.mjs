@@ -20,14 +20,6 @@ const APP_REASONING_SERVICE_PATTERNS = [
   '/src/services/ReasoningService.ts',
   '/src/services/BaseReasoningService.ts',
 ]
-const APP_REASONING_POLICY_PATTERNS = [
-  '/src/config/prompts.ts',
-  '/src/utils/contextClassifier.ts',
-  '/src/utils/postProcessingPolicy.ts',
-  '/src/utils/terminologyProfile.ts',
-  '/src/utils/terminologyMigration.ts',
-  '/src/utils/reasoningAvailabilityCacheKey.mjs',
-]
 const APP_MODEL_DATA_PATTERNS = ['/src/models/modelRegistryData.json']
 
 const parseDevServerPort = (rawPort) => {
@@ -96,10 +88,6 @@ const resolveAppChunk = (id) => {
 
   if (APP_REASONING_SERVICE_PATTERNS.some((pattern) => normalizedId.includes(pattern))) {
     return 'app-reasoning-service'
-  }
-
-  if (APP_REASONING_POLICY_PATTERNS.some((pattern) => normalizedId.includes(pattern))) {
-    return 'app-reasoning-policy'
   }
 
   if (APP_MODEL_DATA_PATTERNS.some((pattern) => normalizedId.includes(pattern))) {

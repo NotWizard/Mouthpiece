@@ -7,10 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Internal
-
-- Removed two unused runtime dependencies (`object-assign`, `shadcn-ui`) from package.json; `object-assign` remains as a transitive dependency only, and `shadcn-ui` is the CLI scaffolder which doesn't need to ship with the app.
-
 ### Changed
 
 - Reduced macOS paste latency: the pre-paste wait is now a clipboard-ready poll (capped at 50ms) instead of a flat 120ms sleep, so dictation results land in the target app roughly 100ms sooner on the common path.
@@ -27,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Vite renderer build now targets esnext (Electron 36 / Chromium 124+ supports ES2022+ natively, so the down-compile helpers are no longer needed) and pre-bundles react / react-dom/client / i18next / react-i18next via optimizeDeps.include for faster cold dev start.
 - i18n preload no longer re-loads the English bundle when a non-English locale is selected (English resources are already seeded inline), saving one redundant backend init step on startup for non-English users.
 - Compressed `src/assets/icons/providers/llama.svg` via svgo multipass (precision=2), trimming ~1.6 KB (~27%) off the largest provider icon.
+
+### Internal
+
+- Removed two unused runtime dependencies (`object-assign`, `shadcn-ui`) from package.json; `object-assign` remains as a transitive dependency only, and `shadcn-ui` is the CLI scaffolder which doesn't need to ship with the app.
+- Dropped the `APP_REASONING_POLICY_PATTERNS` manualChunks grouping in vite.config.mjs so Rollup can tree-shake `prompts.ts` and its siblings into the chunks that actually need them, instead of being force-pinned into a single large `app-reasoning-policy` chunk that the eager audio pipeline import pulled into the initial graph.
 
 ### Fixed
 
