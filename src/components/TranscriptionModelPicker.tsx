@@ -383,8 +383,12 @@ export default function TranscriptionModelPicker({
   const colorScheme: ColorScheme = variant === "settings" ? "purple" : "blue";
   const styles = useMemo(() => MODEL_PICKER_COLORS[colorScheme], [colorScheme]);
   const cloudProviders = useMemo(() => getTranscriptionProviders(), []);
-  const cloudProviderTabs = CLOUD_PROVIDER_TABS.map((provider) =>
-    provider.id === "custom" ? { ...provider, name: t("transcription.customProvider") } : provider
+  const cloudProviderTabs = useMemo(
+    () =>
+      CLOUD_PROVIDER_TABS.map((provider) =>
+        provider.id === "custom" ? { ...provider, name: t("transcription.customProvider") } : provider
+      ),
+    [t]
   );
 
   useEffect(() => {
@@ -795,6 +799,12 @@ export default function TranscriptionModelPicker({
     ]
   );
 
+  // Collapse the 7 individual API-key inputs into a single string fingerprint
+  // so this effect only re-fires when one of them actually changes content,
+  // instead of re-running whenever React re-renders for an unrelated reason
+  // and any one of those 10 dep slots happens to be a fresh string identity.
+  const apiKeysHash = `${openaiApiKey}|${deepgramApiKey}|${groqApiKey}|${mistralApiKey}|${sonioxApiKey}|${bailianApiKey}|${customTranscriptionApiKey}`;
+
   useEffect(() => {
     if (useLocalWhisper) return;
     loadDiscoveredCloudModels();
@@ -802,13 +812,7 @@ export default function TranscriptionModelPicker({
     useLocalWhisper,
     selectedCloudProvider,
     cloudTranscriptionBaseUrl,
-    openaiApiKey,
-    deepgramApiKey,
-    groqApiKey,
-    mistralApiKey,
-    sonioxApiKey,
-    bailianApiKey,
-    customTranscriptionApiKey,
+    apiKeysHash,
     loadDiscoveredCloudModels,
   ]);
 
@@ -941,9 +945,7 @@ export default function TranscriptionModelPicker({
     [showConfirmDialog, deleteModel, validateAndSelectModel, t]
   );
 
-  const cloudModelOptions = useMemo(() => {
-    return discoveredCloudModelOptions;
-  }, [discoveredCloudModelOptions]);
+  const cloudModelOptions = discoveredCloudModelOptions;
 
   const handleRefreshDiscoveredModels = () => {
     loadDiscoveredCloudModels(selectedCloudProvider, true);
