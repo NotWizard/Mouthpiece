@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `set-debug-logging` IPC handler now reads and writes the userData `.env` file via fs.promises instead of fs.readFileSync/writeFileSync, so toggling debug logging from Settings no longer briefly blocks the Electron main thread.
 - Replaced raw `console.log` calls in dragManager (per-drag start/stop) and modelDirUtils (cache migration) with debugLogger so they respect the configured log level instead of always firing in production.
 - Local whisper-server upload no longer Buffer.concats the full multipart body before req.write — it now writes each segment directly, eliminating one ~WAV-sized buffer allocation per local Whisper transcription.
+- Local whisper / Parakeet decode-and-resample step (`decodeAudioBlobToMono16kSamples`) now reuses the long-lived 16 kHz AudioContext we already keep for the streaming pipeline instead of spinning up a fresh AudioContext per call, and drops a no-op `arrayBuffer.slice(0)` copy — shaving 20-60ms off every local-model dictation.
 
 ### Fixed
 

@@ -1242,30 +1242,28 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   async decodeAudioBlobToMono16kSamples(audioBlob) {
-    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
     const OfflineAudioContextCtor = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    if (!AudioContextCtor || !OfflineAudioContextCtor) {
+    if (!OfflineAudioContextCtor) {
       throw new Error("Web Audio decoding is unavailable");
     }
 
-    const audioContext = new AudioContextCtor();
-    try {
-      const arrayBuffer = await audioBlob.arrayBuffer();
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
-      const sampleRate = 16000;
-      const length = Math.max(1, Math.ceil(audioBuffer.duration * sampleRate));
-      const offlineContext = new OfflineAudioContextCtor(1, length, sampleRate);
-      const source = offlineContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(offlineContext.destination);
-      source.start();
-      const renderedBuffer = await offlineContext.startRendering();
-      return renderedBuffer.getChannelData(0).slice();
-    } finally {
-      if (audioContext.state !== "closed") {
-        audioContext.close().catch(() => {});
-      }
-    }
+    // Reuse the long-lived 16 kHz AudioContext we already maintain for the
+    // streaming pipeline (lazy-created via getOrCreateAudioContext) instead of
+    // spinning up a fresh AudioContext on every call.  decodeAudioData on any
+    // AudioContext returns a context-independent AudioBuffer, so the
+    // persistent context is safe here.
+    const audioContext = await this.getOrCreateAudioContext();
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    const sampleRate = 16000;
+    const length = Math.max(1, Math.ceil(audioBuffer.duration * sampleRate));
+    const offlineContext = new OfflineAudioContextCtor(1, length, sampleRate);
+    const source = offlineContext.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(offlineContext.destination);
+    source.start();
+    const renderedBuffer = await offlineContext.startRendering();
+    return renderedBuffer.getChannelData(0).slice();
   }
 
   samplesToWavBlob(samples, sampleRate = 16000) {
