@@ -32,6 +32,47 @@ const readArgLogLevel = () => {
   return null;
 };
 
+// Keep only this many recent debug-*.log files, AND discard anything older than
+// LOG_MAX_AGE_MS regardless of count.  Without this the logs directory grows
+// forever (one new file per launch), eventually consuming GBs of userData.
+const LOG_KEEP_RECENT = 20;
+const LOG_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+
+const pruneOldLogFiles = (logsDir) => {
+  try {
+    const entries = fs.readdirSync(logsDir);
+    const now = Date.now();
+    const candidates = [];
+    for (const name of entries) {
+      if (!/^debug-.*\.log$/.test(name)) continue;
+      const full = path.join(logsDir, name);
+      try {
+        const stat = fs.statSync(full);
+        if (!stat.isFile()) continue;
+        candidates.push({ full, mtimeMs: stat.mtimeMs });
+      } catch (_) {
+        // ignore unstattable entries
+      }
+    }
+    // Newest first.
+    candidates.sort((a, b) => b.mtimeMs - a.mtimeMs);
+    for (let i = 0; i < candidates.length; i += 1) {
+      const entry = candidates[i];
+      const tooOld = now - entry.mtimeMs > LOG_MAX_AGE_MS;
+      const overCount = i >= LOG_KEEP_RECENT;
+      if (tooOld || overCount) {
+        try {
+          fs.unlinkSync(entry.full);
+        } catch (_) {
+          // best effort — skip files we cannot delete
+        }
+      }
+    }
+  } catch (_) {
+    // logs dir might be brand new or unreadable; silent no-op.
+  }
+};
+
 class DebugLogger {
   constructor() {
     this.logLevel = this.resolveLogLevel();
@@ -62,6 +103,8 @@ class DebugLogger {
       if (!fs.existsSync(logsDir)) {
         fs.mkdirSync(logsDir, { recursive: true });
       }
+
+      pruneOldLogFiles(logsDir);
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
       this.logFile = path.join(logsDir, `debug-${timestamp}.log`);
