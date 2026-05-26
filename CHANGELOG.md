@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MediaRecorder now records as audio/webm;codecs=opus at 32 kbps (with feature-detect fallback) and emits 100ms chunks via start(100), so blobs are ~3× smaller and the recorder's onstop fires faster because the last chunk is already encoded.
 - Control panel window controls react to maximize/unmaximize events directly instead of polling the main process once per second, removing ~86k idle IPC calls per day per open control panel.
 - The reasoning model selector's GPU status badge pauses its 5-second background poll while the window is hidden (minimised / background), so no idle IPC traffic runs against the local llama-server when the user isn't looking at the panel.
+- Dictation capsule now memoises its per-frame visual state, layout calculations, and the four live-preview style objects, so the audio-rate parent re-render no longer re-allocates layout output and inline style literals every frame.
 
 ### Fixed
 

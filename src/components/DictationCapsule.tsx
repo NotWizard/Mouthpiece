@@ -1,6 +1,7 @@
 import {
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   memo,
@@ -462,15 +463,17 @@ export default function DictationCapsule({
     active: isRecording,
   });
 
-  const visualState = getDictationCapsuleVisualState({
-    isTranscribing,
-    elapsedMs: transitionElapsedMs,
-  });
-  const recordingLayout = getDictationCapsuleLayout({ stage: "recording" });
-  const previewLayout = getDictationCapsuleLayout({ stage: "preview" });
-  const layout = liveShellActive
-    ? previewLayout
-    : getDictationCapsuleLayout({ stage: visualState.stage });
+  const visualState = useMemo(
+    () => getDictationCapsuleVisualState({ isTranscribing, elapsedMs: transitionElapsedMs }),
+    [isTranscribing, transitionElapsedMs]
+  );
+  const recordingLayout = useMemo(() => getDictationCapsuleLayout({ stage: "recording" }), []);
+  const previewLayout = useMemo(() => getDictationCapsuleLayout({ stage: "preview" }), []);
+  const layout = useMemo(
+    () =>
+      liveShellActive ? previewLayout : getDictationCapsuleLayout({ stage: visualState.stage }),
+    [liveShellActive, previewLayout, visualState.stage]
+  );
   const glowColor = isRecording ? "rgba(255, 132, 132, 0.48)" : "rgba(244, 166, 89, 0.26)";
   const borderColor =
     isRecording || isProcessing || isTranscribing
@@ -493,42 +496,56 @@ export default function DictationCapsule({
   const transcribingContentTransform = visualState.showCompactContent
     ? "translateY(0) scale(1)"
     : "translateY(5px) scale(0.96)";
-  const livePreviewViewportStyle = {
-    WebkitMaskImage: showTranscriptPreview || showListeningGhost ? LIVE_PREVIEW_EDGE_MASK : "none",
-    maskImage: showTranscriptPreview || showListeningGhost ? LIVE_PREVIEW_EDGE_MASK : "none",
-  };
-  const transcriptEntranceStyle = showTranscriptPreview
-    ? {
-        opacity: isTranscriptEntranceActive ? 1 : 0.01,
-        filter: isTranscriptEntranceActive ? "blur(0px)" : "blur(7px)",
-        transform: isTranscriptEntranceActive
-          ? "translate3d(0, 0, 0) scale(1)"
-          : "translate3d(0, 7px, 0) scale(0.988)",
-        clipPath: isTranscriptEntranceActive
-          ? "inset(0 0% 0 0 round 10px)"
-          : "inset(0 100% 0 0 round 10px)",
-        transitionDuration: `${LIVE_PREVIEW_ENTRANCE_DURATION_MS}ms`,
-      }
-    : {
-        opacity: 1,
-        filter: "blur(0px)",
-        transform: "translate3d(0, 0, 0) scale(1)",
-        clipPath: "inset(0 0% 0 0 round 10px)",
-        transitionDuration: "140ms",
-      };
-  const listeningGhostStyle = {
-    opacity: isTranscriptEntranceActive ? 0 : 0.88,
-    filter: isTranscriptEntranceActive ? "blur(6px)" : "blur(0px)",
-    transform: isTranscriptEntranceActive
-      ? "translate3d(0, -5px, 0) scale(0.985)"
-      : "translate3d(0, 0, 0) scale(1)",
-    transitionDuration: `${LIVE_PREVIEW_GHOST_EXIT_DURATION_MS}ms`,
-  };
-  const livePreviewTextStyle = {
-    transform: `translate3d(${livePreviewOffsetPx}px, 0, 0)`,
-    opacity: showTranscriptPreview ? 1 : 0.84,
-    transitionDuration: `${showTranscriptPreview ? LIVE_PREVIEW_SCROLL_DURATION_MS : 140}ms`,
-  };
+  const livePreviewViewportStyle = useMemo<CSSProperties>(
+    () => ({
+      WebkitMaskImage:
+        showTranscriptPreview || showListeningGhost ? LIVE_PREVIEW_EDGE_MASK : "none",
+      maskImage: showTranscriptPreview || showListeningGhost ? LIVE_PREVIEW_EDGE_MASK : "none",
+    }),
+    [showTranscriptPreview, showListeningGhost]
+  );
+  const transcriptEntranceStyle = useMemo<CSSProperties>(
+    () =>
+      showTranscriptPreview
+        ? {
+            opacity: isTranscriptEntranceActive ? 1 : 0.01,
+            filter: isTranscriptEntranceActive ? "blur(0px)" : "blur(7px)",
+            transform: isTranscriptEntranceActive
+              ? "translate3d(0, 0, 0) scale(1)"
+              : "translate3d(0, 7px, 0) scale(0.988)",
+            clipPath: isTranscriptEntranceActive
+              ? "inset(0 0% 0 0 round 10px)"
+              : "inset(0 100% 0 0 round 10px)",
+            transitionDuration: `${LIVE_PREVIEW_ENTRANCE_DURATION_MS}ms`,
+          }
+        : {
+            opacity: 1,
+            filter: "blur(0px)",
+            transform: "translate3d(0, 0, 0) scale(1)",
+            clipPath: "inset(0 0% 0 0 round 10px)",
+            transitionDuration: "140ms",
+          },
+    [showTranscriptPreview, isTranscriptEntranceActive]
+  );
+  const listeningGhostStyle = useMemo<CSSProperties>(
+    () => ({
+      opacity: isTranscriptEntranceActive ? 0 : 0.88,
+      filter: isTranscriptEntranceActive ? "blur(6px)" : "blur(0px)",
+      transform: isTranscriptEntranceActive
+        ? "translate3d(0, -5px, 0) scale(0.985)"
+        : "translate3d(0, 0, 0) scale(1)",
+      transitionDuration: `${LIVE_PREVIEW_GHOST_EXIT_DURATION_MS}ms`,
+    }),
+    [isTranscriptEntranceActive]
+  );
+  const livePreviewTextStyle = useMemo<CSSProperties>(
+    () => ({
+      transform: `translate3d(${livePreviewOffsetPx}px, 0, 0)`,
+      opacity: showTranscriptPreview ? 1 : 0.84,
+      transitionDuration: `${showTranscriptPreview ? LIVE_PREVIEW_SCROLL_DURATION_MS : 140}ms`,
+    }),
+    [livePreviewOffsetPx, showTranscriptPreview]
+  );
 
   return (
     <button
