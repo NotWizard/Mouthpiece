@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import DictationCapsule from "./components/DictationCapsule.tsx";
@@ -107,6 +107,62 @@ export default function App() {
     isTranscribing,
     isProcessing,
   });
+
+  // Capsule event handlers — wrapped in useCallback so the memo'd
+  // DictationCapsule isn't forced to re-render every time App re-renders for
+  // unrelated reasons (audio level updates, partial-transcript ticks, etc.).
+  const handleCapsuleMouseDown = useCallback(
+    (event) => {
+      setIsCommandMenuOpen(false);
+      setDragStartPos({ x: event.clientX, y: event.clientY });
+      setHasDragged(false);
+      handleMouseDown(event);
+    },
+    [handleMouseDown]
+  );
+  const handleCapsuleMouseMove = useCallback(
+    (event) => {
+      if (dragStartPos && !hasDragged) {
+        const distance = Math.sqrt(
+          Math.pow(event.clientX - dragStartPos.x, 2) +
+            Math.pow(event.clientY - dragStartPos.y, 2)
+        );
+        if (distance > 5) {
+          setHasDragged(true);
+        }
+      }
+    },
+    [dragStartPos, hasDragged]
+  );
+  const handleCapsuleMouseUp = useCallback(
+    (event) => {
+      handleMouseUp(event);
+      setDragStartPos(null);
+    },
+    [handleMouseUp]
+  );
+  const handleCapsuleClick = useCallback(
+    (event) => {
+      if (!hasDragged) {
+        setIsCommandMenuOpen(false);
+        toggleListening();
+      }
+      event.preventDefault();
+    },
+    [hasDragged, toggleListening]
+  );
+  const handleCapsuleContextMenu = useCallback(
+    (event) => {
+      event.preventDefault();
+      if (!hasDragged) {
+        setWindowInteractivity(true);
+        setIsCommandMenuOpen((previous) => !previous);
+      }
+    },
+    [hasDragged, setWindowInteractivity]
+  );
+  const handleCapsuleFocus = useCallback(() => setIsHovered(true), []);
+  const handleCapsuleBlur = useCallback(() => setIsHovered(false), []);
 
   // Variant B translation badge: blue pill with the target language ISO code,
   // shown only while the current dictation session was triggered by the
@@ -315,44 +371,13 @@ export default function App() {
                 isTranscribing={capsuleIsBusy}
                 isDragging={isDragging}
                 translationModeBadge={translationModeBadge}
-                onMouseDown={(event) => {
-                  setIsCommandMenuOpen(false);
-                  setDragStartPos({ x: event.clientX, y: event.clientY });
-                  setHasDragged(false);
-                  handleMouseDown(event);
-                }}
-                onMouseMove={(event) => {
-                  if (dragStartPos && !hasDragged) {
-                    const distance = Math.sqrt(
-                      Math.pow(event.clientX - dragStartPos.x, 2) +
-                        Math.pow(event.clientY - dragStartPos.y, 2)
-                    );
-
-                    if (distance > 5) {
-                      setHasDragged(true);
-                    }
-                  }
-                }}
-                onMouseUp={(event) => {
-                  handleMouseUp(event);
-                  setDragStartPos(null);
-                }}
-                onClick={(event) => {
-                  if (!hasDragged) {
-                    setIsCommandMenuOpen(false);
-                    toggleListening();
-                  }
-                  event.preventDefault();
-                }}
-                onContextMenu={(event) => {
-                  event.preventDefault();
-                  if (!hasDragged) {
-                    setWindowInteractivity(true);
-                    setIsCommandMenuOpen((previous) => !previous);
-                  }
-                }}
-                onFocus={() => setIsHovered(true)}
-                onBlur={() => setIsHovered(false)}
+                onMouseDown={handleCapsuleMouseDown}
+                onMouseMove={handleCapsuleMouseMove}
+                onMouseUp={handleCapsuleMouseUp}
+                onClick={handleCapsuleClick}
+                onContextMenu={handleCapsuleContextMenu}
+                onFocus={handleCapsuleFocus}
+                onBlur={handleCapsuleBlur}
               />
             )}
 
