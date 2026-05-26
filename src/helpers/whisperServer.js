@@ -465,7 +465,7 @@ class WhisperServerManager extends EventEmitter {
     parts.push(`--${boundary}--\r\n`);
 
     const bodyParts = parts.map((part) => (typeof part === "string" ? Buffer.from(part) : part));
-    const body = Buffer.concat(bodyParts);
+    const contentLength = bodyParts.reduce((sum, part) => sum + part.length, 0);
 
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
@@ -478,7 +478,7 @@ class WhisperServerManager extends EventEmitter {
           method: "POST",
           headers: {
             "Content-Type": `multipart/form-data; boundary=${boundary}`,
-            "Content-Length": body.length,
+            "Content-Length": contentLength,
           },
           timeout: 300000,
         },
@@ -517,7 +517,11 @@ class WhisperServerManager extends EventEmitter {
         reject(new Error("whisper-server request timed out"));
       });
 
-      req.write(body);
+      // Write each multipart segment individually so we do not pay for a
+      // Buffer.concat over the entire (potentially MB-sized) WAV payload.
+      for (const part of bodyParts) {
+        req.write(part);
+      }
       req.end();
     });
   }

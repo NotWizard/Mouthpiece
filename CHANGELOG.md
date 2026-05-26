@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dropped the `APP_REASONING_POLICY_PATTERNS` manualChunks grouping in vite.config.mjs so Rollup can tree-shake `prompts.ts` and its siblings into the chunks that actually need them, instead of being force-pinned into a single large `app-reasoning-policy` chunk that the eager audio pipeline import pulled into the initial graph.
 - The `set-debug-logging` IPC handler now reads and writes the userData `.env` file via fs.promises instead of fs.readFileSync/writeFileSync, so toggling debug logging from Settings no longer briefly blocks the Electron main thread.
 - Replaced raw `console.log` calls in dragManager (per-drag start/stop) and modelDirUtils (cache migration) with debugLogger so they respect the configured log level instead of always firing in production.
+- Local whisper-server upload no longer Buffer.concats the full multipart body before req.write — it now writes each segment directly, eliminating one ~WAV-sized buffer allocation per local Whisper transcription.
 
 ### Fixed
 
