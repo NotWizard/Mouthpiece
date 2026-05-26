@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Slimmed the Google Fonts request from 10 Noto Sans variants (italic 300/400/500/600/700 + upright 300) down to the 4 upright weights actually used in CSS (400/500/600/700), cutting first-paint font payload by roughly 150-250 KB.
 - Vite renderer build now targets esnext (Electron 36 / Chromium 124+ supports ES2022+ natively, so the down-compile helpers are no longer needed) and pre-bundles react / react-dom/client / i18next / react-i18next via optimizeDeps.include for faster cold dev start.
 - i18n preload no longer re-loads the English bundle when a non-English locale is selected (English resources are already seeded inline), saving one redundant backend init step on startup for non-English users.
+- Compressed `src/assets/icons/providers/llama.svg` via svgo multipass (precision=2), trimming ~1.6 KB (~27%) off the largest provider icon.
 
 ### Fixed
 
