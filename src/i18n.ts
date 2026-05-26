@@ -79,7 +79,7 @@ void i18n
     partialBundledLanguages: true,
     lng: initialLanguage,
     fallbackLng: "en",
-    preload: initialLanguage === "en" ? ["en"] : ["en", initialLanguage],
+    preload: initialLanguage === "en" ? ["en"] : [initialLanguage],
     ns: ["translation", "prompts"],
     defaultNS: "translation",
     interpolation: {
