@@ -151,6 +151,9 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       assetsDir: 'assets',
       chunkSizeWarningLimit: 700,
+      // Electron 36 ships Chromium >= 124, which natively supports ES2022+.
+      // Down-compiling to a lower target adds helper code we will never need.
+      target: 'esnext',
       rollupOptions: {
         external: [
           'electron',
@@ -184,6 +187,16 @@ export default defineConfig(({ mode }) => {
           },
         },
       }
-    }
+    },
+    optimizeDeps: {
+      // Pre-bundle hot ESM deps so cold dev start doesn't pay the resolution
+      // cost on every module these import from.
+      include: [
+        'react',
+        'react-dom/client',
+        'i18next',
+        'react-i18next',
+      ],
+    },
   }
 })

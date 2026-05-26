@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Control panel memoises the updater banner action object and stabilises the sidebar / history "open settings" / "open referrals" callbacks, so toggling the update banner no longer cascades into a sidebar + history re-render.
 - Transcription model picker now memoises its cloud provider tab list and discovers cloud models when any one API key actually changes (collapsed into a single fingerprint dependency) instead of whenever React reruns the effect with referentially-different but value-identical inputs. Also removes a no-op useMemo wrapper.
 - Slimmed the Google Fonts request from 10 Noto Sans variants (italic 300/400/500/600/700 + upright 300) down to the 4 upright weights actually used in CSS (400/500/600/700), cutting first-paint font payload by roughly 150-250 KB.
+- Vite renderer build now targets esnext (Electron 36 / Chromium 124+ supports ES2022+ natively, so the down-compile helpers are no longer needed) and pre-bundles react / react-dom/client / i18next / react-i18next via optimizeDeps.include for faster cold dev start.
 
 ### Fixed
 
