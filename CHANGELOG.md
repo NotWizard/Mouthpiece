@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.4] - 2026-05-27
+
 ### Fixed
 
 - AI translation language selector now defaults to "en-US" (English US) instead of a bare "en" that did not match any dropdown option, so new users see the correct "English (US)" label and the option is properly highlighted on first enable.
