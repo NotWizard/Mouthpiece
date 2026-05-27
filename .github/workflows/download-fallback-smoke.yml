@@ -28,7 +28,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "22"
+          node-version: "26"
 
       - name: Run fallback smoke check
         run: node scripts/check-download-utils-fallback.js
