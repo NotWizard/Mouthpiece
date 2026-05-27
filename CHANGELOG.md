@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- AI translation language selector now defaults to "en-US" (English US) instead of a bare "en" that did not match any dropdown option, so new users see the correct "English (US)" label and the option is properly highlighted on first enable.
+
 ### Changed
 
 - Reduced macOS paste latency: the pre-paste wait is now a clipboard-ready poll (capped at 50ms) instead of a flat 120ms sleep, so dictation results land in the target app roughly 100ms sooner on the common path.

@@ -399,7 +399,7 @@ function AiModelsSection({
                 checked={translationEnabled}
                 onChange={(value) => {
                   if (value && !translationTargetLang) {
-                    setTranslationTargetLang("en");
+                    setTranslationTargetLang("en-US");
                   }
                   setTranslationEnabled(value);
                 }}
