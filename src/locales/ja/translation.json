@@ -941,7 +941,24 @@
       "soundEffects": {
         "dictationSounds": "ディクテーション音",
         "dictationSoundsDescription": "録音の開始・停止時に効果音を再生",
-        "title": "サウンドエフェクト"
+        "title": "サウンドエフェクト",
+        "preset": "サウンドスタイル",
+        "presetDescription": "ディクテーション通知のサウンドスタイルを選択",
+        "presetPreview": "試聴",
+        "presets": {
+          "classic": "クラシック",
+          "retro": "レトロアーケード",
+          "bubble": "バブルポップ",
+          "scifi": "SF",
+          "marimba": "マリンバ",
+          "playful": "ポップ",
+          "robot": "ロボット",
+          "gentle": "やさしいチャイム",
+          "typewriter": "タイプライター",
+          "coin": "コイン",
+          "laser": "レーザー",
+          "whistle": "ホイッスル"
+        }
       },
       "startup": {
         "launchAtLogin": "ログイン時に起動",

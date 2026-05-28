@@ -11,6 +11,7 @@ import {
   Monitor,
   Key,
   ChevronDown,
+  Volume2,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { NEON_AUTH_URL } from "../lib/neonAuth";
@@ -48,6 +49,15 @@ import { cn } from "./lib/utils";
 import { UI_LANGUAGE_OPTIONS } from "../locales/localeManifest";
 import { CURRENT_CACHE_DIRNAME } from "../config/productIdentity";
 import { getModelCachePathHint } from "../utils/modelCachePathHint";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "./ui/select";
+import { SOUND_PRESETS } from "../utils/soundPresets";
+import { playPresetPreview } from "../utils/dictationCues";
 
 export type SettingsSectionType =
   | "general"
@@ -540,6 +550,8 @@ export default function SettingsPage({
     setCloudReasoningMode,
     audioCuesEnabled,
     setAudioCuesEnabled,
+    soundPreset,
+    setSoundPreset,
   } = useSettings();
 
   const { t, i18n } = useTranslation();
@@ -896,6 +908,41 @@ export default function SettingsPage({
                     <Toggle checked={audioCuesEnabled} onChange={setAudioCuesEnabled} />
                   </SettingsRow>
                 </SettingsPanelRow>
+                {audioCuesEnabled && (
+                  <SettingsPanelRow>
+                    <SettingsRow
+                      label={t("settingsPage.general.soundEffects.preset")}
+                      description={t("settingsPage.general.soundEffects.presetDescription")}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Select value={soundPreset} onValueChange={setSoundPreset}>
+                          <SelectTrigger className="min-w-40">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {SOUND_PRESETS.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.icon} {t(p.labelKey)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0"
+                          onClick={() => {
+                            void playPresetPreview("start", soundPreset);
+                            setTimeout(() => void playPresetPreview("stop", soundPreset), 600);
+                          }}
+                        >
+                          <Volume2 className="w-3.5 h-3.5 mr-1" />
+                          {t("settingsPage.general.soundEffects.presetPreview")}
+                        </Button>
+                      </div>
+                    </SettingsRow>
+                  </SettingsPanelRow>
+                )}
               </SettingsPanel>
             </div>
 

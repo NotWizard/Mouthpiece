@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- 12 dictation sound effect presets (Classic, Retro Arcade, Bubble Pop, Sci-Fi, Marimba, Playful Bounce, Robot, Gentle Chime, Typewriter, Coin Collect, Laser Zap, Whistle) selectable from Settings > Sound Effects, all synthesized via Web Audio API with zero bundle size impact.
+- Preview button in settings to audition each sound preset before selecting it.
+
 ## [1.4.4] - 2026-05-27
 
 ### Fixed

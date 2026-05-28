@@ -979,7 +979,24 @@
       "soundEffects": {
         "dictationSounds": "听写音效",
         "dictationSoundsDescription": "在录音开始和停止时播放提示音",
-        "title": "音效"
+        "title": "音效",
+        "preset": "音效风格",
+        "presetDescription": "选择听写提示音的音效风格",
+        "presetPreview": "试听",
+        "presets": {
+          "classic": "经典",
+          "retro": "复古街机",
+          "bubble": "气泡",
+          "scifi": "科幻",
+          "marimba": "木琴",
+          "playful": "俏皮弹跳",
+          "robot": "机器人",
+          "gentle": "柔和钟声",
+          "typewriter": "打字机",
+          "coin": "金币收集",
+          "laser": "激光",
+          "whistle": "口哨"
+        }
       },
       "startup": {
         "launchAtLogin": "登录时启动",

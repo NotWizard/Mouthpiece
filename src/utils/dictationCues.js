@@ -1,13 +1,6 @@
 import logger from "./logger";
 import { getSettings } from "../stores/settingsStore";
-
-const START_NOTES = [523.25, 659.25];
-const STOP_NOTES = [587.33, 440];
-const NOTE_DURATION_SECONDS = 0.09;
-const NOTE_GAP_SECONDS = 0.025;
-const NOTE_ATTACK_SECONDS = 0.015;
-const MAX_GAIN = 0.2;
-const MIN_GAIN = 0.0001;
+import { getPresetById } from "./soundPresets";
 
 let audioContext = null;
 
@@ -50,41 +43,22 @@ export const resumeContextIfNeeded = async () => {
   }
 };
 
-const scheduleTone = (context, frequency, startTime) => {
-  const oscillator = context.createOscillator();
-  const gainNode = context.createGain();
-  const stopTime = startTime + NOTE_DURATION_SECONDS;
-
-  oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(frequency, startTime);
-
-  gainNode.gain.setValueAtTime(MIN_GAIN, startTime);
-  gainNode.gain.linearRampToValueAtTime(MAX_GAIN, startTime + NOTE_ATTACK_SECONDS);
-  gainNode.gain.exponentialRampToValueAtTime(MIN_GAIN, stopTime);
-
-  oscillator.connect(gainNode);
-  gainNode.connect(context.destination);
-
-  oscillator.start(startTime);
-  oscillator.stop(stopTime + 0.01);
-};
-
 const isEnabled = () => getSettings().audioCuesEnabled;
 
-const playCue = async (notes) => {
+const playCue = async (type) => {
   try {
     if (!isEnabled()) return;
 
     const context = await resumeContextIfNeeded();
-    if (!context) {
-      return;
-    }
+    if (!context) return;
 
+    const preset = getPresetById(getSettings().soundPreset);
     const baseTime = context.currentTime + 0.005;
-    notes.forEach((frequency, index) => {
-      const noteStart = baseTime + index * (NOTE_DURATION_SECONDS + NOTE_GAP_SECONDS);
-      scheduleTone(context, frequency, noteStart);
-    });
+    if (type === "start") {
+      preset.playStart(context, baseTime);
+    } else {
+      preset.playStop(context, baseTime);
+    }
   } catch (error) {
     logger.debug(
       "Failed to play dictation cue",
@@ -94,6 +68,27 @@ const playCue = async (notes) => {
   }
 };
 
-export const playStartCue = () => playCue(START_NOTES);
+export const playStartCue = () => playCue("start");
 
-export const playStopCue = () => playCue(STOP_NOTES);
+export const playStopCue = () => playCue("stop");
+
+export const playPresetPreview = async (type, presetId) => {
+  try {
+    const context = await resumeContextIfNeeded();
+    if (!context) return;
+
+    const preset = getPresetById(presetId || getSettings().soundPreset);
+    const baseTime = context.currentTime + 0.005;
+    if (type === "start") {
+      preset.playStart(context, baseTime);
+    } else {
+      preset.playStop(context, baseTime);
+    }
+  } catch (error) {
+    logger.debug(
+      "Failed to play preset preview",
+      { error: error instanceof Error ? error.message : String(error) },
+      "audio"
+    );
+  }
+};

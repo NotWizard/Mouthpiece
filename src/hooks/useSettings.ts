@@ -172,6 +172,8 @@ function useSettingsInternal() {
       setTheme: s.setTheme,
       audioCuesEnabled: s.audioCuesEnabled,
       setAudioCuesEnabled: s.setAudioCuesEnabled,
+      soundPreset: s.soundPreset,
+      setSoundPreset: s.setSoundPreset,
       selectedMicDeviceId: s.selectedMicDeviceId,
       setSelectedMicDeviceId: s.setSelectedMicDeviceId,
       cloudBackupEnabled: s.cloudBackupEnabled,

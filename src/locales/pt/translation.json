@@ -966,7 +966,24 @@
       "soundEffects": {
         "dictationSounds": "Sons de ditado",
         "dictationSoundsDescription": "Tocar um som ao iniciar e parar a gravação",
-        "title": "Efeitos sonoros"
+        "title": "Efeitos sonoros",
+        "preset": "Estilo de som",
+        "presetDescription": "Escolha um estilo de som para os sinais de ditado",
+        "presetPreview": "Ouvir",
+        "presets": {
+          "classic": "Clássico",
+          "retro": "Retro Arcade",
+          "bubble": "Bolha",
+          "scifi": "Ficção científica",
+          "marimba": "Marimba",
+          "playful": "Brincalhão",
+          "robot": "Robô",
+          "gentle": "Sino suave",
+          "typewriter": "Máquina de escrever",
+          "coin": "Moeda",
+          "laser": "Laser",
+          "whistle": "Assobio"
+        }
       },
       "startup": {
         "launchAtLogin": "Iniciar ao fazer login",

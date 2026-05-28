@@ -979,7 +979,24 @@
       "soundEffects": {
         "dictationSounds": "Diktat-Signaltöne",
         "dictationSoundsDescription": "Ton abspielen, wenn die Aufnahme startet und stoppt",
-        "title": "Soundeffekte"
+        "title": "Soundeffekte",
+        "preset": "Sound-Stil",
+        "presetDescription": "Wählen Sie einen Klangstil für Diktat-Signaltöne",
+        "presetPreview": "Anhören",
+        "presets": {
+          "classic": "Klassisch",
+          "retro": "Retro Arcade",
+          "bubble": "Blubberblasen",
+          "scifi": "Sci-Fi",
+          "marimba": "Marimba",
+          "playful": "Verspielt",
+          "robot": "Roboter",
+          "gentle": "Sanfter Klang",
+          "typewriter": "Schreibmaschine",
+          "coin": "Münzsammeln",
+          "laser": "Laserstrahl",
+          "whistle": "Pfiff"
+        }
       },
       "startup": {
         "launchAtLogin": "Beim Anmelden starten",

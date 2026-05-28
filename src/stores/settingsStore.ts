@@ -269,6 +269,7 @@ export interface SettingsState
     ThemeSettings {
   isSignedIn: boolean;
   audioCuesEnabled: boolean;
+  soundPreset: string;
 
   setUseLocalWhisper: (value: boolean) => void;
   setWhisperModel: (value: string) => void;
@@ -323,6 +324,7 @@ export interface SettingsState
   setAllowSensitiveAppCloudReasoning: (value: boolean) => void;
   setAllowSensitiveAppPasteMonitoring: (value: boolean) => void;
   setAudioCuesEnabled: (value: boolean) => void;
+  setSoundPreset: (value: string) => void;
   setIsSignedIn: (value: boolean) => void;
 
   updateTranscriptionSettings: (settings: Partial<TranscriptionSettings>) => void;
@@ -534,6 +536,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   allowSensitiveAppCloudReasoning: readBoolean("allowSensitiveAppCloudReasoning", false),
   allowSensitiveAppPasteMonitoring: readBoolean("allowSensitiveAppPasteMonitoring", false),
   audioCuesEnabled: readBoolean("audioCuesEnabled", true),
+  soundPreset: readString("soundPreset", "classic"),
   isSignedIn: CLOUD_AUTH_AVAILABLE ? readBoolean("isSignedIn", false) : false,
 
   setUseLocalWhisper: createBooleanSetter("useLocalWhisper"),
@@ -655,6 +658,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setAllowSensitiveAppCloudReasoning: createBooleanSetter("allowSensitiveAppCloudReasoning"),
   setAllowSensitiveAppPasteMonitoring: createBooleanSetter("allowSensitiveAppPasteMonitoring"),
   setAudioCuesEnabled: createBooleanSetter("audioCuesEnabled"),
+  setSoundPreset: createStringSetter("soundPreset"),
 
   setIsSignedIn: (value: boolean) => {
     if (isBrowser) localStorage.setItem("isSignedIn", String(value));

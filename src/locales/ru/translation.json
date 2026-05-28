@@ -979,7 +979,24 @@
       "soundEffects": {
         "dictationSounds": "Звуки диктовки",
         "dictationSoundsDescription": "Воспроизводить звуковой сигнал при начале и окончании записи",
-        "title": "Звуковые эффекты"
+        "title": "Звуковые эффекты",
+        "preset": "Стиль звука",
+        "presetDescription": "Выберите стиль звука для сигналов диктовки",
+        "presetPreview": "Прослушать",
+        "presets": {
+          "classic": "Классический",
+          "retro": "Ретро аркада",
+          "bubble": "Пузырёк",
+          "scifi": "Научная фантастика",
+          "marimba": "Маримба",
+          "playful": "Игривый",
+          "robot": "Робот",
+          "gentle": "Мягкий перезвон",
+          "typewriter": "Печатная машинка",
+          "coin": "Монетка",
+          "laser": "Лазер",
+          "whistle": "Свисток"
+        }
       },
       "startup": {
         "launchAtLogin": "Запускать при входе",

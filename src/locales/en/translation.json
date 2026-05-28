@@ -979,7 +979,24 @@
       "soundEffects": {
         "dictationSounds": "Dictation sounds",
         "dictationSoundsDescription": "Play a tone when recording starts and stops",
-        "title": "Sound Effects"
+        "title": "Sound Effects",
+        "preset": "Sound preset",
+        "presetDescription": "Choose a sound style for dictation cues",
+        "presetPreview": "Preview",
+        "presets": {
+          "classic": "Classic",
+          "retro": "Retro Arcade",
+          "bubble": "Bubble Pop",
+          "scifi": "Sci-Fi",
+          "marimba": "Marimba",
+          "playful": "Playful Bounce",
+          "robot": "Robot",
+          "gentle": "Gentle Chime",
+          "typewriter": "Typewriter",
+          "coin": "Coin Collect",
+          "laser": "Laser Zap",
+          "whistle": "Whistle"
+        }
       },
       "startup": {
         "launchAtLogin": "Launch at login",

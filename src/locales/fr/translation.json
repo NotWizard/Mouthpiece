@@ -979,7 +979,24 @@
       "soundEffects": {
         "dictationSounds": "Sons de dictée",
         "dictationSoundsDescription": "Jouer un son au début et à la fin de l'enregistrement",
-        "title": "Effets sonores"
+        "title": "Effets sonores",
+        "preset": "Style de son",
+        "presetDescription": "Choisissez un style de son pour les signaux de dictée",
+        "presetPreview": "Écouter",
+        "presets": {
+          "classic": "Classique",
+          "retro": "Rétro Arcade",
+          "bubble": "Bulle",
+          "scifi": "Sci-Fi",
+          "marimba": "Marimba",
+          "playful": "Ludique",
+          "robot": "Robot",
+          "gentle": "Carillon doux",
+          "typewriter": "Machine à écrire",
+          "coin": "Pièce de monnaie",
+          "laser": "Laser",
+          "whistle": "Sifflement"
+        }
       },
       "startup": {
         "launchAtLogin": "Lancer au démarrage",

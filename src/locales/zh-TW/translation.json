@@ -979,7 +979,24 @@
       "soundEffects": {
         "dictationSounds": "語音輸入音效",
         "dictationSoundsDescription": "錄音開始和結束時播放提示音",
-        "title": "音效"
+        "title": "音效",
+        "preset": "音效風格",
+        "presetDescription": "選擇語音輸入提示音的音效風格",
+        "presetPreview": "試聽",
+        "presets": {
+          "classic": "經典",
+          "retro": "復古街機",
+          "bubble": "氣泡",
+          "scifi": "科幻",
+          "marimba": "木琴",
+          "playful": "俏皮彈跳",
+          "robot": "機器人",
+          "gentle": "柔和鐘聲",
+          "typewriter": "打字機",
+          "coin": "金幣收集",
+          "laser": "雷射",
+          "whistle": "口哨"
+        }
       },
       "startup": {
         "launchAtLogin": "登入時啟動",
