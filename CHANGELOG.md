@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 12 dictation sound effect presets (Classic, Retro Arcade, Bubble Pop, Sci-Fi, Marimba, Playful Bounce, Robot, Gentle Chime, Typewriter, Coin Collect, Laser Zap, Whistle) selectable from Settings > Sound Effects, all synthesized via Web Audio API with zero bundle size impact.
 - Preview button in settings to audition each sound preset before selecting it.
 
+### Fixed
+
+- Bailian (DashScope) realtime transcription no longer intermittently silently falls back to the batch model. The renderer used to start streaming audio before the main-process WebSocket handshake had completed; any leading audio frames were dropped because the buffering branch only kicked in once the socket existed. With nothing reaching server-side VAD, the realtime turn never committed and the empty-text fallback at the end of the take demoted to qwen3-asr-flash. Audio is now buffered through the cold-connect window and replayed as soon as the session attaches.
+- Bailian realtime warm connection now schedules a single best-effort re-warm after a server-side idle close, so the next dictation does not pay full cold-connect latency.
+- The streaming → batch fallback is now logged at warn level (was info) so the silent demotion is more visible in debug logs.
+
 ## [1.4.4] - 2026-05-27
 
 ### Fixed

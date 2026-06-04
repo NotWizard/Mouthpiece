@@ -4299,12 +4299,19 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     }
 
     // If streaming produced no text, fall back to batch transcription
-    // (batch fallback records usage server-side via /api/transcribe)
+    // (batch fallback records usage server-side via /api/transcribe).
+    // Use warn-level so the demotion is visible in logs — the toast
+    // wired through onTranscriptionComplete.fallbackUsed already shows
+    // it in the UI.
     let usedBatchFallback = false;
     if (!finalText && durationSeconds > 2 && fallbackBlob?.size > 0) {
-      logger.info(
+      logger.warn(
         "Streaming produced no text, falling back to batch transcription",
-        { durationSeconds, blobSize: fallbackBlob.size },
+        {
+          durationSeconds,
+          blobSize: fallbackBlob.size,
+          provider: streamingProviderName,
+        },
         "streaming"
       );
       try {

@@ -316,8 +316,30 @@ class QwenRealtimeStreaming {
     });
 
     socket.on("close", () => {
-      if (this.warmConnection === socket) {
-        this.cleanupWarmConnection({ closeSocket: false });
+      if (this.warmConnection !== socket) {
+        return;
+      }
+      // Capture options before cleanup wipes them so we can re-warm.
+      const lastOptions = this.warmConnectionOptions;
+      this.cleanupWarmConnection({ closeSocket: false });
+
+      // Server-side idle close used to leave the next session paying full
+      // cold-connect cost. Schedule a single best-effort re-warm so the
+      // hot path stays warm. setImmediate avoids a re-entrant warmup if
+      // the close fires synchronously inside another path.
+      if (lastOptions?.apiKey) {
+        setImmediate(() => {
+          if (this.hasWarmConnection() || this.isDisconnecting) {
+            return;
+          }
+          this.warmup(lastOptions).catch((error) => {
+            debugLogger.debug(
+              "Bailian realtime auto-rewarm after idle close failed",
+              { error: error?.message },
+              "streaming"
+            );
+          });
+        });
       }
     });
   }
@@ -568,10 +590,12 @@ class QwenRealtimeStreaming {
     const normalizedBuffer = Buffer.isBuffer(audioBuffer) ? audioBuffer : Buffer.from(audioBuffer);
 
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.sessionConfigured) {
-      if (
-        this.ws &&
-        (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)
-      ) {
+      // Buffer whenever the session is plausibly still coming up, including
+      // the cold-connect window where this.ws is null (renderer started
+      // recording before main finished the WS handshake). flushPendingAudio
+      // drains the queue once attachActiveSocket completes. The buffer is
+      // bounded by PENDING_AUDIO_BUFFER_MAX (~3 s of 16-bit @ 16 kHz).
+      if (!this.isDisconnecting) {
         this.appendPendingAudio(normalizedBuffer);
       }
       return false;
