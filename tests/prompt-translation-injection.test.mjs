@@ -45,3 +45,65 @@ test("getSystemPrompt auto-appends the language sentence only on translation-hot
 test("getSystemPrompt does not perform any string-level placeholder replace", () => {
   assert.doesNotMatch(source, /prompt\.replaceAll\(/);
 });
+
+test("prompts.ts exports both Chinese and English versions of the safety guardrail", () => {
+  assert.match(source, /export const SAFETY_GUARDRAIL_SUFFIX_ZH\s*=/);
+  assert.match(source, /export const SAFETY_GUARDRAIL_SUFFIX_EN\s*=/);
+  assert.match(source, /SAFETY_GUARDRAIL_SUFFIX_ZH[\s\S]*?安全护栏/);
+  assert.match(source, /SAFETY_GUARDRAIL_SUFFIX_ZH[\s\S]*?<transcript>/);
+  assert.match(source, /SAFETY_GUARDRAIL_SUFFIX_EN[\s\S]*?SAFETY GUARDRAIL/);
+  assert.match(source, /SAFETY_GUARDRAIL_SUFFIX_EN[\s\S]*?<transcript>/);
+});
+
+test("prompts.ts exports getSafetyGuardrailSuffix routing by uiLanguage", () => {
+  assert.match(source, /export function getSafetyGuardrailSuffix\(uiLanguage\?:\s*string\)/);
+  // The helper must return ZH for zh-* locales and EN otherwise.
+  assert.match(
+    source,
+    /locale\.startsWith\("zh"\)\s*\?\s*SAFETY_GUARDRAIL_SUFFIX_ZH\s*:\s*SAFETY_GUARDRAIL_SUFFIX_EN/
+  );
+});
+
+test("getSystemPrompt unconditionally appends the routed guardrail (top-level, not gated)", () => {
+  // The append statement must appear at top level of getSystemPrompt — NOT
+  // inside an `if` — so the guardrail is injected for every caller regardless
+  // of custom-prompt / dictionary / terminology / translation state. This is
+  // the load-bearing line for the upgrade scenario: existing users whose
+  // saved customCleanupPrompt predates the guardrail still get protected.
+  assert.match(source, /\n {2}prompt \+= getSafetyGuardrailSuffix\(uiLanguage\);/);
+});
+
+test("guardrail injection happens before the translation directive (translation directive must stay last)", () => {
+  const guardrailIndex = source.indexOf("prompt += getSafetyGuardrailSuffix");
+  const translationBlockIndex = source.indexOf("translationContext?.enabled");
+  assert.ok(guardrailIndex > 0, "guardrail injection statement missing");
+  assert.ok(translationBlockIndex > 0, "translation block missing");
+  assert.ok(
+    guardrailIndex < translationBlockIndex,
+    "guardrail must be appended BEFORE the translation directive so the language directive stays last"
+  );
+});
+
+test("default cleanup prompt body no longer ships the safety guardrail (runtime-injected instead)", async () => {
+  const fs = await import("node:fs/promises");
+  const promptDataJson = JSON.parse(
+    await fs.readFile(new URL("../src/config/promptData.json", import.meta.url), "utf8")
+  );
+  assert.doesNotMatch(promptDataJson.CLEANUP_PROMPT, /安全护栏/);
+  assert.doesNotMatch(promptDataJson.CLEANUP_PROMPT, /<transcript>/);
+});
+
+test("every locale cleanupPrompt body is free of the safety guardrail (runtime-injected instead)", async () => {
+  const fs = await import("node:fs/promises");
+  const locales = ["en", "de", "es", "fr", "it", "ja", "pt", "ru", "zh-CN", "zh-TW"];
+  for (const loc of locales) {
+    const data = JSON.parse(
+      await fs.readFile(
+        new URL(`../src/locales/${loc}/prompts.json`, import.meta.url),
+        "utf8"
+      )
+    );
+    assert.doesNotMatch(data.cleanupPrompt, /安全护栏/, `${loc} cleanupPrompt still contains 安全护栏`);
+    assert.doesNotMatch(data.cleanupPrompt, /<transcript>/, `${loc} cleanupPrompt still contains <transcript> tag`);
+  }
+});
