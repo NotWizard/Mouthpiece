@@ -6,6 +6,13 @@ const crypto = require("crypto");
 const AppUtils = require("../utils");
 const debugLogger = require("./debugLogger");
 const { i18nMain, changeLanguage } = require("./i18nMain");
+// Inline copy of the wrapper used in src/utils/transcriptWrapper.ts —
+// duplicated here because main-process CommonJS cannot require() the
+// renderer-side ESM .ts. The function is stateless and three lines.
+function wrapTranscript(text) {
+  const escaped = String(text == null ? "" : text).replace(/<\/transcript>/gi, "</transcript_>");
+  return `<transcript>\n${escaped}\n</transcript>`;
+}
 // Streaming-provider classes (each pulls in the `ws` WebSocket client and
 // the provider-specific glue). Resolved lazily on first `new` so a renderer
 // using only the selected provider doesn't parse the other three at startup.
@@ -1716,7 +1723,7 @@ class IPCHandlers {
         }
 
         const systemPrompt = config?.systemPrompt || "";
-        const userPrompt = text;
+        const userPrompt = wrapTranscript(text);
 
         if (!modelId) {
           throw new Error("No model specified for Anthropic API call");
@@ -2277,7 +2284,7 @@ class IPCHandlers {
             Cookie: cookieHeader,
           },
           body: JSON.stringify({
-            text,
+            text: wrapTranscript(text),
             model: opts.model,
             customDictionary: opts.customDictionary,
             customPrompt: opts.customPrompt,

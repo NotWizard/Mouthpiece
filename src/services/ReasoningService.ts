@@ -8,6 +8,7 @@ import { isSecureEndpoint } from "../utils/urlUtils";
 import { withSessionRefresh } from "../lib/neonAuth";
 import { getSettings, isCloudReasoningMode } from "../stores/settingsStore";
 import { readCustomCleanupPrompt } from "../utils/promptStorage";
+import { wrapTranscript } from "../utils/transcriptWrapper";
 
 type CloudReasoningRequest = {
   endpoint: string;
@@ -366,7 +367,7 @@ class ReasoningService extends BaseReasoningService {
     providerName: string
   ): Promise<string> {
     const systemPrompt = this.resolveSystemPrompt(text, config);
-    const userPrompt = text;
+    const userPrompt = wrapTranscript(text);
 
     const messages = [
       { role: "system", content: systemPrompt },
@@ -601,7 +602,7 @@ class ReasoningService extends BaseReasoningService {
 
     try {
       const systemPrompt = this.resolveSystemPrompt(text, config);
-      const userPrompt = text;
+      const userPrompt = wrapTranscript(text);
 
       const messages = [
         { role: "system", content: systemPrompt },
@@ -959,14 +960,22 @@ class ReasoningService extends BaseReasoningService {
 
     try {
       const systemPrompt = this.resolveSystemPrompt(text, config);
-      const userPrompt = text;
+      const userPrompt = wrapTranscript(text);
 
       const requestBody = {
+        system_instruction: {
+          parts: [
+            {
+              text: systemPrompt,
+            },
+          ],
+        },
         contents: [
           {
+            role: "user",
             parts: [
               {
-                text: `${systemPrompt}\n\n${userPrompt}`,
+                text: userPrompt,
               },
             ],
           },

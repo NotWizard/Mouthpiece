@@ -13,6 +13,14 @@ const modelRegistryData = require("../models/modelRegistryData.json");
 const LlamaServerManager = require("./llamaServer");
 const debugLogger = require("./debugLogger");
 const productIdentity = require("../config/productIdentity");
+
+// Inline copy of the wrapper used in src/utils/transcriptWrapper.ts —
+// duplicated here because main-process CommonJS cannot require() the
+// renderer-side ESM .ts. The function is stateless and three lines.
+function wrapTranscript(text) {
+  const escaped = String(text == null ? "" : text).replace(/<\/transcript>/gi, "</transcript_>");
+  return `<transcript>\n${escaped}\n</transcript>`;
+}
 const { resolveModelCacheDir } = require("../utils/modelCachePaths");
 
 const MIN_FILE_SIZE = 1_000_000; // 1MB minimum for valid model files
@@ -388,7 +396,7 @@ class ModelManager {
     // Build messages for chat completion
     const messages = [
       { role: "system", content: options.systemPrompt || "" },
-      { role: "user", content: prompt },
+      { role: "user", content: wrapTranscript(prompt) },
     ];
 
     debugLogger.logReasoning("INFERENCE_SENDING_REQUEST", {
