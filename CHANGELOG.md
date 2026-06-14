@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Bailian realtime dictation no longer intermittently waits for the session timeout and falls back to batch transcription when recording begins before the main-process helper or WebSocket session is ready. Pre-start PCM frames now create the realtime helper on demand, survive session-state reset, and flush after the configured socket attaches.
+
 ## [1.4.5] - 2026-06-04
 
 ### Added

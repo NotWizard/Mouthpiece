@@ -230,7 +230,7 @@ class QwenRealtimeStreaming {
     this.onSessionEnd?.(data);
   }
 
-  resetTranscriptState() {
+  resetTranscriptState({ preservePendingAudio = false } = {}) {
     this.sessionConfigured = false;
     this.finalizeSent = false;
     this.finishSent = false;
@@ -239,8 +239,9 @@ class QwenRealtimeStreaming {
     this.accumulatedText = "";
     this.liveText = "";
     this.completedItemIds = new Set();
-    this.pendingAudioBuffers = [];
-    this.pendingAudioBytes = 0;
+    if (!preservePendingAudio) {
+      this.clearPendingAudio();
+    }
     this.sessionEndEmitted = false;
   }
 
@@ -553,7 +554,7 @@ class QwenRealtimeStreaming {
       throw new Error("Alibaba Bailian API key is required for realtime transcription");
     }
 
-    this.resetTranscriptState();
+    this.resetTranscriptState({ preservePendingAudio: true });
     this.currentLanguage = normalized.language || null;
     this.isDisconnecting = false;
 

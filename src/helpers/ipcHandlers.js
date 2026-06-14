@@ -3081,7 +3081,9 @@ class IPCHandlers {
 
     ipcMain.on("bailian-realtime-send", (_event, audioBuffer) => {
       try {
-        if (!this.bailianRealtimeStreaming) return;
+        if (!this.bailianRealtimeStreaming) {
+          this.bailianRealtimeStreaming = new QwenRealtimeStreaming();
+        }
         const buffer = Buffer.from(audioBuffer);
         this.bailianRealtimeStreaming.sendAudio(buffer);
       } catch (error) {

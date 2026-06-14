@@ -3770,8 +3770,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         this.streamingFallbackRecorder = null;
       }
 
-      // 2. Set up audio pipeline so frames flow the instant WebSocket is ready.
-      //    Frames sent before WebSocket connects are silently dropped by sendAudio().
+      // 2. Set up audio pipeline so frames flow immediately. Providers buffer
+      //    startup frames until their WebSocket session is ready.
       const audioContext = await this.getOrCreateAudioContext();
       this.streamingAudioContext = audioContext;
       this.streamingSource = audioContext.createMediaStreamSource(stream);

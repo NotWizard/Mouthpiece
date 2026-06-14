@@ -259,6 +259,55 @@ test("Bailian realtime finalize does not send manual commit events while VAD mod
   assert.deepEqual(sentEvents, []);
 });
 
+test("Bailian realtime connect flushes audio buffered before startup completes", async () => {
+  const QwenRealtimeStreaming = await loadQwenRealtimeStreaming();
+  const streaming = new QwenRealtimeStreaming();
+  const sentEvents = [];
+  const socket = {
+    readyState: 1,
+    send(payload) {
+      sentEvents.push(JSON.parse(payload));
+    },
+    removeAllListeners() {},
+    on() {},
+    close() {},
+    terminate() {},
+  };
+
+  streaming.sendAudio(Buffer.alloc(640, 1));
+  streaming.createConfiguredSocket = async () => ({
+    socket,
+    sessionId: "session-1",
+    model: "qwen3-asr-flash-realtime",
+  });
+
+  await streaming.connect({
+    apiKey: "test-key",
+    language: "zh",
+  });
+
+  const appendEvents = sentEvents.filter(
+    (event) => event.type === "input_audio_buffer.append"
+  );
+  assert.equal(appendEvents.length, 1);
+  assert.equal(streaming.audioBytesSent, 640);
+  assert.equal(streaming.pendingAudioBytes, 0);
+});
+
+test("Bailian realtime IPC creates the helper before accepting pre-start audio", async () => {
+  const source = await readRepoFile("src/helpers/ipcHandlers.js");
+  const sendHandler = source.match(
+    /ipcMain\.on\("bailian-realtime-send",[\s\S]*?\n    \}\);/
+  )?.[0];
+
+  assert.ok(sendHandler, "expected Bailian realtime send handler");
+  assert.match(
+    sendHandler,
+    /if \(!this\.bailianRealtimeStreaming\) \{\s*this\.bailianRealtimeStreaming = new QwenRealtimeStreaming\(\);\s*\}/
+  );
+  assert.match(sendHandler, /this\.bailianRealtimeStreaming\.sendAudio\(buffer\)/);
+});
+
 test("Bailian realtime keeps contiguous Chinese transcript segments compact across VAD turns", async () => {
   const QwenRealtimeStreaming = await loadQwenRealtimeStreaming();
   const streaming = new QwenRealtimeStreaming();
