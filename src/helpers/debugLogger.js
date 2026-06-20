@@ -36,7 +36,7 @@ const readArgLogLevel = () => {
 // LOG_MAX_AGE_MS regardless of count.  Without this the logs directory grows
 // forever (one new file per launch), eventually consuming GBs of userData.
 const LOG_KEEP_RECENT = 20;
-const LOG_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+const LOG_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 const pruneOldLogFiles = (logsDir) => {
   try {

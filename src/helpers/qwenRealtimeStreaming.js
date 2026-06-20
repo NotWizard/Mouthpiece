@@ -11,6 +11,8 @@ const SAMPLE_RATE = 16000;
 const WEBSOCKET_TIMEOUT_MS = 30000;
 const TERMINATION_TIMEOUT_MS = 5000;
 const PENDING_AUDIO_BUFFER_MAX = 3 * SAMPLE_RATE * 2;
+const WARM_CONNECTION_TTL_MS = 5 * 60 * 1000;
+const WARM_CONNECTION_LIVENESS_TIMEOUT_MS = 2500;
 const QWEN_REALTIME_TURN_DETECTION = Object.freeze({
   type: "server_vad",
   threshold: 0.5,
@@ -19,7 +21,7 @@ const QWEN_REALTIME_TURN_DETECTION = Object.freeze({
 });
 const CJK_CHARACTER_RE = /[\u3400-\u9FFF\uF900-\uFAFF\u3040-\u30FF]/u;
 const NO_SPACE_BEFORE_RE = /[),.?!%:;}\]，。！？、；：）》」』】]/u;
-const NO_SPACE_AFTER_RE = /[(\[{“‘《「『【]/u;
+const NO_SPACE_AFTER_RE = /[([{“‘《「『【]/u;
 
 function getFirstCharacter(text) {
   const characters = Array.from(typeof text === "string" ? text.trim() : "");
@@ -78,6 +80,14 @@ class QwenRealtimeStreaming {
     this.warmConnectionReady = false;
     this.warmConnectionOptions = null;
     this.warmSessionId = null;
+    this.warmConnectionCreatedAt = 0;
+    this.connectionOptions = null;
+    this.usedWarmConnectionForSession = false;
+    this.warmConnectionServerEventSeen = false;
+    this.warmConnectionReconnectAttempted = false;
+    this.warmConnectionLivenessTimer = null;
+    this.warmConnectionReplayBuffers = [];
+    this.warmConnectionReplayBytes = 0;
     this.sessionConfigured = false;
     this.sessionId = null;
     this.isConnected = false;
@@ -137,10 +147,25 @@ class QwenRealtimeStreaming {
   }
 
   hasWarmConnection() {
+    if (this.hasOpenWarmConnection() && this.isWarmConnectionExpired()) {
+      return false;
+    }
+
+    return this.hasOpenWarmConnection();
+  }
+
+  hasOpenWarmConnection() {
     return Boolean(
       this.warmConnection &&
       this.warmConnectionReady &&
       this.warmConnection.readyState === WebSocket.OPEN
+    );
+  }
+
+  isWarmConnectionExpired() {
+    return Boolean(
+      this.warmConnectionCreatedAt &&
+      Date.now() - this.warmConnectionCreatedAt > WARM_CONNECTION_TTL_MS
     );
   }
 
@@ -234,6 +259,12 @@ class QwenRealtimeStreaming {
     this.sessionConfigured = false;
     this.finalizeSent = false;
     this.finishSent = false;
+    this.connectionOptions = null;
+    this.usedWarmConnectionForSession = false;
+    this.warmConnectionServerEventSeen = false;
+    this.warmConnectionReconnectAttempted = false;
+    this.stopWarmConnectionLivenessCheck();
+    this.clearWarmConnectionReplayAudio();
     this.currentLanguage = null;
     this.audioBytesSent = 0;
     this.accumulatedText = "";
@@ -248,6 +279,66 @@ class QwenRealtimeStreaming {
   clearPendingAudio() {
     this.pendingAudioBuffers = [];
     this.pendingAudioBytes = 0;
+  }
+
+  clearWarmConnectionReplayAudio() {
+    this.warmConnectionReplayBuffers = [];
+    this.warmConnectionReplayBytes = 0;
+  }
+
+  appendWarmConnectionReplayAudio(audioBuffer) {
+    const copy = Buffer.from(audioBuffer);
+    this.warmConnectionReplayBuffers.push(copy);
+    this.warmConnectionReplayBytes += copy.length;
+
+    while (
+      this.warmConnectionReplayBuffers.length > 0 &&
+      this.warmConnectionReplayBytes > PENDING_AUDIO_BUFFER_MAX
+    ) {
+      const removed = this.warmConnectionReplayBuffers.shift();
+      this.warmConnectionReplayBytes -= removed?.length || 0;
+    }
+  }
+
+  stopWarmConnectionLivenessCheck() {
+    if (this.warmConnectionLivenessTimer) {
+      clearTimeout(this.warmConnectionLivenessTimer);
+      this.warmConnectionLivenessTimer = null;
+    }
+  }
+
+  startWarmConnectionLivenessCheck() {
+    if (
+      this.warmConnectionLivenessTimer ||
+      !this.usedWarmConnectionForSession ||
+      this.warmConnectionServerEventSeen ||
+      this.warmConnectionReconnectAttempted
+    ) {
+      return;
+    }
+
+    this.warmConnectionLivenessTimer = setTimeout(() => {
+      this.warmConnectionLivenessTimer = null;
+      this.handleWarmConnectionLivenessTimeout().catch((error) => {
+        debugLogger.error(
+          "Bailian realtime warm connection liveness reconnect failed",
+          { error: error?.message },
+          "streaming"
+        );
+        this.onError?.(error);
+      });
+    }, WARM_CONNECTION_LIVENESS_TIMEOUT_MS);
+    this.warmConnectionLivenessTimer.unref?.();
+  }
+
+  markWarmConnectionServerEventSeen() {
+    if (!this.usedWarmConnectionForSession) {
+      return;
+    }
+
+    this.warmConnectionServerEventSeen = true;
+    this.stopWarmConnectionLivenessCheck();
+    this.clearWarmConnectionReplayAudio();
   }
 
   cleanupWarmConnection({ closeSocket = true, terminate = false } = {}) {
@@ -269,10 +360,12 @@ class QwenRealtimeStreaming {
     this.warmConnectionReady = false;
     this.warmConnectionOptions = null;
     this.warmSessionId = null;
+    this.warmConnectionCreatedAt = 0;
   }
 
   cleanupActiveConnection({ closeSocket = true, terminate = false } = {}) {
     const socket = this.ws;
+    this.stopWarmConnectionLivenessCheck();
     if (socket) {
       try {
         socket.removeAllListeners();
@@ -299,6 +392,7 @@ class QwenRealtimeStreaming {
     this.warmConnectionReady = true;
     this.warmConnectionOptions = this.normalizeOptions(options);
     this.warmSessionId = sessionId || null;
+    this.warmConnectionCreatedAt = Date.now();
     this.currentModel = model || QWEN_REALTIME_MODEL;
 
     socket.removeAllListeners("message");
@@ -375,17 +469,27 @@ class QwenRealtimeStreaming {
       };
       const resolve = this.closeResolve;
       const shouldError = wasActive && !this.isDisconnecting && !this.closeResolve;
+      const shouldRetryWarmClose = shouldError && this.shouldRetryWarmConnection();
 
       this.closeResolve = null;
       this.cleanupActiveConnection({ closeSocket: false });
       this.isDisconnecting = false;
 
-      if (wasActive) {
+      if (wasActive && !shouldRetryWarmClose) {
         this.emitSessionEndOnce(closeData);
       }
 
       if (resolve) {
         resolve(result);
+      } else if (shouldRetryWarmClose) {
+        this.reconnectWarmConnectionFromReplay("closed").catch((error) => {
+          debugLogger.error(
+            "Bailian realtime warm connection close reconnect failed",
+            { error: error?.message, code },
+            "streaming"
+          );
+          this.onError?.(error);
+        });
       } else if (shouldError) {
         this.onError?.(new Error(`Connection lost (code: ${code})`));
       }
@@ -408,6 +512,12 @@ class QwenRealtimeStreaming {
   }
 
   useWarmConnection(options = {}) {
+    if (this.hasOpenWarmConnection() && this.isWarmConnectionExpired()) {
+      debugLogger.warn("Bailian realtime warm connection expired; using cold start", {}, "streaming");
+      this.cleanupWarmConnection({ terminate: true });
+      return false;
+    }
+
     if (!this.hasWarmConnection() || !this.optionsMatch(options, this.warmConnectionOptions)) {
       if (this.hasWarmConnection() && !this.optionsMatch(options, this.warmConnectionOptions)) {
         this.cleanupWarmConnection({ terminate: true });
@@ -424,6 +534,11 @@ class QwenRealtimeStreaming {
     this.warmConnectionReady = false;
     this.warmConnectionOptions = null;
     this.warmSessionId = null;
+    this.warmConnectionCreatedAt = 0;
+    this.usedWarmConnectionForSession = true;
+    this.warmConnectionServerEventSeen = false;
+    this.warmConnectionReconnectAttempted = false;
+    this.clearWarmConnectionReplayAudio();
 
     this.attachActiveSocket(socket);
     this.sessionId = sessionId || null;
@@ -540,7 +655,10 @@ class QwenRealtimeStreaming {
       return;
     }
 
-    if (this.hasWarmConnection() && !this.optionsMatch(normalized, this.warmConnectionOptions)) {
+    if (
+      this.hasOpenWarmConnection() &&
+      (this.isWarmConnectionExpired() || !this.optionsMatch(normalized, this.warmConnectionOptions))
+    ) {
       this.cleanupWarmConnection({ terminate: true });
     }
 
@@ -555,6 +673,7 @@ class QwenRealtimeStreaming {
     }
 
     this.resetTranscriptState({ preservePendingAudio: true });
+    this.connectionOptions = normalized;
     this.currentLanguage = normalized.language || null;
     this.isDisconnecting = false;
 
@@ -567,6 +686,63 @@ class QwenRealtimeStreaming {
     this.sessionId = sessionId || null;
     this.currentModel = model || normalized.model;
     this.flushPendingAudio();
+  }
+
+  shouldRetryWarmConnection() {
+    return Boolean(
+      this.usedWarmConnectionForSession &&
+      !this.warmConnectionServerEventSeen &&
+      !this.warmConnectionReconnectAttempted &&
+      !this.isDisconnecting &&
+      !this.closeResolve &&
+      this.connectionOptions?.apiKey &&
+      this.warmConnectionReplayBuffers.length > 0
+    );
+  }
+
+  async handleWarmConnectionLivenessTimeout() {
+    this.stopWarmConnectionLivenessCheck();
+    if (!this.shouldRetryWarmConnection()) {
+      return false;
+    }
+
+    return this.reconnectWarmConnectionFromReplay("liveness-timeout");
+  }
+
+  async reconnectWarmConnectionFromReplay(reason) {
+    if (!this.shouldRetryWarmConnection()) {
+      return false;
+    }
+
+    const replayBuffers = this.warmConnectionReplayBuffers.map((buffer) => Buffer.from(buffer));
+    const replayBytes = this.warmConnectionReplayBytes;
+    const options = this.connectionOptions;
+    this.warmConnectionReconnectAttempted = true;
+    this.stopWarmConnectionLivenessCheck();
+
+    debugLogger.warn(
+      "Bailian realtime warm connection produced no server events; reconnecting cold",
+      { reason, replayBytes },
+      "streaming"
+    );
+
+    this.isDisconnecting = true;
+    this.cleanupActiveConnection({ closeSocket: false, terminate: true });
+    this.isDisconnecting = false;
+
+    this.clearPendingAudio();
+    this.clearWarmConnectionReplayAudio();
+    for (const buffer of replayBuffers) {
+      this.appendPendingAudio(buffer);
+    }
+
+    const { socket, sessionId, model } = await this.createConfiguredSocket(options);
+    this.attachActiveSocket(socket);
+    this.sessionId = sessionId || null;
+    this.currentModel = model || options.model;
+    this.usedWarmConnectionForSession = false;
+    this.flushPendingAudio();
+    return true;
   }
 
   appendPendingAudio(audioBuffer) {
@@ -600,6 +776,16 @@ class QwenRealtimeStreaming {
         this.appendPendingAudio(normalizedBuffer);
       }
       return false;
+    }
+
+    if (
+      this.usedWarmConnectionForSession &&
+      !this.warmConnectionServerEventSeen &&
+      !this.warmConnectionReconnectAttempted &&
+      this.connectionOptions?.apiKey
+    ) {
+      this.appendWarmConnectionReplayAudio(normalizedBuffer);
+      this.startWarmConnectionLivenessCheck();
     }
 
     this.audioBytesSent += normalizedBuffer.length;
@@ -666,6 +852,8 @@ class QwenRealtimeStreaming {
     if (!payload) {
       return;
     }
+
+    this.markWarmConnectionServerEventSeen();
 
     switch (payload.type) {
       case "conversation.item.input_audio_transcription.text": {

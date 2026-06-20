@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -14,6 +15,23 @@ async function loadQwenRealtimeStreaming() {
   ).href;
   const mod = await import(modulePath);
   return mod.default ?? mod;
+}
+
+function createFakeSocket(sentEvents = []) {
+  const socket = new EventEmitter();
+  socket.readyState = 1;
+  socket.closed = false;
+  socket.terminated = false;
+  socket.send = (payload) => {
+    sentEvents.push(JSON.parse(payload));
+  };
+  socket.close = () => {
+    socket.closed = true;
+  };
+  socket.terminate = () => {
+    socket.terminated = true;
+  };
+  return socket;
 }
 
 test("legacy Bailian realtime setting is retained only for migration compatibility", async () => {
@@ -306,6 +324,157 @@ test("Bailian realtime IPC creates the helper before accepting pre-start audio",
     /if \(!this\.bailianRealtimeStreaming\) \{\s*this\.bailianRealtimeStreaming = new QwenRealtimeStreaming\(\);\s*\}/
   );
   assert.match(sendHandler, /this\.bailianRealtimeStreaming\.sendAudio\(buffer\)/);
+});
+
+test("Bailian realtime drops expired warm connections before starting a session", async () => {
+  const QwenRealtimeStreaming = await loadQwenRealtimeStreaming();
+  const streaming = new QwenRealtimeStreaming();
+  const expiredSocket = createFakeSocket();
+  const coldSocket = createFakeSocket();
+  let coldConnects = 0;
+
+  streaming.attachWarmConnection(
+    expiredSocket,
+    { apiKey: "test-key", language: "zh" },
+    "warm-session",
+    "qwen3-asr-flash-realtime"
+  );
+  streaming.warmConnectionCreatedAt = Date.now() - 10 * 60 * 1000;
+  streaming.createConfiguredSocket = async () => {
+    coldConnects += 1;
+    return {
+      socket: coldSocket,
+      sessionId: "cold-session",
+      model: "qwen3-asr-flash-realtime",
+    };
+  };
+
+  await streaming.connect({ apiKey: "test-key", language: "zh" });
+
+  assert.equal(coldConnects, 1);
+  assert.equal(expiredSocket.terminated, true);
+  assert.equal(streaming.ws, coldSocket);
+  assert.equal(streaming.sessionId, "cold-session");
+});
+
+test("Bailian realtime reconnects a stale warm session and replays early audio once", async () => {
+  const QwenRealtimeStreaming = await loadQwenRealtimeStreaming();
+  const streaming = new QwenRealtimeStreaming();
+  const warmEvents = [];
+  const coldEvents = [];
+  const warmSocket = createFakeSocket(warmEvents);
+  const coldSocket = createFakeSocket(coldEvents);
+  let coldConnects = 0;
+  const errors = [];
+
+  streaming.onError = (error) => errors.push(error);
+  streaming.attachWarmConnection(
+    warmSocket,
+    { apiKey: "test-key", language: "zh" },
+    "warm-session",
+    "qwen3-asr-flash-realtime"
+  );
+  await streaming.connect({ apiKey: "test-key", language: "zh" });
+
+  streaming.createConfiguredSocket = async () => {
+    coldConnects += 1;
+    return {
+      socket: coldSocket,
+      sessionId: "cold-session",
+      model: "qwen3-asr-flash-realtime",
+    };
+  };
+  streaming.sendAudio(Buffer.alloc(640, 1));
+  await streaming.handleWarmConnectionLivenessTimeout();
+
+  assert.equal(coldConnects, 1);
+  assert.equal(errors.length, 0);
+  assert.equal(streaming.ws, coldSocket);
+  assert.equal(streaming.sessionId, "cold-session");
+  assert.equal(
+    warmEvents.filter((event) => event.type === "input_audio_buffer.append").length,
+    1
+  );
+  assert.equal(
+    coldEvents.filter((event) => event.type === "input_audio_buffer.append").length,
+    1
+  );
+  assert.equal(streaming.audioBytesSent, 1280);
+
+  await streaming.handleWarmConnectionLivenessTimeout();
+  assert.equal(coldConnects, 1);
+});
+
+test("Bailian realtime cancels warm stale detection once any server event arrives", async () => {
+  const QwenRealtimeStreaming = await loadQwenRealtimeStreaming();
+  const streaming = new QwenRealtimeStreaming();
+  const warmSocket = createFakeSocket();
+
+  streaming.attachWarmConnection(
+    warmSocket,
+    { apiKey: "test-key", language: "zh" },
+    "warm-session",
+    "qwen3-asr-flash-realtime"
+  );
+  await streaming.connect({ apiKey: "test-key", language: "zh" });
+  streaming.sendAudio(Buffer.alloc(640, 1));
+
+  assert.notEqual(streaming.warmConnectionLivenessTimer, null);
+
+  streaming.handleMessage(
+    JSON.stringify({
+      type: "input_audio_buffer.speech_started",
+      item_id: "turn-1",
+      audio_start_ms: 20,
+    })
+  );
+
+  assert.equal(streaming.warmConnectionLivenessTimer, null);
+  await streaming.handleWarmConnectionLivenessTimeout();
+  assert.equal(streaming.ws, warmSocket);
+});
+
+test("Bailian realtime retries a warm session close before surfacing connection loss", async () => {
+  const QwenRealtimeStreaming = await loadQwenRealtimeStreaming();
+  const streaming = new QwenRealtimeStreaming();
+  const warmEvents = [];
+  const coldEvents = [];
+  const warmSocket = createFakeSocket(warmEvents);
+  const coldSocket = createFakeSocket(coldEvents);
+  const errors = [];
+  const sessionEnds = [];
+  let coldConnects = 0;
+
+  streaming.onError = (error) => errors.push(error);
+  streaming.onSessionEnd = (data) => sessionEnds.push(data);
+  streaming.attachWarmConnection(
+    warmSocket,
+    { apiKey: "test-key", language: "zh" },
+    "warm-session",
+    "qwen3-asr-flash-realtime"
+  );
+  await streaming.connect({ apiKey: "test-key", language: "zh" });
+  streaming.createConfiguredSocket = async () => {
+    coldConnects += 1;
+    return {
+      socket: coldSocket,
+      sessionId: "cold-session",
+      model: "qwen3-asr-flash-realtime",
+    };
+  };
+
+  streaming.sendAudio(Buffer.alloc(640, 1));
+  warmSocket.emit("close", 1006, Buffer.from(""));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(coldConnects, 1);
+  assert.equal(errors.length, 0);
+  assert.equal(sessionEnds.length, 0);
+  assert.equal(streaming.ws, coldSocket);
+  assert.equal(
+    coldEvents.filter((event) => event.type === "input_audio_buffer.append").length,
+    1
+  );
 });
 
 test("Bailian realtime keeps contiguous Chinese transcript segments compact across VAD turns", async () => {
