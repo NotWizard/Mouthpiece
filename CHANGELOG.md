@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bailian realtime warm connections now expire after a short idle window and retry once with the first PCM frames replayed if the reused socket produces no server events, preventing stale first recordings from timing out or surfacing intermittent `Connection lost (code: 1006)` errors.
 - Bailian realtime dictation no longer intermittently waits for the session timeout and falls back to batch transcription when recording begins before the main-process helper or WebSocket session is ready. Pre-start PCM frames now create the realtime helper on demand, survive session-state reset, and flush after the configured socket attaches.
 
+### Internal
+
+- Release Windows builds now pin the GitHub Actions runner to `windows-2022`, avoiding VS2026/node-gyp native dependency rebuild failures during `npm ci`.
+
 ## [1.4.5] - 2026-06-04
 
 ### Added
