@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Internal
+
+- Agent instructions now live primarily in `AGENTS.md`, with `CLAUDE.md` delegating to it and release note writing rules documented in `Release_Notes_Guidelines.md`.
+
 ## [1.4.6] - 2026-06-20
 
 ### Fixed
