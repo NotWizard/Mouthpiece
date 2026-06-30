@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.7] - 2026-06-30
+
 ### Fixed
 
 - On macOS, the dictation capsule now moves to the display under the pointer before it is shown while preserving its dragged position when it is already on that display, preventing successful recordings from appearing to have no capsule in multi-monitor setups.
