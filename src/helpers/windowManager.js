@@ -723,7 +723,12 @@ class WindowManager {
       if (this.mainWindow.isMinimized()) {
         this.mainWindow.restore();
       }
+      const displayPlacement =
+        process.platform === "darwin"
+          ? WindowPositionUtil.moveMainWindowToCursorDisplay(this.mainWindow, screen)
+          : null;
       this.refreshMainWindowForCurrentSpace();
+      const wasVisible = this.mainWindow.isVisible();
       if (process.platform === "darwin" && typeof this.mainWindow.showInactive === "function") {
         this.mainWindow.showInactive();
       } else if (!this.mainWindow.isVisible()) {
@@ -737,6 +742,20 @@ class WindowManager {
       if (focus) {
         this.mainWindow.focus();
       }
+      debugLogger.debug(
+        "Dictation panel presentation",
+        {
+          ...displayPlacement,
+          wasVisible,
+          isVisible: this.mainWindow.isVisible(),
+          visibleOnAllWorkspaces:
+            process.platform === "darwin" &&
+            typeof this.mainWindow.isVisibleOnAllWorkspaces === "function"
+              ? this.mainWindow.isVisibleOnAllWorkspaces()
+              : undefined,
+        },
+        "window"
+      );
     }
   }
 

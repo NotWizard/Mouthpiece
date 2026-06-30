@@ -2,6 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const { WindowPositionUtil } = require("../src/helpers/windowConfig.js");
 
 async function readWindowManagerSource() {
   return fs.readFile(path.resolve(process.cwd(), "src/helpers/windowManager.js"), "utf8");
@@ -52,4 +56,70 @@ test("main window Space refresh keeps the panel above the current macOS desktop 
   assert.match(refreshBody, /process\.platform === "darwin"/);
   assert.match(refreshBody, /moveTop/);
   assert.doesNotMatch(refreshBody, /\.focus\(/);
+});
+
+test("dictation panel moves to the display under the cursor and preserves its current size", () => {
+  const bounds = { x: 788, y: 884, width: 344, height: 132 };
+  const currentDisplay = { id: 1, workArea: { x: 0, y: 0, width: 1920, height: 1080 } };
+  const targetDisplay = {
+    id: 2,
+    workArea: { x: -1512, y: 0, width: 1512, height: 950 },
+  };
+  const positions = [];
+  const window = {
+    getBounds: () => bounds,
+    setPosition: (x, y) => positions.push([x, y]),
+  };
+  const screen = {
+    getCursorScreenPoint: () => ({ x: -700, y: 400 }),
+    getDisplayMatching: () => currentDisplay,
+    getDisplayNearestPoint: () => targetDisplay,
+  };
+
+  const result = WindowPositionUtil.moveMainWindowToCursorDisplay(window, screen);
+
+  assert.deepEqual(positions, [[-928, 818]]);
+  assert.deepEqual(result, {
+    moved: true,
+    cursorPoint: { x: -700, y: 400 },
+    currentDisplayId: 1,
+    targetDisplayId: 2,
+    beforeBounds: bounds,
+    afterBounds: { x: -928, y: 818, width: 344, height: 132 },
+  });
+});
+
+test("dictation panel keeps its dragged position when the cursor remains on the same display", () => {
+  const bounds = { x: 220, y: 640, width: 344, height: 132 };
+  const display = { id: 1, workArea: { x: 0, y: 0, width: 1920, height: 1080 } };
+  let setPositionCalled = false;
+  const window = {
+    getBounds: () => bounds,
+    setPosition: () => {
+      setPositionCalled = true;
+    },
+  };
+  const screen = {
+    getCursorScreenPoint: () => ({ x: 900, y: 400 }),
+    getDisplayMatching: () => display,
+    getDisplayNearestPoint: () => display,
+  };
+
+  const result = WindowPositionUtil.moveMainWindowToCursorDisplay(window, screen);
+
+  assert.equal(setPositionCalled, false);
+  assert.equal(result.moved, false);
+  assert.deepEqual(result.afterBounds, bounds);
+});
+
+test("dictation panel resolves its active display before showing and logs the presentation state", async () => {
+  const source = await readWindowManagerSource();
+  const showBody = getMethodBody(source, "showDictationPanel");
+  const placementIndex = showBody.indexOf("moveMainWindowToCursorDisplay");
+  const showIndex = showBody.indexOf("showInactive");
+
+  assert.notEqual(placementIndex, -1, "showDictationPanel should resolve cursor display placement");
+  assert.notEqual(showIndex, -1, "showDictationPanel should show without stealing focus");
+  assert.ok(placementIndex < showIndex, "the panel must move before it is shown");
+  assert.match(showBody, /Dictation panel presentation/);
 });

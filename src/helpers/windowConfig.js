@@ -81,6 +81,33 @@ class WindowPositionUtil {
     return { x, y, width, height };
   }
 
+  static moveMainWindowToCursorDisplay(window, screenApi) {
+    const beforeBounds = window.getBounds();
+    const cursorPoint = screenApi.getCursorScreenPoint();
+    const currentDisplay = screenApi.getDisplayMatching(beforeBounds);
+    const targetDisplay = screenApi.getDisplayNearestPoint(cursorPoint);
+    const moved = currentDisplay.id !== targetDisplay.id;
+    let afterBounds = beforeBounds;
+
+    if (moved) {
+      const position = this.getMainWindowPosition(targetDisplay, {
+        width: beforeBounds.width,
+        height: beforeBounds.height,
+      });
+      window.setPosition(position.x, position.y);
+      afterBounds = { ...beforeBounds, x: position.x, y: position.y };
+    }
+
+    return {
+      moved,
+      cursorPoint,
+      currentDisplayId: currentDisplay.id,
+      targetDisplayId: targetDisplay.id,
+      beforeBounds,
+      afterBounds,
+    };
+  }
+
   static setupAlwaysOnTop(window) {
     if (process.platform === "darwin") {
       // macOS: Use panel level for proper floating behavior
