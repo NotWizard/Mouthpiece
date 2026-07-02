@@ -34,7 +34,7 @@ const AUDIO_PROCESSING_CONSTRAINTS = Object.freeze({
 
 const REALTIME_ENDPOINTING_BY_PROVIDER = Object.freeze({
   deepgram: { endpointing: 500, utteranceEndMs: 1000 },
-  bailian: { silenceDurationMs: 1200 },
+  bailian: { silenceDurationMs: 400 },
 });
 
 export function getAudioProcessingConstraints() {

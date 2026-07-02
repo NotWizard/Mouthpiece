@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.8] - 2026-07-02
+
+### Fixed
+
+- Bailian realtime transcription now uses the Qwen-ASR recommended server VAD threshold and 400 ms silence endpoint, improving quiet-speech pickup and reducing the wait for completed turns.
+- Live transcript text now enters and follows incoming partial results more quickly while preserving the existing capsule layout and visual treatment.
+
+### Internal
+
+- Updated stale realtime provider and live-preview wiring assertions to match the current lazy provider loading and primitive transcript props.
+
 ## [1.4.7] - 2026-06-30
 
 ### Fixed

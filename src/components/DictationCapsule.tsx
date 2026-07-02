@@ -25,9 +25,9 @@ import mouthpieceIcon from "../assets/mouthpiece-icon.png";
 const WAVEFORM_DOT_COUNT = 29;
 const LIVE_PREVIEW_RENDER_MAX_CHARS = 160;
 const LIVE_PREVIEW_TRAILING_REVEAL_PX = 12;
-const LIVE_PREVIEW_ENTRANCE_DURATION_MS = 320;
-const LIVE_PREVIEW_GHOST_EXIT_DURATION_MS = 260;
-const LIVE_PREVIEW_SCROLL_DURATION_MS = 240;
+const LIVE_PREVIEW_ENTRANCE_DURATION_MS = 120;
+const LIVE_PREVIEW_GHOST_EXIT_DURATION_MS = 120;
+const LIVE_PREVIEW_SCROLL_DURATION_MS = 100;
 const LIVE_PREVIEW_EDGE_MASK =
   "linear-gradient(90deg, black 0px, black calc(100% - 16px), transparent 100%)";
 

@@ -15,8 +15,8 @@ const WARM_CONNECTION_TTL_MS = 5 * 60 * 1000;
 const WARM_CONNECTION_LIVENESS_TIMEOUT_MS = 2500;
 const QWEN_REALTIME_TURN_DETECTION = Object.freeze({
   type: "server_vad",
-  threshold: 0.5,
-  silence_duration_ms: 1200,
+  threshold: 0.0,
+  silence_duration_ms: 400,
   prefix_padding_ms: 300,
 });
 const CJK_CHARACTER_RE = /[\u3400-\u9FFF\uF900-\uFAFF\u3040-\u30FF]/u;

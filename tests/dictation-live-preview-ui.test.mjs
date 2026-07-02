@@ -17,7 +17,8 @@ test("dictation overlay passes an explicit live-preview flag into the capsule", 
   );
   assert.match(source, /<DictationCapsule[\s\S]*showTranscriptPreview=\{showTranscriptPreview\}/);
   assert.match(source, /partialTranscriptSegments,/);
-  assert.match(source, /<DictationCapsule[\s\S]*livePreviewSegments=\{partialTranscriptSegments\}/);
+  assert.match(source, /<DictationCapsule[\s\S]*livePreviewActiveText=\{partialTranscriptSegments\?\.activeText \|\| ""\}/);
+  assert.match(source, /<DictationCapsule[\s\S]*livePreviewFullText=\{partialTranscriptSegments\?\.fullText \|\| ""\}/);
 });
 
 test("dictation capsule keeps the recording shell stable even before the first live transcript arrives", () => {
@@ -26,7 +27,7 @@ test("dictation capsule keeps the recording shell stable even before the first l
   assert.match(source, /const liveShellActive = isRecording;/);
   assert.match(
     source,
-    /const layout =\s*liveShellActive\s*\?\s*previewLayout\s*:\s*getDictationCapsuleLayout\(\{\s*stage:\s*visualState\.stage\s*\}\);/s
+    /const layout = useMemo\(\s*\(\) =>\s*liveShellActive \? previewLayout : getDictationCapsuleLayout\(\{ stage: visualState\.stage \}\),/s
   );
   assert.match(source, /\{liveShellActive && \(/);
 });
@@ -48,7 +49,7 @@ test("dictation capsule renders live transcript motion on a single measured text
   assert.match(source, /getLiveTranscriptOffsetPx/);
   assert.match(source, /useLayoutEffect/);
   assert.match(source, /ResizeObserver/);
-  assert.match(source, /const previewLayout = getDictationCapsuleLayout\(\{ stage: "preview" \}\);/);
+  assert.match(source, /const previewLayout = useMemo\(\(\) => getDictationCapsuleLayout\(\{ stage: "preview" \}\), \[\]\);/);
   assert.match(source, /translate3d\(\$\{livePreviewOffsetPx\}px, 0, 0\)/);
   assert.match(source, /WebkitMaskImage/);
   assert.match(source, /whitespace-nowrap/);
@@ -61,6 +62,9 @@ test("dictation capsule renders live transcript motion on a single measured text
 test("dictation capsule stages the first live transcript with a listening ghost exit and transcript reveal instead of a hard text swap", () => {
   const source = read("src/components/DictationCapsule.tsx");
 
+  assert.match(source, /const LIVE_PREVIEW_ENTRANCE_DURATION_MS = 120;/);
+  assert.match(source, /const LIVE_PREVIEW_GHOST_EXIT_DURATION_MS = 120;/);
+  assert.match(source, /const LIVE_PREVIEW_SCROLL_DURATION_MS = 100;/);
   assert.match(source, /const \[showListeningGhost, setShowListeningGhost\] = useState\(false\);/);
   assert.match(
     source,
@@ -112,10 +116,11 @@ test("dictation capsule renders the incoming partial transcript directly on the 
 test("dictation capsule renders a stable prefix and a live tail on the same measured rail so active speech keeps updating in place", () => {
   const source = read("src/components/DictationCapsule.tsx");
 
-  assert.match(source, /livePreviewSegments\?:/);
+  assert.match(source, /livePreviewActiveText\?: string;/);
+  assert.match(source, /livePreviewFullText\?: string;/);
   assert.match(source, /const livePreviewActiveCharCount =/);
   assert.match(source, /const livePreviewStableText =/);
-  assert.match(source, /const livePreviewActiveText =/);
+  assert.match(source, /const livePreviewDisplayedActiveText =/);
   assert.match(source, /data-live-transcript-role="stable"/);
   assert.match(source, /data-live-transcript-role="active"/);
 });

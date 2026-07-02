@@ -36,7 +36,7 @@ test("audio quality settings expose a single hardcoded preset", async () => {
     utteranceEndMs: 1000,
   });
   assert.deepEqual(mod.getRealtimeEndpointingConfig("bailian"), {
-    silenceDurationMs: 1200,
+    silenceDurationMs: 400,
   });
   assert.deepEqual(mod.getRealtimeEndpointingConfig("unknown"), {});
 });

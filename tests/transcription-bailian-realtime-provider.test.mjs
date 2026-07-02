@@ -52,8 +52,8 @@ test("legacy Bailian realtime setting is retained only for migration compatibili
   assert.match(settingsStoreSource, /migrateLegacyBailianRealtimeModel/);
 
   assert.match(settingsHookSource, /bailianRealtimeEnabled: boolean;/);
-  assert.match(settingsHookSource, /bailianRealtimeEnabled: store\.bailianRealtimeEnabled,/);
-  assert.match(settingsHookSource, /setBailianRealtimeEnabled: store\.setBailianRealtimeEnabled,/);
+  assert.match(settingsHookSource, /bailianRealtimeEnabled: s\.bailianRealtimeEnabled,/);
+  assert.match(settingsHookSource, /setBailianRealtimeEnabled: s\.setBailianRealtimeEnabled,/);
 });
 
 test("Bailian transcription capsule derives realtime mode from the selected model", async () => {
@@ -181,7 +181,7 @@ test("main-process bridge exposes Bailian realtime IPC and dedicated realtime he
 
   assert.match(
     ipcHandlersSource,
-    /const QwenRealtimeStreaming = require\("\.\/qwenRealtimeStreaming"\);/
+    /const QwenRealtimeStreaming = lazyStreamingClass\("\.\/qwenRealtimeStreaming"\);/
   );
   assert.match(ipcHandlersSource, /this\.bailianRealtimeStreaming = null;/);
   assert.match(ipcHandlersSource, /"bailian-realtime-warmup"/);
@@ -252,8 +252,8 @@ test("Bailian realtime session config keeps server VAD enabled for live partial 
   assert.equal(event.type, "session.update");
   assert.deepEqual(event.session.turn_detection, {
     type: "server_vad",
-    threshold: 0.5,
-    silence_duration_ms: 1200,
+    threshold: 0.0,
+    silence_duration_ms: 400,
     prefix_padding_ms: 300,
   });
 });
