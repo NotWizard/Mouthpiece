@@ -1,17 +1,16 @@
 import React from "react";
 import {
-  Home,
+  AudioLines,
   BookOpen,
+  CircleHelp,
+  Clock3,
   Download,
   Gift,
   HelpCircle,
   UserCircle,
-  Sliders,
-  Keyboard,
-  Mic,
-  Brain,
-  Shield,
-  Wrench,
+  SlidersHorizontal,
+  Sparkles,
+  ShieldCheck,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "./lib/utils";
@@ -65,20 +64,46 @@ export default function ControlPanelSidebar({
     userEmail,
   });
 
-  const navItems: {
+  const contentItems: {
     id: ControlPanelView;
     label: string;
     icon: React.ComponentType<{ size?: number; className?: string }>;
   }[] = [
-    { id: "home", label: t("sidebar.home"), icon: Home },
+    { id: "home", label: t("sidebar.home"), icon: Clock3 },
     { id: "dictionary", label: t("sidebar.dictionary"), icon: BookOpen },
-    { id: "general", label: t("settingsModal.sections.general.label"), icon: Sliders },
-    { id: "hotkeys", label: t("settingsModal.sections.hotkeys.label"), icon: Keyboard },
-    { id: "transcription", label: t("settingsModal.sections.transcription.label"), icon: Mic },
-    { id: "intelligence", label: t("settingsModal.sections.intelligence.label"), icon: Brain },
-    { id: "privacyData", label: t("settingsModal.sections.privacyData.label"), icon: Shield },
-    { id: "system", label: t("settingsModal.sections.system.label"), icon: Wrench },
   ];
+  const settingsItems: typeof contentItems = [
+    { id: "general", label: t("settingsModal.sections.general.label"), icon: SlidersHorizontal },
+    {
+      id: "transcription",
+      label: t("settingsModal.sections.transcription.label"),
+      icon: AudioLines,
+    },
+    { id: "intelligence", label: t("settingsModal.sections.intelligence.label"), icon: Sparkles },
+    { id: "privacyData", label: t("settingsModal.sections.privacyData.label"), icon: ShieldCheck },
+    { id: "system", label: t("settingsModal.sections.system.label"), icon: CircleHelp },
+  ];
+
+  const renderItems = (items: typeof contentItems) =>
+    items.map((item) => {
+      const Icon = item.icon;
+      const isActive =
+        activeView === item.id || (item.id === "general" && activeView === "hotkeys");
+
+      return (
+        <button
+          key={item.id}
+          onClick={() => onViewChange(item.id)}
+          className={cn(
+            "control-panel-sidebar-item group transition-colors duration-150",
+            isActive && "control-panel-sidebar-item-active"
+          )}
+        >
+          <Icon size={16} className="shrink-0 transition-colors duration-150" />
+          <span>{item.label}</span>
+        </button>
+      );
+    });
 
   return (
     <div className="control-panel-sidebar shrink-0 flex flex-col">
@@ -87,40 +112,15 @@ export default function ControlPanelSidebar({
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       />
 
-      <nav className="control-panel-sidebar-nav">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeView === item.id;
+      <div className="control-panel-sidebar-brand" aria-label="Mouthpiece">
+        <AudioLines size={20} />
+        <span>Mouthpiece</span>
+      </div>
 
-          return (
-            <button
-              key={item.id}
-              onClick={() => onViewChange(item.id)}
-              className={cn(
-                "control-panel-sidebar-item group transition-colors duration-150",
-                isActive && "control-panel-sidebar-item-active"
-              )}
-            >
-              <Icon
-                size={15}
-                className={cn(
-                  "shrink-0 transition-colors duration-150",
-                  isActive
-                    ? "text-current"
-                    : "text-foreground/55 group-hover:text-foreground/75"
-                )}
-              />
-              <span
-                className={cn(
-                  "text-xs transition-colors duration-150",
-                  isActive ? "font-medium text-current" : "text-current"
-                )}
-              >
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
+      <nav className="control-panel-sidebar-nav">
+        {renderItems(contentItems)}
+        <p className="control-panel-sidebar-section-label">{t("sidebar.settings")}</p>
+        {renderItems(settingsItems)}
       </nav>
 
       <div className="flex-1" />

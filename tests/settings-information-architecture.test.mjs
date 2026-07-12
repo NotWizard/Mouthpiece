@@ -18,47 +18,47 @@ test("intelligence settings no longer render a redundant custom setup mode card"
   assert.doesNotMatch(source, /\(isCustomMode \|\| !isSignedIn\) && \(/);
 });
 
-test("privacy data sidebar item is labeled as permissions in every locale", async () => {
+test("privacy data sidebar item is labeled as permissions and data in every locale", async () => {
   const expectedPrivacyDataLabels = {
     de: {
-      label: "Berechtigungen",
-      description: "Mikrofon- und Bedienungshilfen-Berechtigungen",
+      label: "Berechtigungen & Daten",
+      description: "Berechtigungen, Datenschutz und lokale Daten",
     },
     en: {
-      label: "Permissions",
-      description: "Microphone and accessibility permissions",
+      label: "Permissions & Data",
+      description: "Permissions, privacy, and local data",
     },
     es: {
-      label: "Permisos",
-      description: "Permisos de micrófono y accesibilidad",
+      label: "Permisos y datos",
+      description: "Permisos, privacidad y datos locales",
     },
     fr: {
-      label: "Autorisations",
-      description: "Autorisations du microphone et d'accessibilité",
+      label: "Autorisations et données",
+      description: "Autorisations, confidentialité et données locales",
     },
     it: {
-      label: "Permessi",
-      description: "Permessi per microfono e accessibilità",
+      label: "Permessi e dati",
+      description: "Permessi, privacy e dati locali",
     },
     ja: {
-      label: "権限",
-      description: "マイクとアクセシビリティの権限",
+      label: "権限とデータ",
+      description: "権限、プライバシー、ローカルデータ",
     },
     pt: {
-      label: "Permissões",
-      description: "Permissões de microfone e acessibilidade",
+      label: "Permissões e dados",
+      description: "Permissões, privacidade e dados locais",
     },
     ru: {
-      label: "Разрешения",
-      description: "Разрешения для микрофона и универсального доступа",
+      label: "Разрешения и данные",
+      description: "Разрешения, конфиденциальность и локальные данные",
     },
     "zh-CN": {
-      label: "权限",
-      description: "麦克风与辅助功能权限",
+      label: "权限与数据",
+      description: "权限、隐私与本地数据",
     },
     "zh-TW": {
-      label: "權限",
-      description: "麥克風與輔助使用權限",
+      label: "權限與資料",
+      description: "權限、隱私與本機資料",
     },
   };
 

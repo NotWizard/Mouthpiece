@@ -231,7 +231,8 @@ export default function ControlPanel() {
       if (status.status === "error") {
         showAlertDialog({
           title: t("settingsPage.general.updates.dialogs.checkFailed.title"),
-          description: status.error || t("settingsPage.general.updates.dialogs.checkFailed.description"),
+          description:
+            status.error || t("settingsPage.general.updates.dialogs.checkFailed.description"),
         });
         return;
       }
@@ -294,12 +295,6 @@ export default function ControlPanel() {
 
   return (
     <div className="control-panel-shell h-screen flex flex-col">
-      <div className="control-panel-atmosphere" aria-hidden="true">
-        <span className="glass-orb glass-orb-1" />
-        <span className="glass-orb glass-orb-2" />
-        <span className="glass-orb glass-orb-3" />
-        <span className="glass-orb glass-orb-4" />
-      </div>
       <ConfirmDialog
         open={confirmDialog.open}
         onOpenChange={hideConfirmDialog}
@@ -425,9 +420,7 @@ export default function ControlPanel() {
                 <Suspense fallback={null}>
                   <SettingsPage
                     activeSection={activeView}
-                    onActiveSectionChange={(section) =>
-                      setActiveView(section as ControlPanelView)
-                    }
+                    onActiveSectionChange={(section) => setActiveView(section as ControlPanelView)}
                     updateStatus={updateStatus}
                     onCheckForUpdates={handleManualCheckForUpdates}
                     onInstallUpdate={handleInstallUpdate}

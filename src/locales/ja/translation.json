@@ -814,28 +814,28 @@
     },
     "sections": {
       "general": {
-        "description": "外観、サウンド、起動設定",
-        "label": "環境設定"
+        "description": "外観、ショートカット、サウンド、起動設定",
+        "label": "一般"
       },
       "hotkeys": {
         "description": "ディクテーションホットキーと起動モード",
         "label": "ホットキー"
       },
       "transcription": {
-        "description": "音声テキスト変換エンジン",
-        "label": "文字起こし"
+        "description": "マイク、言語、音声テキスト変換サービス",
+        "label": "音声入力"
       },
       "intelligence": {
-        "description": "AIモデル、テキスト整形、プロンプト",
-        "label": "インテリジェンス"
+        "description": "テキスト整形、翻訳、用語、プロンプト",
+        "label": "AI 処理"
       },
       "privacyData": {
-        "description": "マイクとアクセシビリティの権限",
-        "label": "権限"
+        "description": "権限、プライバシー、ローカルデータ",
+        "label": "権限とデータ"
       },
       "system": {
-        "description": "バージョン、ストレージ、開発者ツール",
-        "label": "システム"
+        "description": "バージョン、アップデート、高度なツール",
+        "label": "情報とアップデート"
       }
     },
     "title": "設定"
@@ -1291,8 +1291,8 @@
     }
   },
   "sidebar": {
-    "home": "履歴",
-    "dictionary": "辞書",
+    "home": "文字起こし履歴",
+    "dictionary": "個人辞書",
     "referral": "1か月無料を取得",
     "settings": "設定",
     "support": "サポート",

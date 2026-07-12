@@ -814,28 +814,28 @@
     },
     "sections": {
       "general": {
-        "description": "Apariencia, sonidos e inicio",
-        "label": "Preferencias"
+        "description": "Apariencia, atajos, sonidos e inicio",
+        "label": "General"
       },
       "hotkeys": {
         "description": "Atajo de dictado y activación",
         "label": "Atajos"
       },
       "transcription": {
-        "description": "Motor de voz a texto",
-        "label": "Transcripción"
+        "description": "Micrófono, idioma y servicios de voz a texto",
+        "label": "Entrada de voz"
       },
       "intelligence": {
-        "description": "Modelos de IA, limpieza de texto y prompts",
-        "label": "Inteligencia"
+        "description": "Limpieza, traducción, terminología y prompts",
+        "label": "Procesamiento de IA"
       },
       "privacyData": {
-        "description": "Permisos de micrófono y accesibilidad",
-        "label": "Permisos"
+        "description": "Permisos, privacidad y datos locales",
+        "label": "Permisos y datos"
       },
       "system": {
-        "description": "Versión, almacenamiento y herramientas de desarrollo",
-        "label": "Sistema"
+        "description": "Versión, actualizaciones y herramientas avanzadas",
+        "label": "Acerca de y actualizaciones"
       }
     },
     "title": "Ajustes"
@@ -1291,8 +1291,8 @@
     "addPlaceholder": "Añadir una palabra o frase..."
   },
   "sidebar": {
-    "home": "Historial",
-    "dictionary": "Diccionario",
+    "home": "Historial de transcripciones",
+    "dictionary": "Diccionario personal",
     "referral": "Obtener un mes gratis",
     "settings": "Configuración",
     "support": "Soporte",

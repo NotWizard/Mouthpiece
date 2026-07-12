@@ -7,21 +7,21 @@ async function readRepoFile(relativePath) {
   return fs.readFile(path.resolve(process.cwd(), relativePath), "utf8");
 }
 
-test("sidebar keeps the default home view id but labels it as history in every locale", async () => {
+test("sidebar keeps the default home view id but labels it as transcription history", async () => {
   const sidebarSource = await readRepoFile("src/components/ControlPanelSidebar.tsx");
-  assert.match(sidebarSource, /\{ id: "home", label: t\("sidebar\.home"\), icon: Home \}/);
+  assert.match(sidebarSource, /\{ id: "home", label: t\("sidebar\.home"\), icon: Clock3 \}/);
 
   const expectedHomeLabels = {
-    de: "Verlauf",
-    en: "History",
-    es: "Historial",
-    fr: "Historique",
-    it: "Cronologia",
-    ja: "履歴",
-    pt: "Histórico",
-    ru: "История",
-    "zh-CN": "历史记录",
-    "zh-TW": "歷史記錄",
+    de: "Transkriptverlauf",
+    en: "Transcription History",
+    es: "Historial de transcripciones",
+    fr: "Historique des transcriptions",
+    it: "Cronologia trascrizioni",
+    ja: "文字起こし履歴",
+    pt: "Histórico de transcrições",
+    ru: "История расшифровок",
+    "zh-CN": "转录历史",
+    "zh-TW": "轉錄記錄",
   };
 
   for (const [locale, label] of Object.entries(expectedHomeLabels)) {
@@ -61,6 +61,9 @@ test("microphone input test cards use a compact non-even layout", async () => {
 
   assert.match(source, /MIC_TEST_STATUS_CARD_CLASS =\s*"min-h-\[56px\]/);
   assert.match(source, /MIC_TEST_DYNAMIC_TEXT_CLASS =\s*"mt-0\.5 min-h-\[1\.125rem\]/);
-  assert.match(source, /md:grid-cols-\[minmax\(118px,0\.7fr\)_minmax\(150px,0\.95fr\)_minmax\(220px,1\.45fr\)\]/);
+  assert.match(
+    source,
+    /md:grid-cols-\[minmax\(118px,0\.7fr\)_minmax\(150px,0\.95fr\)_minmax\(220px,1\.45fr\)\]/
+  );
   assert.doesNotMatch(source, /sm:grid-cols-3/);
 });

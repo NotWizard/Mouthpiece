@@ -801,28 +801,28 @@
     },
     "sections": {
       "general": {
-        "description": "Aparência, sons e inicialização",
-        "label": "Preferências"
+        "description": "Aparência, atalhos, sons e inicialização",
+        "label": "Geral"
       },
       "hotkeys": {
         "description": "Atalho de ditado e ativação",
         "label": "Atalhos"
       },
       "transcription": {
-        "description": "Motor de fala para texto",
-        "label": "Transcrição"
+        "description": "Microfone, idioma e serviços de fala para texto",
+        "label": "Entrada de voz"
       },
       "intelligence": {
-        "description": "Modelos de IA, limpeza de texto e prompts",
-        "label": "Inteligência"
+        "description": "Limpeza, tradução, terminologia e prompts",
+        "label": "Processamento de IA"
       },
       "privacyData": {
-        "description": "Permissões de microfone e acessibilidade",
-        "label": "Permissões"
+        "description": "Permissões, privacidade e dados locais",
+        "label": "Permissões e dados"
       },
       "system": {
-        "description": "Versão, armazenamento e ferramentas de desenvolvimento",
-        "label": "Sistema"
+        "description": "Versão, atualizações e ferramentas avançadas",
+        "label": "Sobre e atualizações"
       }
     },
     "title": "Configurações"
@@ -1291,8 +1291,8 @@
     "addPlaceholder": "Adicionar uma palavra ou frase..."
   },
   "sidebar": {
-    "home": "Histórico",
-    "dictionary": "Dicionário",
+    "home": "Histórico de transcrições",
+    "dictionary": "Dicionário pessoal",
     "referral": "Ganhe um mês grátis",
     "settings": "Configurações",
     "support": "Suporte",

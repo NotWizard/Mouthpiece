@@ -34,7 +34,12 @@ const ReasoningModelSelector = lazy(() => import("./ReasoningModelSelector"));
 import { HotkeyInput } from "./ui/HotkeyInput";
 import HotkeyGuidanceAccordion from "./ui/HotkeyGuidanceAccordion";
 import { useHotkeyRegistration } from "../hooks/useHotkeyRegistration";
-import { getValidationMessage, isModifierOnlyAccelerator, containsAllModifiersOf, getModifiersOf } from "../utils/hotkeyValidator";
+import {
+  getValidationMessage,
+  isModifierOnlyAccelerator,
+  containsAllModifiersOf,
+  getModifiersOf,
+} from "../utils/hotkeyValidator";
 import { getPlatform, getCachedPlatform } from "../utils/platform";
 import { getDefaultHotkey, formatHotkeyLabel, isGlobeLikeHotkey } from "../utils/hotkeys";
 import { Toggle } from "./ui/toggle";
@@ -49,15 +54,10 @@ import { cn } from "./lib/utils";
 import { UI_LANGUAGE_OPTIONS } from "../locales/localeManifest";
 import { CURRENT_CACHE_DIRNAME } from "../config/productIdentity";
 import { getModelCachePathHint } from "../utils/modelCachePathHint";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "./ui/select";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "./ui/select";
 import { SOUND_PRESETS } from "../utils/soundPresets";
 import { playPresetPreview } from "../utils/dictationCues";
+import TerminologySettingsCard from "./TerminologySettingsCard";
 
 export type SettingsSectionType =
   | "general"
@@ -114,7 +114,6 @@ function PageHeader({ title, description }: { title: string; description?: strin
     </div>
   );
 }
-
 
 interface TranscriptionSectionProps {
   setCloudTranscriptionMode: (mode: string) => void;
@@ -213,51 +212,51 @@ function TranscriptionSection({
           onCloudModelSelect={setCloudTranscriptionModel}
           selectedLocalModel={
             localTranscriptionProvider === "qwen"
-            ? qwenAsrModel
-            : localTranscriptionProvider === "nvidia"
-              ? parakeetModel
-              : whisperModel
-        }
-        onLocalModelSelect={(modelId) => {
-          if (localTranscriptionProvider === "qwen") {
-            setQwenAsrModel(modelId);
-          } else if (localTranscriptionProvider === "nvidia") {
-            setParakeetModel(modelId);
-          } else {
-            setWhisperModel(modelId);
+              ? qwenAsrModel
+              : localTranscriptionProvider === "nvidia"
+                ? parakeetModel
+                : whisperModel
           }
-        }}
-        selectedLocalProvider={localTranscriptionProvider}
-        onLocalProviderSelect={setLocalTranscriptionProvider}
-        useLocalWhisper={useLocalWhisper}
-        onModeChange={(isLocal) => {
-          setUseLocalWhisper(isLocal);
-          updateTranscriptionSettings({ useLocalWhisper: isLocal });
-          if (isLocal) {
-            setCloudTranscriptionMode("byok");
-          }
-        }}
-        openaiApiKey={openaiApiKey}
-        setOpenaiApiKey={setOpenaiApiKey}
-        deepgramApiKey={deepgramApiKey}
-        setDeepgramApiKey={setDeepgramApiKey}
-        groqApiKey={groqApiKey}
-        setGroqApiKey={setGroqApiKey}
-        mistralApiKey={mistralApiKey}
-        setMistralApiKey={setMistralApiKey}
-        sonioxApiKey={sonioxApiKey}
-        setSonioxApiKey={setSonioxApiKey}
-        sonioxRealtimeEnabled={sonioxRealtimeEnabled}
-        setSonioxRealtimeEnabled={setSonioxRealtimeEnabled}
-        bailianApiKey={bailianApiKey}
-        setBailianApiKey={setBailianApiKey}
-        deepgramStreamingEnabled={deepgramStreamingEnabled}
-        setDeepgramStreamingEnabled={setDeepgramStreamingEnabled}
-        customTranscriptionApiKey={customTranscriptionApiKey}
-        setCustomTranscriptionApiKey={setCustomTranscriptionApiKey}
-        cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}
-        setCloudTranscriptionBaseUrl={setCloudTranscriptionBaseUrl}
-        variant="settings"
+          onLocalModelSelect={(modelId) => {
+            if (localTranscriptionProvider === "qwen") {
+              setQwenAsrModel(modelId);
+            } else if (localTranscriptionProvider === "nvidia") {
+              setParakeetModel(modelId);
+            } else {
+              setWhisperModel(modelId);
+            }
+          }}
+          selectedLocalProvider={localTranscriptionProvider}
+          onLocalProviderSelect={setLocalTranscriptionProvider}
+          useLocalWhisper={useLocalWhisper}
+          onModeChange={(isLocal) => {
+            setUseLocalWhisper(isLocal);
+            updateTranscriptionSettings({ useLocalWhisper: isLocal });
+            if (isLocal) {
+              setCloudTranscriptionMode("byok");
+            }
+          }}
+          openaiApiKey={openaiApiKey}
+          setOpenaiApiKey={setOpenaiApiKey}
+          deepgramApiKey={deepgramApiKey}
+          setDeepgramApiKey={setDeepgramApiKey}
+          groqApiKey={groqApiKey}
+          setGroqApiKey={setGroqApiKey}
+          mistralApiKey={mistralApiKey}
+          setMistralApiKey={setMistralApiKey}
+          sonioxApiKey={sonioxApiKey}
+          setSonioxApiKey={setSonioxApiKey}
+          sonioxRealtimeEnabled={sonioxRealtimeEnabled}
+          setSonioxRealtimeEnabled={setSonioxRealtimeEnabled}
+          bailianApiKey={bailianApiKey}
+          setBailianApiKey={setBailianApiKey}
+          deepgramStreamingEnabled={deepgramStreamingEnabled}
+          setDeepgramStreamingEnabled={setDeepgramStreamingEnabled}
+          customTranscriptionApiKey={customTranscriptionApiKey}
+          setCustomTranscriptionApiKey={setCustomTranscriptionApiKey}
+          cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}
+          setCloudTranscriptionBaseUrl={setCloudTranscriptionBaseUrl}
+          variant="settings"
         />
       </Suspense>
     </div>
@@ -375,21 +374,21 @@ function AiModelsSection({
             cloudReasoningBaseUrl={cloudReasoningBaseUrl}
             setCloudReasoningBaseUrl={setCloudReasoningBaseUrl}
             openaiApiKey={openaiApiKey}
-          setOpenaiApiKey={setOpenaiApiKey}
-          anthropicApiKey={anthropicApiKey}
-          setAnthropicApiKey={setAnthropicApiKey}
-          geminiApiKey={geminiApiKey}
-          setGeminiApiKey={setGeminiApiKey}
-          groqApiKey={groqApiKey}
-          setGroqApiKey={setGroqApiKey}
-          bailianApiKey={bailianApiKey}
-          setBailianApiKey={setBailianApiKey}
-          bailianReasoningEnableThinking={bailianReasoningEnableThinking}
-          setBailianReasoningEnableThinking={setBailianReasoningEnableThinking}
-          customReasoningApiKey={customReasoningApiKey}
-          setCustomReasoningApiKey={setCustomReasoningApiKey}
-          customReasoningEnableThinking={customReasoningEnableThinking}
-          setCustomReasoningEnableThinking={setCustomReasoningEnableThinking}
+            setOpenaiApiKey={setOpenaiApiKey}
+            anthropicApiKey={anthropicApiKey}
+            setAnthropicApiKey={setAnthropicApiKey}
+            geminiApiKey={geminiApiKey}
+            setGeminiApiKey={setGeminiApiKey}
+            groqApiKey={groqApiKey}
+            setGroqApiKey={setGroqApiKey}
+            bailianApiKey={bailianApiKey}
+            setBailianApiKey={setBailianApiKey}
+            bailianReasoningEnableThinking={bailianReasoningEnableThinking}
+            setBailianReasoningEnableThinking={setBailianReasoningEnableThinking}
+            customReasoningApiKey={customReasoningApiKey}
+            setCustomReasoningApiKey={setCustomReasoningApiKey}
+            customReasoningEnableThinking={customReasoningEnableThinking}
+            setCustomReasoningEnableThinking={setCustomReasoningEnableThinking}
           />
         </Suspense>
       )}
@@ -419,39 +418,39 @@ function AiModelsSection({
           {translationEnabled && (
             <>
               <SettingsPanelRow>
-            <SettingsRow
-              label={t("settingsPage.aiTranslation.targetLangLabel")}
-              description={t("settingsPage.aiTranslation.targetLangDescription")}
-            >
-              <LanguageSelector
-                value={translationTargetLang}
-                onChange={(value) => setTranslationTargetLang(value)}
-                options={REGISTRY_OPTIONS.filter((opt) => opt.value !== "auto")}
-              />
-            </SettingsRow>
-          </SettingsPanelRow>
-          <SettingsPanelRow>
-            <SettingsRow
-              label={t("settingsPage.aiTranslation.hotkeyRowLabel")}
-              description={t("settingsPage.aiTranslation.hotkeyRowDescription")}
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 px-2.5 text-xs"
-                onClick={() => onJumpToHotkeys?.()}
-              >
-                {translationDictationKey
-                  ? formatHotkeyLabel(translationDictationKey)
-                  : t("settingsPage.aiTranslation.hotkeyUnset")}
-              </Button>
-            </SettingsRow>
-          </SettingsPanelRow>
-          <SettingsPanelRow>
-            <p className="text-xs text-muted-foreground px-1">
-              {t("settingsPage.aiTranslation.providerNote")}
-            </p>
-          </SettingsPanelRow>
+                <SettingsRow
+                  label={t("settingsPage.aiTranslation.targetLangLabel")}
+                  description={t("settingsPage.aiTranslation.targetLangDescription")}
+                >
+                  <LanguageSelector
+                    value={translationTargetLang}
+                    onChange={(value) => setTranslationTargetLang(value)}
+                    options={REGISTRY_OPTIONS.filter((opt) => opt.value !== "auto")}
+                  />
+                </SettingsRow>
+              </SettingsPanelRow>
+              <SettingsPanelRow>
+                <SettingsRow
+                  label={t("settingsPage.aiTranslation.hotkeyRowLabel")}
+                  description={t("settingsPage.aiTranslation.hotkeyRowDescription")}
+                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2.5 text-xs"
+                    onClick={() => onJumpToHotkeys?.()}
+                  >
+                    {translationDictationKey
+                      ? formatHotkeyLabel(translationDictationKey)
+                      : t("settingsPage.aiTranslation.hotkeyUnset")}
+                  </Button>
+                </SettingsRow>
+              </SettingsPanelRow>
+              <SettingsPanelRow>
+                <p className="text-xs text-muted-foreground px-1">
+                  {t("settingsPage.aiTranslation.providerNote")}
+                </p>
+              </SettingsPanelRow>
             </>
           )}
         </SettingsPanel>
@@ -552,6 +551,7 @@ export default function SettingsPage({
     setAudioCuesEnabled,
     soundPreset,
     setSoundPreset,
+    terminologyProfile,
   } = useSettings();
 
   const { t, i18n } = useTranslation();
@@ -559,6 +559,7 @@ export default function SettingsPage({
   const [currentVersion, setCurrentVersion] = useState<string>("");
   const [isRemovingModels, setIsRemovingModels] = useState(false);
   const [showAdvancedSystem, setShowAdvancedSystem] = useState(false);
+  const [showPromptStudio, setShowPromptStudio] = useState(false);
   const cachePathHint = getModelCachePathHint({
     userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
     cacheDirName: CURRENT_CACHE_DIRNAME,
@@ -670,7 +671,9 @@ export default function SettingsPage({
       case "installing":
         return t("settingsPage.general.updates.restarting");
       case "error":
-        return updateStatus.error || t("settingsPage.general.updates.dialogs.updateError.description");
+        return (
+          updateStatus.error || t("settingsPage.general.updates.dialogs.updateError.description")
+        );
       case "unsupported":
         return t("settingsPage.general.updates.devMode");
       case "idle":
@@ -846,6 +849,84 @@ export default function SettingsPage({
 
   const { isSignedIn } = useAuth();
 
+  const renderHotkeySections = () => (
+    <>
+      <div>
+        <SectionHeader title={t("settingsPage.general.hotkey.title")} />
+        <SettingsPanel>
+          <SettingsPanelRow>
+            <HotkeyInput
+              value={dictationKey}
+              onChange={async (newHotkey) => {
+                await registerHotkey(newHotkey);
+              }}
+              disabled={isHotkeyRegistering}
+              variant="compact"
+              validate={validateHotkeyForInput}
+              lockedMode="modifier-only"
+            />
+            {dictationKey && dictationKey !== getDefaultHotkey() && (
+              <button
+                onClick={() => registerHotkey(getDefaultHotkey())}
+                disabled={isHotkeyRegistering}
+                className="mt-2 text-xs text-muted-foreground/70 hover:text-foreground transition-colors disabled:opacity-50"
+              >
+                {t("settingsPage.general.hotkey.resetToDefault", {
+                  hotkey: formatHotkeyLabel(getDefaultHotkey()),
+                })}
+              </button>
+            )}
+          </SettingsPanelRow>
+          <SettingsPanelRow>
+            <SettingsRow
+              label={t("settingsPage.general.hotkey.activationBehavior")}
+              description={t("settingsPage.general.hotkey.activationBehaviorDescription")}
+            >
+              <span aria-hidden="true" />
+            </SettingsRow>
+          </SettingsPanelRow>
+        </SettingsPanel>
+      </div>
+
+      <div>
+        <SectionHeader title={t("settingsPage.translationHotkey.title")} />
+        <SettingsPanel>
+          <SettingsPanelRow>
+            <HotkeyInput
+              value={translationDictationKey}
+              onChange={(newHotkey) => {
+                setTranslationDictationKey(newHotkey || "");
+              }}
+              variant="compact"
+              validate={validateTranslationHotkeyForInput}
+              lockedMode="key-combo"
+              lockedModifiers={translationLockedModifiers}
+              lockedModifiersHint={t("settingsPage.translationHotkey.lockedModifiersHint", {
+                hotkey: formatHotkeyLabel(dictationKey),
+              })}
+            />
+            {translationDictationKey && (
+              <button
+                onClick={() => setTranslationDictationKey("")}
+                className="mt-2 text-xs text-muted-foreground/70 hover:text-foreground transition-colors"
+              >
+                {t("settingsPage.translationHotkey.clear")}
+              </button>
+            )}
+          </SettingsPanelRow>
+          <SettingsPanelRow>
+            <SettingsRow
+              label={t("settingsPage.translationHotkey.activationBehavior")}
+              description={t("settingsPage.translationHotkey.activationBehaviorDescription")}
+            >
+              <span aria-hidden="true" />
+            </SettingsRow>
+          </SettingsPanelRow>
+        </SettingsPanel>
+      </div>
+    </>
+  );
+
   const renderSectionContent = () => {
     switch (activeSection) {
       case "general":
@@ -895,6 +976,8 @@ export default function SettingsPage({
                 </SettingsPanelRow>
               </SettingsPanel>
             </div>
+
+            {renderHotkeySections()}
 
             {/* Sound Effects */}
             <div>
@@ -966,19 +1049,6 @@ export default function SettingsPage({
                     />
                   </SettingsRow>
                 </SettingsPanelRow>
-                <SettingsPanelRow>
-                  <SettingsRow
-                    label={t("settings.language.transcriptionLabel")}
-                    description={t("settings.language.transcriptionDescription")}
-                  >
-                    <LanguageSelector
-                      value={preferredLanguage}
-                      onChange={(value) =>
-                        updateTranscriptionSettings({ preferredLanguage: value })
-                      }
-                    />
-                  </SettingsRow>
-                </SettingsPanelRow>
               </SettingsPanel>
             </div>
 
@@ -1000,23 +1070,6 @@ export default function SettingsPage({
                 </SettingsPanelRow>
               </SettingsPanel>
             </div>
-
-            {/* Microphone */}
-            <div>
-              <SectionHeader
-                title={t("settingsPage.general.microphone.title")}
-                description={t("settingsPage.general.microphone.description")}
-              />
-              <SettingsPanel>
-                <SettingsPanelRow>
-                  <MicrophoneSettings
-                    selectedMicDeviceId={selectedMicDeviceId}
-                    onDeviceSelect={setSelectedMicDeviceId}
-                  />
-                </SettingsPanelRow>
-              </SettingsPanel>
-            </div>
-
           </div>
         );
 
@@ -1024,89 +1077,10 @@ export default function SettingsPage({
         return (
           <div className="space-y-6">
             <PageHeader
-              title={t("settingsModal.sections.hotkeys.label")}
-              description={t("settingsModal.sections.hotkeys.description")}
+              title={t("settingsModal.sections.general.label")}
+              description={t("settingsModal.sections.general.description")}
             />
-            {/* Dictation Hotkey */}
-            <div>
-              <SectionHeader
-                title={t("settingsPage.general.hotkey.title")}
-                description={t("settingsPage.general.hotkey.description")}
-              />
-              <SettingsPanel>
-                <SettingsPanelRow>
-                  <HotkeyInput
-                    value={dictationKey}
-                    onChange={async (newHotkey) => {
-                      await registerHotkey(newHotkey);
-                    }}
-                    disabled={isHotkeyRegistering}
-                    validate={validateHotkeyForInput}
-                    lockedMode="modifier-only"
-                  />
-                  {dictationKey && dictationKey !== getDefaultHotkey() && (
-                    <button
-                      onClick={() => registerHotkey(getDefaultHotkey())}
-                      disabled={isHotkeyRegistering}
-                      className="mt-2 text-xs text-muted-foreground/70 hover:text-foreground transition-colors disabled:opacity-50"
-                    >
-                      {t("settingsPage.general.hotkey.resetToDefault", {
-                        hotkey: formatHotkeyLabel(getDefaultHotkey()),
-                      })}
-                    </button>
-                  )}
-                </SettingsPanelRow>
-
-                <SettingsPanelRow className="space-y-1.5">
-                  <p className="text-xs font-medium text-muted-foreground/80">
-                    {t("settingsPage.general.hotkey.activationBehavior")}
-                  </p>
-                  <p className="text-xs leading-relaxed text-muted-foreground/70">
-                    {t("settingsPage.general.hotkey.activationBehaviorDescription")}
-                  </p>
-                </SettingsPanelRow>
-              </SettingsPanel>
-            </div>
-
-            {/* Translation Hotkey (P8.3) */}
-            <div>
-              <SectionHeader
-                title={t("settingsPage.translationHotkey.title")}
-                description={t("settingsPage.translationHotkey.description")}
-              />
-              <SettingsPanel>
-                <SettingsPanelRow>
-                  <HotkeyInput
-                    value={translationDictationKey}
-                    onChange={(newHotkey) => {
-                      setTranslationDictationKey(newHotkey || "");
-                    }}
-                    validate={validateTranslationHotkeyForInput}
-                    lockedMode="key-combo"
-                    lockedModifiers={translationLockedModifiers}
-                    lockedModifiersHint={t("settingsPage.translationHotkey.lockedModifiersHint", {
-                      hotkey: formatHotkeyLabel(dictationKey),
-                    })}
-                  />
-                  {translationDictationKey && (
-                    <button
-                      onClick={() => setTranslationDictationKey("")}
-                      className="mt-2 text-xs text-muted-foreground/70 hover:text-foreground transition-colors"
-                    >
-                      {t("settingsPage.translationHotkey.clear")}
-                    </button>
-                  )}
-                </SettingsPanelRow>
-                <SettingsPanelRow className="space-y-1.5">
-                  <p className="text-xs font-medium text-muted-foreground/80">
-                    {t("settingsPage.translationHotkey.activationBehavior")}
-                  </p>
-                  <p className="text-xs leading-relaxed text-muted-foreground/70">
-                    {t("settingsPage.translationHotkey.activationBehaviorDescription")}
-                  </p>
-                </SettingsPanelRow>
-              </SettingsPanel>
-            </div>
+            {renderHotkeySections()}
           </div>
         );
 
@@ -1117,43 +1091,67 @@ export default function SettingsPage({
               title={t("settingsModal.sections.transcription.label")}
               description={t("settingsModal.sections.transcription.description")}
             />
+            <div>
+              <SectionHeader title={t("settingsPage.general.microphone.title")} />
+              <SettingsPanel>
+                <SettingsPanelRow>
+                  <MicrophoneSettings
+                    selectedMicDeviceId={selectedMicDeviceId}
+                    onDeviceSelect={setSelectedMicDeviceId}
+                  />
+                </SettingsPanelRow>
+                <SettingsPanelRow>
+                  <SettingsRow
+                    label={t("settings.language.transcriptionLabel")}
+                    description={t("settings.language.transcriptionDescription")}
+                  >
+                    <LanguageSelector
+                      value={preferredLanguage}
+                      onChange={(value) =>
+                        updateTranscriptionSettings({ preferredLanguage: value })
+                      }
+                    />
+                  </SettingsRow>
+                </SettingsPanelRow>
+              </SettingsPanel>
+            </div>
             <TranscriptionSection
               setCloudTranscriptionMode={setCloudTranscriptionMode}
-            useLocalWhisper={useLocalWhisper}
-            setUseLocalWhisper={setUseLocalWhisper}
-            updateTranscriptionSettings={updateTranscriptionSettings}
-            cloudTranscriptionProvider={cloudTranscriptionProvider}
-            setCloudTranscriptionProvider={setCloudTranscriptionProvider}
-            cloudTranscriptionModel={cloudTranscriptionModel}
-            setCloudTranscriptionModel={setCloudTranscriptionModel}
-            localTranscriptionProvider={localTranscriptionProvider}
-            setLocalTranscriptionProvider={setLocalTranscriptionProvider}
-            whisperModel={whisperModel}
-            setWhisperModel={setWhisperModel}
-            parakeetModel={parakeetModel}
-            setParakeetModel={setParakeetModel}
-            qwenAsrModel={qwenAsrModel}
-            setQwenAsrModel={setQwenAsrModel}
-            openaiApiKey={openaiApiKey}
-            setOpenaiApiKey={setOpenaiApiKey}
-            deepgramApiKey={deepgramApiKey}
-            setDeepgramApiKey={setDeepgramApiKey}
-            groqApiKey={groqApiKey}
-            setGroqApiKey={setGroqApiKey}
-            mistralApiKey={mistralApiKey}
-            setMistralApiKey={setMistralApiKey}
-            sonioxApiKey={sonioxApiKey}
-            setSonioxApiKey={setSonioxApiKey}
-            sonioxRealtimeEnabled={sonioxRealtimeEnabled}
-            setSonioxRealtimeEnabled={setSonioxRealtimeEnabled}
-            bailianApiKey={bailianApiKey}
-            setBailianApiKey={setBailianApiKey}
-            deepgramStreamingEnabled={deepgramStreamingEnabled}
-            setDeepgramStreamingEnabled={setDeepgramStreamingEnabled}
-            customTranscriptionApiKey={customTranscriptionApiKey}
-            setCustomTranscriptionApiKey={setCustomTranscriptionApiKey}
-            cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}
-            setCloudTranscriptionBaseUrl={setCloudTranscriptionBaseUrl}
+              useLocalWhisper={useLocalWhisper}
+              setUseLocalWhisper={setUseLocalWhisper}
+              updateTranscriptionSettings={updateTranscriptionSettings}
+              cloudTranscriptionProvider={cloudTranscriptionProvider}
+              setCloudTranscriptionProvider={setCloudTranscriptionProvider}
+              cloudTranscriptionModel={cloudTranscriptionModel}
+              setCloudTranscriptionModel={setCloudTranscriptionModel}
+              localTranscriptionProvider={localTranscriptionProvider}
+              setLocalTranscriptionProvider={setLocalTranscriptionProvider}
+              whisperModel={whisperModel}
+              setWhisperModel={setWhisperModel}
+              parakeetModel={parakeetModel}
+              setParakeetModel={setParakeetModel}
+              qwenAsrModel={qwenAsrModel}
+              setQwenAsrModel={setQwenAsrModel}
+              openaiApiKey={openaiApiKey}
+              setOpenaiApiKey={setOpenaiApiKey}
+              deepgramApiKey={deepgramApiKey}
+              setDeepgramApiKey={setDeepgramApiKey}
+              groqApiKey={groqApiKey}
+              setGroqApiKey={setGroqApiKey}
+              mistralApiKey={mistralApiKey}
+              setMistralApiKey={setMistralApiKey}
+              sonioxApiKey={sonioxApiKey}
+              setSonioxApiKey={setSonioxApiKey}
+              sonioxRealtimeEnabled={sonioxRealtimeEnabled}
+              setSonioxRealtimeEnabled={setSonioxRealtimeEnabled}
+              bailianApiKey={bailianApiKey}
+              setBailianApiKey={setBailianApiKey}
+              deepgramStreamingEnabled={deepgramStreamingEnabled}
+              setDeepgramStreamingEnabled={setDeepgramStreamingEnabled}
+              customTranscriptionApiKey={customTranscriptionApiKey}
+              setCustomTranscriptionApiKey={setCustomTranscriptionApiKey}
+              cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}
+              setCloudTranscriptionBaseUrl={setCloudTranscriptionBaseUrl}
             />
           </div>
         );
@@ -1196,7 +1194,7 @@ export default function SettingsPage({
             setTranslationTargetLang={setTranslationTargetLang}
             translationDictationKey={translationDictationKey}
             showAlertDialog={showAlertDialog}
-            onJumpToHotkeys={() => onActiveSectionChange?.("hotkeys")}
+            onJumpToHotkeys={() => onActiveSectionChange?.("general")}
           />
         );
 
@@ -1256,18 +1254,39 @@ export default function SettingsPage({
               setTranslationTargetLang={setTranslationTargetLang}
               translationDictationKey={translationDictationKey}
               showAlertDialog={showAlertDialog}
-              onJumpToHotkeys={() => onActiveSectionChange?.("hotkeys")}
+              onJumpToHotkeys={() => onActiveSectionChange?.("general")}
             />
+            <div>
+              <SectionHeader title={t("settingsPage.terminology.title")} />
+              <TerminologySettingsCard terminologyProfile={terminologyProfile} />
+            </div>
             {/* System Prompt */}
             {useReasoningModel && (
-              <div className="border-t border-border/40 pt-6">
-                <SectionHeader
-                  title={t("settingsPage.prompts.title")}
-                  description={t("settingsPage.prompts.description")}
-                />
-                <Suspense fallback={null}>
-              <PromptStudio />
-            </Suspense>
+              <div className="settings-advanced-disclosure">
+                <button
+                  type="button"
+                  onClick={() => setShowPromptStudio((value) => !value)}
+                  className="settings-advanced-toggle"
+                  aria-expanded={showPromptStudio}
+                >
+                  <ChevronDown
+                    className={cn(
+                      "h-3.5 w-3.5 transition-transform duration-200",
+                      showPromptStudio && "rotate-180"
+                    )}
+                  />
+                  <span>{t("settingsPage.prompts.title")}</span>
+                  <span className="settings-advanced-hint">
+                    {t("settingsPage.prompts.description")}
+                  </span>
+                </button>
+                {showPromptStudio && (
+                  <div className="pt-4">
+                    <Suspense fallback={null}>
+                      <PromptStudio />
+                    </Suspense>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1282,7 +1301,7 @@ export default function SettingsPage({
               description={t("settingsModal.sections.privacyData.description")}
             />
 
-            <div className="space-y-3">
+            <div className="settings-permission-group">
               <PermissionCard
                 icon={Mic}
                 title={t("settingsPage.permissions.microphoneTitle")}
@@ -1407,9 +1426,7 @@ export default function SettingsPage({
                             .catch(() => {
                               showAlertDialog({
                                 title: t("settingsPage.developer.resetAll.failedTitle"),
-                                description: t(
-                                  "settingsPage.developer.resetAll.failedDescription"
-                                ),
+                                description: t("settingsPage.developer.resetAll.failedDescription"),
                               });
                             });
                         },

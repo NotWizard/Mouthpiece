@@ -119,8 +119,8 @@
       "welcome": "欢迎",
       "setup": "设置",
       "permissions": "权限",
-      "hotkeySetup": "快捷键设置",
-      "activation": "激活"
+      "hotkeySetup": "快捷键",
+      "activation": "试用"
     },
     "hotkey": {
       "couldNotRegisterTitle": "无法注册该快捷键",
@@ -149,19 +149,19 @@
     },
     "hotkeySetup": {
       "title": "快捷键设置",
-      "description": "先设置好触发 Mouthpiece 的快捷键，再继续测试使用方式。",
+      "description": "设置用于开始和停止听写的快捷键。",
       "hotkey": "快捷键"
     },
     "activation": {
-      "title": "激活设置",
-      "description": "选择一个快捷键，Mouthpiece 会自动判断你想要的是短按还是长按",
+      "title": "试用听写",
+      "description": "完成一次听写测试，确认快捷键和麦克风工作正常。",
       "hotkey": "快捷键",
       "mode": "模式",
-      "modeDescription": "短按可开始或停止听写。长按时，在系统支持的情况下，仅在按住期间持续录音。",
+      "modeDescription": "短按开始或停止；长按时仅在按住期间录音。",
       "tapDescription": "按下开始/停止",
       "holdDescription": "按住说话",
       "test": "测试",
-      "testDescription": "在这里试试 {{hotkey}}。短按可开始或停止听写，长按时在可用情况下会在按住期间持续录音。",
+      "testDescription": "点击输入区域，然后按 {{hotkey}} 开始。",
       "hotkeyToStartStop": "{{hotkey}} 开始/停止",
       "holdHotkey": "按住 {{hotkey}}",
       "textareaPlaceholder": "点击此处，然后使用快捷键进行听写..."
@@ -814,28 +814,28 @@
     },
     "sections": {
       "general": {
-        "description": "外观、声音与启动",
-        "label": "偏好设置"
+        "description": "外观、快捷键、声音与启动",
+        "label": "常规"
       },
       "hotkeys": {
         "description": "听写快捷键与激活模式",
         "label": "快捷键"
       },
       "transcription": {
-        "description": "语音转文字引擎",
-        "label": "转录"
+        "description": "麦克风、语言与语音转文字服务",
+        "label": "语音输入"
       },
       "intelligence": {
-        "description": "AI 模型、文本整理与提示词",
-        "label": "智能"
+        "description": "文本整理、翻译、术语与提示词",
+        "label": "AI 处理"
       },
       "privacyData": {
-        "description": "麦克风与辅助功能权限",
-        "label": "权限"
+        "description": "权限、隐私与本地数据",
+        "label": "权限与数据"
       },
       "system": {
-        "description": "版本、存储与开发者工具",
-        "label": "系统"
+        "description": "版本、更新与高级工具",
+        "label": "关于与更新"
       }
     },
     "title": "设置"
@@ -1291,8 +1291,8 @@
     "addPlaceholder": "添加词语或短语..."
   },
   "sidebar": {
-    "home": "历史记录",
-    "dictionary": "词典",
+    "home": "转录历史",
+    "dictionary": "个人词典",
     "referral": "获取免费一个月",
     "settings": "设置",
     "support": "支持",

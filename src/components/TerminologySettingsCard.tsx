@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CornerDownLeft, Languages, X } from "lucide-react";
+import { CornerDownLeft, X } from "lucide-react";
 import { Input } from "./ui/input";
 import { useSettings } from "../hooks/useSettings";
 import type { TerminologyMapping, TerminologyProfile } from "../utils/terminologyProfile";
@@ -78,23 +78,7 @@ function TerminologySettingsCard({ terminologyProfile }: TerminologySettingsCard
   };
 
   return (
-    <div className="rounded-lg border border-border/50 bg-card/50 backdrop-blur-sm">
-      <div className="border-b border-border/30 px-4 py-3">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
-            <Languages className="h-4 w-4" />
-          </div>
-          <div>
-            <h3 className="text-xs font-semibold text-foreground">
-              {t("settingsPage.terminology.title")}
-            </h3>
-            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground/80">
-              {t("settingsPage.terminology.description")}
-            </p>
-          </div>
-        </div>
-      </div>
-
+    <div className="terminology-settings settings-group">
       <div className="grid gap-4 p-4">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
@@ -225,7 +209,6 @@ function TerminologySettingsCard({ terminologyProfile }: TerminologySettingsCard
             </button>
           </div>
         </div>
-
       </div>
     </div>
   );

@@ -27,9 +27,25 @@ test("control panel uses the shared shell, sidebar, and content wrappers", async
   assert.match(controlPanelSource, /control-panel-shell/);
   assert.match(controlPanelSource, /control-panel-body/);
   assert.match(controlPanelSource, /control-panel-content-scroll/);
-  assert.match(controlPanelSource, /const SIDEBAR_VIEW_CONTENT_CLASS_NAME = "control-panel-view-content";/);
+  assert.match(
+    controlPanelSource,
+    /const SIDEBAR_VIEW_CONTENT_CLASS_NAME = "control-panel-view-content";/
+  );
   assert.match(sidebarSource, /control-panel-sidebar/);
   assert.match(sidebarSource, /control-panel-sidebar-item-active/);
+  assert.match(sidebarSource, /control-panel-sidebar-brand/);
+  assert.doesNotMatch(sidebarSource, /\{ id: "hotkeys"/);
+});
+
+test("control panel and onboarding do not mount animated atmosphere layers", async () => {
+  const [controlPanelSource, onboardingSource] = await Promise.all([
+    readRepoFile("src/components/ControlPanel.tsx"),
+    readRepoFile("src/components/OnboardingFlow.tsx"),
+  ]);
+
+  assert.doesNotMatch(controlPanelSource, /control-panel-atmosphere/);
+  assert.doesNotMatch(onboardingSource, /control-panel-atmosphere/);
+  assert.doesNotMatch(onboardingSource, /fonts\.googleapis\.com/);
 });
 
 test("control panel constrains page scrolling to the content pane", async () => {
@@ -53,7 +69,38 @@ test("settings page uses grouped list styling instead of card-heavy settings pan
   assert.match(settingsSource, /settings-group/);
   assert.match(settingsSource, /settings-group-row/);
   assert.match(settingsSource, /settings-section-header/);
-  assert.doesNotMatch(settingsSource, /bg-card\/50 dark:bg-surface-2\/50 backdrop-blur-sm divide-y/);
+  assert.doesNotMatch(
+    settingsSource,
+    /bg-card\/50 dark:bg-surface-2\/50 backdrop-blur-sm divide-y/
+  );
+  assert.match(settingsSource, /renderHotkeySections/);
+  assert.match(settingsSource, /case "general":[\s\S]*?\{renderHotkeySections\(\)\}/);
+  assert.match(
+    settingsSource,
+    /case "transcription":[\s\S]*?<MicrophoneSettings[\s\S]*?settings\.language\.transcriptionLabel/
+  );
+});
+
+test("terminology controls live with AI processing instead of the personal dictionary", async () => {
+  const [settingsSource, dictionarySource] = await Promise.all([
+    readRepoFile("src/components/SettingsPage.tsx"),
+    readRepoFile("src/components/DictionaryView.tsx"),
+  ]);
+
+  assert.match(settingsSource, /case "intelligence":[\s\S]*?<TerminologySettingsCard/);
+  assert.doesNotMatch(dictionarySource, /TerminologySettingsCard/);
+});
+
+test("control panel window uses the compact default and guarded minimum size", async () => {
+  const windowConfigSource = await readRepoFile("src/helpers/windowConfig.js");
+
+  assert.match(
+    windowConfigSource,
+    /const CONTROL_PANEL_CONFIG = \{[\s\S]*?width: 1200,[\s\S]*?height: 760,/
+  );
+  assert.match(windowConfigSource, /minWidth: 960,/);
+  assert.match(windowConfigSource, /minHeight: 640,/);
+  assert.match(windowConfigSource, /titleBarStyle: "hiddenInset"/);
 });
 
 test("onboarding uses the shared wizard shell without wrapping every step in a heavy card", async () => {

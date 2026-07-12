@@ -814,28 +814,28 @@
     },
     "sections": {
       "general": {
-        "description": "Aspetto, suoni e avvio",
-        "label": "Preferenze"
+        "description": "Aspetto, scorciatoie, suoni e avvio",
+        "label": "Generali"
       },
       "hotkeys": {
         "description": "Scorciatoia di dettatura e attivazione",
         "label": "Scorciatoie"
       },
       "transcription": {
-        "description": "Motore di riconoscimento vocale",
-        "label": "Trascrizione"
+        "description": "Microfono, lingua e servizi di riconoscimento vocale",
+        "label": "Input vocale"
       },
       "intelligence": {
-        "description": "Modelli IA, pulizia testo e prompt",
-        "label": "Intelligenza"
+        "description": "Pulizia, traduzione, terminologia e prompt",
+        "label": "Elaborazione IA"
       },
       "privacyData": {
-        "description": "Permessi per microfono e accessibilità",
-        "label": "Permessi"
+        "description": "Permessi, privacy e dati locali",
+        "label": "Permessi e dati"
       },
       "system": {
-        "description": "Versione, archiviazione e strumenti di sviluppo",
-        "label": "Sistema"
+        "description": "Versione, aggiornamenti e strumenti avanzati",
+        "label": "Informazioni e aggiornamenti"
       }
     },
     "title": "Impostazioni"
@@ -1291,8 +1291,8 @@
     "addPlaceholder": "Aggiungi una parola o una frase..."
   },
   "sidebar": {
-    "home": "Cronologia",
-    "dictionary": "Dizionario",
+    "home": "Cronologia trascrizioni",
+    "dictionary": "Dizionario personale",
     "referral": "Ottieni un mese gratis",
     "settings": "Impostazioni",
     "support": "Assistenza",

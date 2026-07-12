@@ -795,7 +795,6 @@ export default function ReasoningModelSelector({
             {modelDiscoveryLoading ? t("common.loading") : t("common.refresh")}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">{t("modelDiscovery.providerModelHint")}</p>
         {selectedCloudProvider === "custom" && isCustomBaseDirty && (
           <p className="text-xs text-primary">{t("reasoning.custom.modelsReloadHint")}</p>
         )}
@@ -832,7 +831,6 @@ export default function ReasoningModelSelector({
             placeholder={t("modelDiscovery.manualEntryPlaceholder")}
             className="h-8 text-sm"
           />
-          <p className="text-xs text-muted-foreground/75">{t("modelDiscovery.manualEntryHelp")}</p>
         </div>
       </div>
     );
@@ -858,11 +856,6 @@ export default function ReasoningModelSelector({
           renderIcon={renderModeIcon}
           colorScheme="purple"
         />
-        <p className="text-xs text-muted-foreground text-center">
-          {selectedMode === "local"
-            ? t("reasoning.mode.localDescription")
-            : t("reasoning.mode.cloudDescription")}
-        </p>
       </div>
 
       {selectedMode === "cloud" ? (
@@ -906,7 +899,7 @@ export default function ReasoningModelSelector({
                       apiKey={customReasoningApiKey}
                       setApiKey={setCustomReasoningApiKey || (() => {})}
                       label=""
-                      helpText={t("reasoning.custom.apiKeyHelp")}
+                      helpText=""
                       saveMode="immediate"
                     />
                   </div>
@@ -956,7 +949,7 @@ export default function ReasoningModelSelector({
                       apiKey={bailianApiKey}
                       setApiKey={setBailianApiKey}
                       label=""
-                      helpText={t("reasoning.bailian.apiKeyHelp")}
+                      helpText=""
                       saveMode="immediate"
                     />
                   </div>

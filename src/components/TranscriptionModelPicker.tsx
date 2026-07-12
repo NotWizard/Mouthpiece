@@ -386,7 +386,9 @@ export default function TranscriptionModelPicker({
   const cloudProviderTabs = useMemo(
     () =>
       CLOUD_PROVIDER_TABS.map((provider) =>
-        provider.id === "custom" ? { ...provider, name: t("transcription.customProvider") } : provider
+        provider.id === "custom"
+          ? { ...provider, name: t("transcription.customProvider") }
+          : provider
       ),
     [t]
   );
@@ -978,7 +980,6 @@ export default function TranscriptionModelPicker({
             {modelDiscoveryLoading ? t("common.loading") : t("common.refresh")}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">{t("modelDiscovery.providerModelHint")}</p>
         {!hasEndpoint && (
           <p className="text-xs text-warning">{t("reasoning.custom.enterEndpoint")}</p>
         )}
@@ -1013,7 +1014,6 @@ export default function TranscriptionModelPicker({
             placeholder={t("modelDiscovery.manualEntryPlaceholder")}
             className="h-8 text-sm"
           />
-          <p className="text-xs text-muted-foreground/75">{t("modelDiscovery.manualEntryHelp")}</p>
         </div>
       </div>
     );
@@ -1426,7 +1426,7 @@ export default function TranscriptionModelPicker({
                     apiKey={deepgramApiKey}
                     setApiKey={setDeepgramApiKey}
                     label=""
-                    helpText={t("transcription.deepgram.apiKeyHelp")}
+                    helpText=""
                     saveMode="immediate"
                   />
                 </div>
@@ -1469,7 +1469,7 @@ export default function TranscriptionModelPicker({
                     apiKey={bailianApiKey}
                     setApiKey={setBailianApiKey || (() => {})}
                     label=""
-                    helpText={t("reasoning.bailian.apiKeyHelp")}
+                    helpText=""
                     saveMode="immediate"
                   />
                 </div>
@@ -1496,7 +1496,7 @@ export default function TranscriptionModelPicker({
                     apiKey={sonioxApiKey}
                     setApiKey={setSonioxApiKey || (() => {})}
                     label=""
-                    helpText={t("transcription.soniox.apiKeyHelp")}
+                    helpText=""
                     saveMode="immediate"
                   />
                 </div>

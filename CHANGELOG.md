@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Redesigned the control panel and onboarding flow around a shared compact macOS-style visual system with solid neutral surfaces, continuous setting groups, consistent typography, restrained status colors, and responsive light and dark themes.
+- Reorganized the control panel into Transcription History, Personal Dictionary, General, Voice Input, AI Processing, Permissions & Data, and About & Updates. Dictation and translation shortcuts now live under General, microphone and recognition language settings live under Voice Input, and terminology controls live under AI Processing.
+- Simplified provider configuration, microphone testing, prompt editing, logs, and model cache controls so secondary explanations and advanced tools appear only when needed.
+- Updated control panel navigation terminology across all supported languages and aligned the default window to 1200x760 with a guarded 960x640 minimum size.
+- Restyled all four onboarding stages to share the control panel's window, list, input, progress, and footer treatments while preserving account, permission, hotkey registration, resume, and dictation test behavior.
+
+### Performance
+
+- Removed the control panel and onboarding animated color-orb atmosphere, external onboarding font request, activation halo, and persistent backdrop blur surfaces so hidden or idle settings windows no longer keep decorative compositor work active.
+
 ## [1.4.8] - 2026-07-02
 
 ### Fixed

@@ -814,28 +814,28 @@
     },
     "sections": {
       "general": {
-        "description": "Apparence, sons & démarrage",
-        "label": "Préférences"
+        "description": "Apparence, raccourcis, sons et démarrage",
+        "label": "Général"
       },
       "hotkeys": {
         "description": "Raccourci de dictée et activation",
         "label": "Raccourcis"
       },
       "transcription": {
-        "description": "Moteur de reconnaissance vocale",
-        "label": "Transcription"
+        "description": "Microphone, langue et services de reconnaissance vocale",
+        "label": "Saisie vocale"
       },
       "intelligence": {
-        "description": "Modeles IA, nettoyage de texte et prompts",
-        "label": "Intelligence"
+        "description": "Nettoyage, traduction, terminologie et prompts",
+        "label": "Traitement IA"
       },
       "privacyData": {
-        "description": "Autorisations du microphone et d'accessibilité",
-        "label": "Autorisations"
+        "description": "Autorisations, confidentialité et données locales",
+        "label": "Autorisations et données"
       },
       "system": {
-        "description": "Version, stockage & outils de développement",
-        "label": "Système"
+        "description": "Version, mises à jour et outils avancés",
+        "label": "À propos et mises à jour"
       }
     },
     "title": "Paramètres"
@@ -1206,8 +1206,8 @@
     }
   },
   "sidebar": {
-    "home": "Historique",
-    "dictionary": "Dictionnaire",
+    "home": "Historique des transcriptions",
+    "dictionary": "Dictionnaire personnel",
     "referral": "Obtenir un mois gratuit",
     "settings": "Paramètres",
     "support": "Assistance",

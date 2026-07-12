@@ -69,6 +69,9 @@ export default function HistoryView({
   return (
     <div className="history-view">
       <div className="w-full">
+        <div className="content-page-header">
+          <h1>{t("sidebar.home")}</h1>
+        </div>
         {showCloudMigrationBanner && (
           <div className="control-panel-banner mb-3 relative p-3">
             <button
@@ -260,9 +263,7 @@ export default function HistoryView({
                     <div className="history-date-pill">
                       <span className="dot" aria-hidden="true" />
                       <span className="primary">{group.primary}</span>
-                      {group.secondary && (
-                        <span className="secondary">{group.secondary}</span>
-                      )}
+                      {group.secondary && <span className="secondary">{group.secondary}</span>}
                     </div>
                   </div>
                   <div className="history-day-items">

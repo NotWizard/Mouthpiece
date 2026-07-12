@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
 import { Button } from "./button";
 import { ErrorNotice } from "./ErrorNotice";
-import { RefreshCw } from "lucide-react";
+import { ChevronDown, RefreshCw } from "lucide-react";
 import { isBuiltInMicrophone } from "../../utils/audioDeviceUtils";
 
 interface AudioDevice {
@@ -69,6 +69,7 @@ export const MicrophoneSettings: React.FC<MicrophoneSettingsProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isInputTestRunning, setIsInputTestRunning] = useState(false);
+  const [showInputTest, setShowInputTest] = useState(false);
   const [inputTestError, setInputTestError] = useState<string | null>(null);
   const [inputLevel, setInputLevel] = useState(0);
   const [noiseFloor, setNoiseFloor] = useState(0);
@@ -249,12 +250,7 @@ export const MicrophoneSettings: React.FC<MicrophoneSettingsProps> = ({
       setInputTestError(t("microphoneSettings.inputTest.errors.unableToStart"));
       stopInputTest();
     }
-  }, [
-    selectedMicDeviceId,
-    stopInputTest,
-    t,
-    updateInputAnalysis,
-  ]);
+  }, [selectedMicDeviceId, stopInputTest, t, updateInputAnalysis]);
 
   useEffect(() => {
     return () => stopInputTest();
@@ -262,120 +258,137 @@ export const MicrophoneSettings: React.FC<MicrophoneSettingsProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-foreground">
-            {t("microphoneSettings.inputDevice")}
-          </label>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={loadDevices}
-            disabled={isLoading}
-            className="h-7 w-7 p-0"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
-
-        {error ? (
-          <ErrorNotice message={error} compact />
-        ) : (
-          <Select
-            value={selectedMicDeviceId || "default"}
-            onValueChange={(value) => onDeviceSelect(value === "default" ? "" : value)}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder={t("microphoneSettings.selectPlaceholder")}>
-                {selectedMicDeviceId
-                  ? selectedDevice?.label || t("microphoneSettings.unknownDevice")
-                  : t("microphoneSettings.systemDefault")}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="default">{t("microphoneSettings.systemDefault")}</SelectItem>
-              {devices.map((device) => (
-                <SelectItem key={device.deviceId} value={device.deviceId}>
-                  {device.label}
-                  {device.isBuiltIn && (
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      {t("microphoneSettings.builtIn")}
-                    </span>
-                  )}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-
-        <p className="text-xs text-muted-foreground">{t("microphoneSettings.helpText")}</p>
-      </div>
-
-      <div className="space-y-3 rounded-lg border border-border/50 bg-card/40 p-3 dark:border-border-subtle dark:bg-surface-2/40">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground">
-              {t("microphoneSettings.inputTest.title")}
-            </p>
-            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground/80">
-              {t("microphoneSettings.inputTest.description")}
-            </p>
-          </div>
-          <Button
-            variant={isInputTestRunning ? "secondary" : "outline"}
-            size="sm"
-            onClick={isInputTestRunning ? stopInputTest : startInputTest}
-          >
-            {isInputTestRunning
-              ? t("microphoneSettings.inputTest.stop")
-              : t("microphoneSettings.inputTest.start")}
-          </Button>
-        </div>
-
-        {inputTestError && <ErrorNotice message={inputTestError} compact />}
-
-        <div className="grid gap-2 md:grid-cols-[minmax(118px,0.7fr)_minmax(150px,0.95fr)_minmax(220px,1.45fr)]">
-          <div className={MIC_TEST_STATUS_CARD_CLASS}>
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-foreground">
-                {t("microphoneSettings.inputTest.volume")}
-              </span>
-              <span className="inline-block w-10 text-right text-xs tabular-nums text-muted-foreground">
-                {inputLevel}%
-              </span>
-            </div>
-            <div
-              className="h-1.5 overflow-hidden rounded-full bg-muted dark:bg-surface-3"
-              aria-label={t("microphoneSettings.inputTest.volume")}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-1">
+            <label className="text-sm font-medium text-foreground">
+              {t("microphoneSettings.inputDevice")}
+            </label>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={loadDevices}
+              disabled={isLoading}
+              className="h-7 w-7 p-0"
             >
-              <div
-                className="h-full rounded-full bg-accent transition-[width] duration-150"
-                style={{ width: `${inputLevel}%` }}
-              />
-            </div>
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+            </Button>
           </div>
 
-          <div className={MIC_TEST_STATUS_CARD_CLASS}>
-            <p className="text-xs font-medium text-foreground">
-              {t("microphoneSettings.inputTest.environment")}
-            </p>
-            <p className={MIC_TEST_DYNAMIC_TEXT_CLASS}>
-              {t(`microphoneSettings.inputTest.environmentStates.${environmentState}`, {
-                level: noiseFloor,
-              })}
-            </p>
-          </div>
-
-          <div className={MIC_TEST_STATUS_CARD_CLASS}>
-            <p className="text-xs font-medium text-foreground">
-              {t("microphoneSettings.inputTest.nearTalkAdvice")}
-            </p>
-            <p className={MIC_TEST_DYNAMIC_TEXT_CLASS}>
-              {t(`microphoneSettings.inputTest.advice.${inputAdvice}`)}
-            </p>
-          </div>
+          {error ? (
+            <ErrorNotice message={error} compact />
+          ) : (
+            <Select
+              value={selectedMicDeviceId || "default"}
+              onValueChange={(value) => onDeviceSelect(value === "default" ? "" : value)}
+            >
+              <SelectTrigger className="w-full min-w-56 max-w-sm">
+                <SelectValue placeholder={t("microphoneSettings.selectPlaceholder")}>
+                  {selectedMicDeviceId
+                    ? selectedDevice?.label || t("microphoneSettings.unknownDevice")
+                    : t("microphoneSettings.systemDefault")}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">{t("microphoneSettings.systemDefault")}</SelectItem>
+                {devices.map((device) => (
+                  <SelectItem key={device.deviceId} value={device.deviceId}>
+                    {device.label}
+                    {device.isBuiltIn && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {t("microphoneSettings.builtIn")}
+                      </span>
+                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => {
+          if (showInputTest && isInputTestRunning) stopInputTest();
+          setShowInputTest((value) => !value);
+        }}
+        className="microphone-test-toggle"
+        aria-expanded={showInputTest}
+      >
+        <span>{t("microphoneSettings.inputTest.title")}</span>
+        <ChevronDown
+          className={`h-3.5 w-3.5 transition-transform ${showInputTest ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {showInputTest && (
+        <div className="space-y-3 border-t border-border/50 pt-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">
+                {t("microphoneSettings.inputTest.title")}
+              </p>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground/80">
+                {t("microphoneSettings.inputTest.description")}
+              </p>
+            </div>
+            <Button
+              variant={isInputTestRunning ? "secondary" : "outline"}
+              size="sm"
+              onClick={isInputTestRunning ? stopInputTest : startInputTest}
+            >
+              {isInputTestRunning
+                ? t("microphoneSettings.inputTest.stop")
+                : t("microphoneSettings.inputTest.start")}
+            </Button>
+          </div>
+
+          {inputTestError && <ErrorNotice message={inputTestError} compact />}
+
+          <div className="grid gap-2 md:grid-cols-[minmax(118px,0.7fr)_minmax(150px,0.95fr)_minmax(220px,1.45fr)]">
+            <div className={MIC_TEST_STATUS_CARD_CLASS}>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <span className="text-xs font-medium text-foreground">
+                  {t("microphoneSettings.inputTest.volume")}
+                </span>
+                <span className="inline-block w-10 text-right text-xs tabular-nums text-muted-foreground">
+                  {inputLevel}%
+                </span>
+              </div>
+              <div
+                className="h-1.5 overflow-hidden rounded-full bg-muted dark:bg-surface-3"
+                aria-label={t("microphoneSettings.inputTest.volume")}
+              >
+                <div
+                  className="h-full rounded-full bg-accent transition-[width] duration-150"
+                  style={{ width: `${inputLevel}%` }}
+                />
+              </div>
+            </div>
+
+            <div className={MIC_TEST_STATUS_CARD_CLASS}>
+              <p className="text-xs font-medium text-foreground">
+                {t("microphoneSettings.inputTest.environment")}
+              </p>
+              <p className={MIC_TEST_DYNAMIC_TEXT_CLASS}>
+                {t(`microphoneSettings.inputTest.environmentStates.${environmentState}`, {
+                  level: noiseFloor,
+                })}
+              </p>
+            </div>
+
+            <div className={MIC_TEST_STATUS_CARD_CLASS}>
+              <p className="text-xs font-medium text-foreground">
+                {t("microphoneSettings.inputTest.nearTalkAdvice")}
+              </p>
+              <p className={MIC_TEST_DYNAMIC_TEXT_CLASS}>
+                {t(`microphoneSettings.inputTest.advice.${inputAdvice}`)}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

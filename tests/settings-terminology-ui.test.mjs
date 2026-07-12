@@ -7,9 +7,13 @@ async function readRepoFile(relativePath) {
   return fs.readFile(path.resolve(process.cwd(), relativePath), "utf8");
 }
 
-test("dictionary view wires the terminology settings card to profile review actions", async () => {
-  const source = await readRepoFile("src/components/DictionaryView.tsx");
+test("AI processing wires the terminology settings card to profile review actions", async () => {
+  const [settingsSource, dictionarySource] = await Promise.all([
+    readRepoFile("src/components/SettingsPage.tsx"),
+    readRepoFile("src/components/DictionaryView.tsx"),
+  ]);
 
-  assert.match(source, /TerminologySettingsCard/);
-  assert.match(source, /terminologyProfile/);
+  assert.match(settingsSource, /case "intelligence":[\s\S]*?TerminologySettingsCard/);
+  assert.match(settingsSource, /terminologyProfile/);
+  assert.doesNotMatch(dictionarySource, /TerminologySettingsCard/);
 });

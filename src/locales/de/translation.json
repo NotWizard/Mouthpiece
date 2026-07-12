@@ -814,28 +814,28 @@
     },
     "sections": {
       "general": {
-        "description": "Darstellung, Töne & Start",
-        "label": "Einstellungen"
+        "description": "Darstellung, Tastenkürzel, Töne und Start",
+        "label": "Allgemein"
       },
       "hotkeys": {
         "description": "Diktat-Hotkey & Aktivierung",
         "label": "Hotkeys"
       },
       "transcription": {
-        "description": "Sprache-zu-Text-Engine",
-        "label": "Transkription"
+        "description": "Mikrofon, Sprache und Sprache-zu-Text-Dienste",
+        "label": "Spracheingabe"
       },
       "intelligence": {
-        "description": "KI-Modelle, Textbereinigung und Prompts",
-        "label": "Intelligenz"
+        "description": "Textbereinigung, Übersetzung, Terminologie und Prompts",
+        "label": "KI-Verarbeitung"
       },
       "privacyData": {
-        "description": "Mikrofon- und Bedienungshilfen-Berechtigungen",
-        "label": "Berechtigungen"
+        "description": "Berechtigungen, Datenschutz und lokale Daten",
+        "label": "Berechtigungen & Daten"
       },
       "system": {
-        "description": "Version, Speicher & Entwicklertools",
-        "label": "System"
+        "description": "Version, Updates und erweiterte Werkzeuge",
+        "label": "Info & Updates"
       }
     },
     "title": "Einstellungen"
@@ -1291,8 +1291,8 @@
     "addPlaceholder": "Ein Wort oder eine Phrase hinzufügen..."
   },
   "sidebar": {
-    "home": "Verlauf",
-    "dictionary": "Wörterbuch",
+    "home": "Transkriptverlauf",
+    "dictionary": "Persönliches Wörterbuch",
     "referral": "Gratis-Monat erhalten",
     "settings": "Einstellungen",
     "support": "Support",

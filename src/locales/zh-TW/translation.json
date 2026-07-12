@@ -814,28 +814,28 @@
     },
     "sections": {
       "general": {
-        "description": "外觀、音效與啟動",
-        "label": "偏好設定"
+        "description": "外觀、快捷鍵、音效與啟動",
+        "label": "一般"
       },
       "hotkeys": {
         "description": "聽寫快捷鍵與啟用模式",
         "label": "快捷鍵"
       },
       "transcription": {
-        "description": "語音轉文字引擎",
-        "label": "轉錄"
+        "description": "麥克風、語言與語音轉文字服務",
+        "label": "語音輸入"
       },
       "intelligence": {
-        "description": "AI 模型、文字整理與提示詞",
-        "label": "智慧功能"
+        "description": "文字整理、翻譯、術語與提示詞",
+        "label": "AI 處理"
       },
       "privacyData": {
-        "description": "麥克風與輔助使用權限",
-        "label": "權限"
+        "description": "權限、隱私與本機資料",
+        "label": "權限與資料"
       },
       "system": {
-        "description": "版本、儲存與開發者工具",
-        "label": "系統"
+        "description": "版本、更新與進階工具",
+        "label": "關於與更新"
       }
     },
     "title": "設定"
@@ -1291,8 +1291,8 @@
     "addPlaceholder": "新增詞語或片語..."
   },
   "sidebar": {
-    "home": "歷史記錄",
-    "dictionary": "字典",
+    "home": "轉錄記錄",
+    "dictionary": "個人詞典",
     "referral": "獲得一個月免費",
     "settings": "設定",
     "support": "支援",

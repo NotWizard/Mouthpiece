@@ -119,8 +119,8 @@
       "welcome": "Welcome",
       "setup": "Setup",
       "permissions": "Permissions",
-      "hotkeySetup": "Hotkey Setup",
-      "activation": "Activation"
+      "hotkeySetup": "Shortcut",
+      "activation": "Try It"
     },
     "hotkey": {
       "couldNotRegisterTitle": "Couldn't register that hotkey",
@@ -149,19 +149,19 @@
     },
     "hotkeySetup": {
       "title": "Hotkey Setup",
-      "description": "Choose how you want to trigger Mouthpiece before you test it.",
+      "description": "Set the shortcut used to start and stop dictation.",
       "hotkey": "Hotkey"
     },
     "activation": {
-      "title": "Activation Setup",
-      "description": "Choose a hotkey and Mouthpiece will decide whether you meant a tap or a hold",
+      "title": "Try Dictation",
+      "description": "Complete a quick test to confirm your shortcut and microphone work.",
       "hotkey": "Hotkey",
       "mode": "Mode",
-      "modeDescription": "Short press toggles dictation. Long press records only while you keep the hotkey held when your system supports it.",
+      "modeDescription": "Tap to start or stop; hold to record only while the key is pressed.",
       "tapDescription": "Press to start/stop",
       "holdDescription": "Hold while speaking",
       "test": "Test",
-      "testDescription": "Try {{hotkey}} here. Short press toggles dictation, and long press records while held when available.",
+      "testDescription": "Click the field, then press {{hotkey}} to begin.",
       "hotkeyToStartStop": "{{hotkey}} to start/stop",
       "holdHotkey": "Hold {{hotkey}}",
       "textareaPlaceholder": "Click here and use your hotkey to dictate..."
@@ -814,28 +814,28 @@
     },
     "sections": {
       "general": {
-        "description": "Appearance, sounds & startup",
-        "label": "Preferences"
+        "description": "Appearance, shortcuts, sounds, and startup",
+        "label": "General"
       },
       "hotkeys": {
         "description": "Dictation hotkey & activation",
         "label": "Hotkeys"
       },
       "transcription": {
-        "description": "Speech-to-text engine",
-        "label": "Transcription"
+        "description": "Microphone, language, and speech-to-text services",
+        "label": "Voice Input"
       },
       "intelligence": {
-        "description": "AI models, text cleanup & prompts",
-        "label": "Intelligence"
+        "description": "Text cleanup, translation, terminology, and prompts",
+        "label": "AI Processing"
       },
       "privacyData": {
-        "description": "Microphone and accessibility permissions",
-        "label": "Permissions"
+        "description": "Permissions, privacy, and local data",
+        "label": "Permissions & Data"
       },
       "system": {
-        "description": "Version, storage & developer tools",
-        "label": "System"
+        "description": "Version, updates, and advanced tools",
+        "label": "About & Updates"
       }
     },
     "title": "Settings"
@@ -1206,8 +1206,8 @@
     }
   },
   "sidebar": {
-    "home": "History",
-    "dictionary": "Dictionary",
+    "home": "Transcription History",
+    "dictionary": "Personal Dictionary",
     "referral": "Get a free month",
     "settings": "Settings",
     "support": "Support",

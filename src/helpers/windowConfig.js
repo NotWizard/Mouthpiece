@@ -43,8 +43,10 @@ const MAIN_WINDOW_CONFIG = {
 // Control panel window configuration
 const CONTROL_PANEL_CONFIG = {
   width: 1200,
-  height: 800,
-  backgroundColor: "#1c1c2e",
+  height: 760,
+  minWidth: 960,
+  minHeight: 640,
+  backgroundColor: "#fafafa",
   webPreferences: {
     preload: path.join(__dirname, "..", "..", "preload.js"),
     nodeIntegration: false,
@@ -53,7 +55,7 @@ const CONTROL_PANEL_CONFIG = {
     webSecurity: true,
     spellcheck: false,
   },
-  title: "Control Panel",
+  title: "Mouthpiece",
   resizable: true,
   show: false,
   frame: false,

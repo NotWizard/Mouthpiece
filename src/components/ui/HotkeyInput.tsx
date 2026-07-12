@@ -145,7 +145,7 @@ export interface HotkeyInputProps {
 }
 
 export interface HotkeyInputVariant {
-  variant?: "default" | "hero";
+  variant?: "compact" | "default" | "hero";
 }
 
 function getPrimaryKeyFromEvent(event: React.KeyboardEvent<HTMLButtonElement>): string | null {
@@ -156,7 +156,7 @@ function getPrimaryKeyFromEvent(event: React.KeyboardEvent<HTMLButtonElement>): 
   return PRIMARY_KEY_CODES[event.nativeEvent.code] ?? null;
 }
 
-function getVariantClasses(variant: "default" | "hero") {
+function getVariantClasses(variant: "compact" | "default" | "hero") {
   if (variant === "hero") {
     return {
       container: "space-y-4",
@@ -165,6 +165,17 @@ function getVariantClasses(variant: "default" | "hero") {
       primaryKey:
         "min-h-28 rounded-md border border-border/60 bg-surface-1 px-4 py-4 text-center text-sm",
       preview: "rounded-md border border-border/60 bg-surface-1 px-4 py-4",
+    };
+  }
+
+  if (variant === "compact") {
+    return {
+      container: "space-y-2",
+      modeButton: "px-2.5 py-1 text-xs rounded-md",
+      chip: "px-2.5 py-1 text-xs rounded-md",
+      primaryKey:
+        "min-h-12 rounded-md border border-border/60 bg-surface-1 px-3 py-2 text-center text-xs",
+      preview: "hidden",
     };
   }
 
@@ -210,10 +221,7 @@ export function HotkeyInput({
   const [isCapturingPrimaryKey, setIsCapturingPrimaryKey] = useState(false);
   const primaryKeyButtonRef = useRef<HTMLButtonElement>(null);
 
-  const capabilities = useMemo(
-    () => getHotkeyBuilderCapabilities({ platform }),
-    [platform]
-  );
+  const capabilities = useMemo(() => getHotkeyBuilderCapabilities({ platform }), [platform]);
 
   const lockedModifiersKey = (lockedModifiers ?? []).join("|");
   const stableLockedModifiers = useMemo(
@@ -323,7 +331,11 @@ export function HotkeyInput({
           )
         );
 
-        if (draft.mode === HOTKEY_BUILDER_MODES.modifierOnly && hasExclusiveModifier && !isSelected) {
+        if (
+          draft.mode === HOTKEY_BUILDER_MODES.modifierOnly &&
+          hasExclusiveModifier &&
+          !isSelected
+        ) {
           nextModifiers = [modifier];
         } else {
           nextModifiers = isSelected
@@ -401,7 +413,8 @@ export function HotkeyInput({
   const comboNeedsModifier =
     draft.mode === HOTKEY_BUILDER_MODES.keyCombo && draft.selectedModifiers.length === 0;
   const showModifierPicker =
-    draft.mode === HOTKEY_BUILDER_MODES.modifierOnly || draft.mode === HOTKEY_BUILDER_MODES.keyCombo;
+    draft.mode === HOTKEY_BUILDER_MODES.modifierOnly ||
+    draft.mode === HOTKEY_BUILDER_MODES.keyCombo;
   // When the parent pins a specific modifier prefix (translation hotkey path)
   // we hide the regular modifier picker chips. Otherwise users would also see
   // the togglable Cmd/Ctrl/Alt/Shift options below the locked chips, which is
@@ -420,7 +433,9 @@ export function HotkeyInput({
     <div className={classes.container}>
       {showModeSwitcher && (
         <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground/80">{t("hotkeyInput.modeLabel")}</p>
+          <p className="text-xs font-medium text-muted-foreground/80">
+            {t("hotkeyInput.modeLabel")}
+          </p>
           <div className="flex flex-wrap gap-2">
             {showModifierOnlyMode && (
               <button
@@ -557,16 +572,18 @@ export function HotkeyInput({
         </div>
       )}
 
-      <div className={classes.preview}>
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground/80">
-            {t("hotkeyInput.previewLabel")}
-          </span>
-          <span className="text-sm font-semibold text-foreground">
-            {previewHotkey ? formatHotkeyLabel(previewHotkey) : t("hotkeyInput.previewEmpty")}
-          </span>
+      {variant !== "compact" && (
+        <div className={classes.preview}>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground/80">
+              {t("hotkeyInput.previewLabel")}
+            </span>
+            <span className="text-sm font-semibold text-foreground">
+              {previewHotkey ? formatHotkeyLabel(previewHotkey) : t("hotkeyInput.previewEmpty")}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {validationWarning && (
         <div className="flex items-start gap-2 rounded-md border border-warning/25 bg-warning/10 px-3 py-2 text-xs text-warning dark:text-amber-300">

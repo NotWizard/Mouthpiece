@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { ChevronRight, ChevronLeft, Check, Mic, Shield, Command, UserCircle } from "lucide-react";
-import TitleBar from "./TitleBar";
 import WindowControls from "./WindowControls";
 import PermissionCard from "./ui/PermissionCard";
 import SupportDropdown from "./ui/SupportDropdown";
@@ -290,7 +289,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </div>
 
             {/* Permission cards - tight stack */}
-            <div className="space-y-1.5">
+            <div className="onboarding-permission-group">
               <PermissionCard
                 icon={Mic}
                 title={t("onboarding.permissions.microphoneTitle")}
@@ -321,7 +320,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 onOpenPrivacySettings={permissionsHook.openMicPrivacySettings}
               />
             )}
-
           </div>
         );
 
@@ -386,7 +384,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             {t("onboarding.activation.hotkey")}
           </span>
           <div className="activation-hero">
-            <div className="activation-halo" aria-hidden="true" />
             <kbd className="activation-keycap">{readableHotkey}</kbd>
           </div>
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -439,18 +436,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     }
   };
 
-  // Load Google Font only in the browser
-  React.useEffect(() => {
-    const link = document.createElement("link");
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600;700&display=swap";
-    link.rel = "stylesheet";
-    document.head.appendChild(link);
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, []);
-
   const onboardingPlatform =
     typeof window !== "undefined" && window.electronAPI?.getPlatform
       ? window.electronAPI.getPlatform()
@@ -461,12 +446,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       className="onboarding-shell h-screen flex flex-col"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
-      <div className="control-panel-atmosphere" aria-hidden="true">
-        <span className="glass-orb glass-orb-1" />
-        <span className="glass-orb glass-orb-2" />
-        <span className="glass-orb glass-orb-3" />
-        <span className="glass-orb glass-orb-4" />
-      </div>
       <ConfirmDialog
         open={confirmDialog.open}
         onOpenChange={(open) => !open && hideConfirmDialog()}
@@ -498,12 +477,14 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           )}
         </div>
       ) : (
-        <div className="shrink-0 z-10">
-          <TitleBar
-            showTitle={true}
-            className="onboarding-titlebar border-b border-border/70 shadow-none"
-            actions={hasCloudSession ? <SupportDropdown /> : undefined}
-          ></TitleBar>
+        <div
+          className="onboarding-titlebar flex h-10 w-full shrink-0 items-center justify-end border-b"
+          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+        >
+          <div className="flex items-center gap-1 pr-2" style={{ WebkitAppRegion: "no-drag" }}>
+            {hasCloudSession && <SupportDropdown />}
+            {onboardingPlatform !== "darwin" && <WindowControls />}
+          </div>
         </div>
       )}
 

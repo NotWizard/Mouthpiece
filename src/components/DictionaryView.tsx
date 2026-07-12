@@ -4,7 +4,6 @@ import { BookOpen, X, CornerDownLeft, Info } from "lucide-react";
 import { FixedSizeList as List, type ListChildComponentProps } from "react-window";
 import { Input } from "./ui/input";
 import { ConfirmDialog } from "./ui/dialog";
-import TerminologySettingsCard from "./TerminologySettingsCard";
 import { useSettings } from "../hooks/useSettings";
 import { parseDictionaryInput } from "../utils/parseDictionaryInput";
 
@@ -26,9 +25,7 @@ const DictionaryRow = memo(function DictionaryRow({
 
   return (
     <div style={style} className="pr-1">
-      <div
-        className="group flex items-center gap-2 py-[5px] px-2.5 rounded-[5px] border transition-colors duration-150 bg-foreground/[0.02] dark:bg-white/[0.03] text-foreground/60 dark:text-foreground/50 border-foreground/8 dark:border-white/6 hover:border-foreground/15 dark:hover:border-white/12 hover:bg-foreground/[0.04] dark:hover:bg-white/[0.06] hover:text-foreground/80 dark:hover:text-foreground/70"
-      >
+      <div className="group flex items-center gap-2 py-[5px] px-2.5 rounded-[5px] border transition-colors duration-150 bg-foreground/[0.02] dark:bg-white/[0.03] text-foreground/60 dark:text-foreground/50 border-foreground/8 dark:border-white/6 hover:border-foreground/15 dark:hover:border-white/12 hover:bg-foreground/[0.04] dark:hover:bg-white/[0.06] hover:text-foreground/80 dark:hover:text-foreground/70">
         <span className="truncate">{word}</span>
         <button
           onClick={() => data.onRemove(word)}
@@ -44,7 +41,7 @@ const DictionaryRow = memo(function DictionaryRow({
 
 function DictionaryView() {
   const { t } = useTranslation();
-  const { customDictionary, terminologyProfile, setCustomDictionary } = useSettings();
+  const { customDictionary, setCustomDictionary } = useSettings();
   const [newWord, setNewWord] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -113,6 +110,11 @@ function DictionaryView() {
         variant="destructive"
       />
 
+      <div className="content-page-header">
+        <h1>{t("sidebar.dictionary")}</h1>
+        <p>{t("dictionary.description")}</p>
+      </div>
+
       {isEmpty ? (
         /* ─── Empty state ─── */
         <div className="flex-1 overflow-y-auto">
@@ -125,12 +127,7 @@ function DictionaryView() {
               />
             </div>
 
-            <h2 className="text-xs font-semibold text-foreground mb-1">{t("dictionary.title")}</h2>
-            <p className="text-xs text-foreground/30 text-center leading-relaxed max-w-[240px] mb-6">
-              {t("dictionary.description")}
-            </p>
-
-            <div className="w-full max-w-[260px] relative">
+            <div className="w-full max-w-[320px] relative">
               <Input
                 placeholder={t("dictionary.addPlaceholder")}
                 value={newWord}
@@ -184,10 +181,6 @@ function DictionaryView() {
                 </div>
               )}
             </div>
-          </div>
-
-          <div className="px-5 pb-5">
-            <TerminologySettingsCard terminologyProfile={terminologyProfile} />
           </div>
         </div>
       ) : (
@@ -284,10 +277,6 @@ function DictionaryView() {
                 {t("dictionary.inputHint")}
               </p>
             </div>
-          </div>
-
-          <div className="px-5 pb-5">
-            <TerminologySettingsCard terminologyProfile={terminologyProfile} />
           </div>
         </>
       )}
