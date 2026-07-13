@@ -1,106 +1,11 @@
-# Debug Logging
+# Debug logs
 
-Use debug logging when Mouthpiece launches but does not record, transcribe, paste, or load correctly.
+在控制面板的“隐私与高级”中启用调试日志。日志写入：
 
-## Turn It On
-
-### Option 1: From the app
-
-1. Open the Mouthpiece Control Panel
-2. Go to `Privacy & Data`
-3. In the `Developer` section, enable `Debug mode`
-4. Reproduce the issue
-
-### Option 2: Launch from the command line
-
-```bash
-# macOS packaged app
-/Applications/Mouthpiece.app/Contents/MacOS/Mouthpiece --log-level=debug
-
-# Windows packaged app
-Mouthpiece.exe --log-level=debug
+```text
+~/Library/Application Support/Mouthpiece/logs/
 ```
 
-You can also use `--log-level=trace` for even more detail.
+日志会脱敏 API Key、Authorization header 和常见凭据字段，只保留最近 20 个文件，并自动删除 7 天以前的文件。
 
-### Option 3: Set the environment file
-
-Add this to the `.env` file inside Mouthpiece's user-data directory and restart the app:
-
-```env
-MOUTHPIECE_LOG_LEVEL=debug
-```
-
-The legacy `OPENWHISPR_LOG_LEVEL` is still honored as a fallback if you are upgrading from an older install.
-
-## Where the `.env` File Lives
-
-Mouthpiece stores runtime settings in `app.getPath("userData")`. Typical production paths are:
-
-- macOS: `~/Library/Application Support/Mouthpiece/.env`
-- Windows: `%APPDATA%\Mouthpiece\.env`
-
-Development and staging builds may use a suffixed directory such as `Mouthpiece-development`.
-
-## Log File Locations
-
-Debug logs are written to the `logs/` folder inside the same user-data directory:
-
-- macOS: `~/Library/Application Support/Mouthpiece/logs/debug-*.log`
-- Windows: `%APPDATA%\Mouthpiece\logs\debug-*.log`
-
-If you are troubleshooting an older install, also check legacy directories such as `OpenWhispr` if the app migrated from a previous build.
-
-## What Gets Logged
-
-| Area                | Examples                                                                   |
-| ------------------- | -------------------------------------------------------------------------- |
-| App startup         | environment loading, user-data path selection, window load failures        |
-| Audio capture       | microphone permissions, selected device, chunk sizes, silence detection    |
-| Local transcription | whisper-server startup, model selection, FFmpeg conversion, parse failures |
-| Cloud requests      | request lifecycle, provider failures, timeouts                             |
-| Clipboard and paste | permission checks, paste method selection, platform-specific fallback      |
-| IPC                 | renderer/main-process message flow and handler failures                    |
-
-## What to Search For
-
-### No audio or silent recordings
-
-Look for lines such as:
-
-- `maxLevel < 0.01`
-- `Audio appears to be silent`
-- `No active audio input was found`
-
-### Local transcription failures
-
-Look for:
-
-- `whisper-server binary not found`
-- `whisper-server failed to start`
-- `FFmpeg not found`
-- `Failed to parse whisper-server response`
-
-### Permission or paste issues
-
-Look for:
-
-- `Microphone Access Denied`
-- `Accessibility permissions needed`
-- `clipboard`
-
-## Sharing Logs
-
-1. Enable debug mode
-2. Reproduce the issue once
-3. Open the logs folder from the Control Panel if available, or browse to the path above
-4. Remove any private content you do not want to share
-5. Attach the newest `debug-*.log` file to your issue report
-
-## Turn It Off
-
-Debug mode is off by default. To disable it again:
-
-- turn off `Debug mode` in the Control Panel
-- remove `--log-level=debug` from your launch command
-- remove `MOUTHPIECE_LOG_LEVEL` (or legacy `OPENWHISPR_LOG_LEVEL`) from the user-data `.env` file
+排查录音或实时识别时，建议记录问题发生的准确时间、Provider、模型、麦克风和显示器布局，再附上对应时间段日志。不要公开完整的 Keychain 内容或未经检查的用户文本。

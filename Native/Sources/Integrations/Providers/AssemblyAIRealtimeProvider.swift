@@ -1,0 +1,159 @@
+import Foundation
+
+actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
+    private let session: URLSession
+    private var socket: URLSessionWebSocketTask?
+    private var receiveTask: Task<Void, Never>?
+    private var eventHandler: (@Sendable (RealtimeTranscriptionEvent) -> Void)?
+    private var turns: [String] = []
+    private var normalizedTurns: [String] = []
+    private var terminated = false
+    private var ready = false
+    private var connectionError: String?
+    private var pendingAudio: [Data] = []
+    private var pendingAudioBytes = 0
+    private let maximumBufferedBytes = 3 * 16_000 * 2
+
+    init(session: URLSession = .shared) { self.session = session }
+
+    func warmup(configuration: RealtimeTranscriptionConfiguration) async throws {}
+
+    func connect(
+        configuration: RealtimeTranscriptionConfiguration,
+        onEvent: @escaping @Sendable (RealtimeTranscriptionEvent) -> Void
+    ) async throws {
+        await cancel()
+        eventHandler = onEvent
+        turns.removeAll()
+        normalizedTurns.removeAll()
+        terminated = false
+        ready = false
+        connectionError = nil
+        var components = URLComponents(string: "wss://streaming.assemblyai.com/v3/ws")!
+        var query = [
+            URLQueryItem(name: "sample_rate", value: String(configuration.sampleRate)),
+            URLQueryItem(name: "encoding", value: "pcm_s16le"),
+            URLQueryItem(name: "format_turns", value: "true"),
+            URLQueryItem(name: "token", value: configuration.apiKey),
+        ]
+        if configuration.language != nil {
+            query.append(URLQueryItem(name: "speech_model", value: "universal-streaming-multilingual"))
+        }
+        components.queryItems = query
+        let socket = session.webSocketTask(with: components.url!)
+        self.socket = socket
+        socket.resume()
+        receiveTask = Task { [weak self] in await self?.receiveLoop(socket) }
+        let deadline = ContinuousClock.now + .seconds(15)
+        while !ready && connectionError == nil && ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(25))
+        }
+        if let connectionError {
+            await cancel()
+            throw BailianRealtimeError.protocolError(connectionError)
+        }
+        guard ready else {
+            await cancel()
+            throw BailianRealtimeError.timedOut
+        }
+    }
+
+    func send(pcm16: Data) async throws {
+        guard ready, let socket, socket.state == .running else {
+            appendPending(pcm16)
+            return
+        }
+        try await socket.send(.data(pcm16))
+    }
+
+    func finish() async throws -> String {
+        guard let socket else { return turns.joined(separator: " ") }
+        try await socket.send(.string(#"{"type":"Terminate"}"#))
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !terminated && ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(40))
+        }
+        let text = turns.joined(separator: " ")
+        await cancel()
+        return text
+    }
+
+    func cancel() async {
+        receiveTask?.cancel()
+        receiveTask = nil
+        socket?.cancel(with: .goingAway, reason: nil)
+        socket = nil
+        ready = false
+        connectionError = nil
+        pendingAudio.removeAll()
+        pendingAudioBytes = 0
+    }
+
+    private func receiveLoop(_ socket: URLSessionWebSocketTask) async {
+        do {
+            while !Task.isCancelled {
+                let message = try await socket.receive()
+                let data: Data
+                switch message {
+                case .data(let value): data = value
+                case .string(let value): data = Data(value.utf8)
+                @unknown default: continue
+                }
+                guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let type = payload["type"] as? String else { continue }
+                switch type {
+                case "Begin":
+                    ready = true
+                    try await flushPendingAudio(socket)
+                case "Turn":
+                    guard let transcript = payload["transcript"] as? String, !transcript.isEmpty else { continue }
+                    if payload["end_of_turn"] as? Bool == true {
+                        let normalized = normalize(transcript)
+                        if normalizedTurns.last == normalized {
+                            if payload["turn_is_formatted"] as? Bool == true { turns[turns.count - 1] = transcript }
+                        } else {
+                            turns.append(transcript)
+                            normalizedTurns.append(normalized)
+                        }
+                        eventHandler?(.final(turns.joined(separator: " ")))
+                    } else {
+                        eventHandler?(.partial(stable: turns.joined(separator: " "), active: transcript))
+                    }
+                case "Termination":
+                    terminated = true
+                    eventHandler?(.sessionFinished(turns.joined(separator: " ")))
+                case "Error":
+                    let message = payload["error"] as? String ?? "AssemblyAI error"
+                    connectionError = message
+                    eventHandler?(.error(message))
+                default: break
+                }
+            }
+        } catch {
+            if !Task.isCancelled { eventHandler?(.error(error.localizedDescription)) }
+        }
+    }
+
+    private func normalize(_ value: String) -> String {
+        value.lowercased()
+            .replacingOccurrences(of: #"[^\p{L}\p{N}\s]"#, with: " ", options: .regularExpression)
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func appendPending(_ data: Data) {
+        guard !data.isEmpty else { return }
+        pendingAudio.append(data)
+        pendingAudioBytes += data.count
+        while pendingAudioBytes > maximumBufferedBytes, !pendingAudio.isEmpty {
+            pendingAudioBytes -= pendingAudio.removeFirst().count
+        }
+    }
+
+    private func flushPendingAudio(_ socket: URLSessionWebSocketTask) async throws {
+        let frames = pendingAudio
+        pendingAudio.removeAll()
+        pendingAudioBytes = 0
+        for frame in frames { try await socket.send(.data(frame)) }
+    }
+}

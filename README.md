@@ -1,242 +1,58 @@
-<p align="center">
-  <img src="src/assets/icon.png" alt="Mouthpiece" width="120" />
-</p>
-
 # Mouthpiece
 
-开源桌面听写工作台，支持 macOS 与 Windows。<br/>
-它把“按下热键开始说话、把文本安全送回当前应用”这件事做成了一套完整的桌面流程：录音胶囊、转录引擎、词典、智能后处理、历史记录、权限引导、控制面板和系统更新都已经整合到同一个应用里。
+Mouthpiece 是一款纯原生 macOS 语音听写应用。它使用 Swift、SwiftUI、AppKit 和 AVFoundation 构建，不包含 Electron、Chromium、React 或 Node.js runtime。
 
-English README: [README.en.md](README.en.md)
+## 系统要求
 
-## 致敬与来源
+- 正式兼容并验收 macOS 15 Sequoia 与 macOS 26 Tahoe
+- Apple Silicon 或 Intel Mac
+- Xcode 26 或兼容的较新版本
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen)
 
-Mouthpiece 持续演进自 [OpenWhispr](https://github.com/OpenWhispr/openwhispr) 与 [VoiceInk](https://github.com/le-soleil-se-couche/VoiceInk)。<br/>
-感谢这两个上游项目提供的启发与基础。当前仓库的 README、功能说明和使用方式，均以本项目现在的代码实现为准。
+项目从 2.0 起只提供 macOS 版本，不再维护 Windows 或 Linux 构建，也不兼容 macOS 14 及更早版本。
 
-## 这是什么
+## 功能
 
-Mouthpiece 适合想把语音输入接到日常桌面工作流中的用户，例如：
+- 修饰键、组合键、按住说话和点击切换听写
+- 独立的翻译快捷键
+- 原生录音胶囊，支持多显示器、Spaces 和全屏应用
+- 百炼、OpenAI、Deepgram、Soniox、AssemblyAI、Groq、Mistral 和自定义兼容端点
+- 本地 Whisper、Parakeet 和 Qwen ASR MLX
+- 本地 GGUF 文字整理模型，运行于随包提供的 llama.cpp
+- 词典、替换规则、自定义 Prompt、原文历史和敏感应用保护
+- Sparkle 应用内更新、GitHub Releases 和 Homebrew cask
 
-- 需要在任意应用里快速输入中文、英文或中英混合文本
-- 希望在本地模型和云端模型之间自由切换
-- 想要用自定义词典和术语提升专有名词命中率
-- 需要在转录之后继续做清理、改写、格式化或轻量智能处理
-- 需要把听写结果在插入前自动翻译成目标语言
-- 希望保留历史记录，并在自动插入失败时有可靠的剪贴板回退
-
-默认使用方式是 BYOK：<br/>
-你可以直接使用本地模型，也可以填写自己的 API Key 连接云端 provider。账号登录能力存在，但不是主流程必需项。
-
-## 它现在能做什么
-
-- 通过全局热键启动听写，并在短按/长按之间自动匹配合适的激活方式
-- 使用悬浮录音胶囊显示录音状态、音量反馈和实时文本
-- 在本地转录与云端转录之间切换，按隐私、速度和成本偏好选择
-- 通过自定义词典、术语和后处理归一化改善识别结果
-- 在转录后接入可选智能层，通过 Prompt Studio 做清理、改写或格式整理
-- 可选 AI 翻译输出：设置好目标语言并配置一个独立的翻译热键，按翻译热键的听写会在同一次 LLM 调用里完成转录、清理和翻译，把目标语言文本直接送回当前应用
-- 把文本自动插入当前应用；如果自动插入失败，会回退到剪贴板并给出明确提示
-- 保存历史记录，支持回看、复制和再次使用
-- 提供权限引导、系统托盘、控制面板和打包版自动更新体验
-
-## 三分钟上手
-
-### 1. 安装或运行
-
-- macOS Homebrew 用户：`brew install --cask notwizard/mouthpiece/mouthpiece`（自动跟踪最新版本）
-- 安装包用户：从 [GitHub Releases](https://github.com/NotWizard/Mouthpiece/releases) 下载对应平台版本（macOS DMG / Windows EXE）
-- 源码用户：见本文末尾的”从源码运行”
-
-### 2. 首次启动
-
-当前 onboarding 是 4 步：
-
-1. `Welcome`
-2. `Permissions`
-3. `Hotkey Setup`
-4. `Activation`
-
-你可以在这里完成首轮授权、热键设置和听写测试。
-
-### 3. 授权权限
-
-至少要处理两类权限：
-
-- 麦克风权限：用于录音和转录
-- 辅助功能权限：用于把结果自动插入其他应用
-
-如果暂时不授予辅助功能权限，Mouthpiece 仍然可以工作，只是会更多依赖复制到剪贴板后手动粘贴。
-
-### 4. 选择转录模式
-
-- 想优先本地隐私：选择本地转录
-- 想优先云端模型或实时 provider：选择云端转录
-
-之后再根据你的习惯决定是否开启智能后处理。
-
-### 5. 开始说话
-
-- 按下热键开始听写
-- 看悬浮胶囊中的状态和实时文本
-- 停止后让 Mouthpiece 自动插入文本，或从历史记录与剪贴板回退中取回结果
-
-## 模式与能力
-
-### 转录模式
-
-| 模式 | 适合场景 | 当前支持 |
-| --- | --- | --- |
-| 本地转录 | 更注重隐私、离线能力、可控性 | OpenAI Whisper、NVIDIA Parakeet、Qwen ASR MLX |
-| 云端转录 | 更注重云端 provider 选择、部分实时链路和托管能力 | OpenAI、Deepgram、Groq、Mistral、Soniox、Alibaba Bailian、Custom（任意 OpenAI 兼容端点） |
-
-### 本地转录
-
-- **OpenAI Whisper**：经典本地方案，模型选择最完整
-- **NVIDIA Parakeet**：基于 sherpa-onnx 的本地转录链路
-- **Qwen ASR MLX**：适合 Apple Silicon 本地部署的 Qwen ASR 路线
-
-### 云端转录
-
-- **OpenAI**
-- **Deepgram**
-- **Groq**
-- **Mistral**
-- **Soniox**
-- **Alibaba Bailian**
-- **Custom**：任意 OpenAI 兼容端点，自填 baseUrl 与 API Key
-
-其中部分 provider 支持更明确的实时/非实时切换。是否开启 realtime，取决于所选 provider 和当前设置。
-
-### 可选智能层
-
-Mouthpiece 的智能层不是强制主流程，而是一个可选增强层。<br/>
-你可以把转录后的文本继续交给本地或云端推理模型做：
-
-- 清理口语化表达
-- 调整格式
-- 轻量改写
-- 固定风格输出
-- 按 Prompt Studio 模板做后处理
-
-当前推理 provider 覆盖：
-
-- 云端：OpenAI、Anthropic、Google Gemini、Groq、Alibaba Bailian
-- 本地：Qwen、Mistral、Meta Llama、OpenAI OSS、Gemma
-
-### AI 翻译输出
-
-把听写直接翻译成目标语言再插入当前应用。开启方式：
-
-- Settings → AI Models → AI Translation Output 打开开关并选择目标语言
-- Settings → Hotkeys → Translation hotkey 设置一个独立的翻译热键。该热键必须以主热键的修饰键作为前缀加上一个主键（例如主热键是 Right Shift，翻译热键就是 Right Shift + 某个字母），这样系统可以清楚区分两种模式
-
-两个热键的分工：
-
-- 主热键：转录 + 可选清理，输出保留原语言
-- 翻译热键：转录 + 清理 + 翻译在同一次 LLM 调用里完成，输出目标语言
-
-翻译热键触发的录音胶囊右上角会显示一个目标语言角标（EN / ZH / JA …），方便确认当前模式。如果翻译调用失败（网络、配额、provider 异常等），会回退到原文插入并通过 inline toast 提示。翻译沿用智能层选的 provider 与模型，不需要单独配置另一组 API Key。
-
-### 词典与术语
-
-词典系统已经不是单一的“手动加词”：
-
-- 支持自定义词典
-- 支持术语配置
-- 支持在后处理阶段做字典归一化
-
-如果你经常输入人名、产品名、内部术语或中英混合短语，这部分会明显改善稳定性。
-
-### 插入策略与回退
-
-Mouthpiece 的目标不是只生成文本，而是尽量把文本送回你当前正在使用的应用。
-
-- 优先尝试自动插入
-- 如果当前应用或系统环境不适合直接插入，会回退到剪贴板
-- 回退时会明确告诉你结果已经复制，可手动 `Cmd+V` / `Ctrl+V`
-
-这让它更适合浏览器、编辑器、聊天工具、文档工具和混合工作流，而不是只适用于单一输入框。
-
-### 历史记录与控制面板
-
-控制面板当前的主导航包括：
-
-- Home
-- Dictionary
-- General
-- Hotkeys
-- Transcription
-- Intelligence
-- Privacy & Data
-- System
-
-在这里你可以查看历史记录、管理词典、切换 provider、设置热键、调整权限、控制更新和修改系统级偏好。
-
-## 权限、隐私与边界
-
-### 权限
-
-- **麦克风权限**：必须，用于录音
-- **辅助功能权限**：用于自动插入文本
-- 某些平台可能还需要额外的系统设置或粘贴工具配合
-
-### 隐私
-
-- 本地转录时，音频在设备侧处理
-- 云端转录或云端推理时，数据会按你选择的 provider 路由和处理
-- 默认是 BYOK 模式，云端额度与费用由你自己的 provider 账号承担
-
-### 使用边界
-
-- 登录/账号是可选能力，不是 Mouthpiece 的默认使用前提
-- 智能后处理是可选能力，不是转录成功的前提
-- 语音识别与后处理都可能出错；涉及法律、医疗、金融等高风险场景时，请务必人工复核
-
-## 进阶文档
-
-| 文档 | 适合什么时候看 |
-| --- | --- |
-| [LOCAL_WHISPER_SETUP.md](LOCAL_WHISPER_SETUP.md) | 想详细了解本地 Whisper 模型、缓存和运行方式 |
-| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | 遇到跨平台常见问题时 |
-| [WINDOWS_TROUBLESHOOTING.md](WINDOWS_TROUBLESHOOTING.md) | 遇到 Windows 专属问题时 |
-| [docs/macos-local-codesign.md](docs/macos-local-codesign.md) | 需要做 macOS 本地签名或稳定辅助功能授权时 |
-
-## 从源码运行
-
-### 开发环境
+## 本地开发
 
 ```bash
-git clone https://github.com/NotWizard/Mouthpiece.git
-cd Mouthpiece
-npm install
-npm run dev
+brew install xcodegen cmake
+xcodegen generate
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+  xcodebuild -project Mouthpiece.xcodeproj -scheme Mouthpiece \
+  -configuration Debug test
 ```
 
-### 常用命令
+建议本地使用 Xcode 默认的 DerivedData 目录。若仓库位于 `Downloads`，不要把测试产物写回仓库内，否则 macOS 可能阻止 XCTest runner 读取测试 bundle。
+
+本地模型 runtime 不提交到 Git。需要运行完整本地模型链路时执行：
 
 ```bash
-# 类型检查
-npm run typecheck
-
-# Lint
-npm run lint
-
-# 打包渲染层
-npm run build:renderer
-
-# 平台构建
-npm run build:mac
-npm run build:win
+scripts/download-native-binaries.sh arm64
+# Intel 构建使用：scripts/download-native-binaries.sh x64
 ```
 
-如果你只是在使用应用，而不是参与开发，优先建议直接从 Releases 下载打包版本。
+## 数据与升级
 
-## Upstream
+设置保存在 `UserDefaults`，API Key 保存在 macOS Keychain，历史记录位于：
 
-- [OpenWhispr](https://github.com/OpenWhispr/openwhispr)
-- [VoiceInk](https://github.com/le-soleil-se-couche/VoiceInk)
+```text
+~/Library/Application Support/Mouthpiece/transcriptions.db
+```
 
-## License
+本地模型继续使用 `~/.cache/mouthpiece/`。原生版首次启动会备份并迁移旧版 Mouthpiece、OpenWhispr 或 VoiceInk 数据，不会重新下载仍然有效的模型。
 
-MIT. See [LICENSE](LICENSE).
+## 发布
+
+版本号由 `project.yml` 的 `MARKETING_VERSION` 管理。创建 `vX.Y.Z` tag 前，需要准备 `docs/releases/vX.Y.Z.md` 双语说明。Release workflow 会自动构建 arm64 与 x86_64、使用固定自签名身份签名、生成 Sparkle appcast、发布 GitHub Release 并更新 `NotWizard/homebrew-mouthpiece`。
+
+签名和权限保持机制见 [Code Signing Runbook](docs/release/code-signing-runbook.md)。

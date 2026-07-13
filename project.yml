@@ -1,0 +1,64 @@
+name: Mouthpiece
+packages:
+  SwiftLevelDB:
+    url: https://github.com/OpenCow42/swift-leveldb.git
+    exactVersion: 1.23
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle.git
+    exactVersion: 2.9.4
+options:
+  minimumXcodeGenVersion: 2.45.0
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    CLANG_ENABLE_MODULES: YES
+    ENABLE_HARDENED_RUNTIME: YES
+    MARKETING_VERSION: 2.0.0
+    CURRENT_PROJECT_VERSION: 20000
+    SPARKLE_PUBLIC_ED_KEY: "xRChY2RKm/B9cIqShYuSXEzg9pOkg+FC2eV1StcYNsk="
+targets:
+  Mouthpiece:
+    type: application
+    platform: macOS
+    sources:
+      - path: Native/Sources
+      - path: Native/Resources
+        buildPhase: resources
+        excludes:
+          - Info.plist
+          - Mouthpiece.entitlements
+      - path: Native/Binaries
+        buildPhase: resources
+        type: folder
+    dependencies:
+      - sdk: libsqlite3.tbd
+      - package: SwiftLevelDB
+        product: swift-leveldb
+      - package: Sparkle
+        product: Sparkle
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mouthpiece.app
+        PRODUCT_NAME: Mouthpiece
+        INFOPLIST_FILE: Native/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Native/Resources/Mouthpiece.entitlements
+    scheme:
+      testTargets:
+        - MouthpieceTests
+      gatherCoverageData: true
+  MouthpieceTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Native/Tests
+    dependencies:
+      - target: Mouthpiece
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mouthpiece.app.tests
+        GENERATE_INFOPLIST_FILE: YES

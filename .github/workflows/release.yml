@@ -1,400 +1,210 @@
-name: Release
+name: Native macOS Release
 
 on:
   push:
     tags:
-      - "v*.*.*" # Triggers on version tags like v1.0.0, v2.1.3, etc.
+      - "v*.*.*"
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to release (e.g., 1.0.0)"
+        description: "Version to release, for example 2.0.0"
         required: true
         type: string
 
 permissions:
-  contents: write # Required for creating releases
+  contents: write
 
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: macos-15
     outputs:
-      release_tag: ${{ steps.resolve.outputs.release_tag }}
-      release_version: ${{ steps.resolve.outputs.release_version }}
-    steps:
-      - name: Resolve release target
-        id: resolve
-        shell: bash
-        run: |
-          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
-            RAW_VERSION="${{ inputs.version }}"
-            RELEASE_VERSION="${RAW_VERSION#v}"
-            RELEASE_TAG="v${RELEASE_VERSION}"
-          else
-            RELEASE_TAG="${GITHUB_REF_NAME}"
-            RELEASE_VERSION="${RELEASE_TAG#v}"
-          fi
-
-          echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
-          echo "release_version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
-
-  build-windows:
-    needs: prepare
-    runs-on: windows-2022
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.prepare.outputs.release_tag }}
-          fetch-depth: 0
-
-      - name: Setup MSVC
-        uses: microsoft/setup-msbuild@v3
-
-      - name: Setup MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-          cache: "npm"
-
-      - name: Validate release version
+      - id: release
+        name: Validate release metadata
         shell: bash
         run: |
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          if [ "$PACKAGE_VERSION" != "${{ needs.prepare.outputs.release_version }}" ]; then
-            echo "Expected package.json version ${{ needs.prepare.outputs.release_version }}, found $PACKAGE_VERSION"
-            exit 1
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
           fi
+          scripts/validate-release-version.sh "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate ASR replay benchmark summary
-        run: npm run replay:asr -- --output tmp/asr-replay.json
-
-      - name: Verify ASR replay benchmark summary
-        run: npm run verify:asr-benchmarks
-
-      - name: Cache native binaries
-        uses: actions/cache@v5
-        with:
-          path: resources/bin
-          key: windows-x64-bin-${{ hashFiles('scripts/download-*.js') }}
-
-      - name: Download whisper.cpp binaries
-        run: node scripts/download-whisper-cpp.js --current
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-
-      - name: Download llama-server binaries
-        run: node scripts/download-llama-server.js --current
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-
-      - name: Download sherpa-onnx binaries
-        run: node scripts/download-sherpa-onnx.js --current
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-
-      - name: Download nircmd.exe
-        run: node scripts/download-nircmd.js
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-
-      - name: Download windows-fast-paste.exe
-        run: node scripts/download-windows-fast-paste.js
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-
-      - name: Download windows-key-listener.exe
-        run: node scripts/download-windows-key-listener.js
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-
-      - name: Cache Electron
-        uses: actions/cache@v5
-        with:
-          path: ~/AppData/Local/electron/Cache
-          key: windows-electron-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: windows-electron-
-
-      - name: Build Application
-        run: npm run build:win -- --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-          VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
-          VITE_MOUTHPIECE_API_URL: ${{ vars.VITE_MOUTHPIECE_API_URL || vars.VITE_OPENWHISPR_API_URL }}
-          VITE_MOUTHPIECE_OAUTH_CALLBACK_URL: ${{ vars.VITE_MOUTHPIECE_OAUTH_CALLBACK_URL || vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
-
-  build-macos:
+  verify:
     needs: prepare
-    runs-on: ${{ matrix.runner }}
-    env:
-      # We sign every macOS build with a self-signed code-signing certificate so
-      # the codesign Designated Requirement (and therefore TCC permissions) stays
-      # stable across releases. Without this, every update would force users to
-      # re-grant Accessibility / Microphone access. See docs/release/code-signing-runbook.md.
-      MAC_SIGNING_ENABLED: ${{ secrets.MAC_SELFSIGN_CERT_BASE64 != '' && secrets.MAC_SELFSIGN_CERT_PASSWORD != '' }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - arch: x64
-            runner: macos-15-intel
-          - arch: arm64
-            runner: macos-15
+        runner: [macos-15, macos-26]
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.prepare.outputs.release_tag }}
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-          cache: "npm"
-
-      - name: Validate release version
-        shell: bash
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Run native tests and replay benchmarks
         run: |
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          if [ "$PACKAGE_VERSION" != "${{ needs.prepare.outputs.release_version }}" ]; then
-            echo "Expected package.json version ${{ needs.prepare.outputs.release_version }}, found $PACKAGE_VERSION"
-            exit 1
-          fi
+          xcodebuild -project Mouthpiece.xcodeproj -scheme Mouthpiece \
+            -configuration Debug -derivedDataPath .build/release-tests test \
+            CODE_SIGNING_ALLOWED=NO
 
-      - name: Install dependencies
-        run: npm ci
+  build:
+    needs: [prepare, verify]
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x64]
+    steps:
+      - uses: actions/checkout@v6
 
-      - name: Generate ASR replay benchmark summary
-        run: npm run replay:asr -- --output tmp/asr-replay.json
+      - name: Install build tools
+        run: brew install xcodegen cmake
 
-      - name: Verify ASR replay benchmark summary
-        run: npm run verify:asr-benchmarks
-
-      - name: Install ffmpeg-static for target architecture
-        if: matrix.arch == 'x64'
-        run: npm_config_arch=x64 node node_modules/ffmpeg-static/install.js
-
-      - name: Cache native binaries
-        uses: actions/cache@v5
-        with:
-          path: resources/bin
-          key: macos-${{ matrix.arch }}-bin-${{ hashFiles('scripts/download-*.js', 'scripts/build-globe-listener.js', 'resources/macos-globe-listener.swift', 'scripts/build-macos-fast-paste.js', 'resources/macos-fast-paste.swift') }}
-
-      - name: Download whisper.cpp binaries
-        run: node scripts/download-whisper-cpp.js --current --platform darwin --arch ${{ matrix.arch }}
+      - name: Import stable self-signing identity
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-
-      - name: Download llama-server binaries
-        run: node scripts/download-llama-server.js --current --platform darwin --arch ${{ matrix.arch }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-
-      - name: Download sherpa-onnx binaries
-        run: node scripts/download-sherpa-onnx.js --current --platform darwin --arch ${{ matrix.arch }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-
-      - name: Cache Electron
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/electron
-          key: macos-${{ matrix.arch }}-electron-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: macos-${{ matrix.arch }}-electron-
-
-      - name: Setup macOS Code Signing (self-signed)
-        if: env.MAC_SIGNING_ENABLED == 'true'
-        env:
-          MAC_SELFSIGN_CERT_BASE64: ${{ secrets.MAC_SELFSIGN_CERT_BASE64 }}
-          MAC_SELFSIGN_CERT_PASSWORD: ${{ secrets.MAC_SELFSIGN_CERT_PASSWORD }}
+          CERTIFICATE_BASE64: ${{ secrets.MAC_SELFSIGN_CERT_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MAC_SELFSIGN_CERT_PASSWORD }}
         run: |
-          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
-          PUBLIC_CERT_PATH=$RUNNER_TEMP/signing.crt.pem
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-
-          echo "$MAC_SELFSIGN_CERT_BASE64" | base64 --decode > $CERTIFICATE_PATH
-
-          security create-keychain -p "runner" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "runner" $KEYCHAIN_PATH
-
-          security import $CERTIFICATE_PATH -P "$MAC_SELFSIGN_CERT_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security list-keychain -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | tr -d ' "')
-
-          security set-key-partition-list -S apple-tool:,apple:,codesign:- -s -k "runner" $KEYCHAIN_PATH
-
-          # electron-builder runs `security find-identity -v -p codesigning` and rejects identities
-          # that fail trust validation. Self-signed certs always fail this without an explicit trust
-          # setting (CSSMERR_TP_NOT_TRUSTED), so without the next step electron-builder silently
-          # falls back to skipping signing — which we explicitly do not want. Extract the public cert
-          # from the .p12 and add it as a trusted code-signing root in the System keychain.
+          test -n "$CERTIFICATE_BASE64" || { echo "Missing MAC_SELFSIGN_CERT_BASE64" >&2; exit 1; }
+          test -n "$CERTIFICATE_PASSWORD" || { echo "Missing MAC_SELFSIGN_CERT_PASSWORD" >&2; exit 1; }
+          CERTIFICATE_PATH="$RUNNER_TEMP/mouthpiece-signing.p12"
+          PUBLIC_CERT_PATH="$RUNNER_TEMP/mouthpiece-signing.pem"
+          KEYCHAIN_PATH="$RUNNER_TEMP/mouthpiece-signing.keychain-db"
+          printf '%s' "$CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          security create-keychain -p runner "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p runner "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k runner "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d ' "')
           openssl pkcs12 -in "$CERTIFICATE_PATH" -clcerts -nokeys \
-            -passin "pass:$MAC_SELFSIGN_CERT_PASSWORD" 2>/dev/null \
+            -passin "pass:$CERTIFICATE_PASSWORD" 2>/dev/null \
             | openssl x509 -outform PEM > "$PUBLIC_CERT_PATH"
           sudo security add-trusted-cert -d -r trustRoot -p codeSign \
             -k /Library/Keychains/System.keychain "$PUBLIC_CERT_PATH"
 
-          # Sanity check — must show 1 valid identity for our CN.
-          echo "Valid code-signing identities after trust add:"
-          security find-identity -v -p codesigning $KEYCHAIN_PATH
-
-      - name: Build Application (${{ matrix.arch }})
-        run: npm run build:mac -- --${{ matrix.arch }} --publish always
+      - name: Build, sign, and package ${{ matrix.arch }}
         env:
-          TARGET_ARCH: ${{ matrix.arch }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-          VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
-          VITE_MOUTHPIECE_API_URL: ${{ vars.VITE_MOUTHPIECE_API_URL || vars.VITE_OPENWHISPR_API_URL }}
-          VITE_MOUTHPIECE_OAUTH_CALLBACK_URL: ${{ vars.VITE_MOUTHPIECE_OAUTH_CALLBACK_URL || vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.MAC_SIGNING_ENABLED == 'true' && 'true' || 'false' }}
-          CSC_KEY_PASSWORD: ${{ secrets.MAC_SELFSIGN_CERT_PASSWORD }}
+          MAC_SELFSIGN_IDENTITY: Mouthpiece Code Signing
+          MAC_SELFSIGN_CERT_SHA1: DB4FFD2432826CB4DA396D12CD2B3193E51448D7
+          MAC_SELFSIGN_CERT_SHA256: AD386695155758F30DEDDDCE3A88022E3A74D2B6B60CD368FD0994DE677BA04F
+        run: scripts/build-native-release.sh "${{ needs.prepare.outputs.version }}" "${{ matrix.arch }}"
 
-      - name: Verify Designated Requirement
-        if: env.MAC_SIGNING_ENABLED == 'true'
-        shell: bash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Mouthpiece-${{ matrix.arch }}
+          path: artifacts/*
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Remove temporary signing material
+        if: always()
         run: |
-          # The DR must reference the certificate leaf hash (stable across versions).
-          # If it shows `cdhash H"..."` instead, our self-signed identity didn't apply
-          # and TCC will treat the next release as a different app. Hard-fail.
-          APP_PATH=$(find dist -maxdepth 4 -name "Mouthpiece.app" -type d | head -1)
-          if [ -z "$APP_PATH" ]; then
-            echo "::error::Could not find built Mouthpiece.app under dist/"
-            exit 1
-          fi
-          echo "Inspecting $APP_PATH"
-          REQ=$(codesign -d -r- "$APP_PATH" 2>&1 | tr -d '\n' || true)
-          echo "DR: $REQ"
-          if echo "$REQ" | grep -q 'certificate leaf'; then
-            echo "✓ Designated Requirement uses certificate leaf — TCC grants will persist"
-          elif echo "$REQ" | grep -q 'certificate root'; then
-            echo "✓ Designated Requirement uses certificate root — TCC grants will persist"
-          else
-            echo "::error::DR is not certificate-anchored. TCC permissions will reset on update."
-            echo "::error::Got: $REQ"
-            exit 1
-          fi
+          security delete-keychain "$RUNNER_TEMP/mouthpiece-signing.keychain-db" 2>/dev/null || true
+          sudo security delete-certificate -c "Mouthpiece Code Signing" \
+            /Library/Keychains/System.keychain 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/mouthpiece-signing.p12" "$RUNNER_TEMP/mouthpiece-signing.pem"
 
-      - name: Upload arch-specific update metadata
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-        run: |
-          cp dist/latest-mac.yml "dist/latest-${{ matrix.arch }}-mac.yml"
-          gh release upload "${{ needs.prepare.outputs.release_tag }}" "dist/latest-${{ matrix.arch }}-mac.yml" --clobber
-
-      - name: Cleanup Certificates
-        if: always() && env.MAC_SIGNING_ENABLED == 'true'
-        run: |
-          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
-          if [ -f "$RUNNER_TEMP/signing.crt.pem" ]; then
-            # Best-effort: drop the trust setting we added to the System keychain.
-            # Runner is ephemeral so this is mostly cosmetic.
-            sudo security delete-certificate -c "Mouthpiece Code Signing" \
-              /Library/Keychains/System.keychain 2>/dev/null || true
-          fi
-          rm -f $RUNNER_TEMP/build_certificate.p12 $RUNNER_TEMP/signing.crt.pem
-
-  finalize-update-metadata:
-    needs:
-      - prepare
-      - build-windows
-      - build-macos
-    runs-on: ubuntu-latest
+  publish:
+    needs: [prepare, build]
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
         with:
-          ref: ${{ needs.prepare.outputs.release_tag }}
-          fetch-depth: 0
+          path: release-assets
+          merge-multiple: true
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Download published update metadata
+      - name: Generate signed Sparkle appcast
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAG: ${{ needs.prepare.outputs.tag }}
         run: |
-          mkdir -p tmp/release-assets
-          gh release download "${{ needs.prepare.outputs.release_tag }}" \
-            -D tmp/release-assets \
-            -p "latest.yml" \
-            -p "latest-arm64-mac.yml" \
-            -p "latest-x64-mac.yml"
+          test -n "$SPARKLE_PRIVATE_KEY" || { echo "Missing SPARKLE_PRIVATE_KEY" >&2; exit 1; }
+          mkdir -p "$RUNNER_TEMP/sparkle" "$RUNNER_TEMP/appcast-input"
+          curl -fsSL "https://github.com/sparkle-project/Sparkle/releases/download/2.9.4/Sparkle-2.9.4.tar.xz" \
+            -o "$RUNNER_TEMP/sparkle.tar.xz"
+          tar -xJf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle"
+          cp release-assets/Mouthpiece-"$VERSION"-*-mac.zip "$RUNNER_TEMP/appcast-input/"
+          printf '%s' "$SPARKLE_PRIVATE_KEY" | "$RUNNER_TEMP/sparkle/bin/generate_appcast" \
+            --ed-key-file - \
+            --download-url-prefix "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/" \
+            --link "https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG" \
+            "$RUNNER_TEMP/appcast-input"
+          cp "$RUNNER_TEMP/appcast-input/appcast.xml" release-assets/appcast.xml
 
-      - name: Merge mac update metadata
-        run: |
-          node scripts/merge-mac-update-metadata.mjs \
-            --x64 tmp/release-assets/latest-x64-mac.yml \
-            --arm64 tmp/release-assets/latest-arm64-mac.yml \
-            --output tmp/release-assets/latest-mac.yml
-
-      - name: Upload merged mac update metadata
+      - name: Validate artifacts and release notes
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          gh release upload "${{ needs.prepare.outputs.release_tag }}" tmp/release-assets/latest-mac.yml --clobber
+          test -f "release-assets/Mouthpiece-$VERSION-arm64.dmg"
+          test -f "release-assets/Mouthpiece-$VERSION-x64.dmg"
+          test -f "release-assets/Mouthpiece-$VERSION-arm64-mac.zip"
+          test -f "release-assets/Mouthpiece-$VERSION-x64-mac.zip"
+          test -s release-assets/appcast.xml
+          grep -q 'sparkle:edSignature=' release-assets/appcast.xml
+          grep -q '15.0' release-assets/appcast.xml
+          test -f "docs/releases/v$VERSION.md"
 
-      - name: Collect release asset manifest
+      - name: Publish GitHub Release
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAG: ${{ needs.prepare.outputs.tag }}
         run: |
-          gh api "repos/${{ github.repository }}/releases/tags/${{ needs.prepare.outputs.release_tag }}" > tmp/release-assets/release.json
+          NOTES="docs/releases/v$VERSION.md"
+          TITLE=$(sed -n '1s/^# //p' "$NOTES")
+          tail -n +2 "$NOTES" > "$RUNNER_TEMP/release-body.md"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TITLE" --notes-file "$RUNNER_TEMP/release-body.md" --latest
+            gh release upload "$TAG" release-assets/* --clobber
+          else
+            gh release create "$TAG" release-assets/* \
+              --target "$GITHUB_SHA" --title "$TITLE" --notes-file "$RUNNER_TEMP/release-body.md" --latest
+          fi
 
-      - name: Validate release assets
+      - name: Render Homebrew cask
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          node scripts/validate-release-assets.mjs \
-            --release-json tmp/release-assets/release.json \
-            --latest-windows tmp/release-assets/latest.yml \
-            --latest-mac tmp/release-assets/latest-mac.yml \
-            --latest-arm64 tmp/release-assets/latest-arm64-mac.yml \
-            --latest-x64 tmp/release-assets/latest-x64-mac.yml
+          ARM_SHA=$(shasum -a 256 "release-assets/Mouthpiece-$VERSION-arm64.dmg" | awk '{print $1}')
+          INTEL_SHA=$(shasum -a 256 "release-assets/Mouthpiece-$VERSION-x64.dmg" | awk '{print $1}')
+          scripts/render-homebrew-cask.sh "$VERSION" "$ARM_SHA" "$INTEL_SHA" "$RUNNER_TEMP/mouthpiece.rb"
+          ruby -c "$RUNNER_TEMP/mouthpiece.rb"
 
       - name: Update Homebrew tap
         env:
-          TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN || secrets.GH_TOKEN }}
-          TAP_REPOSITORY: NotWizard/homebrew-mouthpiece
-          RELEASE_VERSION: ${{ needs.prepare.outputs.release_version }}
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN || secrets.GH_TOKEN }}
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          if [ -z "$TAP_GITHUB_TOKEN" ]; then
-            echo "::error::Set HOMEBREW_TAP_TOKEN or GH_TOKEN with contents write access to ${TAP_REPOSITORY}."
-            exit 1
-          fi
-
-          node scripts/update-homebrew-cask.mjs \
-            --release-json tmp/release-assets/release.json \
-            --version "$RELEASE_VERSION" \
-            --output tmp/release-assets/mouthpiece.rb
-
-          git clone "https://github.com/${TAP_REPOSITORY}.git" tmp/homebrew-mouthpiece
-          mkdir -p tmp/homebrew-mouthpiece/Casks
-          cp tmp/release-assets/mouthpiece.rb tmp/homebrew-mouthpiece/Casks/mouthpiece.rb
-
-          cd tmp/homebrew-mouthpiece
-          if git diff --quiet -- Casks/mouthpiece.rb; then
-            echo "Homebrew tap is already up to date."
-            exit 0
-          fi
-
+          test -n "$TAP_TOKEN" || { echo "Missing HOMEBREW_TAP_TOKEN or GH_TOKEN" >&2; exit 1; }
+          git clone "https://x-access-token:$TAP_TOKEN@github.com/NotWizard/homebrew-mouthpiece.git" "$RUNNER_TEMP/tap"
+          mkdir -p "$RUNNER_TEMP/tap/Casks"
+          cp "$RUNNER_TEMP/mouthpiece.rb" "$RUNNER_TEMP/tap/Casks/mouthpiece.rb"
+          cd "$RUNNER_TEMP/tap"
+          if git diff --quiet -- Casks/mouthpiece.rb; then exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add Casks/mouthpiece.rb
           git commit -F - <<MESSAGE
-          更新 Mouthpiece Homebrew cask 至 ${RELEASE_VERSION} / Update Mouthpiece Homebrew cask to ${RELEASE_VERSION}
+          更新 Mouthpiece Homebrew cask 至 $VERSION / Update Mouthpiece Homebrew cask to $VERSION
 
-          中文：
-          将 Mouthpiece Homebrew cask 更新到 ${RELEASE_VERSION}。
-          此提交由 Mouthpiece release workflow 自动生成，包含 macOS arm64 与 Intel DMG 的 GitHub release SHA-256 digest。
+          中文
+            概述：同步 Mouthpiece $VERSION 的 macOS 双架构安装包。
+            变更：
+              1. 更新 Apple Silicon 与 Intel 下载地址及 SHA-256。
 
-          English:
-          Update the Mouthpiece Homebrew cask to ${RELEASE_VERSION}.
-          This commit was generated by the Mouthpiece release workflow and includes the GitHub release SHA-256 digests for the macOS arm64 and Intel DMG assets.
+          English
+            Summary: Sync the macOS dual-architecture packages for Mouthpiece $VERSION.
+            Changes:
+              1. Update Apple Silicon and Intel download URLs and SHA-256 values.
           MESSAGE
-          git push "https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/${TAP_REPOSITORY}.git" HEAD:main
+          git push origin HEAD:main

@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added a pure native Swift macOS application with an official macOS 15 Sequoia and macOS 26 Tahoe compatibility matrix, SwiftUI control panel and onboarding, an AppKit cross-Space dictation capsule, AVFoundation audio capture, CGEvent hotkeys, Accessibility text insertion, Keychain credentials, SQLite history, and Sparkle updates.
+- Added native realtime transcription for Bailian, Deepgram, Soniox, and AssemblyAI, OpenAI-compatible batch transcription, and local Whisper, Parakeet, and Qwen ASR MLX runtimes.
+- Added managed local GGUF text processing through bundled llama.cpp, including model download, validation, Metal startup, health checks, and restart after sleep or process exit.
+- Added a native dual-architecture release pipeline that verifies the stable self-signed certificate and Designated Requirement, signs Sparkle archives, publishes GitHub Releases, and updates the Homebrew tap automatically.
+- Added isolated data-root, preferences, migration, and updater launch controls for native UI automation without reading a developer's live settings, history, models, Keychain entries, or Sparkle choices.
+- Added speech activity gating with pre-roll, 20 ms PCM framing, provider protocol replay fixtures, a 10-minute audio processing benchmark, and macOS 15/26 CI coverage.
+- Added the complete native Prompt Studio workflow, avoided-term and replacement-rule editors, raw transcript disclosure, and per-display capsule position persistence.
+
+### Changed
+
+- Raised the minimum supported system to macOS 15 Sequoia and limited formal compatibility validation to macOS 15 and macOS 26 Tahoe.
+- Replaced the Electron, Chromium, React, Node.js, Vite, Tailwind, and electron-builder application stack with a macOS-only Xcode project.
+- Corrected XcodeGen resource declarations so the app bundle includes its icon and English, Simplified Chinese, and Traditional Chinese localization tables.
+- Preserved independent main-dictation and translation hotkeys, 12 sound cue presets, terminology, custom prompts, raw transcript history, sensitive-app policy, and local model cache paths in the native application.
+- Migrated legacy settings to UserDefaults and API keys to Keychain, with automatic backup and import from Mouthpiece, OpenWhispr, and VoiceInk data directories.
+- Changed local model discovery to reuse both Mouthpiece and legacy OpenWhispr cache paths in place without moving or re-downloading existing models.
+- Hardened native releases with locked SHA-1/SHA-256 certificate fingerprints, exact Designated Requirement comparison, nested-code verification, DMG integrity checks, architecture checks, and launch smoke tests.
+
+### Removed
+
+- Removed Windows and Linux builds, helpers, packaging, CI jobs, platform documentation, and all cross-platform runtime dependencies.
+- Removed the legacy JavaScript and TypeScript test suite after replacing its supported macOS behavior with native Swift tests.
+
+### Fixed
+
+- Recovered stale native migration locks after an interrupted launch while preserving the lock when another Mouthpiece instance is actually running.
+- Prevented local model installation commands from blocking when long-running package managers produce more output than an unread pipe can hold.
+- Preserved upstream dynamic-library compatibility symlinks when assembling Whisper, sherpa-onnx, and llama.cpp runtimes so bundled executables resolve their `@rpath` dependencies at launch.
+- Disabled host-specific GGML compilation in release runtime builds so Intel artifacts can be cross-compiled on Apple Silicon and both architectures remain portable across supported Macs.
+- Restored Xcode's ad-hoc Debug signing so native test hosts and local preview builds remain launchable, while release archives remain explicitly unsigned until stable signing.
+- Kept local XCTest products in Xcode's default DerivedData location, avoiding test-runner hangs when the repository itself is inside macOS's protected Downloads directory.
+- Made migration completion markers recoverable when the marker, backup, or copied history database is missing or invalid.
+- Rebuild native hotkey and microphone state after wake or app activation, reposition a visible capsule after display recovery, and close realtime connections and local model processes before sleep or application termination.
+- Prevented realtime audio from being sent before Soniox or AssemblyAI is ready, extended Bailian's one-time stale-socket replay to cold connections, and cleared buffered audio between sessions.
+- Kept recording and retained PCM for same-provider batch fallback when a realtime connection cannot be established, independent of the local-to-cloud fallback preference.
+- Moved conversion and RMS work out of the AVAudioEngine realtime callback, bounded queued audio, rejected no-speech recordings, and serialized stop/finalize state by session ID.
+- Made legacy import single-instance, allowlisted, versioned, read-back validated, and rollback-safe for settings, Keychain credentials, and copied SQLite files.
+- Preserved a captured Accessibility focus target, distinguished permission denial from a busy application, and stopped clipboard restoration from overwriting a user's newer clipboard contents.
+- Completed AssemblyAI setup in onboarding, exposed custom transcription endpoints, isolated capsule-position preferences during automation, and added executable coverage for seven-day debug-log retention.
+
 ## [1.4.8] - 2026-07-02
 
 ### Fixed

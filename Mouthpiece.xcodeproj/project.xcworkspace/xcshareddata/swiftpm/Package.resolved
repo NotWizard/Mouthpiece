@@ -1,0 +1,33 @@
+{
+  "originHash" : "3461409d2296f7802fc687d2a282eb3b71b3072c74d9e7a95e3fde34932d169b",
+  "pins" : [
+    {
+      "identity" : "sparkle",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sparkle-project/Sparkle.git",
+      "state" : {
+        "revision" : "b6496a74a087257ef5e6da1c5b29a447a60f5bd7",
+        "version" : "2.9.4"
+      }
+    },
+    {
+      "identity" : "swift-leveldb",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/OpenCow42/swift-leveldb.git",
+      "state" : {
+        "revision" : "1d9531151b6dd6ef848fbeb176df4defda34d125",
+        "version" : "1.23.0"
+      }
+    },
+    {
+      "identity" : "zstd",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/facebook/zstd.git",
+      "state" : {
+        "revision" : "f8745da6ff1ad1e7bab384bd1f9d742439278e99",
+        "version" : "1.5.7"
+      }
+    }
+  ],
+  "version" : 3
+}

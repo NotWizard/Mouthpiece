@@ -1,0 +1,67 @@
+import XCTest
+@testable import Mouthpiece
+
+final class AudioTests: XCTestCase {
+    func testWAVEncoderWritesPCM16MonoHeader() {
+        let pcm = Data([0x01, 0x02, 0x03, 0x04])
+        let wav = WAVEncoder.pcm16Mono(pcm, sampleRate: 16_000)
+        XCTAssertEqual(String(data: wav.prefix(4), encoding: .ascii), "RIFF")
+        XCTAssertEqual(String(data: wav[8..<12], encoding: .ascii), "WAVE")
+        XCTAssertEqual(String(data: wav[36..<40], encoding: .ascii), "data")
+        XCTAssertEqual(wav.count, 44 + pcm.count)
+        XCTAssertEqual(wav.suffix(pcm.count), pcm)
+    }
+
+    func testSpeechActivityGateRejectsSilenceAndShortNoise() {
+        var gate = SpeechActivityGate()
+        let silence = pcmFrame(amplitude: 0, milliseconds: 20)
+        let noise = pcmFrame(amplitude: 6_000, milliseconds: 20)
+
+        for _ in 0..<25 { _ = gate.consume(silence) }
+        for _ in 0..<5 { _ = gate.consume(noise) }
+        for _ in 0..<10 { _ = gate.consume(silence) }
+
+        XCTAssertFalse(gate.speechDetectedEver)
+    }
+
+    func testSpeechActivityGateDetectsSpeechAndKeepsPreRoll() {
+        var gate = SpeechActivityGate()
+        let silence = pcmFrame(amplitude: 0, milliseconds: 20)
+        let speech = pcmFrame(amplitude: 8_000, milliseconds: 20)
+        var recording = Data()
+
+        for _ in 0..<20 {
+            recording.append(silence)
+            _ = gate.consume(silence)
+        }
+        for _ in 0..<15 {
+            recording.append(speech)
+            _ = gate.consume(speech)
+        }
+        for _ in 0..<25 {
+            recording.append(silence)
+            _ = gate.consume(silence)
+        }
+
+        let trimmed = gate.trimmed(recording)
+        XCTAssertTrue(gate.speechDetectedEver)
+        XCTAssertLessThan(trimmed.count, recording.count)
+        XCTAssertGreaterThanOrEqual(trimmed.count, 15_000)
+    }
+
+    func testSpeechGateProcessesTenMinutesOfFramesWithinBudget() {
+        var gate = SpeechActivityGate()
+        let frame = pcmFrame(amplitude: 2_000, milliseconds: 20)
+        let start = ContinuousClock.now
+        for _ in 0..<30_000 { _ = gate.consume(frame) }
+        let elapsed = start.duration(to: .now)
+
+        XCTAssertLessThan(elapsed, .seconds(2))
+    }
+
+    private func pcmFrame(amplitude: Int16, milliseconds: Int) -> Data {
+        let sampleCount = 16_000 * milliseconds / 1_000
+        var samples = [Int16](repeating: amplitude, count: sampleCount)
+        return samples.withUnsafeMutableBytes { Data($0) }
+    }
+}

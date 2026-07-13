@@ -1,243 +1,58 @@
-<p align="center">
-  <img src="src/assets/icon.png" alt="Mouthpiece" width="120" />
-</p>
-
 # Mouthpiece
 
-An open-source desktop dictation workstation for macOS and Windows.  
-Mouthpiece turns “press a hotkey, speak, and get text back into the app you are using” into a full desktop workflow: recording capsule, transcription engines, dictionary, optional AI post-processing, history, permission guidance, control panel, and app updates all live in one product.
+Mouthpiece is a native macOS dictation app built with Swift, SwiftUI, AppKit, and AVFoundation. It contains no Electron, Chromium, React, or Node.js runtime.
 
-中文 README: [README.md](README.md)
+## Requirements
 
-## Credits and Origins
+- Officially supported and validated on macOS 15 Sequoia and macOS 26 Tahoe
+- Apple Silicon or Intel Mac
+- Xcode 26 or a compatible newer release
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen)
 
-Mouthpiece continues to evolve from [OpenWhispr](https://github.com/OpenWhispr/openwhispr) and [VoiceInk](https://github.com/le-soleil-se-couche/VoiceInk).  
-Thanks to both upstream projects for the inspiration and foundation. This README reflects the current Mouthpiece codebase and product behavior rather than historical upstream behavior.
+Starting with 2.0, the project ships only for macOS. Windows and Linux builds are no longer maintained, and macOS 14 or earlier is not supported.
 
-## What It Is
+## Features
 
-Mouthpiece is built for people who want speech input to fit naturally into everyday desktop work, especially if you:
+- Modifier-only and combination hotkeys with hold-to-talk and toggle modes
+- A separate translation hotkey
+- A native dictation capsule across displays, Spaces, and full-screen apps
+- Bailian, OpenAI, Deepgram, Soniox, AssemblyAI, Groq, Mistral, and custom compatible endpoints
+- Local Whisper, Parakeet, and Qwen ASR MLX transcription
+- Local GGUF text processing through bundled llama.cpp
+- Terminology, replacements, custom prompts, raw transcript history, and sensitive-app protection
+- Sparkle in-app updates, GitHub Releases, and Homebrew cask distribution
 
-- dictate into many different apps during the day
-- want to choose between local and cloud transcription
-- need dictionaries and terminology for proper nouns
-- want optional AI cleanup, rewriting, or formatting after transcription
-- want dictated text translated into a target language before it lands in the current app
-- expect history, clipboard fallback, and reliable desktop integration
-
-The default model is BYOK.  
-You can use local models, or bring your own API key for cloud providers. Account login exists as an optional capability, but it is not required for the core workflow.
-
-## What Mouthpiece Can Do Today
-
-- Start dictation from a global hotkey, with tap/hold behavior matched to platform support
-- Show a floating recording capsule with state, audio feedback, and live text
-- Switch between local transcription and cloud transcription depending on privacy, latency, and cost needs
-- Improve results with dictionaries, terminology, and post-processing normalization
-- Run optional AI post-processing through Prompt Studio for cleanup, rewriting, and formatting
-- Optional AI Translation Output: pick a target language and assign a dedicated translation hotkey — translation-hotkey dictations run transcribe + cleanup + translate in a single LLM call and insert the translated text directly into the current app
-- Insert text back into the current app automatically, with clipboard fallback when direct insertion is not safe or available
-- Save transcription history for review, copy, and reuse
-- Guide users through permissions, tray behavior, control panel setup, and packaged-app updates
-
-## Get Started in Three Minutes
-
-### 1. Install or run it
-
-- macOS Homebrew users: `brew install --cask notwizard/mouthpiece/mouthpiece` (tracks the latest release automatically)
-- Packaged app users: download the right build from [GitHub Releases](https://github.com/NotWizard/Mouthpiece/releases) (macOS DMG / Windows EXE)
-- Source users: see “Run from source” below
-
-### 2. Go through onboarding
-
-The current onboarding flow has 4 steps:
-
-1. `Welcome`
-2. `Permissions`
-3. `Hotkey Setup`
-4. `Activation`
-
-This is where you set permissions, pick a hotkey, and test dictation for the first time.
-
-### 3. Grant permissions
-
-There are two important permission buckets:
-
-- microphone access, for recording
-- accessibility access, for automatic insertion into other apps
-
-If you skip accessibility for now, Mouthpiece still works, but it will rely more often on clipboard fallback instead of direct insertion.
-
-### 4. Pick your transcription mode
-
-- Choose local transcription if you want more privacy and on-device control
-- Choose cloud transcription if you want hosted providers or provider-specific realtime options
-
-Then decide whether you want optional AI post-processing on top.
-
-### 5. Start dictating
-
-- Press your hotkey
-- Watch the floating capsule for recording state and live text
-- Stop dictation and let Mouthpiece insert the result, or recover it from history / clipboard fallback
-
-## Modes and Capabilities
-
-### Transcription modes
-
-| Mode | Best for | Current support |
-| --- | --- | --- |
-| Local transcription | Privacy, offline workflows, on-device control | OpenAI Whisper, NVIDIA Parakeet, Qwen ASR MLX |
-| Cloud transcription | Hosted providers, provider choice, some realtime paths | OpenAI, Deepgram, Groq, Mistral, Soniox, Alibaba Bailian, Custom (any OpenAI-compatible endpoint) |
-
-### Local transcription
-
-- **OpenAI Whisper**: the classic local option, with the broadest model lineup
-- **NVIDIA Parakeet**: a sherpa-onnx based local pipeline
-- **Qwen ASR MLX**: a Qwen ASR path oriented toward Apple Silicon local use
-
-### Cloud transcription
-
-- **OpenAI**
-- **Deepgram**
-- **Groq**
-- **Mistral**
-- **Soniox**
-- **Alibaba Bailian**
-- **Custom**: any OpenAI-compatible endpoint with your own baseUrl and API key
-
-Some providers offer explicit realtime vs non-realtime switching in the app, depending on the provider and the selected settings.
-
-### Optional intelligence layer
-
-The intelligence layer is optional. It is not required for dictation to work.
-
-You can route transcribed text into local or cloud reasoning models for:
-
-- cleanup
-- formatting
-- light rewriting
-- structured output
-- reusable Prompt Studio workflows
-
-Current reasoning coverage includes:
-
-- Cloud: OpenAI, Anthropic, Google Gemini, Groq, Alibaba Bailian
-- Local: Qwen, Mistral, Meta Llama, OpenAI OSS, Gemma
-
-### AI Translation Output
-
-Dictate in one language and get the result translated into a target language before it lands in the current app. To enable it:
-
-- Open Settings → AI Models → AI Translation Output, toggle it on, and pick a target language
-- In Settings → Hotkeys → Translation hotkey, set a dedicated translation hotkey. It must use the same modifier prefix as your main dictation hotkey plus one primary key (e.g. if your main hotkey is Right Shift, the translation hotkey is Right Shift + some letter), so the system can tell the two modes apart unambiguously
-
-The two hotkeys split the work:
-
-- Main hotkey: transcribe + optional cleanup, output stays in the original language
-- Translation hotkey: transcribe + cleanup + translate, all in a single LLM call, output in the target language
-
-A translation-hotkey session adds a small target-language badge (EN / ZH / JA …) in the top corner of the floating capsule so you can tell which mode the take is in. If the translation call fails (network, quota, provider error), the raw transcript is inserted instead and an inline toast notifies you. Translation reuses the same provider / model picked for the intelligence layer — no extra API key configuration required.
-
-### Dictionary and terminology
-
-The dictionary system supports:
-
-- custom dictionary support
-- terminology management
-- dictionary-based post-processing normalization
-
-This is especially useful for names, product terms, internal jargon, and mixed Chinese/English dictation.
-
-### Insertion and fallback behavior
-
-Mouthpiece is designed to do more than return text. It tries to get text back into the app you are actively using.
-
-- It prefers automatic insertion when the environment allows it
-- It falls back to the clipboard when direct insertion is not suitable
-- When fallback happens, the app makes it explicit that the result is already copied and can be pasted manually with `Cmd+V` / `Ctrl+V`
-
-That makes it practical across browsers, editors, chat apps, document tools, and mixed desktop workflows.
-
-### History and control panel
-
-The current control panel navigation includes:
-
-- Home
-- Dictionary
-- General
-- Hotkeys
-- Transcription
-- Intelligence
-- Privacy & Data
-- System
-
-This is where users manage history, dictionaries, providers, hotkeys, permissions, updates, and system-level behavior.
-
-## Permissions, Privacy, and Boundaries
-
-### Permissions
-
-- **Microphone access**: required for recording
-- **Accessibility access**: required for automatic insertion into other apps
-- Some platforms may also need extra system setup or paste-tool support for the best experience
-
-### Privacy
-
-- Local transcription keeps audio on the device
-- Cloud transcription and cloud reasoning route data through the provider you choose
-- BYOK is the default model, so quotas and billing stay with your own provider account
-
-### Product boundaries
-
-- Account login is optional, not the default requirement
-- AI post-processing is optional, not required for successful dictation
-- Speech recognition and post-processing can both make mistakes; always review high-risk content manually
-
-## Further Reading
-
-| Document | When to open it |
-| --- | --- |
-| [LOCAL_WHISPER_SETUP.md](LOCAL_WHISPER_SETUP.md) | If you want full detail on local Whisper models, caching, and runtime behavior |
-| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | If you are debugging general cross-platform issues |
-| [WINDOWS_TROUBLESHOOTING.md](WINDOWS_TROUBLESHOOTING.md) | If you are debugging Windows-specific issues |
-| [docs/macos-local-codesign.md](docs/macos-local-codesign.md) | If you need local macOS signing or more stable Accessibility permission behavior |
-
-## Run from Source
-
-### Development
+## Development
 
 ```bash
-git clone https://github.com/NotWizard/Mouthpiece.git
-cd Mouthpiece
-npm install
-npm run dev
+brew install xcodegen cmake
+xcodegen generate
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+  xcodebuild -project Mouthpiece.xcodeproj -scheme Mouthpiece \
+  -configuration Debug test
 ```
 
-### Common commands
+Use Xcode's default DerivedData location for local tests. If the repository is under `Downloads`, writing test products back into the repository can prevent the macOS XCTest runner from reading the test bundle.
+
+Native model runtimes are generated and are not committed. To exercise local models:
 
 ```bash
-# Type checking
-npm run typecheck
-
-# Lint
-npm run lint
-
-# Renderer build
-npm run build:renderer
-
-# Platform builds
-npm run build:mac
-npm run build:win
+scripts/download-native-binaries.sh arm64
+# For Intel builds: scripts/download-native-binaries.sh x64
 ```
 
-If you just want to use the app, the packaged builds from Releases are the recommended path.
+## Data and upgrades
 
-## Upstream
+Settings use `UserDefaults`, API keys use the macOS Keychain, and history is stored at:
 
-- [OpenWhispr](https://github.com/OpenWhispr/openwhispr)
-- [VoiceInk](https://github.com/le-soleil-se-couche/VoiceInk)
+```text
+~/Library/Application Support/Mouthpiece/transcriptions.db
+```
 
-## License
+Local models remain under `~/.cache/mouthpiece/`. On first launch, the native app backs up and migrates legacy Mouthpiece, OpenWhispr, or VoiceInk data without re-downloading valid models.
 
-MIT. See [LICENSE](LICENSE).
+## Releases
+
+`MARKETING_VERSION` in `project.yml` is the source of truth. Before tagging `vX.Y.Z`, add bilingual notes at `docs/releases/vX.Y.Z.md`. The release workflow builds arm64 and x86_64 packages, applies the stable self-signed identity, generates a Sparkle appcast, publishes the GitHub Release, and updates `NotWizard/homebrew-mouthpiece`.
+
+See the [Code Signing Runbook](docs/release/code-signing-runbook.md) for the permission-preserving signing process.

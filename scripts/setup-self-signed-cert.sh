@@ -121,4 +121,4 @@ echo "       gh secret set MAC_SELFSIGN_CERT_BASE64 --repo NotWizard/Mouthpiece 
 echo "         --body \"\$(cat ${CERT_DIR}/signing.p12.base64)\""
 echo "       gh secret set MAC_SELFSIGN_CERT_PASSWORD --repo NotWizard/Mouthpiece \\"
 echo "         --body \"\$(cat ${CERT_DIR}/p12-password.txt)\""
-echo "  2. Update electron-builder.json + release.yml (see code-signing-runbook.md)"
+echo "  2. Verify scripts/sign-native-app.sh + release.yml (see code-signing-runbook.md)"

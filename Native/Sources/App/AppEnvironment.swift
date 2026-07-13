@@ -1,0 +1,476 @@
+import AppKit
+import Foundation
+import ServiceManagement
+
+@MainActor
+final class AppEnvironment: ObservableObject {
+    @Published private(set) var isReady = false
+    @Published private(set) var settings = AppSettings()
+    @Published private(set) var dictation = DictationSnapshot.idle
+    @Published private(set) var transcriptions: [TranscriptionRecord] = []
+    @Published private(set) var permissions = PermissionSnapshot(microphone: false, accessibility: false)
+    @Published private(set) var microphones: [AudioInputDevice] = []
+    @Published private(set) var dictionaryWords: [String] = []
+    @Published private(set) var selectedLocalModelInstalled = false
+    @Published private(set) var modelInstallationState = ModelInstallationState.idle
+    @Published private(set) var selectedReasoningModelInstalled = false
+    @Published private(set) var reasoningModelInstallationState = ModelInstallationState.idle
+    @Published private(set) var startupError: String?
+
+    let settingsRepository = SettingsRepository()
+    let keychain = KeychainStore()
+    let audio = AudioCaptureService()
+    let audioCues = AudioCueService()
+    let permissionsService = PermissionService()
+    let insertion = TextInsertionService()
+    let capsule = CapsuleController()
+    let hotkey = HotkeyService()
+    let translationHotkey = HotkeyService(swallowMatchedEvents: true)
+    let modelInstaller = LocalModelInstallationService()
+    let reasoningModelInstaller = LocalReasoningModelInstallationService()
+    let updates = UpdateController()
+
+    private var history: HistoryRepository?
+    private var logger: DebugLogStore?
+    private var coordinator: DictationCoordinator?
+    private var hotkeyPressedAt: ContinuousClock.Instant?
+    private var toggleDictationObserver: NSObjectProtocol?
+    private var applicationObservers: [NSObjectProtocol] = []
+    private var workspaceObservers: [NSObjectProtocol] = []
+    private var activeActivation: DictationActivation = .main
+    private var isShuttingDown = false
+
+    init(bootstrap: Bool = true) {
+        capsule.model.onCancel = { [weak self] in self?.cancelDictation() }
+        toggleDictationObserver = NotificationCenter.default.addObserver(
+            forName: .mouthpieceToggleDictation,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.toggleDictation() }
+        }
+        registerLifecycleObservers()
+        AppDelegate.shutdownHandler = { [weak self] in
+            await self?.shutdown()
+        }
+        if bootstrap {
+            Task { await initialize() }
+        } else {
+            isReady = true
+        }
+    }
+
+    func saveSettings(_ next: AppSettings) {
+        do {
+            try settingsRepository.save(next)
+            settings = settingsRepository.load()
+            Task { await logger?.setEnabled(settings.debugLoggingEnabled) }
+            try? hotkey.update(key: settings.dictationKey)
+            updateTranslationHotkey()
+            applySystemSettings()
+            refreshLocalModelStatus()
+            refreshReasoningModelStatus()
+        } catch {
+            startupError = error.localizedDescription
+        }
+    }
+
+    func refreshHistory() {
+        Task {
+            transcriptions = (try? await history?.recent(limit: 200)) ?? []
+        }
+    }
+
+    func clearHistory() {
+        Task {
+            try? await history?.clear()
+            refreshHistory()
+        }
+    }
+
+    func deleteTranscription(_ id: Int64) {
+        Task {
+            try? await history?.delete(id: id)
+            refreshHistory()
+        }
+    }
+
+    func saveDictionary(_ words: [String]) {
+        dictionaryWords = words
+        Task { try? await history?.replaceDictionary(words) }
+        var next = settings
+        next.terminologyProfile.preferredTerms = words
+        saveSettings(next)
+    }
+
+    func credential(_ account: CredentialAccount) async -> String {
+        (try? await keychain.read(account)) ?? ""
+    }
+
+    func saveCredential(_ value: String, account: CredentialAccount) async throws {
+        let clean = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if clean.isEmpty {
+            try await keychain.delete(account)
+        } else {
+            try await keychain.write(clean, for: account)
+        }
+        if account == .bailian { await coordinator?.warmup(settings: settings) }
+    }
+
+    func requestMicrophonePermission() {
+        Task {
+            _ = await permissionsService.requestMicrophone()
+            refreshPermissions()
+        }
+    }
+
+    func requestAccessibilityPermission() {
+        _ = permissionsService.requestAccessibilityPrompt()
+        refreshPermissions()
+    }
+
+    func openMicrophoneSettings() { permissionsService.openMicrophoneSettings() }
+    func openAccessibilitySettings() { permissionsService.openAccessibilitySettings() }
+
+    func refreshPermissions() {
+        permissions = permissionsService.current()
+        if permissions.accessibility {
+            try? hotkey.start(key: settings.dictationKey)
+            updateTranslationHotkey()
+        } else {
+            hotkey.stop()
+            translationHotkey.stop()
+        }
+    }
+
+    func shutdown() async {
+        guard !isShuttingDown else { return }
+        isShuttingDown = true
+        hotkey.stop()
+        translationHotkey.stop()
+        hotkeyPressedAt = nil
+        await coordinator?.shutdown()
+        await logger?.write(.info, "Application shutdown completed")
+    }
+
+    func completeOnboarding() {
+        var next = settings
+        next.onboardingCompleted = true
+        saveSettings(next)
+    }
+
+    func dismissStartupError() { startupError = nil }
+    func checkForUpdates() { updates.checkForUpdates() }
+
+    func testPrompt(_ prompt: String, input: String) async throws -> String {
+        var testSettings = settings
+        testSettings.customPrompt = prompt == ReasoningService.defaultCleanupPrompt ? "" : prompt
+        testSettings.useReasoningModel = true
+        let service = ReasoningService(keychain: keychain)
+        do {
+            let result = try await service.process(input, settings: testSettings, target: nil)
+            await service.shutdown()
+            return result
+        } catch {
+            await service.shutdown()
+            throw error
+        }
+    }
+
+    func refreshLocalModelStatus() {
+        let provider = settings.localTranscriptionProvider
+        let model = selectedLocalModelID
+        Task {
+            selectedLocalModelInstalled = await modelInstaller.isInstalled(provider: provider, model: model)
+        }
+    }
+
+    func installSelectedLocalModel() {
+        let provider = settings.localTranscriptionProvider
+        let model = selectedLocalModelID
+        Task {
+            do {
+                try await modelInstaller.install(provider: provider, model: model) { [weak self] state in
+                    Task { @MainActor in self?.modelInstallationState = state }
+                }
+                refreshLocalModelStatus()
+            } catch {
+                modelInstallationState = .failed(model: model, message: error.localizedDescription)
+            }
+        }
+    }
+
+    func removeSelectedLocalModel() {
+        let provider = settings.localTranscriptionProvider
+        let model = selectedLocalModelID
+        Task {
+            do {
+                try await modelInstaller.remove(provider: provider, model: model)
+                modelInstallationState = .idle
+                refreshLocalModelStatus()
+            } catch {
+                modelInstallationState = .failed(model: model, message: error.localizedDescription)
+            }
+        }
+    }
+
+    func refreshReasoningModelStatus() {
+        let model = settings.reasoningModel
+        Task {
+            selectedReasoningModelInstalled = await reasoningModelInstaller.isInstalled(model: model)
+        }
+    }
+
+    func installSelectedReasoningModel() {
+        let model = settings.reasoningModel
+        Task {
+            do {
+                try await reasoningModelInstaller.install(model: model) { [weak self] state in
+                    Task { @MainActor in self?.reasoningModelInstallationState = state }
+                }
+                refreshReasoningModelStatus()
+            } catch {
+                reasoningModelInstallationState = .failed(model: model, message: error.localizedDescription)
+            }
+        }
+    }
+
+    func removeSelectedReasoningModel() {
+        let model = settings.reasoningModel
+        Task {
+            do {
+                try await reasoningModelInstaller.remove(model: model)
+                reasoningModelInstallationState = .idle
+                refreshReasoningModelStatus()
+            } catch {
+                reasoningModelInstallationState = .failed(model: model, message: error.localizedDescription)
+            }
+        }
+    }
+
+    func startDictation(translation: Bool = false) {
+        guard let coordinator else { return }
+        activeActivation = translation ? .translation : .main
+        if settings.audioCuesEnabled { audioCues.playStart(preset: settings.soundPreset) }
+        var sessionSettings = settings
+        sessionSettings.translationEnabled = translation
+        Task { await coordinator.start(settings: sessionSettings) }
+    }
+
+    func stopDictation() {
+        guard let coordinator else { return }
+        if settings.audioCuesEnabled { audioCues.playStop(preset: settings.soundPreset) }
+        Task {
+            await coordinator.stop()
+            refreshHistory()
+        }
+    }
+
+    func cancelDictation() {
+        guard let coordinator else { return }
+        if settings.audioCuesEnabled { audioCues.playStop(preset: settings.soundPreset) }
+        Task { await coordinator.cancel() }
+    }
+
+    private func initialize() async {
+        do {
+            try AppPaths.prepareApplicationSupport()
+            if ProcessInfo.processInfo.environment["MOUTHPIECE_SKIP_LEGACY_MIGRATION"] != "1" {
+                _ = try await LegacyMigrationCoordinator().run(
+                    settings: settingsRepository,
+                    keychain: keychain
+                )
+            }
+            settings = settingsRepository.load()
+            let history = try HistoryRepository()
+            self.history = history
+            let logger = DebugLogStore(enabled: settings.debugLoggingEnabled)
+            self.logger = logger
+            try await logger.prune()
+            transcriptions = try await history.recent(limit: 200)
+            dictionaryWords = try await history.dictionary()
+            if dictionaryWords.isEmpty, !settings.terminologyProfile.preferredTerms.isEmpty {
+                try await history.replaceDictionary(settings.terminologyProfile.preferredTerms)
+                dictionaryWords = try await history.dictionary()
+            }
+            microphones = audio.availableInputDevices()
+            permissions = permissionsService.current()
+
+            let coordinator = DictationCoordinator(
+                audio: audio,
+                history: history,
+                keychain: keychain,
+                logger: logger,
+                insertion: insertion,
+                capsule: capsule
+            ) { [weak self] snapshot in
+                self?.dictation = snapshot
+            }
+            self.coordinator = coordinator
+            hotkey.onPress = { [weak self] in self?.handleHotkeyPress() }
+            hotkey.onRelease = { [weak self] in self?.handleHotkeyRelease() }
+            hotkey.onEscape = { [weak self] in
+                guard let self, self.settings.escapeCancelsRecording, self.dictation.phase.isActive else { return }
+                self.cancelDictation()
+            }
+            translationHotkey.onPress = { [weak self] in self?.handleTranslationHotkeyPress() }
+            if permissions.accessibility {
+                try? hotkey.start(key: settings.dictationKey)
+                updateTranslationHotkey()
+            }
+            applySystemSettings()
+            refreshLocalModelStatus()
+            refreshReasoningModelStatus()
+            isReady = true
+            Task { await coordinator.warmup(settings: settings) }
+        } catch {
+            startupError = error.localizedDescription
+            isReady = true
+        }
+    }
+
+    private var selectedLocalModelID: String {
+        switch settings.localTranscriptionProvider {
+        case .whisper: settings.whisperModel
+        case .parakeet: settings.parakeetModel.isEmpty ? "parakeet-tdt-0.6b-v3" : settings.parakeetModel
+        case .qwen: settings.qwenASRModel
+        }
+    }
+
+    private func applySystemSettings() {
+        NSApp.setActivationPolicy(settings.showInDock ? .regular : .accessory)
+        capsule.setLanguage(settings.uiLanguage)
+        NotificationCenter.default.post(
+            name: .mouthpieceRuntimeSettingsChanged,
+            object: nil,
+            userInfo: [
+                "language": settings.uiLanguage.rawValue,
+                "showInMenuBar": settings.showInMenuBar,
+            ]
+        )
+        do {
+            if settings.launchAtLogin, SMAppService.mainApp.status != .enabled {
+                try SMAppService.mainApp.register()
+            } else if !settings.launchAtLogin, SMAppService.mainApp.status == .enabled {
+                try SMAppService.mainApp.unregister()
+            }
+        } catch {
+            startupError = error.localizedDescription
+        }
+    }
+
+    private func toggleDictation() {
+        dictation.phase.isActive ? stopDictation() : startDictation(translation: false)
+    }
+
+    private func handleHotkeyPress() {
+        hotkeyPressedAt = .now
+        switch settings.hotkeyBehavior {
+        case .toggle:
+            dictation.phase.isActive ? stopDictation() : startDictation(translation: false)
+        case .pushToTalk:
+            if !dictation.phase.isActive { startDictation(translation: false) }
+        case .automatic:
+            dictation.phase.isActive ? stopDictation() : startDictation(translation: false)
+        }
+    }
+
+    private func handleHotkeyRelease() {
+        defer { hotkeyPressedAt = nil }
+        guard activeActivation == .main else { return }
+        switch settings.hotkeyBehavior {
+        case .pushToTalk:
+            stopDictation()
+        case .automatic:
+            guard let hotkeyPressedAt else { return }
+            if hotkeyPressedAt.duration(to: .now) >= .milliseconds(450) {
+                stopDictation()
+            }
+        case .toggle:
+            break
+        }
+    }
+
+    private func handleTranslationHotkeyPress() {
+        guard settings.translationEnabled, !settings.translationDictationKey.isEmpty,
+              let coordinator else { return }
+        if dictation.phase.isActive, activeActivation == .translation {
+            stopDictation()
+            return
+        }
+        activeActivation = .translation
+        if settings.audioCuesEnabled { audioCues.playStart(preset: settings.soundPreset) }
+        var sessionSettings = settings
+        sessionSettings.translationEnabled = true
+        Task {
+            if dictation.phase.isActive {
+                await coordinator.cancel()
+                try? await Task.sleep(for: .milliseconds(80))
+            }
+            await coordinator.start(settings: sessionSettings)
+        }
+    }
+
+    private func updateTranslationHotkey() {
+        let key = settings.translationDictationKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard permissions.accessibility,
+              settings.translationEnabled,
+              !key.isEmpty,
+              key != settings.dictationKey else {
+            translationHotkey.stop()
+            return
+        }
+        try? translationHotkey.update(key: key)
+    }
+
+    private func registerLifecycleObservers() {
+        applicationObservers.append(NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.recoverSystemIntegrations(rewarmRealtime: false) }
+        })
+
+        let workspaceCenter = NSWorkspace.shared.notificationCenter
+        workspaceObservers.append(workspaceCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in await self?.prepareForSleep() }
+        })
+        workspaceObservers.append(workspaceCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(400))
+                self?.recoverSystemIntegrations(rewarmRealtime: true)
+            }
+        })
+    }
+
+    private func prepareForSleep() async {
+        hotkey.stop()
+        translationHotkey.stop()
+        hotkeyPressedAt = nil
+        await coordinator?.shutdown()
+    }
+
+    private func recoverSystemIntegrations(rewarmRealtime: Bool) {
+        guard !isShuttingDown else { return }
+        microphones = audio.availableInputDevices()
+        refreshPermissions()
+        capsule.repositionIfVisible()
+        if rewarmRealtime, let coordinator {
+            Task { await coordinator.warmup(settings: settings) }
+        }
+    }
+}
+
+private enum DictationActivation {
+    case main
+    case translation
+}
