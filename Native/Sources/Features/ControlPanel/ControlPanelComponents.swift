@@ -4,7 +4,6 @@ import SwiftUI
 struct SettingsPage<Content: View>: View {
     let title: LocalizedStringKey
     let subtitle: LocalizedStringKey
-    var maxContentWidth: CGFloat = 760
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -16,7 +15,7 @@ struct SettingsPage<Content: View>: View {
             .padding(.horizontal, 28)
             .padding(.top, 24)
             .padding(.bottom, 28)
-            .frame(maxWidth: maxContentWidth, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color(nsColor: .windowBackgroundColor))

@@ -1,6 +1,12 @@
 import AppKit
 import SwiftUI
 
+enum ControlPanelWindowMetrics {
+    static let minimumContentSize = NSSize(width: 1000, height: 600)
+    static let minimumWindowSize = NSSize(width: 1000, height: 640)
+    static let defaultContentSize = NSSize(width: 1040, height: 700)
+}
+
 enum ControlPanelSection: String, CaseIterable, Identifiable {
     case usage
     case dictation
@@ -57,7 +63,10 @@ struct ControlPanelView: View {
                     detail(for: selectedSection)
                 }
                 .navigationSplitViewStyle(.balanced)
-                .frame(minWidth: 920, minHeight: 640)
+                .frame(
+                    minWidth: ControlPanelWindowMetrics.minimumContentSize.width,
+                    minHeight: ControlPanelWindowMetrics.minimumContentSize.height
+                )
                 .background(ControlPanelWindowConfiguration())
             }
         }
@@ -147,11 +156,13 @@ private struct ControlPanelWindowConfiguration: NSViewRepresentable {
 
     @MainActor
     private static func configure(_ window: NSWindow) {
-        window.minSize = NSSize(width: 920, height: 640)
+        let currentSize = window.frame.size
+        window.minSize = ControlPanelWindowMetrics.minimumWindowSize
         window.standardWindowButton(.zoomButton)?.isEnabled = true
         window.collectionBehavior.insert(.fullScreenPrimary)
-        if window.contentLayoutRect.width < 920 || window.contentLayoutRect.height < 640 {
-            window.setContentSize(NSSize(width: 1040, height: 700))
+        if currentSize.width < ControlPanelWindowMetrics.minimumWindowSize.width
+            || currentSize.height < ControlPanelWindowMetrics.minimumWindowSize.height {
+            window.setContentSize(ControlPanelWindowMetrics.defaultContentSize)
             window.center()
         }
     }

@@ -1,7 +1,25 @@
+import AVFoundation
 import XCTest
 @testable import Mouthpiece
 
 final class AudioTests: XCTestCase {
+    @MainActor
+    func testAudioCaptureReceivesFrameOffMainActor() async throws {
+        guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
+            throw XCTSkip("Microphone permission is required for the realtime tap regression test")
+        }
+        let frameReceived = expectation(description: "Audio frame received")
+        let capture = AudioCaptureService()
+
+        try capture.start(
+            selectedDeviceUID: nil,
+            onFrame: { _ in frameReceived.fulfill() },
+            onLevel: { _ in }
+        )
+        await fulfillment(of: [frameReceived], timeout: 3)
+        await capture.stop()
+    }
+
     func testWAVEncoderWritesPCM16MonoHeader() {
         let pcm = Data([0x01, 0x02, 0x03, 0x04])
         let wav = WAVEncoder.pcm16Mono(pcm, sampleRate: 16_000)

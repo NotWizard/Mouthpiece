@@ -64,12 +64,20 @@ final class AudioCaptureService {
             onLevel: onLevel
         )
         converterBox = box
-        input.installTap(onBus: 0, bufferSize: 960, format: inputFormat) { buffer, _ in
-            box.process(buffer)
-        }
+        input.installTap(
+            onBus: 0,
+            bufferSize: 960,
+            format: inputFormat,
+            block: Self.makeTapHandler(for: box)
+        )
         engine.prepare()
         try engine.start()
         isRunning = true
+    }
+
+    // CoreAudio invokes taps on its realtime queue, outside MainActor isolation.
+    nonisolated private static func makeTapHandler(for box: AudioConverterBox) -> AVAudioNodeTapBlock {
+        { buffer, _ in box.process(buffer) }
     }
 
     func stop() async {

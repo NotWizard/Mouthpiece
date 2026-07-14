@@ -11,7 +11,12 @@ struct MouthpieceApp: App {
                 .environmentObject(environment)
                 .environment(\.locale, locale)
                 .preferredColorScheme(colorScheme)
-                .frame(minWidth: 760, minHeight: 560)
+                .frame(
+                    minWidth: environment.settings.onboardingCompleted
+                        ? ControlPanelWindowMetrics.minimumContentSize.width : 760,
+                    minHeight: environment.settings.onboardingCompleted
+                        ? ControlPanelWindowMetrics.minimumContentSize.height : 560
+                )
         }
         .defaultSize(width: 1040, height: 700)
         .windowResizability(.contentMinSize)
@@ -22,7 +27,12 @@ struct MouthpieceApp: App {
                 .environmentObject(environment)
                 .environment(\.locale, locale)
                 .preferredColorScheme(colorScheme)
-                .frame(minWidth: 760, minHeight: 560)
+                .frame(
+                    minWidth: environment.settings.onboardingCompleted
+                        ? ControlPanelWindowMetrics.minimumContentSize.width : 760,
+                    minHeight: environment.settings.onboardingCompleted
+                        ? ControlPanelWindowMetrics.minimumContentSize.height : 560
+                )
         }
     }
 
