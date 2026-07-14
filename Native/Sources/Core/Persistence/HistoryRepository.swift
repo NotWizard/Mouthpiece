@@ -83,6 +83,22 @@ actor HistoryRepository {
         try stepDone(statement)
     }
 
+    func restore(_ record: TranscriptionRecord) throws {
+        let statement = try prepare(
+            "INSERT OR REPLACE INTO transcriptions (id, text, raw_text, timestamp) VALUES (?, ?, ?, ?)"
+        )
+        defer { sqlite3_finalize(statement) }
+        sqlite3_bind_int64(statement, 1, record.id)
+        sqlite3_bind_text(statement, 2, record.text, -1, Self.transient)
+        if let rawText = record.rawText {
+            sqlite3_bind_text(statement, 3, rawText, -1, Self.transient)
+        } else {
+            sqlite3_bind_null(statement, 3)
+        }
+        sqlite3_bind_text(statement, 4, SQLiteDateParser.string(from: record.timestamp), -1, Self.transient)
+        try stepDone(statement)
+    }
+
     func clear() throws {
         try execute("DELETE FROM transcriptions")
     }
@@ -241,5 +257,9 @@ private enum SQLiteDateParser {
 
     static func date(from value: String) -> Date {
         formatter.date(from: value) ?? .distantPast
+    }
+
+    static func string(from value: Date) -> String {
+        formatter.string(from: value)
     }
 }

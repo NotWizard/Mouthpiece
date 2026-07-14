@@ -95,6 +95,13 @@ final class AppEnvironment: ObservableObject {
         }
     }
 
+    func restoreTranscription(_ record: TranscriptionRecord) {
+        Task {
+            try? await history?.restore(record)
+            refreshHistory()
+        }
+    }
+
     func saveDictionary(_ words: [String]) {
         dictionaryWords = words
         Task { try? await history?.replaceDictionary(words) }
@@ -162,6 +169,17 @@ final class AppEnvironment: ObservableObject {
     func dismissStartupError() { startupError = nil }
     func checkForUpdates() { updates.checkForUpdates() }
 
+    func suspendHotkeysForCapture() {
+        hotkey.stop()
+        translationHotkey.stop()
+    }
+
+    func resumeHotkeysAfterCapture() {
+        guard permissions.accessibility else { return }
+        try? hotkey.start(key: settings.dictationKey)
+        updateTranslationHotkey()
+    }
+
     func testPrompt(_ prompt: String, input: String) async throws -> String {
         var testSettings = settings
         testSettings.customPrompt = prompt == ReasoningService.defaultCleanupPrompt ? "" : prompt
@@ -169,6 +187,22 @@ final class AppEnvironment: ObservableObject {
         let service = ReasoningService(keychain: keychain)
         do {
             let result = try await service.process(input, settings: testSettings, target: nil)
+            await service.shutdown()
+            return result
+        } catch {
+            await service.shutdown()
+            throw error
+        }
+    }
+
+    func testProcessing(_ input: String) async throws -> String {
+        let service = ReasoningService(keychain: keychain)
+        do {
+            let result = try await service.process(
+                input,
+                settings: settings,
+                target: nil
+            )
             await service.shutdown()
             return result
         } catch {

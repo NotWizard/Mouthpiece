@@ -11,9 +11,9 @@ struct MouthpieceApp: App {
                 .environmentObject(environment)
                 .environment(\.locale, locale)
                 .preferredColorScheme(colorScheme)
-                .frame(minWidth: 900, minHeight: 620)
+                .frame(minWidth: 760, minHeight: 560)
         }
-        .defaultSize(width: 1080, height: 720)
+        .defaultSize(width: 1040, height: 700)
         .windowResizability(.contentMinSize)
         .windowToolbarStyle(.unifiedCompact)
 
@@ -22,7 +22,7 @@ struct MouthpieceApp: App {
                 .environmentObject(environment)
                 .environment(\.locale, locale)
                 .preferredColorScheme(colorScheme)
-                .frame(width: 920, height: 640)
+                .frame(minWidth: 760, minHeight: 560)
         }
     }
 

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added a complete macOS 26 control panel and onboarding redesign specification covering information architecture, cool-tinted lightweight Glass navigation, near-white content surfaces, page-level interactions, accessibility, compatibility, implementation phases, and acceptance criteria.
+- Added six task-focused native control panel pages with shared settings components, inline credential and model states, shortcut capture, processing previews, searchable history with Undo, and explicit audio and transcript data-path summaries.
+- Added a four-step onboarding flow that combines system permissions, configures cloud or local dictation, runs a real first-dictation check, restores the first incomplete step, and keeps recoverable errors inline.
 - Added a pure native Swift macOS application with an official macOS 15 Sequoia and macOS 26 Tahoe compatibility matrix, SwiftUI control panel and onboarding, an AppKit cross-Space dictation capsule, AVFoundation audio capture, CGEvent hotkeys, Accessibility text insertion, Keychain credentials, SQLite history, and Sparkle updates.
 - Added native realtime transcription for Bailian, Deepgram, Soniox, and AssemblyAI, OpenAI-compatible batch transcription, and local Whisper, Parakeet, and Qwen ASR MLX runtimes.
 - Added managed local GGUF text processing through bundled llama.cpp, including model download, validation, Metal startup, health checks, and restart after sleep or process exit.
@@ -19,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Reorganized control panel navigation into Ways to Use, Dictation, Cleanup & Translation, Vocabulary & Rules, History, and Privacy & Diagnostics, using a lightweight cool-tinted system sidebar and quieter near-white content surfaces.
+- Unified control panel and onboarding typography, spacing, row structure, three-language copy, conditional settings, empty states, and window sizing at 1040 × 700 and 820 × 600 respectively.
 - Raised the minimum supported system to macOS 15 Sequoia and limited formal compatibility validation to macOS 15 and macOS 26 Tahoe.
 - Replaced the Electron, Chromium, React, Node.js, Vite, Tailwind, and electron-builder application stack with a macOS-only Xcode project.
 - Corrected XcodeGen resource declarations so the app bundle includes its icon and English, Simplified Chinese, and Traditional Chinese localization tables.
@@ -34,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Preserved custom provider model and endpoint values when switching services, refreshed shortcut names immediately after changing the interface language, and restored the control panel's full working size after onboarding.
 - Recovered stale native migration locks after an interrupted launch while preserving the lock when another Mouthpiece instance is actually running.
 - Prevented local model installation commands from blocking when long-running package managers produce more output than an unread pipe can hold.
 - Preserved upstream dynamic-library compatibility symlinks when assembling Whisper, sherpa-onnx, and llama.cpp runtimes so bundled executables resolve their `@rpath` dependencies at launch.

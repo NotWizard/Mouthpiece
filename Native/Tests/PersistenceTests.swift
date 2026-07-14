@@ -76,6 +76,13 @@ final class PersistenceTests: XCTestCase {
         let recent = try await repository.recent()
         XCTAssertEqual(recent, [saved])
 
+        try await repository.delete(id: saved.id)
+        let afterDeletion = try await repository.recent()
+        XCTAssertTrue(afterDeletion.isEmpty)
+        try await repository.restore(saved)
+        let afterRestore = try await repository.recent()
+        XCTAssertEqual(afterRestore, [saved])
+
         try await repository.replaceDictionary(["Qwen", "", "Mouthpiece"])
         let dictionary = try await repository.dictionary()
         XCTAssertEqual(dictionary, ["Qwen", "Mouthpiece"])
