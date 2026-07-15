@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Restored the 12 distinct synthesized start and stop sound presets from the legacy app instead of approximating their names with unrelated macOS system alert sounds.
 - Kept the control panel usable with a 1000-point minimum width and 600-point minimum content height, while allowing settings pages to expand with the window instead of leaving a fixed-width blank region.
 - Prevented recording from crashing on the first audio frame by creating the AVAudioEngine tap callback outside MainActor isolation.
 - Preserved custom provider model and endpoint values when switching services, refreshed shortcut names immediately after changing the interface language, and restored the control panel's full working size after onboarding.

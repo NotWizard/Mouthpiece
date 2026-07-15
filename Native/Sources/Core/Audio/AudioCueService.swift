@@ -1,50 +1,261 @@
+import AVFoundation
 import AppKit
 import Darwin
+
+enum AudioCueWaveform: Hashable, Sendable {
+    case sine
+    case square
+    case triangle
+    case sawtooth
+}
+
+enum AudioCueEvent: Hashable, Sendable {
+    case tone(frequency: Double, start: Double, duration: Double, waveform: AudioCueWaveform, gain: Double, attack: Double)
+    case sweep(from: Double, to: Double, start: Double, duration: Double, waveform: AudioCueWaveform, gain: Double, attack: Double)
+    case noise(start: Double, duration: Double, gain: Double)
+    case glide(frequencies: [Double], times: [Double], start: Double, duration: Double, gain: Double)
+
+    var endTime: Double {
+        switch self {
+        case .tone(_, let start, let duration, _, _, _),
+             .sweep(_, _, let start, let duration, _, _, _),
+             .noise(let start, let duration, _),
+             .glide(_, _, let start, let duration, _):
+            start + duration
+        }
+    }
+}
 
 struct AudioCuePreset: Identifiable, Equatable, Sendable {
     let id: String
     let nameKey: String
-    let startSound: String
-    let stopSound: String
+    let startCue: [AudioCueEvent]
+    let stopCue: [AudioCueEvent]
 }
 
 @MainActor
 final class AudioCueService {
     static let presets: [AudioCuePreset] = [
-        .init(id: "classic", nameKey: "soundPreset.classic", startSound: "Tink", stopSound: "Pop"),
-        .init(id: "retro-arcade", nameKey: "soundPreset.retroArcade", startSound: "Ping", stopSound: "Funk"),
-        .init(id: "bubble-pop", nameKey: "soundPreset.bubblePop", startSound: "Purr", stopSound: "Pop"),
-        .init(id: "sci-fi", nameKey: "soundPreset.sciFi", startSound: "Submarine", stopSound: "Morse"),
-        .init(id: "marimba", nameKey: "soundPreset.marimba", startSound: "Glass", stopSound: "Tink"),
-        .init(id: "playful-bounce", nameKey: "soundPreset.playfulBounce", startSound: "Pop", stopSound: "Purr"),
-        .init(id: "robot", nameKey: "soundPreset.robot", startSound: "Morse", stopSound: "Submarine"),
-        .init(id: "gentle-chime", nameKey: "soundPreset.gentleChime", startSound: "Glass", stopSound: "Ping"),
-        .init(id: "typewriter", nameKey: "soundPreset.typewriter", startSound: "Tink", stopSound: "Tink"),
-        .init(id: "coin-collect", nameKey: "soundPreset.coinCollect", startSound: "Hero", stopSound: "Ping"),
-        .init(id: "laser-zap", nameKey: "soundPreset.laserZap", startSound: "Funk", stopSound: "Submarine"),
-        .init(id: "whistle", nameKey: "soundPreset.whistle", startSound: "Blow", stopSound: "Bottle"),
+        .init(
+            id: "classic",
+            nameKey: "soundPreset.classic",
+            startCue: [.tone(frequency: 523.25, start: 0, duration: 0.09, waveform: .sine, gain: 0.2, attack: 0.015), .tone(frequency: 659.25, start: 0.115, duration: 0.09, waveform: .sine, gain: 0.2, attack: 0.015)],
+            stopCue: [.tone(frequency: 587.33, start: 0, duration: 0.09, waveform: .sine, gain: 0.2, attack: 0.015), .tone(frequency: 440, start: 0.115, duration: 0.09, waveform: .sine, gain: 0.2, attack: 0.015)]
+        ),
+        .init(
+            id: "retro-arcade",
+            nameKey: "soundPreset.retroArcade",
+            startCue: [.tone(frequency: 523, start: 0, duration: 0.06, waveform: .square, gain: 0.12, attack: 0.005), .tone(frequency: 659, start: 0.07, duration: 0.06, waveform: .square, gain: 0.12, attack: 0.005), .tone(frequency: 784, start: 0.14, duration: 0.08, waveform: .square, gain: 0.14, attack: 0.005)],
+            stopCue: [.tone(frequency: 784, start: 0, duration: 0.06, waveform: .square, gain: 0.12, attack: 0.005), .tone(frequency: 659, start: 0.07, duration: 0.06, waveform: .square, gain: 0.12, attack: 0.005), .tone(frequency: 523, start: 0.14, duration: 0.08, waveform: .square, gain: 0.1, attack: 0.005)]
+        ),
+        .init(
+            id: "bubble-pop",
+            nameKey: "soundPreset.bubblePop",
+            startCue: [.sweep(from: 300, to: 900, start: 0, duration: 0.15, waveform: .sine, gain: 0.2, attack: 0.01), .sweep(from: 400, to: 1_100, start: 0.12, duration: 0.12, waveform: .sine, gain: 0.13, attack: 0.01)],
+            stopCue: [.sweep(from: 800, to: 250, start: 0, duration: 0.18, waveform: .sine, gain: 0.2, attack: 0.01)]
+        ),
+        .init(
+            id: "sci-fi",
+            nameKey: "soundPreset.sciFi",
+            startCue: [.sweep(from: 200, to: 1_200, start: 0, duration: 0.25, waveform: .sawtooth, gain: 0.08, attack: 0.01), .sweep(from: 600, to: 1_800, start: 0.05, duration: 0.2, waveform: .sine, gain: 0.06, attack: 0.01)],
+            stopCue: [.sweep(from: 1_000, to: 200, start: 0, duration: 0.3, waveform: .sawtooth, gain: 0.08, attack: 0.01), .sweep(from: 1_400, to: 400, start: 0.05, duration: 0.25, waveform: .sine, gain: 0.05, attack: 0.01)]
+        ),
+        .init(
+            id: "marimba",
+            nameKey: "soundPreset.marimba",
+            startCue: [.tone(frequency: 523, start: 0, duration: 0.12, waveform: .triangle, gain: 0.25, attack: 0.003), .tone(frequency: 659, start: 0.1, duration: 0.12, waveform: .triangle, gain: 0.25, attack: 0.003)],
+            stopCue: [.tone(frequency: 659, start: 0, duration: 0.12, waveform: .triangle, gain: 0.25, attack: 0.003), .tone(frequency: 523, start: 0.1, duration: 0.15, waveform: .triangle, gain: 0.2, attack: 0.003)]
+        ),
+        .init(
+            id: "playful-bounce",
+            nameKey: "soundPreset.playfulBounce",
+            startCue: [.tone(frequency: 392, start: 0, duration: 0.06, waveform: .triangle, gain: 0.18, attack: 0.005), .tone(frequency: 523, start: 0.065, duration: 0.06, waveform: .sine, gain: 0.18, attack: 0.005), .tone(frequency: 659, start: 0.13, duration: 0.06, waveform: .triangle, gain: 0.18, attack: 0.005), .tone(frequency: 880, start: 0.195, duration: 0.1, waveform: .sine, gain: 0.2, attack: 0.005)],
+            stopCue: [.tone(frequency: 880, start: 0, duration: 0.07, waveform: .sine, gain: 0.18, attack: 0.005), .tone(frequency: 587, start: 0.08, duration: 0.07, waveform: .triangle, gain: 0.16, attack: 0.005), .tone(frequency: 392, start: 0.16, duration: 0.12, waveform: .sine, gain: 0.14, attack: 0.005)]
+        ),
+        .init(
+            id: "robot",
+            nameKey: "soundPreset.robot",
+            startCue: [.tone(frequency: 800, start: 0, duration: 0.04, waveform: .square, gain: 0.1, attack: 0.003), .tone(frequency: 1_000, start: 0.06, duration: 0.04, waveform: .square, gain: 0.1, attack: 0.003), .tone(frequency: 800, start: 0.12, duration: 0.04, waveform: .square, gain: 0.1, attack: 0.003), .tone(frequency: 1_200, start: 0.18, duration: 0.06, waveform: .square, gain: 0.12, attack: 0.003)],
+            stopCue: [.tone(frequency: 1_200, start: 0, duration: 0.05, waveform: .square, gain: 0.1, attack: 0.003), .tone(frequency: 600, start: 0.07, duration: 0.05, waveform: .square, gain: 0.1, attack: 0.003), .tone(frequency: 300, start: 0.14, duration: 0.1, waveform: .square, gain: 0.08, attack: 0.003)]
+        ),
+        .init(
+            id: "gentle-chime",
+            nameKey: "soundPreset.gentleChime",
+            startCue: [.tone(frequency: 440, start: 0, duration: 0.25, waveform: .sine, gain: 0.15, attack: 0.04), .tone(frequency: 659, start: 0.18, duration: 0.25, waveform: .sine, gain: 0.15, attack: 0.04)],
+            stopCue: [.tone(frequency: 659, start: 0, duration: 0.25, waveform: .sine, gain: 0.15, attack: 0.04), .tone(frequency: 440, start: 0.18, duration: 0.3, waveform: .sine, gain: 0.12, attack: 0.04)]
+        ),
+        .init(
+            id: "typewriter",
+            nameKey: "soundPreset.typewriter",
+            startCue: [.noise(start: 0, duration: 0.03, gain: 0.3), .noise(start: 0.06, duration: 0.025, gain: 0.25)],
+            stopCue: [.noise(start: 0, duration: 0.04, gain: 0.35)]
+        ),
+        .init(
+            id: "coin-collect",
+            nameKey: "soundPreset.coinCollect",
+            startCue: [.tone(frequency: 988, start: 0, duration: 0.06, waveform: .square, gain: 0.1, attack: 0.003), .tone(frequency: 1_319, start: 0.06, duration: 0.15, waveform: .square, gain: 0.1, attack: 0.003)],
+            stopCue: [.tone(frequency: 1_319, start: 0, duration: 0.06, waveform: .square, gain: 0.1, attack: 0.003), .tone(frequency: 494, start: 0.07, duration: 0.15, waveform: .square, gain: 0.08, attack: 0.003)]
+        ),
+        .init(
+            id: "laser-zap",
+            nameKey: "soundPreset.laserZap",
+            startCue: [.sweep(from: 2_000, to: 200, start: 0, duration: 0.12, waveform: .sawtooth, gain: 0.08, attack: 0.003), .sweep(from: 1_800, to: 400, start: 0.1, duration: 0.1, waveform: .square, gain: 0.06, attack: 0.003)],
+            stopCue: [.sweep(from: 200, to: 2_000, start: 0, duration: 0.15, waveform: .sawtooth, gain: 0.07, attack: 0.003)]
+        ),
+        .init(
+            id: "whistle",
+            nameKey: "soundPreset.whistle",
+            startCue: [.glide(frequencies: [600, 1_000, 800], times: [0.1, 0.2], start: 0, duration: 0.25, gain: 0.18)],
+            stopCue: [.glide(frequencies: [800, 500], times: [0.15], start: 0, duration: 0.2, gain: 0.15)]
+        ),
     ]
 
-    private var sound: NSSound?
+    private var player: AVAudioPlayer?
 
     func playStart(preset id: String) {
-        play(name: Self.preset(id).startSound)
+        play(Self.preset(id).startCue)
     }
 
     func playStop(preset id: String) {
-        play(name: Self.preset(id).stopSound)
+        play(Self.preset(id).stopCue)
     }
 
-    private func play(name: String) {
-        sound?.stop()
-        let url = URL(fileURLWithPath: "/System/Library/Sounds/\(name).aiff")
-        sound = NSSound(contentsOf: url, byReference: true)
-        sound?.volume = 0.42
-        sound?.play()
+    private func play(_ cue: [AudioCueEvent]) {
+        player?.stop()
+        player = try? AVAudioPlayer(data: AudioCueSynthesizer.wav(cue))
+        player?.prepareToPlay()
+        player?.play()
     }
 
     private static func preset(_ id: String) -> AudioCuePreset {
         presets.first { $0.id == id } ?? presets[0]
+    }
+}
+
+enum AudioCueSynthesizer {
+    static let sampleRate = 44_100
+
+    static func wav(_ cue: [AudioCueEvent]) -> Data {
+        let duration = (cue.map(\.endTime).max() ?? 0) + 0.02
+        var samples = [Double](repeating: 0, count: max(1, Int(ceil(duration * Double(sampleRate)))))
+        for (index, event) in cue.enumerated() {
+            render(event, eventIndex: index, into: &samples)
+        }
+
+        var pcm = Data(capacity: samples.count * MemoryLayout<Int16>.size)
+        for sample in samples {
+            var value = Int16((max(-1, min(1, sample)) * Double(Int16.max)).rounded()).littleEndian
+            withUnsafeBytes(of: &value) { pcm.append(contentsOf: $0) }
+        }
+        return WAVEncoder.pcm16Mono(pcm, sampleRate: sampleRate)
+    }
+
+    private static func render(_ event: AudioCueEvent, eventIndex: Int, into samples: inout [Double]) {
+        switch event {
+        case .tone(let frequency, let start, let duration, let waveform, let gain, let attack):
+            renderOscillator(start: start, duration: duration, waveform: waveform, gain: gain, attack: attack, into: &samples) { _ in frequency }
+        case .sweep(let from, let to, let start, let duration, let waveform, let gain, let attack):
+            renderOscillator(start: start, duration: duration, waveform: waveform, gain: gain, attack: attack, into: &samples) { time in
+                let progress = min(1, time / (duration * 0.8))
+                return from * pow(to / from, progress)
+            }
+        case .noise(let start, let duration, let gain):
+            renderNoise(start: start, duration: duration, gain: gain, seed: UInt64(eventIndex + 1), into: &samples)
+        case .glide(let frequencies, let times, let start, let duration, let gain):
+            renderGlide(frequencies: frequencies, times: times, start: start, duration: duration, gain: gain, into: &samples)
+        }
+    }
+
+    private static func renderOscillator(
+        start: Double,
+        duration: Double,
+        waveform: AudioCueWaveform,
+        gain: Double,
+        attack: Double,
+        into samples: inout [Double],
+        frequency: (Double) -> Double
+    ) {
+        var phase = 0.0
+        renderFrames(start: start, duration: duration, into: &samples) { time in
+            phase += 2 * Double.pi * frequency(time) / Double(sampleRate)
+            return wave(waveform, phase: phase) * decayEnvelope(time: time, duration: duration, gain: gain, attack: attack)
+        }
+    }
+
+    private static func renderGlide(
+        frequencies: [Double],
+        times: [Double],
+        start: Double,
+        duration: Double,
+        gain: Double,
+        into samples: inout [Double]
+    ) {
+        var phase = 0.0
+        renderFrames(start: start, duration: duration, into: &samples) { time in
+            let frequency: Double
+            if frequencies.count == 3, times.count == 2, time > times[0] {
+                let progress = min(1, (time - times[0]) / (times[1] - times[0]))
+                frequency = frequencies[1] + (frequencies[2] - frequencies[1]) * progress
+            } else {
+                let end = max(times.first ?? duration, .leastNonzeroMagnitude)
+                let progress = min(1, time / end)
+                frequency = frequencies[0] + (frequencies[1] - frequencies[0]) * progress
+            }
+            phase += 2 * Double.pi * frequency / Double(sampleRate)
+            let envelope: Double
+            if time < 0.02 {
+                envelope = gain * time / 0.02
+            } else if time < duration * 0.6 {
+                envelope = gain
+            } else {
+                let progress = (time - duration * 0.6) / (duration * 0.4)
+                envelope = gain * pow(0.001 / gain, progress)
+            }
+            return sin(phase) * envelope
+        }
+    }
+
+    private static func renderNoise(
+        start: Double,
+        duration: Double,
+        gain: Double,
+        seed: UInt64,
+        into samples: inout [Double]
+    ) {
+        var state = seed
+        renderFrames(start: start, duration: duration, into: &samples) { time in
+            state = state &* 6_364_136_223_846_793_005 &+ 1
+            let noise = Double(state >> 11) / Double(1 << 53) * 2 - 1
+            return noise * gain * pow(0.001 / gain, time / duration)
+        }
+    }
+
+    private static func renderFrames(
+        start: Double,
+        duration: Double,
+        into samples: inout [Double],
+        sample: (Double) -> Double
+    ) {
+        let startFrame = Int(start * Double(sampleRate))
+        let frameCount = Int(duration * Double(sampleRate))
+        for offset in 0..<frameCount where startFrame + offset < samples.count {
+            samples[startFrame + offset] += sample(Double(offset) / Double(sampleRate))
+        }
+    }
+
+    private static func decayEnvelope(time: Double, duration: Double, gain: Double, attack: Double) -> Double {
+        guard time >= attack else { return gain * time / max(attack, .leastNonzeroMagnitude) }
+        let progress = (time - attack) / max(duration - attack, .leastNonzeroMagnitude)
+        return gain * pow(0.0001 / gain, progress)
+    }
+
+    private static func wave(_ waveform: AudioCueWaveform, phase: Double) -> Double {
+        switch waveform {
+        case .sine: sin(phase)
+        case .square: sin(phase) >= 0 ? 1 : -1
+        case .triangle: 2 / Double.pi * asin(sin(phase))
+        case .sawtooth: 2 * (phase / (2 * Double.pi) - floor(phase / (2 * Double.pi) + 0.5))
+        }
     }
 }
 

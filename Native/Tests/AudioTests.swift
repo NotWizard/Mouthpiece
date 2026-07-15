@@ -11,6 +11,21 @@ final class AudioTests: XCTestCase {
     }
 
     @MainActor
+    func testAudioCuePresetsRestoreDistinctSynthesizedStartAndStopSounds() {
+        XCTAssertEqual(
+            AudioCueService.presets.map(\.id),
+            ["classic", "retro-arcade", "bubble-pop", "sci-fi", "marimba", "playful-bounce", "robot", "gentle-chime", "typewriter", "coin-collect", "laser-zap", "whistle"]
+        )
+        XCTAssertEqual(Set(AudioCueService.presets.map(\.startCue)).count, AudioCueService.presets.count)
+        XCTAssertEqual(Set(AudioCueService.presets.map(\.stopCue)).count, AudioCueService.presets.count)
+
+        for preset in AudioCueService.presets {
+            XCTAssertTrue(AudioCueSynthesizer.wav(preset.startCue).dropFirst(44).contains { $0 != 0 }, preset.id)
+            XCTAssertTrue(AudioCueSynthesizer.wav(preset.stopCue).dropFirst(44).contains { $0 != 0 }, preset.id)
+        }
+    }
+
+    @MainActor
     func testAudioCaptureReceivesFrameOffMainActor() async throws {
         guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
             throw XCTSkip("Microphone permission is required for the realtime tap regression test")
