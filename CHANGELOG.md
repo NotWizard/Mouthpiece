@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Restored visible section and provider-card surfaces in dark mode and reduced the sidebar's blue and cyan glass tint so the navigation stays visually integrated with the content area.
 - Restored the 12 distinct synthesized start and stop sound presets from the legacy app instead of approximating their names with unrelated macOS system alert sounds.
 - Kept the control panel usable with a 1000-point minimum width and 600-point minimum content height, while allowing settings pages to expand with the window instead of leaving a fixed-width blank region.
 - Prevented recording from crashing on the first audio frame by creating the AVAudioEngine tap callback outside MainActor isolation.

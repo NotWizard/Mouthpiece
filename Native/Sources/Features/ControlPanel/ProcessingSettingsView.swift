@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ProcessingSettingsView: View {
     @EnvironmentObject private var environment: AppEnvironment
+    @Environment(\.colorScheme) private var colorScheme
     @State private var showingPromptStudio = false
 
     var body: some View {
@@ -106,7 +107,11 @@ struct ProcessingSettingsView: View {
                         .background(
                             environment.settings.reasoningProvider == provider.id
                                 ? Color.accentColor.opacity(0.12)
-                                : Color(nsColor: .controlBackgroundColor)
+                                : Color(
+                                    nsColor: colorScheme == .dark
+                                        ? .underPageBackgroundColor
+                                        : .controlBackgroundColor
+                                )
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                         .overlay {

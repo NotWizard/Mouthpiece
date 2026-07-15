@@ -38,6 +38,8 @@ struct SettingsPageHeader: View {
 }
 
 struct SettingsSection<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let title: LocalizedStringKey
     @ViewBuilder let content: Content
 
@@ -49,7 +51,13 @@ struct SettingsSection<Content: View>: View {
             VStack(spacing: 0) {
                 content
             }
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(
+                Color(
+                    nsColor: colorScheme == .dark
+                        ? .underPageBackgroundColor
+                        : .controlBackgroundColor
+                )
+            )
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -415,10 +423,14 @@ struct SidebarGlassBackground: View {
     var body: some View {
         ZStack {
             SidebarVisualEffect()
+            if colorScheme == .dark {
+                Color(nsColor: .windowBackgroundColor)
+                    .opacity(0.42)
+            }
             LinearGradient(
                 colors: [
-                    Color.accentColor.opacity(colorScheme == .dark ? 0.07 : 0.035),
-                    Color.cyan.opacity(colorScheme == .dark ? 0.025 : 0.015),
+                    Color.accentColor.opacity(colorScheme == .dark ? 0.022 : 0.035),
+                    Color.cyan.opacity(colorScheme == .dark ? 0.008 : 0.015),
                     .clear,
                 ],
                 startPoint: .topLeading,
