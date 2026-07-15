@@ -1,8 +1,9 @@
+import AppKit
 import SwiftUI
 
 struct ProcessingSettingsView: View {
     @EnvironmentObject private var environment: AppEnvironment
-    @State private var showingTest = false
+    @State private var showingPromptStudio = false
 
     var body: some View {
         SettingsPage(title: "processing.title", subtitle: "processing.subtitle") {
@@ -10,13 +11,32 @@ struct ProcessingSettingsView: View {
                 SettingsRow(
                     icon: "wand.and.stars",
                     title: "processing.enableCleanup",
-                    showsDivider: environment.settings.useReasoningModel
+                    showsDivider: false
                 ) {
                     Toggle("", isOn: settingBinding(environment, \.useReasoningModel))
                         .labelsHidden()
                 }
-                if environment.settings.useReasoningModel {
+            }
+
+            if environment.settings.useReasoningModel {
+                providerSelection
+                SettingsSection(title: "processing.configuration") {
                     reasoningRows
+                }
+
+                SettingsSection(title: "personalization.instructions") {
+                    SettingsRow(
+                        icon: "text.quote",
+                        title: "promptStudio.summary",
+                        detail: environment.settings.customPrompt.isEmpty
+                            ? "promptStudio.usingDefault"
+                            : "promptStudio.usingCustom",
+                        showsDivider: false
+                    ) {
+                        Button("promptStudio.open") {
+                            showingPromptStudio = true
+                        }
+                    }
                 }
             }
 
@@ -44,44 +64,91 @@ struct ProcessingSettingsView: View {
                             }
                         }
                         .labelsHidden()
-                        .frame(width: 170)
+                        .frame(width: 170, alignment: .trailing)
                     }
                 }
             }
 
-            HStack {
-                Spacer()
-                Button("processing.try") {
-                    showingTest = true
+        }
+        .sheet(isPresented: $showingPromptStudio) {
+            PromptStudioSheet()
+                .environmentObject(environment)
+        }
+    }
+
+    private var providerSelection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("processing.provider")
+                .font(.subheadline.weight(.semibold))
+                .padding(.leading, 2)
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 150), spacing: 8)],
+                spacing: 8
+            ) {
+                ForEach(reasoningProviders) { provider in
+                    Button {
+                        var settings = environment.settings
+                        settings.reasoningProvider = provider.id
+                        environment.saveSettings(settings)
+                    } label: {
+                        HStack(spacing: 9) {
+                            providerIcon(provider)
+                            Text(provider.title)
+                                .lineLimit(1)
+                            Spacer(minLength: 4)
+                            if environment.settings.reasoningProvider == provider.id {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .frame(maxWidth: .infinity, minHeight: 46)
+                        .background(
+                            environment.settings.reasoningProvider == provider.id
+                                ? Color.accentColor.opacity(0.12)
+                                : Color(nsColor: .controlBackgroundColor)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                .stroke(
+                                    environment.settings.reasoningProvider == provider.id
+                                        ? Color.accentColor.opacity(0.75)
+                                        : Color(nsColor: .separatorColor).opacity(0.45),
+                                    lineWidth: environment.settings.reasoningProvider == provider.id ? 1.5 : 0.5
+                                )
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(
+                        environment.settings.reasoningProvider == provider.id ? .isSelected : []
+                    )
                 }
-                .disabled(!environment.settings.useReasoningModel && !environment.settings.translationEnabled)
             }
         }
-        .sheet(isPresented: $showingTest) {
-            ProcessingTestSheet()
-                .environmentObject(environment)
+        .task(id: environment.settings.reasoningProvider) {
+            applyDefaults(for: environment.settings.reasoningProvider)
+        }
+    }
+
+    @ViewBuilder
+    private func providerIcon(_ provider: ReasoningProviderOption) -> some View {
+        if let assetName = provider.assetName,
+           let url = Bundle.main.url(forResource: assetName, withExtension: "svg"),
+           let image = NSImage(contentsOf: url) {
+            let _ = image.isTemplate = provider.rendersAsTemplate
+            Image(nsImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 18, height: 18)
+        } else {
+            Image(systemName: provider.fallbackIcon)
+                .frame(width: 18)
         }
     }
 
     @ViewBuilder
     private var reasoningRows: some View {
-        SettingsRow(icon: "server.rack", title: "processing.provider") {
-            Picker("", selection: settingBinding(environment, \.reasoningProvider)) {
-                Text("OpenAI").tag("openai")
-                Text("Alibaba Bailian").tag("bailian")
-                Text("Anthropic").tag("anthropic")
-                Text("Gemini").tag("gemini")
-                Text("Groq").tag("groq")
-                Text("speech.local").tag("local")
-                Text("provider.custom").tag("custom")
-            }
-            .labelsHidden()
-            .frame(width: 170)
-        }
-        .task(id: environment.settings.reasoningProvider) {
-            applyDefaults(for: environment.settings.reasoningProvider)
-        }
-
         if environment.settings.reasoningProvider == "local" {
             SettingsRow(icon: "cube", title: "processing.model") {
                 Picker("", selection: settingBinding(environment, \.reasoningModel)) {
@@ -90,7 +157,7 @@ struct ProcessingSettingsView: View {
                     }
                 }
                 .labelsHidden()
-                .frame(width: 270)
+                .frame(width: 270, alignment: .trailing)
                 .onChange(of: environment.settings.reasoningModel) { _, _ in
                     environment.refreshReasoningModelStatus()
                 }
@@ -178,6 +245,18 @@ struct ProcessingSettingsView: View {
         }
     }
 
+    private var reasoningProviders: [ReasoningProviderOption] {
+        [
+            .init(id: "openai", title: "provider.openai", assetName: "provider-openai", fallbackIcon: "sparkles", rendersAsTemplate: true),
+            .init(id: "bailian", title: "provider.bailian", assetName: "provider-alibaba-cloud", fallbackIcon: "cloud", rendersAsTemplate: true),
+            .init(id: "anthropic", title: "provider.anthropic", assetName: "provider-anthropic", fallbackIcon: "text.bubble", rendersAsTemplate: true),
+            .init(id: "gemini", title: "provider.gemini", assetName: "provider-gemini", fallbackIcon: "diamond", rendersAsTemplate: false),
+            .init(id: "groq", title: "provider.groq", assetName: "provider-groq", fallbackIcon: "bolt", rendersAsTemplate: false),
+            .init(id: "local", title: "provider.local", assetName: nil, fallbackIcon: "desktopcomputer", rendersAsTemplate: true),
+            .init(id: "custom", title: "provider.custom", assetName: nil, fallbackIcon: "slider.horizontal.3", rendersAsTemplate: true),
+        ]
+    }
+
     private var hasTranslationHotkeyConflict: Bool {
         HotkeyCapture.conflicts(
             environment.settings.dictationKey,
@@ -227,78 +306,12 @@ struct ProcessingSettingsView: View {
     }
 }
 
-private struct ProcessingTestSheet: View {
-    @EnvironmentObject private var environment: AppEnvironment
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var input = ""
-    @State private var result = ""
-    @State private var isRunning = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("processing.try.title")
-                    .font(.title2.weight(.semibold))
-                Text("processing.try.subtitle")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-
-            TextEditor(text: $input)
-                .font(.body)
-                .frame(minHeight: 110)
-                .padding(8)
-                .background(Color(nsColor: .textBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color(nsColor: .separatorColor), lineWidth: 0.5)
-                }
-
-            if !result.isEmpty {
-                ScrollView {
-                    Text(result)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(12)
-                }
-                .frame(minHeight: 100)
-                .background(Color(nsColor: .controlBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
-
-            HStack {
-                Button("common.close") { dismiss() }
-                Spacer()
-                if isRunning { ProgressView().controlSize(.small) }
-                Button("processing.try.run") {
-                    isRunning = true
-                    result = ""
-                    Task {
-                        do {
-                            result = try await environment.testProcessing(input)
-                        } catch {
-                            result = error.localizedDescription
-                        }
-                        isRunning = false
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(isRunning || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-        }
-        .padding(24)
-        .frame(width: 620, height: 440)
-        .onAppear {
-            if input.isEmpty {
-                input = AppLocalization.string(
-                    "promptStudio.defaultInput",
-                    language: environment.settings.uiLanguage
-                )
-            }
-        }
-    }
+private struct ReasoningProviderOption: Identifiable {
+    let id: String
+    let title: LocalizedStringKey
+    let assetName: String?
+    let fallbackIcon: String
+    let rendersAsTemplate: Bool
 }
 
 enum ReasoningProviderSupport {

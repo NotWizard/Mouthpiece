@@ -14,7 +14,7 @@ struct UsageSettingsView: View {
                         Text("language.english").tag(UILanguage.english)
                     }
                     .labelsHidden()
-                    .frame(width: 160)
+                    .frame(width: 160, alignment: .trailing)
                 }
                 SettingsRow(icon: "circle.lefthalf.filled", title: "general.appearance", showsDivider: false) {
                     Picker("", selection: settingBinding(environment, \.theme)) {
@@ -23,7 +23,7 @@ struct UsageSettingsView: View {
                         Text("appearance.dark").tag(AppTheme.dark)
                     }
                     .labelsHidden()
-                    .frame(width: 140)
+                    .frame(width: 140, alignment: .trailing)
                 }
             }
 
@@ -38,7 +38,7 @@ struct UsageSettingsView: View {
                         Text("hotkey.pushToTalk").tag(HotkeyBehavior.pushToTalk)
                     }
                     .labelsHidden()
-                    .frame(width: 160)
+                    .frame(width: 160, alignment: .trailing)
                 }
                 SettingsRow(icon: "power", title: "general.launchAtLogin") {
                     Toggle("", isOn: settingBinding(environment, \.launchAtLogin))
@@ -56,6 +56,10 @@ struct UsageSettingsView: View {
                     Toggle("", isOn: settingBinding(environment, \.escapeCancelsRecording))
                         .labelsHidden()
                 }
+                SettingsRow(icon: "pause.circle", title: "general.pauseOtherMedia") {
+                    Toggle("", isOn: settingBinding(environment, \.pauseOtherMediaDuringDictation))
+                        .labelsHidden()
+                }
                 SettingsRow(icon: "speaker.wave.2", title: "general.audioCues", showsDivider: !environment.settings.audioCuesEnabled) {
                     Toggle("", isOn: settingBinding(environment, \.audioCuesEnabled))
                         .labelsHidden()
@@ -65,11 +69,11 @@ struct UsageSettingsView: View {
                         HStack(spacing: 8) {
                             Picker("", selection: settingBinding(environment, \.soundPreset)) {
                                 ForEach(AudioCueService.presets) { preset in
-                                    Text(preset.name).tag(preset.id)
+                                    Text(LocalizedStringKey(preset.nameKey)).tag(preset.id)
                                 }
                             }
                             .labelsHidden()
-                            .frame(width: 170)
+                            .frame(width: 170, alignment: .trailing)
                             Button {
                                 environment.audioCues.playStart(preset: environment.settings.soundPreset)
                             } label: {
@@ -91,7 +95,7 @@ struct UsageSettingsView: View {
                         }
                     }
                     .labelsHidden()
-                    .frame(width: 250)
+                    .frame(width: 250, alignment: .trailing)
                 }
             }
 

@@ -9,7 +9,6 @@ struct VocabularyRulesView: View {
     @State private var newAvoidedTerm = ""
     @State private var replacementSource = ""
     @State private var replacementTarget = ""
-    @State private var showingPromptStudio = false
 
     var body: some View {
         SettingsPage(title: "personalization.title", subtitle: "personalization.subtitle") {
@@ -28,13 +27,7 @@ struct VocabularyRulesView: View {
                 termsContent
             case .replacements:
                 replacementsContent
-            case .instructions:
-                instructionsContent
             }
-        }
-        .sheet(isPresented: $showingPromptStudio) {
-            PromptStudioSheet()
-                .environmentObject(environment)
         }
     }
 
@@ -117,23 +110,6 @@ struct VocabularyRulesView: View {
                         onSave: { saveReplacement(source, newSource: $0, newTarget: $1) },
                         onDelete: { deleteReplacement(source) }
                     )
-                }
-            }
-        }
-    }
-
-    private var instructionsContent: some View {
-        SettingsSection(title: "personalization.prompt") {
-            SettingsRow(
-                icon: "text.quote",
-                title: "promptStudio.summary",
-                detail: environment.settings.customPrompt.isEmpty
-                    ? "promptStudio.usingDefault"
-                    : "promptStudio.usingCustom",
-                showsDivider: false
-            ) {
-                Button("promptStudio.open") {
-                    showingPromptStudio = true
                 }
             }
         }
@@ -233,7 +209,6 @@ struct VocabularyRulesView: View {
 private enum VocabularySection: String, CaseIterable, Identifiable {
     case terms
     case replacements
-    case instructions
 
     var id: String { rawValue }
 
@@ -241,7 +216,6 @@ private enum VocabularySection: String, CaseIterable, Identifiable {
         switch self {
         case .terms: "personalization.terms"
         case .replacements: "personalization.replacementsTab"
-        case .instructions: "personalization.instructions"
         }
     }
 
@@ -249,7 +223,6 @@ private enum VocabularySection: String, CaseIterable, Identifiable {
         switch self {
         case .terms: "textformat"
         case .replacements: "arrow.left.arrow.right"
-        case .instructions: "text.quote"
         }
     }
 }
@@ -436,7 +409,7 @@ private struct ReplacementRuleRow: View {
     }
 }
 
-private struct PromptStudioSheet: View {
+struct PromptStudioSheet: View {
     @EnvironmentObject private var environment: AppEnvironment
     @Environment(\.dismiss) private var dismiss
 

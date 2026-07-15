@@ -28,7 +28,7 @@ struct DictationSettingsView: View {
                         Text("language.japanese").tag("ja")
                     }
                     .labelsHidden()
-                    .frame(width: 160)
+                    .frame(width: 160, alignment: .trailing)
                 }
                 if environment.settings.useLocalTranscription {
                     SettingsRow(icon: "arrow.triangle.branch", title: "speech.fallback", showsDivider: false) {
@@ -92,7 +92,7 @@ struct CloudTranscriptionRows: View {
                 }
             }
             .labelsHidden()
-            .frame(width: 180)
+            .frame(width: 180, alignment: .trailing)
             .onChange(of: environment.settings.cloudTranscriptionProvider) { _, provider in
                 applyDefaultModel(for: provider)
             }
@@ -165,7 +165,7 @@ struct LocalTranscriptionRows: View {
                 Text("Qwen ASR MLX").tag(LocalTranscriptionProvider.qwen)
             }
             .labelsHidden()
-            .frame(width: 180)
+            .frame(width: 180, alignment: .trailing)
             .onChange(of: environment.settings.localTranscriptionProvider) { _, provider in
                 ensureDefaultModel(for: provider)
                 environment.refreshLocalModelStatus()
@@ -178,7 +178,7 @@ struct LocalTranscriptionRows: View {
                 }
             }
             .labelsHidden()
-            .frame(width: 260)
+            .frame(width: 260, alignment: .trailing)
             .onChange(of: selectedModelID) { _, _ in environment.refreshLocalModelStatus() }
         }
         SettingsRow(icon: "internaldrive", title: "speech.modelStatus", showsDivider: false) {

@@ -195,22 +195,6 @@ final class AppEnvironment: ObservableObject {
         }
     }
 
-    func testProcessing(_ input: String) async throws -> String {
-        let service = ReasoningService(keychain: keychain)
-        do {
-            let result = try await service.process(
-                input,
-                settings: settings,
-                target: nil
-            )
-            await service.shutdown()
-            return result
-        } catch {
-            await service.shutdown()
-            throw error
-        }
-    }
-
     func refreshLocalModelStatus() {
         let provider = settings.localTranscriptionProvider
         let model = selectedLocalModelID

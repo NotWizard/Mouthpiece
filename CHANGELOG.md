@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added an option to pause the active system media session during dictation and resume it after stop, cancellation, failure, or shutdown.
 - Added a complete macOS 26 control panel and onboarding redesign specification covering information architecture, cool-tinted lightweight Glass navigation, near-white content surfaces, page-level interactions, accessibility, compatibility, implementation phases, and acceptance criteria.
 - Added six task-focused native control panel pages with shared settings components, inline credential and model states, shortcut capture, processing previews, searchable history with Undo, and explicit audio and transcript data-path summaries.
 - Added a four-step onboarding flow that combines system permissions, configures cloud or local dictation, runs a real first-dictation check, restores the first incomplete step, and keeps recoverable errors inline.
@@ -22,7 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Reorganized control panel navigation into Ways to Use, Dictation, Cleanup & Translation, Vocabulary & Rules, History, and Privacy & Diagnostics, using a lightweight cool-tinted system sidebar and quieter near-white content surfaces.
+- Replaced generic AI provider symbols with bundled brand icons, moved custom cleanup instructions beside the AI service configuration, and removed the standalone processing test action.
+- Aligned control panel inputs by their visible trailing edges, localized all sound preset names, and replaced the hidden cleanup-provider menu with a visible responsive provider selector and provider-specific configuration.
+- Reorganized control panel navigation into General Settings, Dictation Models, Text Processing, Vocabulary & Rules, History, and Privacy & Diagnostics, using a lightweight cool-tinted system sidebar and quieter near-white content surfaces.
 - Unified control panel and onboarding typography, spacing, row structure, three-language copy, conditional settings, empty states, and window sizing at 1040 × 700 and 820 × 600 respectively.
 - Raised the minimum supported system to macOS 15 Sequoia and limited formal compatibility validation to macOS 15 and macOS 26 Tahoe.
 - Replaced the Electron, Chromium, React, Node.js, Vite, Tailwind, and electron-builder application stack with a macOS-only Xcode project.

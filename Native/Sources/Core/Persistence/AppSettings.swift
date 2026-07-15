@@ -64,6 +64,7 @@ struct AppSettings: Codable, Equatable, Sendable {
     var showInDock = true
     var showInMenuBar = true
     var escapeCancelsRecording = true
+    var pauseOtherMediaDuringDictation = false
     var audioCuesEnabled = true
     var soundPreset = "classic"
 

@@ -4,6 +4,13 @@ import XCTest
 
 final class AudioTests: XCTestCase {
     @MainActor
+    func testAudioCuePresetsHaveUniqueLocalizedNames() {
+        XCTAssertEqual(Set(AudioCueService.presets.map(\.id)).count, AudioCueService.presets.count)
+        XCTAssertEqual(Set(AudioCueService.presets.map(\.nameKey)).count, AudioCueService.presets.count)
+        XCTAssertTrue(AudioCueService.presets.allSatisfy { $0.nameKey.hasPrefix("soundPreset.") })
+    }
+
+    @MainActor
     func testAudioCaptureReceivesFrameOffMainActor() async throws {
         guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
             throw XCTSkip("Microphone permission is required for the realtime tap regression test")

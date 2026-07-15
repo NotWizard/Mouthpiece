@@ -56,10 +56,12 @@ final class PersistenceTests: XCTestCase {
         var settings = AppSettings()
         settings.dictationKey = ""
         settings.cloudTranscriptionBaseURL = "not a url"
+        settings.pauseOtherMediaDuringDictation = true
         try repository.save(settings)
         let loaded = repository.load()
         XCTAssertEqual(loaded.dictationKey, "RightCommand")
         XCTAssertEqual(loaded.cloudTranscriptionBaseURL, "https://api.openai.com/v1")
+        XCTAssertTrue(loaded.pauseOtherMediaDuringDictation)
     }
 
     func testHistoryRepositoryMigratesLegacySchemaAndPreservesRawText() async throws {

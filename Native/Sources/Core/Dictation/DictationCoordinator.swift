@@ -14,6 +14,7 @@ actor DictationCoordinator {
     private let assemblyAIProvider: AssemblyAIRealtimeProvider
     private let localRuntime: LocalModelRuntime
     private let reasoning: ReasoningService
+    private let mediaPlayback = MediaPlaybackController()
     private let onSnapshot: @MainActor @Sendable (DictationSnapshot) -> Void
 
     private var machine = DictationStateMachine()
@@ -75,6 +76,7 @@ actor DictationCoordinator {
         maximumDurationTask?.cancel()
         maximumDurationTask = nil
         await audio.stop()
+        await mediaPlayback.resumeIfPaused()
         await bailianProvider.cancel()
         await deepgramProvider.cancel()
         await sonioxProvider.cancel()
@@ -97,6 +99,16 @@ actor DictationCoordinator {
             try machine.begin(sessionID: sessionID, isTranslation: settings.translationEnabled)
             activeSettings = settings
             speechGate = SpeechActivityGate()
+            if settings.pauseOtherMediaDuringDictation {
+                let paused = await mediaPlayback.pauseIfPlaying()
+                if !paused {
+                    await logger.write(
+                        .debug,
+                        "No active media session was paused",
+                        sessionID: sessionID
+                    )
+                }
+            }
             await capsule.setLanguage(settings.uiLanguage)
             pcm.removeAll(keepingCapacity: true)
             target = await insertion.captureTarget()
@@ -170,6 +182,7 @@ actor DictationCoordinator {
             try machine.transition(to: .stopping, sessionID: sessionID)
             await publish()
             await audio.stop()
+            await mediaPlayback.resumeIfPaused()
             guard isCurrent(sessionID, phase: .stopping) else { return }
             try machine.transition(to: .finalizing, sessionID: sessionID)
             await publish()
@@ -245,6 +258,7 @@ actor DictationCoordinator {
         maximumDurationTask?.cancel()
         maximumDurationTask = nil
         await audio.stop()
+        await mediaPlayback.resumeIfPaused()
         if providerSessionID == sessionID { await provider?.cancel() }
         do { try machine.transition(to: .cancelled, sessionID: sessionID) } catch { return }
         await logger.write(.info, "Dictation session cancelled", sessionID: sessionID)
@@ -439,6 +453,7 @@ actor DictationCoordinator {
         maximumDurationTask?.cancel()
         maximumDurationTask = nil
         await audio.stop()
+        await mediaPlayback.resumeIfPaused()
         if providerSessionID == sessionID { await provider?.cancel() }
         try? machine.fail(error.localizedDescription, sessionID: sessionID)
         await logger.write(

@@ -84,6 +84,7 @@ struct SettingsRow<Content: View>: View {
             }
             Spacer(minLength: 16)
             content
+                .frame(minWidth: 320, alignment: .trailing)
         }
         .padding(.horizontal, 13)
         .frame(minHeight: detail == nil ? 44 : 56)

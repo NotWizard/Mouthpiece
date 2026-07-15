@@ -9,7 +9,9 @@
 /* Begin PBXBuildFile section */
 		07408B987BBE686D4A2867C8 /* AssemblyAIRealtimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2400733301B8C6B62BBBBADE /* AssemblyAIRealtimeProvider.swift */; };
 		0A440C120208A9FAA7026F3A /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D4C3234DFE8927E6B80953 /* AppLocalization.swift */; };
+		0AC4A0D057AC1D5B184050EB /* provider-alibaba-cloud.svg in Resources */ = {isa = PBXBuildFile; fileRef = 4FF10FB8792E36433269C821 /* provider-alibaba-cloud.svg */; };
 		0CC9ECF7F562AD5316B0D744 /* DictationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E60374F56B1400EFAA2E6ABC /* DictationCoordinator.swift */; };
+		0EC4D9AE76C4613A63CCA0CF /* provider-gemini.svg in Resources */ = {isa = PBXBuildFile; fileRef = EBF9512E0313324EAB4D27AF /* provider-gemini.svg */; };
 		1C251ED433E1ADD7BE0CCC97 /* AudioCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E3585937DFD74537CD06375 /* AudioCaptureService.swift */; };
 		21A230C967F31BBEFF0D7E79 /* LegacyMigrationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F25BDD2906CBC56D91B779A /* LegacyMigrationCoordinator.swift */; };
 		2D95C800B8100F754AB4FEC6 /* VocabularyRulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6AF4263364F99415FE81C5 /* VocabularyRulesView.swift */; };
@@ -20,8 +22,10 @@
 		4D2EFEB2F4185781B7272688 /* ControlPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1827FCF96D30560F007B93C /* ControlPanelView.swift */; };
 		4F7E2751C9085D48308B2CA9 /* DictationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB1FA0A318163DC8EBA246D /* DictationState.swift */; };
 		4FB05E7D0CDE2589D8A3FABD /* MouthpieceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 202A5C104CA1D33343D7EB28 /* MouthpieceApp.swift */; };
+		5114DA72C8727D9B4F23A72D /* provider-openai.svg in Resources */ = {isa = PBXBuildFile; fileRef = F33CE4BB76FFC238A6A35B30 /* provider-openai.svg */; };
 		53BE6F512E01624BE516DBF6 /* PersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C55850A84F69D2693F16674 /* PersistenceTests.swift */; };
 		5CE5B3948AE7DBFC00EAB40F /* PrivacyDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7041F0F70A5B0304F21B6BB6 /* PrivacyDiagnosticsView.swift */; };
+		625822921D132F271BDDACE8 /* provider-groq.svg in Resources */ = {isa = PBXBuildFile; fileRef = B182DDF5D81617CECF2EE06C /* provider-groq.svg */; };
 		650DB320394040311A3B290F /* ReasoningService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14926ADCBF6F56514838B90D /* ReasoningService.swift */; };
 		664AEC27457E03F9EAE8BD73 /* SonioxRealtimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C07998451259427FC5F9268 /* SonioxRealtimeProvider.swift */; };
 		6944071CAFC02BB0704CFFAD /* DeepgramRealtimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3447C40CD33646B1C77CFEAD /* DeepgramRealtimeProvider.swift */; };
@@ -31,6 +35,7 @@
 		71B51A2960D7F6CF036B2DC3 /* PermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D16F6F6D12736CCEDDC2A832 /* PermissionService.swift */; };
 		82335095A4919636E2FA228B /* swift-leveldb in Frameworks */ = {isa = PBXBuildFile; productRef = 80FCD703E340F3DEC2EB4AF2 /* swift-leveldb */; };
 		877514FAFBC099F0338389C6 /* LocalModelRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 985AC5EB7663AEBC56A4E41F /* LocalModelRuntime.swift */; };
+		879E33605FB4F96D271478A0 /* provider-anthropic.svg in Resources */ = {isa = PBXBuildFile; fileRef = 9F0AA63B360B006DB2405323 /* provider-anthropic.svg */; };
 		8997B00990024C92C753D668 /* BatchTranscriptionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61A78229C54CB604F1508042 /* BatchTranscriptionClient.swift */; };
 		8B40A64563DB47477131FC76 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F07BDA1719C968AE23A7997 /* AppDelegate.swift */; };
 		930134D742359C55F3140F82 /* Mouthpiece.icns in Resources */ = {isa = PBXBuildFile; fileRef = 531364AC24AAD1894E4DBB28 /* Mouthpiece.icns */; };
@@ -92,6 +97,7 @@
 		40DCD77EEE51E5CD93773591 /* DictationAndProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationAndProviderTests.swift; sourceTree = "<group>"; };
 		42E56BBE96DE36354A1C2355 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
 		4FB4E666C85506C60072109F /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
+		4FF10FB8792E36433269C821 /* provider-alibaba-cloud.svg */ = {isa = PBXFileReference; path = "provider-alibaba-cloud.svg"; sourceTree = "<group>"; };
 		531364AC24AAD1894E4DBB28 /* Mouthpiece.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Mouthpiece.icns; sourceTree = "<group>"; };
 		58C2E9CA9C9D5BF8111BD9A1 /* LocalModelInstallationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalModelInstallationService.swift; sourceTree = "<group>"; };
 		5CEC2B190C02DB63C5BAD403 /* LegacyEnvironmentImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyEnvironmentImporter.swift; sourceTree = "<group>"; };
@@ -107,10 +113,12 @@
 		82FC2F38172C9F6D2401A7C4 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		985AC5EB7663AEBC56A4E41F /* LocalModelRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalModelRuntime.swift; sourceTree = "<group>"; };
 		9F07BDA1719C968AE23A7997 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		9F0AA63B360B006DB2405323 /* provider-anthropic.svg */ = {isa = PBXFileReference; path = "provider-anthropic.svg"; sourceTree = "<group>"; };
 		A32ED6154EF45C286E3C807C /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		AD15DDB4974E8338A9223CBC /* TranscriptionProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionProvider.swift; sourceTree = "<group>"; };
 		AFB1FA0A318163DC8EBA246D /* DictationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationState.swift; sourceTree = "<group>"; };
 		B1501A6F849E3703BD3FAB3F /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		B182DDF5D81617CECF2EE06C /* provider-groq.svg */ = {isa = PBXFileReference; path = "provider-groq.svg"; sourceTree = "<group>"; };
 		B46BD5418BD14A71E9B04135 /* TextInsertionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInsertionService.swift; sourceTree = "<group>"; };
 		B65963C52779B6662A3496C1 /* AudioTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTests.swift; sourceTree = "<group>"; };
 		B68D767A89514C2F25309937 /* DebugLogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogStore.swift; sourceTree = "<group>"; };
@@ -129,7 +137,9 @@
 		E4296C56083431AF4D8B75F2 /* HistoryRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryRepository.swift; sourceTree = "<group>"; };
 		E5C9391F951A69C1ED7E94F3 /* LocalReasoningModelCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalReasoningModelCatalog.swift; sourceTree = "<group>"; };
 		E60374F56B1400EFAA2E6ABC /* DictationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationCoordinator.swift; sourceTree = "<group>"; };
+		EBF9512E0313324EAB4D27AF /* provider-gemini.svg */ = {isa = PBXFileReference; path = "provider-gemini.svg"; sourceTree = "<group>"; };
 		EEB9826D53E65E0802E8E09F /* LocalReasoningRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalReasoningRuntime.swift; sourceTree = "<group>"; };
+		F33CE4BB76FFC238A6A35B30 /* provider-openai.svg */ = {isa = PBXFileReference; path = "provider-openai.svg"; sourceTree = "<group>"; };
 		F355B8755FE4FE25201F1ED0 /* LocalModelCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalModelCatalog.swift; sourceTree = "<group>"; };
 		F4C623CB05090C7BECBB185C /* Binaries */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Binaries; path = Native/Binaries; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -166,6 +176,18 @@
 				0C55850A84F69D2693F16674 /* PersistenceTests.swift */,
 			);
 			path = Tests;
+			sourceTree = "<group>";
+		};
+		22ECCF55F5EEE717CCA030A9 /* ProviderIcons */ = {
+			isa = PBXGroup;
+			children = (
+				4FF10FB8792E36433269C821 /* provider-alibaba-cloud.svg */,
+				9F0AA63B360B006DB2405323 /* provider-anthropic.svg */,
+				EBF9512E0313324EAB4D27AF /* provider-gemini.svg */,
+				B182DDF5D81617CECF2EE06C /* provider-groq.svg */,
+				F33CE4BB76FFC238A6A35B30 /* provider-openai.svg */,
+			);
+			path = ProviderIcons;
 			sourceTree = "<group>";
 		};
 		2441DC4C5E9959D769349744 /* Integrations */ = {
@@ -312,6 +334,7 @@
 			children = (
 				531364AC24AAD1894E4DBB28 /* Mouthpiece.icns */,
 				71C4CEA23ED3CCFB11B6A7E2 /* Localizable.strings */,
+				22ECCF55F5EEE717CCA030A9 /* ProviderIcons */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -496,6 +519,11 @@
 				EA5CF8F0B523222C5AEBAD54 /* Binaries in Resources */,
 				D398048BF564B5ADF2251AAF /* Localizable.strings in Resources */,
 				930134D742359C55F3140F82 /* Mouthpiece.icns in Resources */,
+				0AC4A0D057AC1D5B184050EB /* provider-alibaba-cloud.svg in Resources */,
+				879E33605FB4F96D271478A0 /* provider-anthropic.svg in Resources */,
+				0EC4D9AE76C4613A63CCA0CF /* provider-gemini.svg in Resources */,
+				625822921D132F271BDDACE8 /* provider-groq.svg in Resources */,
+				5114DA72C8727D9B4F23A72D /* provider-openai.svg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
