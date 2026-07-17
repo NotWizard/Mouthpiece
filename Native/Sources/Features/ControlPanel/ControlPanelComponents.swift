@@ -862,3 +862,49 @@ extension View {
         )
     }
 }
+
+struct DeferredSettingTextField: View {
+    @EnvironmentObject private var environment: AppEnvironment
+    @FocusState private var isFocused: Bool
+
+    private let placeholder: String
+    private let keyPath: WritableKeyPath<AppSettings, String>
+    private let width: CGFloat
+    @State private var draft: String
+
+    init(
+        _ placeholder: String,
+        value: String,
+        keyPath: WritableKeyPath<AppSettings, String>,
+        width: CGFloat
+    ) {
+        self.placeholder = placeholder
+        self.keyPath = keyPath
+        self.width = width
+        _draft = State(initialValue: value)
+    }
+
+    var body: some View {
+        TextField(placeholder, text: $draft)
+            .textFieldStyle(.roundedBorder)
+            .frame(width: width)
+            .focused($isFocused)
+            .onSubmit(commit)
+            .onChange(of: isFocused) { wasFocused, focused in
+                if wasFocused && !focused { commit() }
+            }
+            .onChange(of: environment.settings[keyPath: keyPath]) { _, value in
+                if !isFocused { draft = value }
+            }
+            .onDisappear(perform: commit)
+    }
+
+    private func commit() {
+        let savedValue = environment.settings[keyPath: keyPath]
+        guard draft != savedValue else { return }
+        var settings = environment.settings
+        settings[keyPath: keyPath] = draft
+        environment.saveSettings(settings)
+        draft = environment.settings[keyPath: keyPath]
+    }
+}

@@ -123,12 +123,12 @@ struct ProcessingSettingsView: View {
         }
         if environment.settings.reasoningProvider == "custom" {
             SettingsRow(icon: "link", title: "processing.baseURL") {
-                TextField(
+                DeferredSettingTextField(
                     "http://127.0.0.1:8080/v1",
-                    text: settingBinding(environment, \.reasoningBaseURL)
+                    value: environment.settings.reasoningBaseURL,
+                    keyPath: \.reasoningBaseURL,
+                    width: 280
                 )
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 280)
             }
         }
         if environment.settings.reasoningProvider == "bailian" {

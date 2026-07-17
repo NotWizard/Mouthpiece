@@ -126,12 +126,12 @@ struct CloudTranscriptionRows: View {
         }
         if environment.settings.cloudTranscriptionProvider == "custom" {
             SettingsRow(icon: "link", title: "processing.baseURL", showsDivider: false) {
-                TextField(
+                DeferredSettingTextField(
                     "http://127.0.0.1:8080/v1",
-                    text: settingBinding(environment, \.cloudTranscriptionBaseURL)
+                    value: environment.settings.cloudTranscriptionBaseURL,
+                    keyPath: \.cloudTranscriptionBaseURL,
+                    width: 280
                 )
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 280)
             }
         } else {
             realtimeRow
