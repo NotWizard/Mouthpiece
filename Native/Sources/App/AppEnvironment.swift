@@ -388,10 +388,16 @@ final class AppEnvironment: ObservableObject {
             ]
         )
         do {
-            if settings.launchAtLogin, SMAppService.mainApp.status != .enabled {
+            switch LaunchAtLoginAction.resolve(
+                enabled: settings.launchAtLogin,
+                status: SMAppService.mainApp.status
+            ) {
+            case .register:
                 try SMAppService.mainApp.register()
-            } else if !settings.launchAtLogin, SMAppService.mainApp.status == .enabled {
+            case .unregister:
                 try SMAppService.mainApp.unregister()
+            case .none:
+                break
             }
         } catch {
             startupError = error.localizedDescription
@@ -632,6 +638,18 @@ final class AppEnvironment: ObservableObject {
 private enum DictationActivation {
     case main
     case translation
+}
+
+enum LaunchAtLoginAction: Equatable {
+    case register
+    case unregister
+    case none
+
+    static func resolve(enabled: Bool, status: SMAppService.Status) -> Self {
+        if enabled, status == .notRegistered { return .register }
+        if !enabled, status == .enabled || status == .requiresApproval { return .unregister }
+        return .none
+    }
 }
 
 struct RuntimeSettingsChanges: Equatable {

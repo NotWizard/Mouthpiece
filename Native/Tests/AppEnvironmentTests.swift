@@ -1,4 +1,5 @@
 import AppKit
+import ServiceManagement
 import XCTest
 @testable import Mouthpiece
 
@@ -35,6 +36,29 @@ final class AppEnvironmentTests: XCTestCase {
                 systemIntegrations: true,
                 localModel: true
             )
+        )
+    }
+
+    func testLaunchAtLoginActionsRespectRegisteredApprovalState() {
+        XCTAssertEqual(
+            LaunchAtLoginAction.resolve(enabled: true, status: .notRegistered),
+            .register
+        )
+        XCTAssertEqual(
+            LaunchAtLoginAction.resolve(enabled: true, status: .requiresApproval),
+            .none
+        )
+        XCTAssertEqual(
+            LaunchAtLoginAction.resolve(enabled: false, status: .enabled),
+            .unregister
+        )
+        XCTAssertEqual(
+            LaunchAtLoginAction.resolve(enabled: false, status: .requiresApproval),
+            .unregister
+        )
+        XCTAssertEqual(
+            LaunchAtLoginAction.resolve(enabled: false, status: .notRegistered),
+            .none
         )
     }
 

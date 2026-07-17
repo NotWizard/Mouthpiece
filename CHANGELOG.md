@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Treated launch-at-login approval as an already registered state, avoiding repeated denied registrations and unregistering it correctly when the setting is disabled.
 - Retained pending media-resume state when playback restoration fails or cannot be confirmed, allowing later session cleanup to retry instead of leaving media paused indefinitely.
 - Restored the previous clipboard contents when synthetic paste setup fails or its settling delay is cancelled, instead of leaving the temporary transcript behind.
 - Rejected malformed or unknown hotkey modifiers during settings normalization instead of silently turning them into unsafe shortcuts.
