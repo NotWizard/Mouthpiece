@@ -213,6 +213,10 @@ actor DictationCoordinator {
                     )
                     guard isCurrent(sessionID, phase: .finalizing) else { return }
                 }
+                await provider.cancel()
+                self.provider = nil
+                providerSessionID = nil
+                guard isCurrent(sessionID, phase: .finalizing) else { return }
             }
             guard isCurrent(sessionID, phase: .finalizing) else { return }
             if rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
