@@ -416,7 +416,12 @@ struct OnboardingView: View {
         environment.refreshPermissions()
         localModelReady = environment.selectedLocalModelInstalled
         let account = CloudTranscriptionSupport.credential(for: environment.settings.cloudTranscriptionProvider)
-        credentialConfigured = !(await environment.credential(account)).isEmpty
+        do {
+            credentialConfigured = !(try await environment.credential(account)).isEmpty
+        } catch {
+            credentialConfigured = false
+            environment.report(error)
+        }
 
         step = OnboardingProgress.firstIncomplete(
             welcomeSeen: welcomeSeen,

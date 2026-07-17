@@ -153,8 +153,8 @@ final class AppEnvironment: ObservableObject {
         }
     }
 
-    func credential(_ account: CredentialAccount) async -> String {
-        (try? await keychain.read(account)) ?? ""
+    func credential(_ account: CredentialAccount) async throws -> String {
+        try await keychain.read(account) ?? ""
     }
 
     func saveCredential(_ value: String, account: CredentialAccount) async throws {
@@ -207,6 +207,8 @@ final class AppEnvironment: ObservableObject {
         next.onboardingCompleted = true
         saveSettings(next)
     }
+
+    func report(_ error: Error) { startupError = error.localizedDescription }
 
     func dismissStartupError() { startupError = nil }
     func checkForUpdates() { updates.checkForUpdates() }

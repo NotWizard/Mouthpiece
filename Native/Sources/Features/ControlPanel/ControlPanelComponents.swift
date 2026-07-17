@@ -403,10 +403,16 @@ struct CredentialEditor: View {
         }
         .task(id: account) {
             revealsValue = false
-            value = await environment.credential(account)
-            savedValue = value
-            state = .idle
-            onSaved?(!value.isEmpty)
+            do {
+                let credential = try await environment.credential(account)
+                value = credential
+                savedValue = credential
+                state = .idle
+                onSaved?(!credential.isEmpty)
+            } catch {
+                state = .failed(error.localizedDescription)
+                onSaved?(false)
+            }
         }
         .onChange(of: value) { _, newValue in
             scheduleSave(newValue)
@@ -416,7 +422,13 @@ struct CredentialEditor: View {
             saveTask?.cancel()
             let pendingValue = value
             let pendingAccount = account
-            Task { try? await environment.saveCredential(pendingValue, account: pendingAccount) }
+            Task {
+                do {
+                    try await environment.saveCredential(pendingValue, account: pendingAccount)
+                } catch {
+                    environment.report(error)
+                }
+            }
         }
     }
 
