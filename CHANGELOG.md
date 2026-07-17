@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Applied system integrations, hotkey registration, logging, and local-model refreshes only when their related settings change instead of on every control-panel keystroke.
 - Validated focused Accessibility object types before insertion instead of crashing when an application returns an unexpected Core Foundation value.
 - Combined every Anthropic and Gemini response text block instead of silently returning only the first provider segment.
 - Recursively filled missing nested setting defaults so older terminology profiles no longer cause the entire settings file to be discarded.

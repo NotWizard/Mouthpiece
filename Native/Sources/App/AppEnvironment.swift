@@ -65,13 +65,19 @@ final class AppEnvironment: ObservableObject {
 
     func saveSettings(_ next: AppSettings) {
         do {
-            cancelPendingMainHotkey()
+            let previous = settings
             try settingsRepository.save(next)
             settings = settingsRepository.load()
-            Task { await logger?.setEnabled(settings.debugLoggingEnabled) }
-            updateHotkeyRegistrations()
-            applySystemSettings()
-            refreshLocalModelStatus()
+            let changes = RuntimeSettingsChanges(previous: previous, current: settings)
+            if changes.debugLogging {
+                Task { await logger?.setEnabled(settings.debugLoggingEnabled) }
+            }
+            if changes.hotkeys {
+                cancelPendingMainHotkey()
+                updateHotkeyRegistrations()
+            }
+            if changes.systemIntegrations { applySystemSettings() }
+            if changes.localModel { refreshLocalModelStatus() }
         } catch {
             startupError = error.localizedDescription
         }
@@ -626,6 +632,37 @@ final class AppEnvironment: ObservableObject {
 private enum DictationActivation {
     case main
     case translation
+}
+
+struct RuntimeSettingsChanges: Equatable {
+    let debugLogging: Bool
+    let hotkeys: Bool
+    let systemIntegrations: Bool
+    let localModel: Bool
+
+    init(debugLogging: Bool, hotkeys: Bool, systemIntegrations: Bool, localModel: Bool) {
+        self.debugLogging = debugLogging
+        self.hotkeys = hotkeys
+        self.systemIntegrations = systemIntegrations
+        self.localModel = localModel
+    }
+
+    init(previous: AppSettings, current: AppSettings) {
+        debugLogging = previous.debugLoggingEnabled != current.debugLoggingEnabled
+        hotkeys = previous.dictationKey != current.dictationKey
+            || previous.translationHotkeySuffix != current.translationHotkeySuffix
+            || previous.translationEnabled != current.translationEnabled
+            || previous.escapeCancelsRecording != current.escapeCancelsRecording
+        systemIntegrations = previous.uiLanguage != current.uiLanguage
+            || previous.launchAtLogin != current.launchAtLogin
+            || previous.showInDock != current.showInDock
+            || previous.showInMenuBar != current.showInMenuBar
+        localModel = previous.useLocalTranscription != current.useLocalTranscription
+            || previous.localTranscriptionProvider != current.localTranscriptionProvider
+            || previous.whisperModel != current.whisperModel
+            || previous.parakeetModel != current.parakeetModel
+            || previous.qwenASRModel != current.qwenASRModel
+    }
 }
 
 private extension ModelInstallationState {

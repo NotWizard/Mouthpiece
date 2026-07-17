@@ -8,6 +8,36 @@ final class AppEnvironmentTests: XCTestCase {
         XCTAssertTrue(AppEnvironment(bootstrap: false).isReady)
     }
 
+    func testRuntimeSettingsChangesSkipUnrelatedSystemWork() {
+        let original = AppSettings()
+        var textEdit = original
+        textEdit.reasoningModel = "custom-model"
+        XCTAssertEqual(
+            RuntimeSettingsChanges(previous: original, current: textEdit),
+            RuntimeSettingsChanges(
+                debugLogging: false,
+                hotkeys: false,
+                systemIntegrations: false,
+                localModel: false
+            )
+        )
+
+        var changed = original
+        changed.debugLoggingEnabled.toggle()
+        changed.dictationKey = "RightShift"
+        changed.showInMenuBar.toggle()
+        changed.qwenASRModel = "another-model"
+        XCTAssertEqual(
+            RuntimeSettingsChanges(previous: original, current: changed),
+            RuntimeSettingsChanges(
+                debugLogging: true,
+                hotkeys: true,
+                systemIntegrations: true,
+                localModel: true
+            )
+        )
+    }
+
     func testTextInsertionNeverTargetsAnotherMouthpieceProcess() {
         XCTAssertFalse(TextInsertionService.isExternalApplication(
             processIdentifier: 202,
