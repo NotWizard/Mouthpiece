@@ -185,7 +185,12 @@ actor LocalModelRuntime {
             port: port,
             model: model
         )
-        try await waitForHTTP(server: server, paths: ["/"], timeout: .seconds(60))
+        do {
+            try await waitForHTTP(server: server, paths: ["/"], timeout: .seconds(60))
+        } catch {
+            stop(server.process)
+            throw error
+        }
         whisper = server
         return server
     }
@@ -214,7 +219,12 @@ actor LocalModelRuntime {
             port: port,
             model: model
         )
-        try await waitForPort(server: server, timeout: .seconds(60))
+        do {
+            try await waitForPort(server: server, timeout: .seconds(60))
+        } catch {
+            stop(server.process)
+            throw error
+        }
         parakeet = server
         return server
     }
@@ -250,12 +260,17 @@ actor LocalModelRuntime {
             apiKey: apiKey,
             environment: environment
         )
-        try await waitForHTTP(
-            server: server,
-            paths: ["/health", "/v1/models"],
-            timeout: .seconds(120),
-            bearerToken: apiKey
-        )
+        do {
+            try await waitForHTTP(
+                server: server,
+                paths: ["/health", "/v1/models"],
+                timeout: .seconds(120),
+                bearerToken: apiKey
+            )
+        } catch {
+            stop(server.process)
+            throw error
+        }
         qwen = server
         return server
 #else
