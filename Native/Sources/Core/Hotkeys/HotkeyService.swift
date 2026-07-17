@@ -173,10 +173,22 @@ final class HotkeyService {
         let flags = event.flags
         let shouldSwallow = service.swallowMatchedEvents
             && service.matches(type: type, keyCode: keyCode, flags: flags)
-        Task { @MainActor in
-            service.handle(type: type, keyCode: keyCode, flags: flags)
+        if HotkeyService.shouldDispatch(type: type, keyCode: keyCode, descriptor: service.descriptor) {
+            Task { @MainActor in
+                service.handle(type: type, keyCode: keyCode, flags: flags)
+            }
         }
         return shouldSwallow ? nil : Unmanaged.passUnretained(event)
+    }
+
+    nonisolated static func shouldDispatch(
+        type: CGEventType,
+        keyCode: CGKeyCode,
+        descriptor: HotkeyDescriptor
+    ) -> Bool {
+        type == .tapDisabledByTimeout
+            || type == .tapDisabledByUserInput
+            || keyCode == descriptor.keyCode
     }
 
     private func handle(type: CGEventType, keyCode: CGKeyCode, flags: CGEventFlags) {

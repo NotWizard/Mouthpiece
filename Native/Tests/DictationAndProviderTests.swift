@@ -141,6 +141,26 @@ final class DictationAndProviderTests: XCTestCase {
         )
     }
 
+    func testHotkeyEventDispatchSkipsUnrelatedKeyEvents() {
+        let descriptor = HotkeyDescriptor.parse("Command+K")
+
+        XCTAssertTrue(HotkeyService.shouldDispatch(
+            type: .keyDown,
+            keyCode: descriptor.keyCode,
+            descriptor: descriptor
+        ))
+        XCTAssertFalse(HotkeyService.shouldDispatch(
+            type: .keyDown,
+            keyCode: 0,
+            descriptor: descriptor
+        ))
+        XCTAssertTrue(HotkeyService.shouldDispatch(
+            type: .tapDisabledByTimeout,
+            keyCode: 0,
+            descriptor: descriptor
+        ))
+    }
+
     func testTranscriptJoinerKeepsChineseCompactAndSoftensTurnBoundary() {
         XCTAssertEqual(TranscriptJoiner.join("你好", "世界", language: "zh-CN"), "你好世界")
         XCTAssertEqual(TranscriptJoiner.softenBoundary("第一句。"), "第一句，")
