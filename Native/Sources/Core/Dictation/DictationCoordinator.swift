@@ -202,14 +202,17 @@ actor DictationCoordinator {
                     guard isCurrent(sessionID, phase: .finalizing) else { return }
                     if !realtimeText.isEmpty { rawText = realtimeText }
                 } catch {
+                    guard isCurrent(sessionID, phase: .finalizing) else { return }
                     await logger.write(
                         .warning,
                         "Realtime finalize failed; using batch fallback",
                         metadata: ["error": error.localizedDescription],
                         sessionID: sessionID
                     )
+                    guard isCurrent(sessionID, phase: .finalizing) else { return }
                 }
             }
+            guard isCurrent(sessionID, phase: .finalizing) else { return }
             if rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 rawText = try await transcribeRecordedAudio(
                     pcm16: recordedPCM,
@@ -231,6 +234,7 @@ actor DictationCoordinator {
                 )
                 guard isCurrent(sessionID, phase: .finalizing) else { return }
             } catch {
+                guard isCurrent(sessionID, phase: .finalizing) else { return }
                 finalText = normalizedRawText
                 await logger.write(
                     .warning,
@@ -238,17 +242,25 @@ actor DictationCoordinator {
                     metadata: ["error": error.localizedDescription],
                     sessionID: sessionID
                 )
+                guard isCurrent(sessionID, phase: .finalizing) else { return }
             }
 
+            let completionPhase: DictationPhase
             if activeSettings.automaticallyPasteTranscription, let target {
                 try machine.transition(to: .inserting, sessionID: sessionID)
                 await publish()
                 try await insertion.insert(finalText, into: target, settings: activeSettings)
+                completionPhase = .inserting
+            } else {
+                completionPhase = .finalizing
             }
+            guard isCurrent(sessionID, phase: completionPhase) else { return }
             if activeSettings.keepTranscriptionInClipboard {
                 await insertion.copyToClipboard(finalText)
+                guard isCurrent(sessionID, phase: completionPhase) else { return }
             }
             _ = try await history.save(text: finalText, rawText: normalizedRawText)
+            guard isCurrent(sessionID, phase: completionPhase) else { return }
             try machine.transition(to: .completed, sessionID: sessionID)
             await logger.write(.info, "Dictation session completed", sessionID: sessionID)
             await publish()
@@ -461,12 +473,18 @@ actor DictationCoordinator {
     }
 
     private func fail(_ error: Error, sessionID: UUID) async {
+        guard machine.snapshot.sessionID == sessionID, machine.snapshot.phase.isActive else { return }
         maximumDurationTask?.cancel()
         maximumDurationTask = nil
         await audio.stop()
         await mediaPlayback.resumeIfPaused()
         if providerSessionID == sessionID { await provider?.cancel() }
-        try? machine.fail(error.localizedDescription, sessionID: sessionID)
+        guard machine.snapshot.sessionID == sessionID, machine.snapshot.phase.isActive else { return }
+        do {
+            try machine.fail(error.localizedDescription, sessionID: sessionID)
+        } catch {
+            return
+        }
         await logger.write(
             .error,
             "Dictation session failed",

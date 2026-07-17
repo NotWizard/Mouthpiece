@@ -111,7 +111,7 @@ struct DictationStateMachine: Sendable {
         .recording: [.stopping, .cancelled, .failed],
         .stopping: [.finalizing, .cancelled, .failed],
         .finalizing: [.inserting, .completed, .cancelled, .failed],
-        .inserting: [.completed, .failed],
+        .inserting: [.completed, .cancelled, .failed],
         .completed: [.idle, .preparing],
         .cancelled: [.idle, .preparing],
         .failed: [.idle, .preparing],

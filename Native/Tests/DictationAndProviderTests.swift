@@ -64,6 +64,19 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertTrue(machine.snapshot.isTranslation)
     }
 
+    func testStateMachineAllowsCancellationWhileInserting() throws {
+        var machine = DictationStateMachine()
+        let sessionID = UUID()
+        try machine.begin(sessionID: sessionID)
+        try machine.transition(to: .stopping, sessionID: sessionID)
+        try machine.transition(to: .finalizing, sessionID: sessionID)
+        try machine.transition(to: .inserting, sessionID: sessionID)
+
+        try machine.transition(to: .cancelled, sessionID: sessionID)
+
+        XCTAssertEqual(machine.snapshot.phase, .cancelled)
+    }
+
     func testHotkeyParserSupportsTranslationChord() {
         XCTAssertEqual(
             HotkeyDescriptor.parse("RightShift"),
