@@ -78,28 +78,47 @@ final class AppEnvironment: ObservableObject {
 
     func refreshHistory() {
         Task {
-            transcriptions = (try? await history?.recent(limit: 200)) ?? []
+            do {
+                try await reloadHistory()
+            } catch {
+                startupError = error.localizedDescription
+            }
         }
     }
 
     func clearHistory() {
         Task {
-            try? await history?.clear()
-            refreshHistory()
+            do {
+                guard let history else { return }
+                try await history.clear()
+                try await reloadHistory()
+            } catch {
+                startupError = error.localizedDescription
+            }
         }
     }
 
     func deleteTranscription(_ id: Int64) {
         Task {
-            try? await history?.delete(id: id)
-            refreshHistory()
+            do {
+                guard let history else { return }
+                try await history.delete(id: id)
+                try await reloadHistory()
+            } catch {
+                startupError = error.localizedDescription
+            }
         }
     }
 
     func restoreTranscription(_ record: TranscriptionRecord) {
         Task {
-            try? await history?.restore(record)
-            refreshHistory()
+            do {
+                guard let history else { return }
+                try await history.restore(record)
+                try await reloadHistory()
+            } catch {
+                startupError = error.localizedDescription
+            }
         }
     }
 
@@ -321,6 +340,11 @@ final class AppEnvironment: ObservableObject {
             startupError = error.localizedDescription
             isReady = true
         }
+    }
+
+    private func reloadHistory() async throws {
+        guard let history else { return }
+        transcriptions = try await history.recent(limit: 200)
     }
 
     private var selectedLocalModelID: String {
