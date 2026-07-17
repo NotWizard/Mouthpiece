@@ -193,6 +193,20 @@ final class DictationAndProviderTests: XCTestCase {
         )
     }
 
+    func testSonioxRealtimeConfigurationUsesSelectedModel() {
+        let payload = SonioxRealtimeProvider.configurationPayload(
+            for: RealtimeTranscriptionConfiguration(
+                apiKey: "test-key",
+                model: "stt-rt-v5-preview",
+                language: "en"
+            )
+        )
+
+        XCTAssertEqual(payload["model"] as? String, "stt-rt-v5-preview")
+        XCTAssertEqual(payload["language_hints"] as? [String], ["en"])
+        XCTAssertEqual(payload["enable_language_identification"] as? Bool, true)
+    }
+
     func testProcessCommandTerminatesPromptlyWhenCancelled() async {
         let clock = ContinuousClock()
         let task = Task {

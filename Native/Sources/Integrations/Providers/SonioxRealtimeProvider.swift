@@ -32,22 +32,29 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
         let socket = session.webSocketTask(with: URL(string: "wss://stt-rt.soniox.com/transcribe-websocket")!)
         self.socket = socket
         socket.resume()
-        var config: [String: Any] = [
+        let config = Self.configurationPayload(for: configuration)
+        try await sendJSON(config, socket: socket)
+        configured = true
+        try await flushPendingAudio(socket)
+        receiveTask = Task { [weak self] in await self?.receiveLoop(socket) }
+    }
+
+    static func configurationPayload(
+        for configuration: RealtimeTranscriptionConfiguration
+    ) -> [String: Any] {
+        var payload: [String: Any] = [
             "api_key": configuration.apiKey,
-            "model": "stt-rt-v4",
+            "model": configuration.model,
             "audio_format": "pcm_s16le",
             "sample_rate": configuration.sampleRate,
             "num_channels": 1,
             "enable_endpoint_detection": true,
         ]
         if let language = configuration.language, !language.isEmpty {
-            config["language_hints"] = [language]
-            config["enable_language_identification"] = true
+            payload["language_hints"] = [language]
+            payload["enable_language_identification"] = true
         }
-        try await sendJSON(config, socket: socket)
-        configured = true
-        try await flushPendingAudio(socket)
-        receiveTask = Task { [weak self] in await self?.receiveLoop(socket) }
+        return payload
     }
 
     func send(pcm16: Data) async throws {
