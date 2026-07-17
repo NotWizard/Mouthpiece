@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Prevented custom provider API keys from being sent to remote plaintext HTTP endpoints while retaining HTTP support for loopback development services.
 - Stopped cancelled or superseded dictation sessions from continuing post-processing side effects, including clipboard updates, history writes, and stale failure publication.
 - Propagated SQLite row-reading failures instead of returning partial history, dictionary, or migration metadata as successful query results.
 - Closed debug log file handles on every write exit path, including seek and write failures.

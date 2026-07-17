@@ -136,6 +136,40 @@ final class PersistenceTests: XCTestCase {
         XCTAssertFalse(loaded.keepTranscriptionInClipboard)
     }
 
+    @MainActor
+    func testSettingsRejectRemotePlaintextProviderURLs() throws {
+        let suite = "MouthpieceTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let repository = SettingsRepository(defaults: defaults)
+        var settings = AppSettings()
+        settings.cloudTranscriptionBaseURL = "http://api.example.com/v1"
+        settings.reasoningBaseURL = "http://api.example.com/v1"
+
+        try repository.save(settings)
+
+        let loaded = repository.load()
+        XCTAssertEqual(loaded.cloudTranscriptionBaseURL, "https://api.openai.com/v1")
+        XCTAssertEqual(loaded.reasoningBaseURL, "https://api.openai.com/v1")
+    }
+
+    @MainActor
+    func testSettingsAllowPlaintextLoopbackProviderURLs() throws {
+        let suite = "MouthpieceTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let repository = SettingsRepository(defaults: defaults)
+        var settings = AppSettings()
+        settings.cloudTranscriptionBaseURL = "http://127.0.0.1:8080/v1/"
+        settings.reasoningBaseURL = "http://localhost:11434/v1/"
+
+        try repository.save(settings)
+
+        let loaded = repository.load()
+        XCTAssertEqual(loaded.cloudTranscriptionBaseURL, "http://127.0.0.1:8080/v1")
+        XCTAssertEqual(loaded.reasoningBaseURL, "http://localhost:11434/v1")
+    }
+
     func testHistoryRepositoryMigratesLegacySchemaAndPreservesRawText() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("MouthpieceTests-\(UUID().uuidString)", isDirectory: true)

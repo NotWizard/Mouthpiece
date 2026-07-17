@@ -136,10 +136,19 @@ struct AppSettings: Codable, Equatable, Sendable {
 
     private static func normalizedURL(_ value: String, fallback: String) -> String {
         let clean = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: clean), url.scheme == "https" || url.scheme == "http" else {
+        guard let components = URLComponents(string: clean),
+              let scheme = components.scheme?.lowercased(),
+              let host = components.host?.lowercased(),
+              components.query == nil,
+              components.fragment == nil,
+              scheme == "https" || (scheme == "http" && Self.isLoopbackHost(host)) else {
             return fallback
         }
         return clean.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    }
+
+    private static func isLoopbackHost(_ host: String) -> Bool {
+        host == "localhost" || host == "127.0.0.1" || host == "::1"
     }
 }
 
