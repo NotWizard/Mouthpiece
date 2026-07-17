@@ -38,6 +38,7 @@ final class AudioCaptureService {
 
     private let engine = AVAudioEngine()
     private var converterBox: AudioConverterBox?
+    private var tapInstalled = false
     private(set) var isRunning = false
 
     func requestPermission() async -> Bool {
@@ -77,8 +78,15 @@ final class AudioCaptureService {
             format: inputFormat,
             block: Self.makeTapHandler(for: box)
         )
+        tapInstalled = true
         engine.prepare()
-        try engine.start()
+        do {
+            try engine.start()
+        } catch {
+            resetEngine()
+            converterBox = nil
+            throw error
+        }
         isRunning = true
     }
 
@@ -88,12 +96,10 @@ final class AudioCaptureService {
     }
 
     func stop() async {
-        guard isRunning else { return }
-        engine.inputNode.removeTap(onBus: 0)
-        engine.stop()
+        guard isRunning || tapInstalled || converterBox != nil else { return }
+        resetEngine()
         await converterBox?.finish()
         converterBox = nil
-        isRunning = false
     }
 
     func availableInputDevices() -> [AudioInputDevice] {
@@ -115,6 +121,15 @@ final class AudioCaptureService {
             UInt32(MemoryLayout<AudioDeviceID>.size)
         )
         guard status == noErr else { throw AudioCaptureError.unavailableInput }
+    }
+
+    private func resetEngine() {
+        if tapInstalled {
+            engine.inputNode.removeTap(onBus: 0)
+            tapInstalled = false
+        }
+        engine.stop()
+        isRunning = false
     }
 
     private static func inputDevices() -> [AudioInputDevice] {
