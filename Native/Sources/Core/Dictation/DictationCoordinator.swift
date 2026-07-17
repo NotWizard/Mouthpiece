@@ -155,6 +155,8 @@ actor DictationCoordinator {
                         return
                     }
                 } catch {
+                    await realtime.provider.cancel()
+                    guard isCurrent(sessionID, phase: .preparing) else { return }
                     await logger.write(
                         .warning,
                         "Realtime connection failed; retaining audio for batch fallback",
