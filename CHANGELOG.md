@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Prevented the realtime microphone regression test from crashing when AVFoundation delivers more than one valid audio frame.
 - Corrected capsule target-app fallback, switched its brand identity to the monochrome Mouthpiece mark, expanded and smoothed the live waveform, and made Escape cancellation independent from dictation hotkey restarts.
 - Anchored the Accessibility authorization guide beside the macOS Privacy & Security window and exposed the Mouthpiece application item through a Finder-compatible native file drag session.
 - Reserved a dedicated trailing accessory area in API key fields so masked credentials no longer overlap the reveal button.

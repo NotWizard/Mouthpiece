@@ -31,6 +31,7 @@ final class AudioTests: XCTestCase {
             throw XCTSkip("Microphone permission is required for the realtime tap regression test")
         }
         let frameReceived = expectation(description: "Audio frame received")
+        frameReceived.assertForOverFulfill = false
         let capture = AudioCaptureService()
 
         try capture.start(
