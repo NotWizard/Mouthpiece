@@ -1,3 +1,4 @@
+import ApplicationServices
 import XCTest
 @testable import Mouthpiece
 
@@ -219,6 +220,14 @@ final class DictationAndProviderTests: XCTestCase {
             applicationName: "Vault"
         )
         XCTAssertTrue(TextInsertionService.isSensitive(target))
+    }
+
+    func testAccessibilityElementRejectsUnexpectedCoreFoundationValues() {
+        let validElement = AXUIElementCreateApplication(ProcessInfo.processInfo.processIdentifier)
+        let invalidValue = "not an accessibility element" as CFString
+
+        XCTAssertNotNil(TextInsertionService.accessibilityElement(from: validElement))
+        XCTAssertNil(TextInsertionService.accessibilityElement(from: invalidValue))
     }
 
     func testSonioxDeletesUploadedFileWhenTranscriptionCreationFails() async {

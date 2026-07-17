@@ -88,7 +88,7 @@ final class TextInsertionService {
             kAXFocusedUIElementAttribute as CFString,
             &focusedValue
         ) == .success, let focusedValue {
-            focusedElement = (focusedValue as! AXUIElement)
+            focusedElement = Self.accessibilityElement(from: focusedValue)
         } else {
             focusedElement = nil
         }
@@ -170,7 +170,12 @@ final class TextInsertionService {
             kAXFocusedUIElementAttribute as CFString,
             &focusedValue
         )
-        return (focusedValue.map { $0 as! AXUIElement }, error)
+        return (Self.accessibilityElement(from: focusedValue), error)
+    }
+
+    nonisolated static func accessibilityElement(from value: CFTypeRef?) -> AXUIElement? {
+        guard let value, CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+        return unsafeDowncast(value, to: AXUIElement.self)
     }
 
     private func paste(_ text: String, into target: TextInsertionTarget) async throws {

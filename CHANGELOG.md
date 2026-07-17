@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Validated focused Accessibility object types before insertion instead of crashing when an application returns an unexpected Core Foundation value.
 - Combined every Anthropic and Gemini response text block instead of silently returning only the first provider segment.
 - Recursively filled missing nested setting defaults so older terminology profiles no longer cause the entire settings file to be discarded.
 - Normalized the in-memory settings restored after a failed legacy migration so rollback cannot temporarily bypass current runtime invariants.
