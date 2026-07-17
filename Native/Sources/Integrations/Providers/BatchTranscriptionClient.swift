@@ -137,23 +137,25 @@ struct BatchTranscriptionClient: Sendable {
             throw BailianRealtimeError.protocolError("Soniox upload did not return a file ID")
         }
 
-        var body: [String: Any] = [
-            "file_id": fileID,
-            "model": configuration.model.hasPrefix("stt-async-") ? configuration.model : "stt-async-v5",
-        ]
-        if let language = configuration.language { body["language_hints"] = [baseLanguage(language)] }
-        if let prompt = configuration.prompt, !prompt.isEmpty { body["context"] = ["terms": prompt.split(separator: ",").map(String.init)] }
-        var create = URLRequest(url: URL(string: "https://api.soniox.com/v1/transcriptions")!)
-        create.httpMethod = "POST"
-        create.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
-        create.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        create.httpBody = try JSONSerialization.data(withJSONObject: body)
-        let created = try await json(create)
-        guard let id = created["id"] as? String else {
-            throw BailianRealtimeError.protocolError("Soniox did not return a transcription ID")
-        }
-
+        var transcriptionID: String?
         do {
+            var body: [String: Any] = [
+                "file_id": fileID,
+                "model": configuration.model.hasPrefix("stt-async-") ? configuration.model : "stt-async-v5",
+            ]
+            if let language = configuration.language { body["language_hints"] = [baseLanguage(language)] }
+            if let prompt = configuration.prompt, !prompt.isEmpty { body["context"] = ["terms": prompt.split(separator: ",").map(String.init)] }
+            var create = URLRequest(url: URL(string: "https://api.soniox.com/v1/transcriptions")!)
+            create.httpMethod = "POST"
+            create.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
+            create.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            create.httpBody = try JSONSerialization.data(withJSONObject: body)
+            let created = try await json(create)
+            guard let id = created["id"] as? String else {
+                throw BailianRealtimeError.protocolError("Soniox did not return a transcription ID")
+            }
+            transcriptionID = id
+
             let result = try await poll(timeout: .seconds(180)) {
                 var request = URLRequest(url: URL(string: "https://api.soniox.com/v1/transcriptions/\(id)")!)
                 request.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
@@ -171,12 +173,18 @@ struct BatchTranscriptionClient: Sendable {
                 default: return .pending
                 }
             }
-            await deleteSonioxResource(path: "transcriptions/\(id)", apiKey: configuration.apiKey)
-            await deleteSonioxResource(path: "files/\(fileID)", apiKey: configuration.apiKey)
+            await deleteSonioxResources(
+                fileID: fileID,
+                transcriptionID: transcriptionID,
+                apiKey: configuration.apiKey
+            )
             return result
         } catch {
-            await deleteSonioxResource(path: "transcriptions/\(id)", apiKey: configuration.apiKey)
-            await deleteSonioxResource(path: "files/\(fileID)", apiKey: configuration.apiKey)
+            await deleteSonioxResources(
+                fileID: fileID,
+                transcriptionID: transcriptionID,
+                apiKey: configuration.apiKey
+            )
             throw error
         }
     }
@@ -218,6 +226,13 @@ struct BatchTranscriptionClient: Sendable {
         request.httpMethod = "DELETE"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         _ = try? await session.data(for: request)
+    }
+
+    private func deleteSonioxResources(fileID: String, transcriptionID: String?, apiKey: String) async {
+        if let transcriptionID {
+            await deleteSonioxResource(path: "transcriptions/\(transcriptionID)", apiKey: apiKey)
+        }
+        await deleteSonioxResource(path: "files/\(fileID)", apiKey: apiKey)
     }
 
     private func baseLanguage(_ language: String) -> String {
