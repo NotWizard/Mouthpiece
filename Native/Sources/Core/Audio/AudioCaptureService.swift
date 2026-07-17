@@ -29,6 +29,13 @@ enum AudioCaptureError: LocalizedError {
 final class AudioCaptureService {
     nonisolated static let outputSampleRate = 16_000
 
+    nonisolated static func normalizedLevel(rms: Double, previous: Float) -> Float {
+        let decibels = 20 * log10(max(rms, 0.000_001))
+        let target = Float(min(max((decibels + 55) / 43, 0), 1))
+        let alpha: Float = target > previous ? 0.55 : 0.18
+        return previous + (target - previous) * alpha
+    }
+
     private let engine = AVAudioEngine()
     private var converterBox: AudioConverterBox?
     private(set) var isRunning = false
@@ -214,6 +221,7 @@ private final class AudioConverterBox: @unchecked Sendable {
     private var drainScheduled = false
     private var accepting = true
     private var pendingPCM = Data()
+    private var smoothedLevel: Float = 0
 
     init(
         inputFormat: AVAudioFormat,
@@ -333,7 +341,9 @@ private final class AudioConverterBox: @unchecked Sendable {
                 count += 1
             }
         }
-        onLevel(Float(min(1, count == 0 ? 0 : sqrt(sum / Double(count)) * 4)))
+        let rms = count == 0 ? 0 : sqrt(sum / Double(count))
+        smoothedLevel = AudioCaptureService.normalizedLevel(rms: rms, previous: smoothedLevel)
+        onLevel(smoothedLevel)
     }
 
     private static func copy(_ input: AVAudioPCMBuffer, into copy: AVAudioPCMBuffer) -> Bool {

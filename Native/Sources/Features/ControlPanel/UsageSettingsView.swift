@@ -43,26 +43,38 @@ struct UsageSettingsView: View {
                 SettingsRow(icon: "power", title: "general.launchAtLogin") {
                     Toggle("", isOn: settingBinding(environment, \.launchAtLogin))
                         .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
                 }
                 SettingsRow(icon: "dock.rectangle", title: "general.showInDock") {
                     Toggle("", isOn: dockVisibility)
                         .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
                 }
                 SettingsRow(icon: "menubar.rectangle", title: "general.showInMenuBar") {
                     Toggle("", isOn: menuBarVisibility)
                         .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
                 }
                 SettingsRow(icon: "escape", title: "general.escapeCancels") {
                     Toggle("", isOn: settingBinding(environment, \.escapeCancelsRecording))
                         .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
                 }
                 SettingsRow(icon: "pause.circle", title: "general.pauseOtherMedia") {
                     Toggle("", isOn: settingBinding(environment, \.pauseOtherMediaDuringDictation))
                         .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
                 }
                 SettingsRow(icon: "speaker.wave.2", title: "general.audioCues", showsDivider: !environment.settings.audioCuesEnabled) {
                     Toggle("", isOn: settingBinding(environment, \.audioCuesEnabled))
                         .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
                 }
                 if environment.settings.audioCuesEnabled {
                     SettingsRow(icon: "music.note", title: "general.soundPreset", showsDivider: false) {
@@ -86,6 +98,30 @@ struct UsageSettingsView: View {
                 }
             }
 
+            SettingsSection(title: "general.transcriptionOutput") {
+                SettingsRow(
+                    icon: "text.cursor",
+                    title: "general.autoPasteTranscription",
+                    detail: "general.autoPasteTranscription.detail"
+                ) {
+                    Toggle("", isOn: settingBinding(environment, \.automaticallyPasteTranscription))
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                }
+                SettingsRow(
+                    icon: "clipboard",
+                    title: "general.keepInClipboard",
+                    detail: "general.keepInClipboard.detail",
+                    showsDivider: false
+                ) {
+                    Toggle("", isOn: settingBinding(environment, \.keepTranscriptionInClipboard))
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                }
+            }
+
             SettingsSection(title: "general.microphone") {
                 SettingsRow(icon: "mic", title: "general.inputDevice", showsDivider: false) {
                     Picker("", selection: settingBinding(environment, \.selectedMicrophoneUID)) {
@@ -98,8 +134,6 @@ struct UsageSettingsView: View {
                     .frame(width: 250, alignment: .trailing)
                 }
             }
-
-            PermissionRows()
         }
     }
 

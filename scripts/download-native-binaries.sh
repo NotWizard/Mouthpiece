@@ -3,8 +3,8 @@ set -euo pipefail
 
 ARCH="${1:-$(uname -m)}"
 case "$ARCH" in
-  arm64) XCODE_ARCH=arm64; LLAMA_ARCH=arm64 ;;
-  x64|x86_64) XCODE_ARCH=x86_64; LLAMA_ARCH=x64 ;;
+  arm64) XCODE_ARCH=arm64 ;;
+  x64|x86_64) XCODE_ARCH=x86_64 ;;
   *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
 esac
 
@@ -15,7 +15,6 @@ trap 'rm -rf "$WORK"' EXIT
 
 WHISPER_VERSION=v1.8.3
 SHERPA_VERSION=1.12.23
-LLAMA_VERSION=b9986
 
 copy_libraries() {
   local source=$1
@@ -50,7 +49,7 @@ verify_runtime_binary() {
   }
 }
 
-mkdir -p "$OUTPUT/whisper" "$OUTPUT/parakeet" "$OUTPUT/llama"
+mkdir -p "$OUTPUT/whisper" "$OUTPUT/parakeet"
 find "$OUTPUT" -mindepth 2 -type f ! -name .gitkeep -delete
 
 echo "Building whisper.cpp $WHISPER_VERSION for $XCODE_ARCH"
@@ -82,21 +81,9 @@ SHERPA_SERVER=$(find "$WORK/sherpa" -type f -name sherpa-onnx-offline-websocket-
 cp "$SHERPA_SERVER" "$OUTPUT/parakeet/sherpa-onnx-ws-darwin-${ARCH/x86_64/x64}"
 copy_libraries "$WORK/sherpa" "$OUTPUT/parakeet"
 
-echo "Downloading llama.cpp $LLAMA_VERSION"
-LLAMA_ARCHIVE="llama-$LLAMA_VERSION-bin-macos-$LLAMA_ARCH.tar.gz"
-curl -fsSL "https://github.com/ggml-org/llama.cpp/releases/download/$LLAMA_VERSION/$LLAMA_ARCHIVE" \
-  -o "$WORK/llama.tar.gz"
-mkdir "$WORK/llama"
-tar -xzf "$WORK/llama.tar.gz" -C "$WORK/llama"
-LLAMA_SERVER=$(find "$WORK/llama" -type f -name llama-server -print -quit)
-cp "$LLAMA_SERVER" "$OUTPUT/llama/llama-server-darwin-${ARCH/x86_64/x64}"
-copy_libraries "$WORK/llama" "$OUTPUT/llama"
-
 find "$OUTPUT" -type f ! -name .gitkeep -exec chmod 755 {} \;
 verify_runtime_binary "$OUTPUT/whisper/whisper-server-darwin-${ARCH/x86_64/x64}"
 verify_runtime_binary "$OUTPUT/parakeet/sherpa-onnx-ws-darwin-${ARCH/x86_64/x64}"
-verify_runtime_binary "$OUTPUT/llama/llama-server-darwin-${ARCH/x86_64/x64}"
 verify_runtime_directory "$OUTPUT/whisper"
 verify_runtime_directory "$OUTPUT/parakeet"
-verify_runtime_directory "$OUTPUT/llama"
 echo "Native runtimes prepared in $OUTPUT"

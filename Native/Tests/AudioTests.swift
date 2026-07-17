@@ -52,6 +52,16 @@ final class AudioTests: XCTestCase {
         XCTAssertEqual(wav.suffix(pcm.count), pcm)
     }
 
+    func testAudioLevelMappingRaisesSpeechAndReleasesSmoothly() {
+        let speech = AudioCaptureService.normalizedLevel(rms: 0.03, previous: 0)
+        let quieter = AudioCaptureService.normalizedLevel(rms: 0, previous: speech)
+
+        XCTAssertGreaterThan(speech, 0.2)
+        XCTAssertLessThan(speech, 1)
+        XCTAssertGreaterThan(quieter, 0)
+        XCTAssertLessThan(quieter, speech)
+    }
+
     func testSpeechActivityGateRejectsSilenceAndShortNoise() {
         var gate = SpeechActivityGate()
         let silence = pcmFrame(amplitude: 0, milliseconds: 20)

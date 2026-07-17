@@ -272,7 +272,6 @@ failed
 首个原生版本继续启动已有外部二进制：
 
 - whisper.cpp / whisper-server
-- llama.cpp / llama-server
 - sherpa-onnx / Parakeet server
 - Qwen ASR MLX runtime
 
@@ -297,7 +296,6 @@ failed
 - 将现有 Prompt、placeholder、dictionary、terminology profile 和安全边界作为资源和纯 Swift 逻辑迁移。
 - 保持清理与翻译共用一次 reasoning 请求的行为。
 - 保持 Provider 请求结构和 fallback 行为。
-- 本地推理继续通过 llama-server。
 - 所有网络错误必须经过统一错误分类，不把用户取消记录为 Provider 故障。
 
 ### 6.10 日志
@@ -621,7 +619,7 @@ checksums.txt
 工作：
 
 - 所有 batch/realtime Provider。
-- Whisper、Parakeet、Qwen 和 local reasoning。
+- Whisper、Parakeet 和 Qwen 本地 ASR。
 - 模型管理、下载、校验和复用。
 
 退出条件：Provider parity checklist 全部通过，ASR replay 不退化。

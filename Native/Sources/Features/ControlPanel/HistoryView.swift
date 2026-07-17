@@ -7,7 +7,6 @@ struct HistoryView: View {
 
     @State private var query = ""
     @State private var dateFilter = HistoryDateFilter.all
-    @State private var selection: Int64?
     @State private var showingClearConfirmation = false
 
     var body: some View {
@@ -37,37 +36,20 @@ struct HistoryView: View {
                 HistoryEmptyView(hasSearch: !query.isEmpty || dateFilter != .all)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                HSplitView {
-                    List(filteredRecords, selection: $selection) { item in
-                        HistoryListRow(item: item)
-                            .tag(item.id)
-                            .contextMenu {
-                                Button("common.copy") { copy(item.text) }
-                                Button("common.delete", role: .destructive) { delete(item) }
-                            }
-                    }
-                    .listStyle(.sidebar)
-                    .scrollContentBackground(.hidden)
-                    .frame(minWidth: 260, idealWidth: 300, maxWidth: 340)
-                    .background(Color(nsColor: .windowBackgroundColor))
-
-                    Group {
-                        if let selectedRecord {
-                            HistoryDetailView(
-                                item: selectedRecord,
-                                onCopy: { copy(selectedRecord.text) },
-                                onDelete: { delete(selectedRecord) }
-                            )
-                        } else {
-                            ContentUnavailableView(
-                                "history.select.title",
-                                systemImage: "clock",
-                                description: Text("history.select.body")
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(filteredRecords) { item in
+                            HistoryCard(
+                                item: item,
+                                onCopyProcessed: { copy(item.text) },
+                                onCopyOriginal: { rawText in copy(rawText) },
+                                onDelete: { delete(item) }
                             )
                         }
                     }
-                    .frame(minWidth: 380, maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(nsColor: .controlBackgroundColor))
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 20)
+                    .frame(maxWidth: .infinity)
                 }
             }
         }
@@ -80,7 +62,6 @@ struct HistoryView: View {
         ) {
             Button("history.clear.confirm", role: .destructive) {
                 environment.clearHistory()
-                selection = nil
             }
             Button("common.cancel", role: .cancel) {}
         } message: {
@@ -88,10 +69,6 @@ struct HistoryView: View {
         }
         .onAppear {
             environment.refreshHistory()
-            selectFirstVisibleRecord()
-        }
-        .onChange(of: filteredRecords.map(\.id)) { _, _ in
-            selectFirstVisibleRecord()
         }
     }
 
@@ -99,16 +76,6 @@ struct HistoryView: View {
         environment.transcriptions.filter {
             HistorySearch.matches($0, query: query, dateFilter: dateFilter)
         }
-    }
-
-    private var selectedRecord: TranscriptionRecord? {
-        guard let selection else { return nil }
-        return filteredRecords.first { $0.id == selection }
-    }
-
-    private func selectFirstVisibleRecord() {
-        if let selection, filteredRecords.contains(where: { $0.id == selection }) { return }
-        selection = filteredRecords.first?.id
     }
 
     private func copy(_ text: String) {
@@ -130,67 +97,105 @@ struct HistoryView: View {
     }
 }
 
-private struct HistoryListRow: View {
-    let item: TranscriptionRecord
+private struct HistoryCard: View {
+    @Environment(\.colorScheme) private var colorScheme
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(item.text)
-                .font(.body)
-                .lineLimit(2)
-            Text(item.timestamp.formatted(date: .abbreviated, time: .shortened))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.vertical, 5)
-    }
-}
-
-private struct HistoryDetailView: View {
     let item: TranscriptionRecord
-    let onCopy: () -> Void
+    let onCopyProcessed: () -> Void
+    let onCopyOriginal: (String) -> Void
     let onDelete: () -> Void
 
+    private var originalText: String? {
+        guard let rawText = item.rawText?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !rawText.isEmpty else { return nil }
+        return rawText
+    }
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                HStack {
-                    Text(item.timestamp.formatted(date: .long, time: .shortened))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Button(action: onCopy) {
-                        Image(systemName: "doc.on.doc")
-                    }
-                    .help("common.copy")
-                    .accessibilityLabel("common.copy")
-                    Button(role: .destructive, action: onDelete) {
-                        Image(systemName: "trash")
-                    }
-                    .help("common.delete")
-                    .accessibilityLabel("common.delete")
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "clock")
+                Text(item.timestamp.formatted(date: .long, time: .shortened))
+                Spacer()
+                Button(role: .destructive, action: onDelete) {
+                    Image(systemName: "trash")
                 }
-
-                Text(item.text)
-                    .font(.body)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                if let rawText = item.rawText, !rawText.isEmpty, rawText != item.text {
-                    Divider()
-                    DisclosureGroup("history.rawTranscript") {
-                        Text(rawText)
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, 8)
-                    }
-                }
+                .buttonStyle(.plain)
+                .help("common.delete")
+                .accessibilityLabel("common.delete")
             }
-            .padding(24)
-            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Divider()
+
+            HStack(alignment: .top, spacing: 16) {
+                textColumn(
+                    title: "history.processedText",
+                    text: item.text,
+                    copyLabel: "history.copyProcessed",
+                    onCopy: onCopyProcessed
+                )
+                Divider()
+                textColumn(
+                    title: "history.originalText",
+                    text: originalText,
+                    copyLabel: "history.copyOriginal",
+                    onCopy: { if let originalText { onCopyOriginal(originalText) } }
+                )
+            }
         }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(cardFill)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(cardBorder, lineWidth: 0.5)
+        }
+    }
+
+    private var cardFill: Color {
+        colorScheme == .dark ? Color.white.opacity(0.055) : Color.black.opacity(0.04)
+    }
+
+    private var cardBorder: Color {
+        colorScheme == .dark ? Color.white.opacity(0.09) : Color.black.opacity(0.075)
+    }
+
+    private func textColumn(
+        title: LocalizedStringKey,
+        text: String?,
+        copyLabel: LocalizedStringKey,
+        onCopy: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button(action: onCopy) {
+                    Image(systemName: "doc.on.doc")
+                }
+                .buttonStyle(.plain)
+                .help(copyLabel)
+                .accessibilityLabel(copyLabel)
+                .disabled(text == nil)
+            }
+            if let text {
+                Text(text)
+                    .font(.body)
+                    .foregroundStyle(.primary)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("history.originalUnavailable")
+                    .font(.callout)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 }
 

@@ -54,10 +54,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(
-            systemSymbolName: "waveform",
-            accessibilityDescription: "Mouthpiece"
-        )
+        item.button?.image = MouthpieceBrandMark.image
+            ?? NSImage(systemSymbolName: "waveform", accessibilityDescription: "Mouthpiece")
+        item.button?.image?.accessibilityDescription = "Mouthpiece"
 
         statusItem = item
         rebuildMenu()

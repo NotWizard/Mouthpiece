@@ -46,8 +46,40 @@ enum TextInsertionError: LocalizedError {
 
 @MainActor
 final class TextInsertionService {
+    private var lastExternalApplication: NSRunningApplication?
+    private nonisolated(unsafe) var activationObserver: NSObjectProtocol?
+
+    init() {
+        rememberExternalApplication(NSWorkspace.shared.frontmostApplication)
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let application = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+                as? NSRunningApplication else { return }
+            Task { @MainActor in self?.rememberExternalApplication(application) }
+        }
+    }
+
+    deinit {
+        if let activationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(activationObserver)
+        }
+    }
+
+    func copyToClipboard(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+
     func captureTarget() -> TextInsertionTarget? {
-        guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
+        let frontmost = NSWorkspace.shared.frontmostApplication
+        if isExternalApplication(frontmost) { rememberExternalApplication(frontmost) }
+        let candidate = isExternalApplication(frontmost) ? frontmost : lastExternalApplication
+        guard let app = candidate, isExternalApplication(app) else {
+            return nil
+        }
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
         var focusedValue: CFTypeRef?
         let focusedElement: AXUIElement?
@@ -66,6 +98,17 @@ final class TextInsertionService {
             applicationName: app.localizedName ?? app.bundleIdentifier ?? "Unknown App",
             focusedElement: focusedElement
         )
+    }
+
+    private func rememberExternalApplication(_ application: NSRunningApplication?) {
+        guard isExternalApplication(application) else { return }
+        lastExternalApplication = application
+    }
+
+    private func isExternalApplication(_ application: NSRunningApplication?) -> Bool {
+        guard let application else { return false }
+        return application.processIdentifier != ProcessInfo.processInfo.processIdentifier
+            && !application.isTerminated
     }
 
     func insert(

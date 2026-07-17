@@ -18,7 +18,6 @@ Starting with 2.0, the project ships only for macOS. Windows and Linux builds ar
 - A native dictation capsule across displays, Spaces, and full-screen apps
 - Bailian, OpenAI, Deepgram, Soniox, AssemblyAI, Groq, Mistral, and custom compatible endpoints
 - Local Whisper, Parakeet, and Qwen ASR MLX transcription
-- Local GGUF text processing through bundled llama.cpp
 - Terminology, replacements, custom prompts, raw transcript history, and sensitive-app protection
 - Sparkle in-app updates, GitHub Releases, and Homebrew cask distribution
 

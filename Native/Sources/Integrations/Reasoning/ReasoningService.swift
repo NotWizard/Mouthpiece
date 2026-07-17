@@ -19,16 +19,10 @@ enum ReasoningServiceError: LocalizedError, Equatable {
 actor ReasoningService {
     private let keychain: KeychainStore
     private let session: URLSession
-    private let localRuntime: LocalReasoningRuntime
 
-    init(
-        keychain: KeychainStore,
-        session: URLSession = .shared,
-        localRuntime: LocalReasoningRuntime = LocalReasoningRuntime()
-    ) {
+    init(keychain: KeychainStore, session: URLSession = .shared) {
         self.keychain = keychain
         self.session = session
-        self.localRuntime = localRuntime
     }
 
     func process(
@@ -39,8 +33,7 @@ actor ReasoningService {
         let clean = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty else { return clean }
 
-        let cloudAllowed = !isCloudProvider(settings.reasoningProvider)
-            || target.map { !TextInsertionService.isSensitive($0) } != false
+        let cloudAllowed = target.map { !TextInsertionService.isSensitive($0) } != false
             || settings.allowSensitiveAppCloudReasoning
         let shouldCallModel = (settings.useReasoningModel || settings.translationEnabled) && cloudAllowed
         let result: String
@@ -50,12 +43,7 @@ actor ReasoningService {
         } else {
             result = clean
         }
-        return Self.applyReplacementRules(settings.terminologyProfile.replacementRules, to: result)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    func shutdown() async {
-        await localRuntime.stop()
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     static func prompt(transcript: String, settings: AppSettings) -> String {
@@ -71,16 +59,6 @@ actor ReasoningService {
         let terminology = settings.terminologyProfile
         if !terminology.preferredTerms.isEmpty {
             instructions.append("Use these exact preferred terms when applicable: \(terminology.preferredTerms.joined(separator: ", ")).")
-        }
-        if !terminology.avoidedTerms.isEmpty {
-            instructions.append("Avoid these terms when a natural alternative exists: \(terminology.avoidedTerms.joined(separator: ", ")).")
-        }
-        if !terminology.replacementRules.isEmpty {
-            let replacements = terminology.replacementRules
-                .sorted { $0.key.localizedCaseInsensitiveCompare($1.key) == .orderedAscending }
-                .map { "\($0.key) -> \($0.value)" }
-                .joined(separator: "; ")
-            instructions.append("Apply these replacements exactly: \(replacements).")
         }
         instructions.append(safetyGuardrail(for: settings.uiLanguage))
         if settings.translationEnabled {
@@ -148,27 +126,6 @@ actor ReasoningService {
         )
     }
 
-    static func applyReplacementRules(_ rules: [String: String], to text: String) -> String {
-        let normalized = Dictionary(uniqueKeysWithValues: rules.map { ($0.key.lowercased(), $0.value) })
-        let pattern = rules.keys
-            .sorted { $0.count > $1.count }
-            .map(NSRegularExpression.escapedPattern(for:))
-            .joined(separator: "|")
-        guard !pattern.isEmpty,
-              let expression = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
-            return text
-        }
-        let result = NSMutableString(string: text)
-        let matches = expression.matches(in: text, range: NSRange(location: 0, length: result.length))
-        for match in matches.reversed() {
-            let original = result.substring(with: match.range).lowercased()
-            if let replacement = normalized[original] {
-                result.replaceCharacters(in: match.range, with: replacement)
-            }
-        }
-        return result as String
-    }
-
     private func request(prompt: String, settings: AppSettings) async throws -> String {
         switch settings.reasoningProvider {
         case "anthropic":
@@ -183,7 +140,7 @@ actor ReasoningService {
     private func requestOpenAICompatible(prompt: String, settings: AppSettings) async throws -> String {
         let provider = settings.reasoningProvider
         let baseURL: String
-        let account: CredentialAccount?
+        let account: CredentialAccount
         switch provider {
         case "bailian":
             baseURL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
@@ -194,10 +151,6 @@ actor ReasoningService {
         case "custom":
             baseURL = settings.reasoningBaseURL
             account = .customReasoning
-        case "local":
-            let model = settings.reasoningModel.isEmpty ? defaultModel(for: provider) : settings.reasoningModel
-            baseURL = try await localRuntime.endpoint(model: model).absoluteString
-            account = nil
         default:
             baseURL = settings.reasoningBaseURL
             account = .openAI
@@ -277,8 +230,7 @@ actor ReasoningService {
         return text
     }
 
-    private func credential(_ account: CredentialAccount?, provider: String) async throws -> String {
-        guard let account else { return "" }
+    private func credential(_ account: CredentialAccount, provider: String) async throws -> String {
         guard let value = try await keychain.read(account), !value.isEmpty else {
             throw ReasoningServiceError.missingAPIKey(provider)
         }
@@ -302,13 +254,10 @@ actor ReasoningService {
         return data
     }
 
-    private func isCloudProvider(_ provider: String) -> Bool { provider != "local" }
-
     private func defaultModel(for provider: String) -> String {
         switch provider {
         case "bailian": "qwen-flash"
         case "groq": "llama-3.3-70b-versatile"
-        case "local": "qwen3-1.7b-q8_0"
         default: "gpt-4o-mini"
         }
     }

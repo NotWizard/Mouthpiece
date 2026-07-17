@@ -1,6 +1,10 @@
 import AppKit
 import SwiftUI
 
+enum SettingsControlMetrics {
+    static let configurationFieldWidth: CGFloat = 280
+}
+
 struct SettingsPage<Content: View>: View {
     let title: LocalizedStringKey
     let subtitle: LocalizedStringKey
@@ -51,19 +55,21 @@ struct SettingsSection<Content: View>: View {
             VStack(spacing: 0) {
                 content
             }
-            .background(
-                Color(
-                    nsColor: colorScheme == .dark
-                        ? .underPageBackgroundColor
-                        : .controlBackgroundColor
-                )
-            )
+            .background(sectionFill)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(Color(nsColor: .separatorColor).opacity(0.45), lineWidth: 0.5)
+                    .stroke(sectionBorder, lineWidth: 0.5)
             }
         }
+    }
+
+    private var sectionFill: Color {
+        colorScheme == .dark ? Color.white.opacity(0.055) : Color.black.opacity(0.04)
+    }
+
+    private var sectionBorder: Color {
+        colorScheme == .dark ? Color.white.opacity(0.09) : Color.black.opacity(0.075)
     }
 }
 
@@ -101,6 +107,125 @@ struct SettingsRow<Content: View>: View {
                 Divider()
                     .padding(.leading, 44)
             }
+        }
+    }
+}
+
+struct ProviderChoice: Identifiable, Sendable {
+    let id: String
+    let title: String
+    let assetName: String?
+    var assetExtension = "svg"
+    let fallbackIcon: String
+    var rendersAsTemplate = true
+}
+
+struct ProviderSelectionGrid: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let title: LocalizedStringKey
+    let providers: [ProviderChoice]
+    let selectedID: String
+    let onSelect: (String) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .padding(.leading, 2)
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 150), spacing: 8)],
+                spacing: 8
+            ) {
+                ForEach(providers) { provider in
+                    Button { onSelect(provider.id) } label: {
+                        HStack(spacing: 9) {
+                            ProviderIcon(provider: provider)
+                            Text(LocalizedStringKey(provider.title))
+                                .lineLimit(1)
+                            Spacer(minLength: 4)
+                            if selectedID == provider.id {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .frame(maxWidth: .infinity, minHeight: 46)
+                        .background(
+                            selectedID == provider.id
+                                ? Color.accentColor.opacity(0.12)
+                                : providerFill
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                .stroke(
+                                    selectedID == provider.id
+                                        ? Color.accentColor.opacity(0.75)
+                                        : providerBorder,
+                                    lineWidth: selectedID == provider.id ? 1.5 : 0.5
+                                )
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selectedID == provider.id ? .isSelected : [])
+                }
+            }
+        }
+    }
+
+    private var providerFill: Color {
+        colorScheme == .dark ? Color.white.opacity(0.055) : Color.black.opacity(0.04)
+    }
+
+    private var providerBorder: Color {
+        colorScheme == .dark ? Color.white.opacity(0.09) : Color.black.opacity(0.075)
+    }
+}
+
+enum MouthpieceBrandMark {
+    static let image: NSImage? = {
+        guard let url = Bundle.main.url(forResource: "mouthpiece-mark", withExtension: "svg"),
+              let image = NSImage(contentsOf: url) else {
+            return nil
+        }
+        image.isTemplate = true
+        return image
+    }()
+}
+
+struct MouthpieceBrandIcon: View {
+    var size: CGFloat = 18
+
+    var body: some View {
+        if let image = MouthpieceBrandMark.image {
+            Image(nsImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(width: size, height: size)
+        } else {
+            Image(systemName: "waveform")
+                .frame(width: size, height: size)
+        }
+    }
+}
+
+private struct ProviderIcon: View {
+    let provider: ProviderChoice
+
+    var body: some View {
+        if let assetName = provider.assetName,
+           let url = Bundle.main.url(forResource: assetName, withExtension: provider.assetExtension),
+           let image = NSImage(contentsOf: url) {
+            let _ = image.isTemplate = provider.rendersAsTemplate
+            Image(nsImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 18, height: 18)
+        } else {
+            Image(systemName: provider.fallbackIcon)
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
         }
     }
 }
@@ -223,7 +348,11 @@ struct CredentialEditor: View {
     var onSaved: ((Bool) -> Void)?
 
     @State private var value = ""
+    @State private var savedValue = ""
     @State private var state = SaveState.idle
+    @State private var revealsValue = false
+    @State private var saveTask: Task<Void, Never>?
+    @State private var saveTaskAccount: CredentialAccount?
 
     init(
         account: CredentialAccount,
@@ -238,31 +367,82 @@ struct CredentialEditor: View {
     var body: some View {
         SettingsRow(icon: "key", title: "speech.apiKey", showsDivider: showsDivider) {
             HStack(spacing: 8) {
-                SecureField("speech.apiKey.placeholder", text: $value)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 220)
-                Button("common.save") {
-                    state = .saving
-                    Task {
-                        do {
-                            try await environment.saveCredential(value, account: account)
-                            let configured = !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            state = .saved
-                            onSaved?(configured)
-                        } catch {
-                            state = .failed(error.localizedDescription)
-                            onSaved?(false)
+                HStack(spacing: 4) {
+                    Group {
+                        if revealsValue {
+                            TextField("speech.apiKey.placeholder", text: $value)
+                        } else {
+                            SecureField("speech.apiKey.placeholder", text: $value)
                         }
                     }
+                    .textFieldStyle(.plain)
+
+                    Button {
+                        revealsValue.toggle()
+                    } label: {
+                        Image(systemName: revealsValue ? "eye.slash" : "eye")
+                    }
+                    .buttonStyle(.plain)
+                    .frame(width: 24, height: 20)
+                    .help(revealsValue ? "credential.hide" : "credential.show")
+                    .accessibilityLabel(revealsValue ? "credential.hide" : "credential.show")
                 }
-                .disabled(state == .saving)
+                .padding(.leading, 7)
+                .padding(.trailing, 3)
+                .frame(width: SettingsControlMetrics.configurationFieldWidth, height: 22)
+                .background {
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(Color(nsColor: .controlBackgroundColor))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .stroke(Color(nsColor: .separatorColor).opacity(0.55), lineWidth: 0.5)
+                        }
+                }
                 status
             }
         }
         .task(id: account) {
+            revealsValue = false
             value = await environment.credential(account)
+            savedValue = value
             state = .idle
             onSaved?(!value.isEmpty)
+        }
+        .onChange(of: value) { _, newValue in
+            scheduleSave(newValue)
+        }
+        .onDisappear {
+            guard value != savedValue else { return }
+            saveTask?.cancel()
+            let pendingValue = value
+            let pendingAccount = account
+            Task { try? await environment.saveCredential(pendingValue, account: pendingAccount) }
+        }
+    }
+
+    private func scheduleSave(_ newValue: String) {
+        guard newValue != savedValue else { return }
+        if saveTaskAccount == account {
+            saveTask?.cancel()
+        }
+        state = .saving
+        let targetAccount = account
+        saveTaskAccount = targetAccount
+        saveTask = Task {
+            do {
+                try await Task.sleep(for: .milliseconds(500))
+                try Task.checkCancellation()
+                try await environment.saveCredential(newValue, account: targetAccount)
+                guard account == targetAccount else { return }
+                savedValue = newValue
+                state = .saved
+                onSaved?(!newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            } catch is CancellationError {
+                return
+            } catch {
+                state = .failed(error.localizedDescription)
+                onSaved?(false)
+            }
         }
     }
 
@@ -294,53 +474,215 @@ struct HotkeyRecorder: View {
     @EnvironmentObject private var environment: AppEnvironment
     @Binding var value: String
 
-    @State private var isRecording = false
-    @State private var monitor: Any?
+    @State private var isCapturePresented = false
+
+    private static let recordAction = "__record_hotkey__"
+    private static let presetValues = [
+        "RightCommand",
+        "RightShift",
+        "RightOption",
+        "RightControl",
+        "Fn",
+    ]
 
     var body: some View {
-        Button {
-            isRecording ? stopRecording() : startRecording()
-        } label: {
-            if isRecording {
-                Label("hotkey.recording", systemImage: "keyboard.badge.ellipsis")
-            } else {
-                Text(
-                    verbatim: HotkeyCapture.displayName(
-                        for: value,
-                        language: environment.settings.uiLanguage
-                    )
-                )
-                    .monospaced()
+        Picker("", selection: selection) {
+            if !Self.presetValues.contains(value) {
+                Text(verbatim: displayName).tag(value)
             }
+            Text("hotkey.rightCommand").tag("RightCommand")
+            Text("hotkey.rightShift").tag("RightShift")
+            Text("hotkey.rightOption").tag("RightOption")
+            Text("hotkey.rightControl").tag("RightControl")
+            Text("hotkey.globe").tag("Fn")
+            Text("hotkey.record").tag(Self.recordAction)
         }
-        .frame(minWidth: 132)
-        .help(isRecording ? "hotkey.cancelHint" : "hotkey.record")
-        .onDisappear { stopRecording() }
+        .labelsHidden()
+        .frame(width: 180, alignment: .trailing)
+        .sheet(isPresented: $isCapturePresented) {
+            HotkeyCaptureSheet { value = $0 }
+                .environmentObject(environment)
+        }
     }
 
-    private func startRecording() {
-        environment.suspendHotkeysForCapture()
-        isRecording = true
+    private var displayName: String {
+        HotkeyCapture.displayName(
+            for: value,
+            language: environment.settings.uiLanguage
+        )
+    }
+
+    private var selection: Binding<String> {
+        Binding(
+            get: { value },
+            set: { newValue in
+                if newValue == Self.recordAction {
+                    isCapturePresented = true
+                } else {
+                    value = newValue
+                }
+            }
+        )
+    }
+}
+
+struct TranslationHotkeyRecorder: View {
+    @EnvironmentObject private var environment: AppEnvironment
+    @Binding var suffix: String
+
+    @State private var isCapturePresented = false
+
+    private static let recordAction = "__record_translation_suffix__"
+    private static let presetValues = [",", ".", "/", ";", "Space"]
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Text(
+                verbatim: HotkeyCapture.displayName(
+                    for: environment.settings.dictationKey,
+                    language: environment.settings.uiLanguage
+                )
+            )
+            .lineLimit(1)
+            Text(verbatim: "+")
+                .foregroundStyle(.secondary)
+            Picker("", selection: selection) {
+                if !Self.presetValues.contains(suffix) {
+                    Text(verbatim: suffix.uppercased()).tag(suffix)
+                }
+                Text("hotkey.suffix.comma").tag(",")
+                Text("hotkey.suffix.period").tag(".")
+                Text("hotkey.suffix.slash").tag("/")
+                Text("hotkey.suffix.semicolon").tag(";")
+                Text("hotkey.suffix.space").tag("Space")
+                Text("hotkey.record").tag(Self.recordAction)
+            }
+            .labelsHidden()
+            .frame(width: 120, alignment: .trailing)
+        }
+        .sheet(isPresented: $isCapturePresented) {
+            HotkeyCaptureSheet { captured in
+                if let capturedSuffix = TranslationHotkey.suffix(from: captured) {
+                    suffix = capturedSuffix
+                }
+            }
+            .environmentObject(environment)
+        }
+    }
+
+    private var selection: Binding<String> {
+        Binding(
+            get: { suffix },
+            set: { newValue in
+                if newValue == Self.recordAction {
+                    isCapturePresented = true
+                } else {
+                    suffix = newValue
+                }
+            }
+        )
+    }
+}
+
+private struct HotkeyCaptureSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var environment: AppEnvironment
+
+    let onConfirm: (String) -> Void
+
+    @State private var capturedValue: String?
+    @State private var monitor: Any?
+    @State private var suspendedHotkeys = false
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "keyboard.badge.ellipsis")
+                .font(.system(size: 32))
+                .foregroundStyle(.tint)
+
+            VStack(spacing: 6) {
+                Text("hotkey.capture.title")
+                    .font(.title3.weight(.semibold))
+                Text("hotkey.capture.subtitle")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color(nsColor: .controlBackgroundColor))
+                if let capturedValue {
+                    Text(
+                        verbatim: HotkeyCapture.displayName(
+                            for: capturedValue,
+                            language: environment.settings.uiLanguage
+                        )
+                    )
+                    .font(.title3.monospaced().weight(.medium))
+                } else {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("hotkey.capture.waiting")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .frame(height: 72)
+
+            HStack {
+                Button("common.cancel", role: .cancel) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Spacer()
+                if capturedValue != nil {
+                    Button("hotkey.capture.again", action: startListening)
+                }
+                Button("common.done") {
+                    guard let capturedValue else { return }
+                    onConfirm(capturedValue)
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(capturedValue == nil)
+            }
+        }
+        .padding(28)
+        .frame(width: 440)
+        .onAppear {
+            environment.suspendHotkeysForCapture()
+            suspendedHotkeys = true
+            startListening()
+        }
+        .onDisappear {
+            stopListening()
+            if suspendedHotkeys {
+                environment.resumeHotkeysAfterCapture()
+            }
+        }
+    }
+
+    private func startListening() {
+        stopListening()
+        capturedValue = nil
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { event in
             if HotkeyCapture.isCancelKeyCode(event.keyCode) {
-                stopRecording()
+                dismiss()
                 return nil
             }
             guard let captured = HotkeyCapture.value(from: event) else { return nil }
-            value = captured
-            stopRecording()
+            capturedValue = captured
+            if HotkeyCapture.completesCapture(for: event.type) {
+                stopListening()
+            }
             return nil
         }
     }
 
-    private func stopRecording() {
+    private func stopListening() {
         if let monitor {
             NSEvent.removeMonitor(monitor)
             self.monitor = nil
-        }
-        if isRecording {
-            isRecording = false
-            environment.resumeHotkeysAfterCapture()
         }
     }
 }
@@ -349,6 +691,8 @@ enum HotkeyCapture {
     private static let modifierKeys: [UInt16: String] = [
         54: "RightCommand",
         55: "LeftCommand",
+        56: "LeftShift",
+        60: "RightShift",
         61: "RightOption",
         58: "LeftOption",
         62: "RightControl",
@@ -367,7 +711,7 @@ enum HotkeyCapture {
         if flags.contains(.option) { parts.append("Option") }
         if flags.contains(.control) { parts.append("Control") }
         if flags.contains(.shift) { parts.append("Shift") }
-        guard !parts.isEmpty, let key = keyName(for: event) else { return nil }
+        guard let key = keyName(for: event) else { return nil }
         parts.append(key)
         return parts.joined(separator: "+")
     }
@@ -376,6 +720,8 @@ enum HotkeyCapture {
         switch value.lowercased() {
         case "rightcommand", "right command": AppLocalization.string("hotkey.rightCommand", language: language)
         case "leftcommand", "left command": AppLocalization.string("hotkey.leftCommand", language: language)
+        case "rightshift", "right shift": AppLocalization.string("hotkey.rightShift", language: language)
+        case "leftshift", "left shift": AppLocalization.string("hotkey.leftShift", language: language)
         case "rightoption", "right option", "rightalt": AppLocalization.string("hotkey.rightOption", language: language)
         case "leftoption", "left option", "leftalt": AppLocalization.string("hotkey.leftOption", language: language)
         case "rightcontrol", "right control": AppLocalization.string("hotkey.rightControl", language: language)
@@ -402,6 +748,10 @@ enum HotkeyCapture {
         keyCode == 53
     }
 
+    static func completesCapture(for eventType: NSEvent.EventType) -> Bool {
+        eventType == .keyDown
+    }
+
     private static func normalized(_ value: String) -> String {
         value.lowercased().filter { !$0.isWhitespace }
     }
@@ -411,6 +761,28 @@ enum HotkeyCapture {
         case 49: "Space"
         case 36: "Return"
         case 48: "Tab"
+        case 51: "Delete"
+        case 117: "ForwardDelete"
+        case 115: "Home"
+        case 119: "End"
+        case 116: "PageUp"
+        case 121: "PageDown"
+        case 123: "Left"
+        case 124: "Right"
+        case 125: "Down"
+        case 126: "Up"
+        case 122: "F1"
+        case 120: "F2"
+        case 99: "F3"
+        case 118: "F4"
+        case 96: "F5"
+        case 97: "F6"
+        case 98: "F7"
+        case 100: "F8"
+        case 101: "F9"
+        case 109: "F10"
+        case 103: "F11"
+        case 111: "F12"
         default:
             event.charactersIgnoringModifiers?.lowercased().first.map(String.init)
         }
@@ -422,20 +794,29 @@ struct SidebarGlassBackground: View {
 
     var body: some View {
         ZStack {
+            Color(nsColor: .windowBackgroundColor)
             SidebarVisualEffect()
-            if colorScheme == .dark {
-                Color(nsColor: .windowBackgroundColor)
-                    .opacity(0.42)
-            }
+            Color(nsColor: .windowBackgroundColor)
+                .opacity(colorScheme == .dark ? 0.68 : 0.72)
             LinearGradient(
                 colors: [
-                    Color.accentColor.opacity(colorScheme == .dark ? 0.022 : 0.035),
-                    Color.cyan.opacity(colorScheme == .dark ? 0.008 : 0.015),
+                    Color.accentColor.opacity(colorScheme == .dark ? 0.025 : 0.055),
+                    Color.cyan.opacity(colorScheme == .dark ? 0.012 : 0.028),
                     .clear,
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
+        }
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.white.opacity(colorScheme == .dark ? 0.05 : 0.45))
+                .frame(height: 0.5)
+        }
+        .overlay(alignment: .trailing) {
+            Rectangle()
+                .fill(Color.primary.opacity(colorScheme == .dark ? 0.1 : 0.06))
+                .frame(width: 0.5)
         }
         .ignoresSafeArea()
     }
@@ -445,7 +826,7 @@ private struct SidebarVisualEffect: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
         view.material = .sidebar
-        view.blendingMode = .behindWindow
+        view.blendingMode = .withinWindow
         view.state = .active
         return view
     }

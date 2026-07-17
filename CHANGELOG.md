@@ -9,20 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added independent controls for automatically inserting completed transcripts and retaining them in the system clipboard.
 - Added an option to pause the active system media session during dictation and resume it after stop, cancellation, failure, or shutdown.
 - Added a complete macOS 26 control panel and onboarding redesign specification covering information architecture, cool-tinted lightweight Glass navigation, near-white content surfaces, page-level interactions, accessibility, compatibility, implementation phases, and acceptance criteria.
 - Added six task-focused native control panel pages with shared settings components, inline credential and model states, shortcut capture, processing previews, searchable history with Undo, and explicit audio and transcript data-path summaries.
 - Added a four-step onboarding flow that combines system permissions, configures cloud or local dictation, runs a real first-dictation check, restores the first incomplete step, and keeps recoverable errors inline.
 - Added a pure native Swift macOS application with an official macOS 15 Sequoia and macOS 26 Tahoe compatibility matrix, SwiftUI control panel and onboarding, an AppKit cross-Space dictation capsule, AVFoundation audio capture, CGEvent hotkeys, Accessibility text insertion, Keychain credentials, SQLite history, and Sparkle updates.
 - Added native realtime transcription for Bailian, Deepgram, Soniox, and AssemblyAI, OpenAI-compatible batch transcription, and local Whisper, Parakeet, and Qwen ASR MLX runtimes.
-- Added managed local GGUF text processing through bundled llama.cpp, including model download, validation, Metal startup, health checks, and restart after sleep or process exit.
 - Added a native dual-architecture release pipeline that verifies the stable self-signed certificate and Designated Requirement, signs Sparkle archives, publishes GitHub Releases, and updates the Homebrew tap automatically.
 - Added isolated data-root, preferences, migration, and updater launch controls for native UI automation without reading a developer's live settings, history, models, Keychain entries, or Sparkle choices.
 - Added speech activity gating with pre-roll, 20 ms PCM framing, provider protocol replay fixtures, a 10-minute audio processing benchmark, and macOS 15/26 CI coverage.
-- Added the complete native Prompt Studio workflow, avoided-term and replacement-rule editors, raw transcript disclosure, and per-display capsule position persistence.
+- Added the complete native Prompt Studio workflow, avoided-term and replacement-rule editors, and raw transcript disclosure.
 
 ### Changed
 
+- Renamed Privacy & Diagnostics to Permissions & Diagnostics and added an always-visible drag guide that opens the macOS Accessibility settings and accepts the real Mouthpiece app bundle.
+- Reduced the dictation capsule from 520 points to 280 points wide, introduced compact state-specific heights, and replaced the heavy gray surface with a lighter adaptive glass treatment.
+- Reduced native switch sizing throughout the control panel, changed translation activation to the dictation modifier plus a configurable extra key, and replaced the solid mouse mark with a lighter outline-and-waveform brand icon.
+- Simplified Prompt Studio into Edit and Test tabs, replaced the simulated test runner with real dictation into a native placeholder editor, and surfaced the configured shortcut in the testing workflow.
+- Replaced generic waveform branding in the control panel sidebar and macOS menu bar with a shared template-aware Mouthpiece mouse mark.
+- Redesigned the dictation capsule as a fixed bottom-center overlay with target and Mouthpiece app identities, a full-width live audio waveform, and a smoothly rolling two-line realtime transcript.
+- Standardized remote service configuration as API key followed by model name, matched both field widths, and added a reveal control to masked API key fields.
+- Renamed the dictation location control to Transcription Engine, replaced the cloud provider menu with an icon-based provider grid, and reordered cloud setup as API key, model, then realtime transcription.
+- Standardized every binary control panel setting on the native macOS switch style and redesigned shortcut selection as an aligned preset menu with confirm-before-save custom key capture.
+- Moved microphone and Accessibility permission management from General Settings to Privacy & Diagnostics while preserving onboarding authorization.
+- Simplified Privacy & Diagnostics to native debug logging, manual update checks, and version information, removing secondary data-path and sensitive-app controls from the page.
+- Replaced the split history browser with a single card list showing each record's timestamp, processed text, original text, dedicated copy actions, and delete action.
+- Simplified Vocabulary & Rules into a single Dictionary for preferred names and terms, and removed avoided-term and replacement-rule behavior from text processing.
+- Made API key fields save automatically without a separate button and rendered text cleanup and post-dictation translation controls as native macOS switches.
 - Replaced generic AI provider symbols with bundled brand icons, moved custom cleanup instructions beside the AI service configuration, and removed the standalone processing test action.
 - Aligned control panel inputs by their visible trailing edges, localized all sound preset names, and replaced the hidden cleanup-provider menu with a visible responsive provider selector and provider-specific configuration.
 - Reorganized control panel navigation into General Settings, Dictation Models, Text Processing, Vocabulary & Rules, History, and Privacy & Diagnostics, using a lightweight cool-tinted system sidebar and quieter near-white content surfaces.
@@ -30,18 +44,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Raised the minimum supported system to macOS 15 Sequoia and limited formal compatibility validation to macOS 15 and macOS 26 Tahoe.
 - Replaced the Electron, Chromium, React, Node.js, Vite, Tailwind, and electron-builder application stack with a macOS-only Xcode project.
 - Corrected XcodeGen resource declarations so the app bundle includes its icon and English, Simplified Chinese, and Traditional Chinese localization tables.
-- Preserved independent main-dictation and translation hotkeys, 12 sound cue presets, terminology, custom prompts, raw transcript history, sensitive-app policy, and local model cache paths in the native application.
+- Preserved dedicated main-dictation and translation activation, 12 sound cue presets, terminology, custom prompts, raw transcript history, sensitive-app policy, and local model cache paths in the native application.
 - Migrated legacy settings to UserDefaults and API keys to Keychain, with automatic backup and import from Mouthpiece, OpenWhispr, and VoiceInk data directories.
 - Changed local model discovery to reuse both Mouthpiece and legacy OpenWhispr cache paths in place without moving or re-downloading existing models.
 - Hardened native releases with locked SHA-1/SHA-256 certificate fingerprints, exact Designated Requirement comparison, nested-code verification, DMG integrity checks, architecture checks, and launch smoke tests.
 
 ### Removed
 
+- Removed local GGUF text processing, its model manager and llama runtime, while keeping local model downloads available for dictation.
 - Removed Windows and Linux builds, helpers, packaging, CI jobs, platform documentation, and all cross-platform runtime dependencies.
 - Removed the legacy JavaScript and TypeScript test suite after replacing its supported macOS behavior with native Swift tests.
 
 ### Fixed
 
+- Corrected capsule target-app fallback, switched its brand identity to the monochrome Mouthpiece mark, expanded and smoothed the live waveform, and made Escape cancellation independent from dictation hotkey restarts.
+- Anchored the Accessibility authorization guide beside the macOS Privacy & Security window and exposed the Mouthpiece application item through a Finder-compatible native file drag session.
+- Reserved a dedicated trailing accessory area in API key fields so masked credentials no longer overlap the reveal button.
+- Automatically dismiss dictation failure capsules after a short delay without allowing an older failure to close a newer session.
+- Kept custom shortcut capture listening after modifier-key events so combinations such as Command+Shift+K are recorded instead of stopping at the first key.
+- Removed the unnecessary divider from the single-row cloud transcription engine section and right-aligned its cloud/local selector.
+- Increased light-mode separation between the window, settings groups, provider cards, and history cards; isolated the sidebar glass from desktop wallpaper; and replaced the solid system-blue navigation selection with a softly tinted gradient and highlighted icon.
+- Restored the full-color Gemini and Alibaba Cloud provider icons in the native AI service selector while preserving providers whose official marks are monochrome.
 - Restored visible section and provider-card surfaces in dark mode and reduced the sidebar's blue and cyan glass tint so the navigation stays visually integrated with the content area.
 - Restored the 12 distinct synthesized start and stop sound presets from the legacy app instead of approximating their names with unrelated macOS system alert sounds.
 - Kept the control panel usable with a 1000-point minimum width and 600-point minimum content height, while allowing settings pages to expand with the window instead of leaving a fixed-width blank region.

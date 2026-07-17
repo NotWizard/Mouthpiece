@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 @testable import Mouthpiece
 
@@ -57,10 +58,34 @@ final class AppEnvironmentTests: XCTestCase {
         XCTAssertFalse(HotkeyCapture.conflicts("RightCommand", ""))
         XCTAssertTrue(HotkeyCapture.isCancelKeyCode(53))
         XCTAssertFalse(HotkeyCapture.isCancelKeyCode(49))
+        XCTAssertFalse(HotkeyCapture.completesCapture(for: .flagsChanged))
+        XCTAssertTrue(HotkeyCapture.completesCapture(for: .keyDown))
         XCTAssertEqual(
             HotkeyCapture.displayName(for: "RightCommand", language: .english),
             "Right Command"
         )
+        XCTAssertEqual(
+            HotkeyCapture.displayName(for: "RightShift", language: .english),
+            "Right Shift"
+        )
+        XCTAssertTrue(AppEnvironment.shouldCancelForEscape(keyCode: 53, enabled: true, isActive: true))
+        XCTAssertFalse(AppEnvironment.shouldCancelForEscape(keyCode: 53, enabled: false, isActive: true))
+        XCTAssertFalse(AppEnvironment.shouldCancelForEscape(keyCode: 49, enabled: true, isActive: true))
+    }
+
+    func testTranslationHotkeyCombinesModifierOnlyDictationWithSuffix() {
+        XCTAssertEqual(
+            TranslationHotkey.combination(dictationKey: "RightCommand", suffix: ","),
+            "Command+,"
+        )
+        XCTAssertEqual(
+            TranslationHotkey.combination(dictationKey: "RightShift", suffix: "Space"),
+            "Shift+Space"
+        )
+        XCTAssertNil(
+            TranslationHotkey.combination(dictationKey: "Command+K", suffix: ",")
+        )
+        XCTAssertEqual(TranslationHotkey.suffix(from: "Command+."), ".")
     }
 
     func testProviderSelectionPreservesCustomModelAndUpdatesKnownDefault() {
@@ -98,6 +123,32 @@ final class AppEnvironmentTests: XCTestCase {
         )
         XCTAssertEqual(custom.model, "my-fine-tuned-model")
         XCTAssertEqual(custom.baseURL, "https://example.com/v1")
+    }
+
+    func testProviderIconAssetsHaveNativeDisplaySize() throws {
+        let assets = [
+            ("provider-openai", "svg"),
+            ("provider-alibaba-cloud", "svg"),
+            ("provider-anthropic", "svg"),
+            ("provider-gemini", "svg"),
+            ("provider-groq", "svg"),
+            ("provider-deepgram", "svg"),
+            ("provider-soniox", "png"),
+            ("provider-assemblyai", "png"),
+            ("provider-mistral", "png"),
+        ]
+
+        for (assetName, assetExtension) in assets {
+            let url = try XCTUnwrap(Bundle.main.url(forResource: assetName, withExtension: assetExtension))
+            let image = try XCTUnwrap(NSImage(contentsOf: url))
+            XCTAssertGreaterThanOrEqual(image.size.width, 18, assetName)
+            XCTAssertGreaterThanOrEqual(image.size.height, 18, assetName)
+        }
+
+        let markURL = try XCTUnwrap(Bundle.main.url(forResource: "mouthpiece-mark", withExtension: "svg"))
+        let mark = try XCTUnwrap(NSImage(contentsOf: markURL))
+        XCTAssertGreaterThanOrEqual(mark.size.width, 18)
+        XCTAssertGreaterThanOrEqual(mark.size.height, 18)
     }
 
     func testHistorySearchMatchesFinalAndRawTextWithinDateFilter() {
@@ -151,11 +202,19 @@ final class AppEnvironmentTests: XCTestCase {
             "sidebar.privacy",
             "history.search",
             "history.clear.confirmTitle",
+            "history.processedText",
+            "history.originalText",
+            "history.copyProcessed",
+            "history.copyOriginal",
+            "history.originalUnavailable",
             "processing.hotkeyConflict",
             "provider.custom",
-            "privacy.dataProcessing",
-            "privacy.audioPath",
-            "privacy.textPath",
+            "privacy.diagnostics",
+            "privacy.debugLogging",
+            "privacy.updates",
+            "privacy.checkForUpdates",
+            "privacy.about",
+            "privacy.version",
             "promptStudio.discard.title",
             "onboarding.step.welcome",
             "onboarding.step.permissions",

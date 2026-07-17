@@ -43,8 +43,6 @@ enum AppPaths {
     static let legacyParakeetModelsDirectory = legacyCacheDirectory.appendingPathComponent("parakeet-models", isDirectory: true)
     static let legacyQwenASRModelsDirectory = legacyCacheDirectory.appendingPathComponent("qwen-asr-models", isDirectory: true)
     static let legacyQwenASRRuntimeDirectory = legacyCacheDirectory.appendingPathComponent("qwen-asr-runtime", isDirectory: true)
-    static let reasoningModelsDirectory = cacheDirectory.appendingPathComponent("models", isDirectory: true)
-    static let legacyReasoningModelsDirectory = legacyCacheDirectory.appendingPathComponent("models", isDirectory: true)
 
     static func prepareApplicationSupport() throws {
         try FileManager.default.createDirectory(

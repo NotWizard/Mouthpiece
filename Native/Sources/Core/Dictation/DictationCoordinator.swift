@@ -82,7 +82,6 @@ actor DictationCoordinator {
         await sonioxProvider.cancel()
         await assemblyAIProvider.cancel()
         await localRuntime.stopAll()
-        await reasoning.shutdown()
         provider = nil
         providerSessionID = nil
         target = nil
@@ -112,6 +111,10 @@ actor DictationCoordinator {
             await capsule.setLanguage(settings.uiLanguage)
             pcm.removeAll(keepingCapacity: true)
             target = await insertion.captureTarget()
+            await capsule.setTarget(
+                processIdentifier: target?.processIdentifier,
+                applicationName: target?.applicationName
+            )
             await publish(show: true)
             await logger.write(.info, "Dictation session started", sessionID: sessionID)
 
@@ -237,10 +240,13 @@ actor DictationCoordinator {
                 )
             }
 
-            if let target {
+            if activeSettings.automaticallyPasteTranscription, let target {
                 try machine.transition(to: .inserting, sessionID: sessionID)
                 await publish()
                 try await insertion.insert(finalText, into: target, settings: activeSettings)
+            }
+            if activeSettings.keepTranscriptionInClipboard {
+                await insertion.copyToClipboard(finalText)
             }
             _ = try await history.save(text: finalText, rawText: normalizedRawText)
             try machine.transition(to: .completed, sessionID: sessionID)
@@ -463,6 +469,8 @@ actor DictationCoordinator {
             sessionID: sessionID
         )
         await publish()
+        try? await Task.sleep(for: .seconds(2.4))
+        await resetIfCurrent(sessionID)
     }
 
     private func resetIfCurrent(_ sessionID: UUID) async {

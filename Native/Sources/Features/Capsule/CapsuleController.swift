@@ -3,24 +3,82 @@ import SwiftUI
 
 @MainActor
 final class CapsuleViewModel: ObservableObject {
-    @Published var snapshot: DictationSnapshot = .idle
+    @Published private(set) var snapshot: DictationSnapshot = .idle
+    @Published private(set) var audioLevels = CapsuleLevelHistory().samples
+    @Published private(set) var targetApplicationName = "Current App"
+    @Published private(set) var targetApplicationIcon: NSImage?
     @Published var language = UILanguage.system
-    var onCancel: (() -> Void)?
+
+    private var levelHistory = CapsuleLevelHistory()
+
+    func apply(_ snapshot: DictationSnapshot) {
+        if snapshot.sessionID != self.snapshot.sessionID {
+            levelHistory.reset()
+        }
+        self.snapshot = snapshot
+        if snapshot.phase == .recording {
+            levelHistory.append(snapshot.audioLevel)
+        } else if snapshot.phase != .preparing {
+            levelHistory.reset()
+        }
+        audioLevels = levelHistory.samples
+    }
+
+    func setTarget(processIdentifier: pid_t?, applicationName: String?) {
+        targetApplicationName = applicationName ?? AppLocalization.string(
+            "capsule.currentApplication",
+            language: language
+        )
+        targetApplicationIcon = processIdentifier
+            .flatMap(NSRunningApplication.init(processIdentifier:))?
+            .icon
+    }
+}
+
+struct CapsuleLevelHistory: Equatable {
+    private(set) var samples: [Float]
+
+    init(sampleCount: Int = 32) {
+        samples = Array(repeating: 0, count: max(1, sampleCount))
+    }
+
+    mutating func append(_ level: Float) {
+        samples.removeFirst()
+        samples.append(min(max(level, 0), 1))
+    }
+
+    mutating func reset() {
+        samples = Array(repeating: 0, count: samples.count)
+    }
+}
+
+private enum CapsuleLayout {
+    static let width: CGFloat = 280
+    static let compactHeight: CGFloat = 78
+    static let transcriptHeight: CGFloat = 112
+    static let errorHeight: CGFloat = 86
+
+    static func height(for snapshot: DictationSnapshot) -> CGFloat {
+        if snapshot.phase == .failed { return errorHeight }
+        if !snapshot.partialText.isEmpty { return transcriptHeight }
+        return compactHeight
+    }
 }
 
 @MainActor
 final class CapsuleController {
-    private static let positionsKey = "capsule.positions.v1"
     let model = CapsuleViewModel()
     private let panel: NSPanel
-    private let defaults: UserDefaults
     private var observers: [NSObjectProtocol] = []
-    private var isProgrammaticMove = false
 
-    init(defaults: UserDefaults? = nil) {
-        self.defaults = defaults ?? Self.defaultStore()
+    init() {
         panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 300, height: 58),
+            contentRect: NSRect(
+                x: 0,
+                y: 0,
+                width: CapsuleLayout.width,
+                height: CapsuleLayout.compactHeight
+            ),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: true
@@ -31,8 +89,9 @@ final class CapsuleController {
         panel.hasShadow = true
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
-        panel.isMovable = true
-        panel.isMovableByWindowBackground = true
+        panel.isMovable = false
+        panel.isMovableByWindowBackground = false
+        panel.ignoresMouseEvents = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         panel.contentView = NSHostingView(rootView: CapsuleView(model: model))
 
@@ -45,13 +104,6 @@ final class CapsuleController {
             Task { @MainActor in self?.repositionIfVisible() }
         })
         observers.append(center.addObserver(
-            forName: NSWindow.didMoveNotification,
-            object: panel,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in self?.persistCurrentPosition() }
-        })
-        observers.append(center.addObserver(
             forName: NSWorkspace.didWakeNotification,
             object: nil,
             queue: .main
@@ -61,13 +113,16 @@ final class CapsuleController {
     }
 
     func show(_ snapshot: DictationSnapshot) {
-        model.snapshot = snapshot
+        model.apply(snapshot)
+        resize(for: snapshot)
         reposition()
         panel.orderFrontRegardless()
     }
 
     func update(_ snapshot: DictationSnapshot) {
-        model.snapshot = snapshot
+        model.apply(snapshot)
+        let resized = resize(for: snapshot)
+        if resized, panel.isVisible { reposition() }
         if snapshot.phase.isActive || snapshot.phase == .failed {
             if !panel.isVisible { show(snapshot) }
         }
@@ -81,8 +136,20 @@ final class CapsuleController {
         model.language = language
     }
 
+    func setTarget(processIdentifier: pid_t?, applicationName: String?) {
+        model.setTarget(processIdentifier: processIdentifier, applicationName: applicationName)
+    }
+
     func repositionIfVisible() {
         if panel.isVisible { reposition() }
+    }
+
+    @discardableResult
+    private func resize(for snapshot: DictationSnapshot) -> Bool {
+        let size = NSSize(width: CapsuleLayout.width, height: CapsuleLayout.height(for: snapshot))
+        guard panel.frame.size != size else { return false }
+        panel.setContentSize(size)
+        return true
     }
 
     private func reposition() {
@@ -91,136 +158,161 @@ final class CapsuleController {
             ?? NSScreen.main
             ?? NSScreen.screens.first
         guard let visible = screen?.visibleFrame else { return }
-        let origin = restoredOrigin(on: screen!, visibleFrame: visible) ?? NSPoint(
+        let origin = NSPoint(
             x: visible.midX - panel.frame.width / 2,
-            y: visible.maxY - panel.frame.height - 20
+            y: visible.minY + 18
         )
-        isProgrammaticMove = true
         panel.setFrameOrigin(origin)
-        isProgrammaticMove = false
-    }
-
-    private func persistCurrentPosition() {
-        guard panel.isVisible, !isProgrammaticMove, let screen = panel.screen,
-              let identifier = displayIdentifier(screen) else { return }
-        let visible = screen.visibleFrame
-        guard visible.width > panel.frame.width, visible.height > panel.frame.height else { return }
-        let x = (panel.frame.minX - visible.minX) / (visible.width - panel.frame.width)
-        let y = (panel.frame.minY - visible.minY) / (visible.height - panel.frame.height)
-        var positions = defaults.dictionary(forKey: Self.positionsKey) ?? [:]
-        positions[identifier] = ["x": min(1, max(0, x)), "y": min(1, max(0, y))]
-        defaults.set(positions, forKey: Self.positionsKey)
-    }
-
-    private func restoredOrigin(on screen: NSScreen, visibleFrame: NSRect) -> NSPoint? {
-        guard let identifier = displayIdentifier(screen),
-              let positions = defaults.dictionary(forKey: Self.positionsKey),
-              let value = positions[identifier] as? [String: Double],
-              let normalizedX = value["x"], let normalizedY = value["y"] else { return nil }
-        return NSPoint(
-            x: visibleFrame.minX + min(1, max(0, normalizedX)) * (visibleFrame.width - panel.frame.width),
-            y: visibleFrame.minY + min(1, max(0, normalizedY)) * (visibleFrame.height - panel.frame.height)
-        )
-    }
-
-    private func displayIdentifier(_ screen: NSScreen) -> String? {
-        guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
-              let uuid = CGDisplayCreateUUIDFromDisplayID(CGDirectDisplayID(number.uint32Value)) else {
-            return nil
-        }
-        return CFUUIDCreateString(nil, uuid.takeRetainedValue()) as String
-    }
-
-    private static func defaultStore() -> UserDefaults {
-        guard ProcessInfo.processInfo.environment["MOUTHPIECE_DATA_ROOT"] != nil else {
-            return .standard
-        }
-        let suite = "com.mouthpiece.app.automation.\(ProcessInfo.processInfo.processIdentifier)"
-        return UserDefaults(suiteName: suite) ?? .standard
     }
 }
 
 private struct CapsuleView: View {
     @ObservedObject var model: CapsuleViewModel
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .symbolEffect(.pulse, isActive: model.snapshot.phase == .recording)
-                .foregroundStyle(tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 13, weight: .semibold))
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                applicationIcon(model.targetApplicationIcon, fallback: "app.fill")
+                    .frame(width: 18, height: 18)
+                Text(model.targetApplicationName)
+                    .font(.system(size: 12.5, weight: .semibold))
                     .lineLimit(1)
+                    .layoutPriority(1)
+
+                Spacer(minLength: 10)
+
+                HStack(spacing: 5) {
+                    MouthpieceBrandIcon(size: 13)
+                    Text("Mouthpiece")
+                        .font(.system(size: 11.5, weight: .medium))
+                        .lineLimit(1)
+                }
+                .foregroundStyle(.secondary)
+            }
+
+            if model.snapshot.phase == .failed {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                    Text(model.snapshot.errorMessage ?? AppLocalization.string(
+                        "capsule.failed",
+                        language: model.language
+                    ))
+                    .lineLimit(2)
+                }
+                .font(.system(size: 11.5, weight: .medium))
+            } else {
                 if !model.snapshot.partialText.isEmpty {
-                    Text(model.snapshot.partialText)
-                        .font(.system(size: 11))
+                    RollingTranscriptView(text: model.snapshot.partialText)
+                } else if let status = statusText {
+                    Text(status)
+                        .font(.system(size: 11.5, weight: .medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-            }
-            Spacer(minLength: 4)
-            if model.snapshot.phase.isActive {
-                if model.snapshot.isTranslation {
-                    Image(systemName: "translate")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.blue)
-                        .help(AppLocalization.string("processing.translation", language: model.language))
-                }
-                AudioMeter(level: model.snapshot.audioLevel)
-                Button {
-                    model.onCancel?()
-                } label: {
-                    Image(systemName: "xmark")
-                }
-                .buttonStyle(.plain)
-                .help(AppLocalization.string("common.cancel", language: model.language))
+                CapsuleWaveform(levels: model.audioLevels)
             }
         }
         .padding(.horizontal, 14)
-        .frame(width: 300, height: 58)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(Capsule().stroke(.primary.opacity(0.1), lineWidth: 0.5))
-    }
-
-    private var icon: String {
-        switch model.snapshot.phase {
-        case .preparing: "ellipsis"
-        case .recording: "waveform"
-        case .stopping, .finalizing: "hourglass"
-        case .inserting: "text.cursor"
-        case .failed: "exclamationmark.triangle"
-        default: "checkmark"
+        .padding(.vertical, 10)
+        .frame(
+            width: CapsuleLayout.width,
+            height: CapsuleLayout.height(for: model.snapshot)
+        )
+        .background {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.regularMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(colorScheme == .dark ? Color.black.opacity(0.14) : Color.white.opacity(0.22))
+                }
         }
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(
+                    model.snapshot.phase == .recording
+                        ? Color.accentColor.opacity(0.30)
+                        : Color.primary.opacity(0.14),
+                    lineWidth: 0.6
+                )
+        )
+        .animation(.easeInOut(duration: 0.18), value: CapsuleLayout.height(for: model.snapshot))
     }
 
-    private var title: String {
+    private var statusText: String? {
         switch model.snapshot.phase {
         case .preparing: AppLocalization.string("capsule.preparing", language: model.language)
-        case .recording: AppLocalization.string("capsule.listening", language: model.language)
+        case .recording: nil
         case .stopping, .finalizing: AppLocalization.string("capsule.transcribing", language: model.language)
         case .inserting: AppLocalization.string("capsule.inserting", language: model.language)
-        case .failed: model.snapshot.errorMessage ?? AppLocalization.string("capsule.failed", language: model.language)
-        default: AppLocalization.string("app.ready", language: model.language)
+        default: nil
         }
     }
 
-    private var tint: Color {
-        model.snapshot.phase == .failed ? .red : .accentColor
+    @ViewBuilder
+    private func applicationIcon(_ image: NSImage?, fallback: String) -> some View {
+        if let image {
+            Image(nsImage: image)
+                .resizable()
+                .scaledToFit()
+        } else {
+            Image(systemName: fallback)
+                .resizable()
+                .scaledToFit()
+                .foregroundStyle(.secondary)
+                .padding(2)
+        }
     }
 }
 
-private struct AudioMeter: View {
-    let level: Float
+private struct RollingTranscriptView: View {
+    let text: String
+    private let bottomID = "capsule-transcript-bottom"
 
     var body: some View {
-        HStack(alignment: .center, spacing: 2) {
-            ForEach(0..<4, id: \.self) { index in
-                Capsule()
-                    .fill(Color.accentColor.opacity(Double(level) > Double(index) * 0.2 ? 1 : 0.25))
-                    .frame(width: 2, height: 6 + CGFloat(index % 2) * 6)
+        ScrollViewReader { proxy in
+            ScrollView(.vertical) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(text)
+                        .font(.system(size: 12, weight: .medium))
+                        .lineSpacing(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Color.clear
+                        .frame(height: 1)
+                        .id(bottomID)
+                }
+                .frame(maxWidth: .infinity, minHeight: 34, alignment: .topLeading)
+            }
+            .scrollIndicators(.hidden)
+            .allowsHitTesting(false)
+            .onAppear {
+                proxy.scrollTo(bottomID, anchor: .bottom)
+            }
+            .onChange(of: text) {
+                withAnimation(.easeOut(duration: 0.18)) {
+                    proxy.scrollTo(bottomID, anchor: .bottom)
+                }
             }
         }
-        .frame(width: 18, height: 20)
+        .frame(height: 34)
+        .clipped()
+    }
+}
+
+private struct CapsuleWaveform: View {
+    let levels: [Float]
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 3.25) {
+            ForEach(Array(levels.enumerated()), id: \.offset) { _, level in
+                Capsule()
+                    .fill(Color.primary.opacity(0.72))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 3.5 + CGFloat(level) * 12.5)
+                    .animation(.easeOut(duration: 0.12), value: level)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 17, maxHeight: 17)
     }
 }

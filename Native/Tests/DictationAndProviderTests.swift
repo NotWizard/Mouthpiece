@@ -2,6 +2,22 @@ import XCTest
 @testable import Mouthpiece
 
 final class DictationAndProviderTests: XCTestCase {
+    func testCapsuleLevelHistoryUsesFullWidthSampleCountByDefault() {
+        XCTAssertEqual(CapsuleLevelHistory().samples.count, 32)
+    }
+
+    func testCapsuleLevelHistoryKeepsAClampedSlidingWindow() {
+        var history = CapsuleLevelHistory(sampleCount: 3)
+
+        history.append(0.25)
+        history.append(-1)
+        history.append(2)
+        XCTAssertEqual(history.samples, [0.25, 0, 1])
+
+        history.reset()
+        XCTAssertEqual(history.samples, [0, 0, 0])
+    }
+
     func testStateMachineRejectsStaleSessionEvents() throws {
         var machine = DictationStateMachine()
         let sessionID = UUID()
@@ -37,16 +53,21 @@ final class DictationAndProviderTests: XCTestCase {
 
     func testHotkeyParserSupportsTranslationChord() {
         XCTAssertEqual(
+            HotkeyDescriptor.parse("RightShift"),
+            HotkeyDescriptor(keyCode: 60, modifiers: .maskShift, modifierOnly: true)
+        )
+        XCTAssertEqual(
             HotkeyDescriptor.parse("Command+K"),
             HotkeyDescriptor(keyCode: 40, modifiers: .maskCommand, modifierOnly: false)
         )
-    }
-
-    func testLocalReasoningCatalogHasUniqueValidModels() {
-        let models = LocalReasoningModelCatalog.models
-        XCTAssertEqual(Set(models.map(\.id)).count, models.count)
-        XCTAssertTrue(models.allSatisfy { $0.downloadURL.scheme == "https" })
-        XCTAssertTrue(models.allSatisfy { $0.expectedSizeBytes > 1_000_000 })
+        XCTAssertEqual(
+            HotkeyDescriptor.parse("Command+Left"),
+            HotkeyDescriptor(keyCode: 123, modifiers: .maskCommand, modifierOnly: false)
+        )
+        XCTAssertEqual(
+            HotkeyDescriptor.parse("F12"),
+            HotkeyDescriptor(keyCode: 111, modifiers: [], modifierOnly: false)
+        )
     }
 
     func testTranscriptJoinerKeepsChineseCompactAndSoftensTurnBoundary() {
@@ -71,11 +92,12 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(BailianMessageParser.errorMessage(payloads[2]), "bad frame")
     }
 
-    func testReasoningPromptIncludesTerminologyTranslationAndCustomInstructions() {
+    func testReasoningPromptIncludesDictionaryTranslationAndCustomInstructions() {
         var settings = AppSettings()
         settings.translationEnabled = true
         settings.translationTargetLanguage = "English"
         settings.terminologyProfile.preferredTerms = ["Mouthpiece"]
+        settings.terminologyProfile.avoidedTerms = ["legacy avoided term"]
         settings.terminologyProfile.replacementRules = ["嘴替": "Mouthpiece"]
         settings.customPrompt = "Keep product names unchanged."
 
@@ -83,7 +105,8 @@ final class DictationAndProviderTests: XCTestCase {
 
         XCTAssertTrue(prompt.contains("The output language must be: English"))
         XCTAssertTrue(prompt.contains("Mouthpiece"))
-        XCTAssertTrue(prompt.contains("嘴替 -> Mouthpiece"))
+        XCTAssertFalse(prompt.contains("legacy avoided term"))
+        XCTAssertFalse(prompt.contains("嘴替 -> Mouthpiece"))
         XCTAssertTrue(prompt.contains("Keep product names unchanged."))
         XCTAssertTrue(prompt.hasSuffix("<transcript>\n测试嘴替\n</transcript>"))
         XCTAssertTrue(prompt.contains("安全护栏"))
@@ -100,12 +123,15 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(prompt.components(separatedBy: "</transcript>").count, 2)
     }
 
-    func testReplacementRulesPreferLongerMatches() {
-        let result = ReasoningService.applyReplacementRules(
-            ["mouth": "wrong", "mouthpiece": "Mouthpiece"],
-            to: "Use mouthpiece"
-        )
-        XCTAssertEqual(result, "Use Mouthpiece")
+    func testLegacyReplacementRulesDoNotModifyTranscriptWhenCleanupIsDisabled() async throws {
+        var settings = AppSettings()
+        settings.useReasoningModel = false
+        settings.terminologyProfile.replacementRules = ["mouthpiece": "Mouthpiece"]
+        let service = ReasoningService(keychain: KeychainStore())
+
+        let result = try await service.process("Use mouthpiece", settings: settings, target: nil)
+
+        XCTAssertEqual(result, "Use mouthpiece")
     }
 
     func testSensitiveAppDetectionUsesBundleAndDisplayName() async {

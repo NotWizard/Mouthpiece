@@ -6,10 +6,15 @@ struct DictationSettingsView: View {
     var body: some View {
         SettingsPage(title: "speech.title", subtitle: "speech.subtitle") {
             SettingsSection(title: "speech.source") {
-                TranscriptionModePicker()
+                TranscriptionModePicker(showsDivider: environment.settings.useLocalTranscription)
                 if environment.settings.useLocalTranscription {
                     LocalTranscriptionRows()
-                } else {
+                }
+            }
+
+            if !environment.settings.useLocalTranscription {
+                CloudProviderSelector()
+                SettingsSection(title: "speech.configuration") {
                     CloudTranscriptionRows()
                 }
             }
@@ -34,20 +39,8 @@ struct DictationSettingsView: View {
                     SettingsRow(icon: "arrow.triangle.branch", title: "speech.fallback", showsDivider: false) {
                         Toggle("", isOn: settingBinding(environment, \.allowCloudFallback))
                             .labelsHidden()
-                    }
-                }
-            }
-
-            if !environment.settings.useLocalTranscription,
-               environment.settings.cloudTranscriptionProvider == "custom" {
-                SettingsSection(title: "speech.advanced") {
-                    SettingsRow(icon: "link", title: "processing.baseURL", showsDivider: false) {
-                        TextField(
-                            "http://127.0.0.1:8080/v1",
-                            text: settingBinding(environment, \.cloudTranscriptionBaseURL)
-                        )
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 280)
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
                     }
                 }
             }
@@ -57,22 +50,53 @@ struct DictationSettingsView: View {
 
 struct TranscriptionModePicker: View {
     @EnvironmentObject private var environment: AppEnvironment
+    var showsDivider = true
 
     var body: some View {
-        SettingsRow(icon: "cloud", title: "speech.location") {
-            Picker("", selection: settingBinding(environment, \.useLocalTranscription)) {
-                Text("speech.cloud").tag(false)
-                Text("speech.local").tag(true)
+        SettingsRow(icon: "cloud", title: "speech.location", showsDivider: showsDivider) {
+            HStack(spacing: 0) {
+                Spacer(minLength: 0)
+                Picker("", selection: settingBinding(environment, \.useLocalTranscription)) {
+                    Text("speech.cloud").tag(false)
+                    Text("speech.local").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize(horizontal: true, vertical: false)
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 220)
+            .frame(width: 320)
             .onChange(of: environment.settings.useLocalTranscription) { _, usesLocal in
                 if usesLocal {
                     environment.refreshLocalModelStatus()
                 }
             }
         }
+    }
+}
+
+struct CloudProviderSelector: View {
+    @EnvironmentObject private var environment: AppEnvironment
+
+    var body: some View {
+        ProviderSelectionGrid(
+            title: "speech.provider",
+            providers: CloudTranscriptionSupport.providers,
+            selectedID: environment.settings.cloudTranscriptionProvider,
+            onSelect: select
+        )
+    }
+
+    private func select(_ provider: String) {
+        var settings = environment.settings
+        settings.cloudTranscriptionProvider = provider
+        settings.cloudTranscriptionModel = CloudTranscriptionSupport.model(
+            afterSelecting: provider,
+            current: settings.cloudTranscriptionModel
+        )
+        if provider != "custom" {
+            settings.cloudTranscriptionBaseURL = CloudTranscriptionSupport.defaultBaseURL(for: provider)
+        }
+        environment.saveSettings(settings)
     }
 }
 
@@ -85,68 +109,76 @@ struct CloudTranscriptionRows: View {
     }
 
     var body: some View {
-        SettingsRow(icon: "server.rack", title: "speech.provider") {
-            Picker("", selection: settingBinding(environment, \.cloudTranscriptionProvider)) {
-                ForEach(CloudTranscriptionSupport.providers) { provider in
-                    Text(provider.title).tag(provider.id)
-                }
-            }
-            .labelsHidden()
-            .frame(width: 180, alignment: .trailing)
-            .onChange(of: environment.settings.cloudTranscriptionProvider) { _, provider in
-                applyDefaultModel(for: provider)
-            }
-        }
-        SettingsRow(icon: "cube", title: "speech.model") {
-            TextField("speech.model.placeholder", text: settingBinding(environment, \.cloudTranscriptionModel))
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 250)
-        }
-        realtimeRow
-        CredentialEditor(account: CloudTranscriptionSupport.credential(for: environment.settings.cloudTranscriptionProvider)) {
+        CredentialEditor(
+            account: CloudTranscriptionSupport.credential(for: environment.settings.cloudTranscriptionProvider),
+            showsDivider: true
+        ) {
             onCredentialSaved?($0)
         }
+        SettingsRow(
+            icon: "cube",
+            title: "speech.model",
+            showsDivider: supportsRealtime || environment.settings.cloudTranscriptionProvider == "custom"
+        ) {
+            TextField("speech.model.placeholder", text: settingBinding(environment, \.cloudTranscriptionModel))
+                .textFieldStyle(.roundedBorder)
+                .frame(width: SettingsControlMetrics.configurationFieldWidth)
+        }
+        if environment.settings.cloudTranscriptionProvider == "custom" {
+            SettingsRow(icon: "link", title: "processing.baseURL", showsDivider: false) {
+                TextField(
+                    "http://127.0.0.1:8080/v1",
+                    text: settingBinding(environment, \.cloudTranscriptionBaseURL)
+                )
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 280)
+            }
+        } else {
+            realtimeRow
+        }
+    }
+
+    private var supportsRealtime: Bool {
+        ["bailian", "deepgram", "soniox", "assemblyai"]
+            .contains(environment.settings.cloudTranscriptionProvider)
     }
 
     @ViewBuilder
     private var realtimeRow: some View {
         switch environment.settings.cloudTranscriptionProvider {
         case "bailian":
-            SettingsRow(icon: "bolt", title: "speech.realtime") {
+            SettingsRow(icon: "bolt", title: "speech.realtime", showsDivider: false) {
                 Toggle("", isOn: settingBinding(environment, \.bailianRealtimeEnabled))
                     .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
             }
         case "deepgram":
-            SettingsRow(icon: "bolt", title: "speech.realtime") {
+            SettingsRow(icon: "bolt", title: "speech.realtime", showsDivider: false) {
                 Toggle("", isOn: settingBinding(environment, \.deepgramStreamingEnabled))
                     .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
             }
         case "soniox":
-            SettingsRow(icon: "bolt", title: "speech.realtime") {
+            SettingsRow(icon: "bolt", title: "speech.realtime", showsDivider: false) {
                 Toggle("", isOn: settingBinding(environment, \.sonioxRealtimeEnabled))
                     .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
             }
         case "assemblyai":
-            SettingsRow(icon: "bolt", title: "speech.realtime") {
+            SettingsRow(icon: "bolt", title: "speech.realtime", showsDivider: false) {
                 Toggle("", isOn: settingBinding(environment, \.assemblyAIStreaming))
                     .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
             }
         default:
             EmptyView()
         }
     }
 
-    private func applyDefaultModel(for provider: String) {
-        var settings = environment.settings
-        settings.cloudTranscriptionModel = CloudTranscriptionSupport.model(
-            afterSelecting: provider,
-            current: settings.cloudTranscriptionModel
-        )
-        if provider != "custom" {
-            settings.cloudTranscriptionBaseURL = CloudTranscriptionSupport.defaultBaseURL(for: provider)
-        }
-        environment.saveSettings(settings)
-    }
 }
 
 struct LocalTranscriptionRows: View {
@@ -250,31 +282,20 @@ struct LocalTranscriptionRows: View {
 }
 
 enum CloudTranscriptionSupport {
-    struct Provider: Identifiable {
-        let id: String
-        let name: String
-
-        var title: LocalizedStringKey {
-            id == "custom" ? "provider.custom" : LocalizedStringKey(name)
-        }
-    }
-
     static let providers = [
-        Provider(id: "bailian", name: "Alibaba Bailian"),
-        Provider(id: "openai", name: "OpenAI"),
-        Provider(id: "deepgram", name: "Deepgram"),
-        Provider(id: "soniox", name: "Soniox"),
-        Provider(id: "assemblyai", name: "AssemblyAI"),
-        Provider(id: "groq", name: "Groq"),
-        Provider(id: "mistral", name: "Mistral"),
-        Provider(id: "custom", name: "Custom"),
+        ProviderChoice(id: "bailian", title: "provider.bailian", assetName: "provider-alibaba-cloud", fallbackIcon: "cloud", rendersAsTemplate: false),
+        ProviderChoice(id: "openai", title: "provider.openai", assetName: "provider-openai", fallbackIcon: "sparkles"),
+        ProviderChoice(id: "deepgram", title: "provider.deepgram", assetName: "provider-deepgram", fallbackIcon: "waveform", rendersAsTemplate: false),
+        ProviderChoice(id: "soniox", title: "provider.soniox", assetName: "provider-soniox", assetExtension: "png", fallbackIcon: "waveform", rendersAsTemplate: false),
+        ProviderChoice(id: "assemblyai", title: "provider.assemblyai", assetName: "provider-assemblyai", assetExtension: "png", fallbackIcon: "waveform", rendersAsTemplate: false),
+        ProviderChoice(id: "groq", title: "provider.groq", assetName: "provider-groq", fallbackIcon: "bolt", rendersAsTemplate: false),
+        ProviderChoice(id: "mistral", title: "provider.mistral", assetName: "provider-mistral", assetExtension: "png", fallbackIcon: "wind", rendersAsTemplate: false),
+        ProviderChoice(id: "custom", title: "provider.custom", assetName: nil, fallbackIcon: "slider.horizontal.3"),
     ]
 
     static func displayName(for provider: String, language: UILanguage) -> String {
-        if provider == "custom" {
-            return AppLocalization.string("provider.custom", language: language)
-        }
-        return providers.first(where: { $0.id == provider })?.name ?? provider.capitalized
+        guard providers.contains(where: { $0.id == provider }) else { return provider.capitalized }
+        return AppLocalization.string("provider.\(provider)", language: language)
     }
 
     static func credential(for provider: String) -> CredentialAccount {

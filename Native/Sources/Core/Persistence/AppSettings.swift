@@ -58,13 +58,15 @@ struct AppSettings: Codable, Equatable, Sendable {
 
     var dictationKey = "RightCommand"
     var hotkeyBehavior: HotkeyBehavior = .automatic
-    var translationDictationKey = ""
+    var translationHotkeySuffix = TranslationHotkey.defaultSuffix
     var selectedMicrophoneUID = ""
     var launchAtLogin = false
     var showInDock = true
     var showInMenuBar = true
     var escapeCancelsRecording = true
     var pauseOtherMediaDuringDictation = false
+    var automaticallyPasteTranscription = true
+    var keepTranscriptionInClipboard = false
     var audioCuesEnabled = true
     var soundPreset = "classic"
 
@@ -108,6 +110,11 @@ struct AppSettings: Codable, Equatable, Sendable {
     mutating func normalize() {
         if dictationKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             dictationKey = "RightCommand"
+        }
+        if reasoningProvider == "local" {
+            reasoningProvider = "openai"
+            reasoningModel = "gpt-4o-mini"
+            reasoningBaseURL = "https://api.openai.com/v1"
         }
         cloudTranscriptionBaseURL = Self.normalizedURL(
             cloudTranscriptionBaseURL,

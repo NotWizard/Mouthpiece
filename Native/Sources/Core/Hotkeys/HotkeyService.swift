@@ -12,6 +12,10 @@ struct HotkeyDescriptor: Equatable, Sendable {
             return HotkeyDescriptor(keyCode: 54, modifiers: .maskCommand, modifierOnly: true)
         case "leftcommand", "left command":
             return HotkeyDescriptor(keyCode: 55, modifiers: .maskCommand, modifierOnly: true)
+        case "rightshift", "right shift":
+            return HotkeyDescriptor(keyCode: 60, modifiers: .maskShift, modifierOnly: true)
+        case "leftshift", "left shift":
+            return HotkeyDescriptor(keyCode: 56, modifiers: .maskShift, modifierOnly: true)
         case "rightoption", "right option", "rightalt":
             return HotkeyDescriptor(keyCode: 61, modifiers: .maskAlternate, modifierOnly: true)
         case "leftoption", "left option", "leftalt":
@@ -40,6 +44,7 @@ struct HotkeyDescriptor: Equatable, Sendable {
             if part == "option" || part == "alt" { flags.insert(.maskAlternate) }
             if part == "control" || part == "ctrl" { flags.insert(.maskControl) }
             if part == "shift" { flags.insert(.maskShift) }
+            if part == "fn" || part == "globe" { flags.insert(.maskSecondaryFn) }
         }
         return HotkeyDescriptor(keyCode: keyCode, modifiers: flags, modifierOnly: false)
     }
@@ -51,9 +56,52 @@ struct HotkeyDescriptor: Equatable, Sendable {
         "w": 13, "e": 14, "r": 15, "y": 16, "t": 17,
         "1": 18, "2": 19, "3": 20, "4": 21, "6": 22, "5": 23,
         "=": 24, "9": 25, "7": 26, "-": 27, "8": 28, "0": 29,
-        "o": 31, "u": 32, "i": 34, "p": 35, "l": 37, "j": 38,
-        "k": 40, "n": 45, "m": 46,
+        "]": 30, "o": 31, "u": 32, "[": 33, "i": 34, "p": 35,
+        "l": 37, "j": 38, "'": 39, "k": 40, ";": 41, "\\": 42,
+        ",": 43, "/": 44, "n": 45, "m": 46, ".": 47, "`": 50,
+        "delete": 51, "forwarddelete": 117,
+        "home": 115, "end": 119, "pageup": 116, "pagedown": 121,
+        "left": 123, "right": 124, "down": 125, "up": 126,
+        "f1": 122, "f2": 120, "f3": 99, "f4": 118,
+        "f5": 96, "f6": 97, "f7": 98, "f8": 100,
+        "f9": 101, "f10": 109, "f11": 103, "f12": 111,
     ]
+}
+
+enum TranslationHotkey {
+    static let defaultSuffix = ","
+
+    static func combination(dictationKey: String, suffix: String) -> String? {
+        let modifier: String
+        switch dictationKey.lowercased().filter({ !$0.isWhitespace }) {
+        case "rightcommand", "leftcommand": modifier = "Command"
+        case "rightshift", "leftshift": modifier = "Shift"
+        case "rightoption", "leftoption", "rightalt", "leftalt": modifier = "Option"
+        case "rightcontrol", "leftcontrol": modifier = "Control"
+        case "fn", "globe": modifier = "Fn"
+        default: return nil
+        }
+        guard let suffix = normalizedSuffix(suffix) else { return nil }
+        return "\(modifier)+\(suffix)"
+    }
+
+    static func suffix(from value: String) -> String? {
+        normalizedSuffix(value.split(separator: "+").last.map(String.init) ?? value)
+    }
+
+    static func normalizedSuffix(_ value: String) -> String? {
+        let clean = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !clean.isEmpty else { return nil }
+        switch clean {
+        case "comma": return ","
+        case "period": return "."
+        case "slash": return "/"
+        case "semicolon": return ";"
+        case "space": return "Space"
+        case "return", "enter": return "Return"
+        default: return clean.count == 1 ? clean : nil
+        }
+    }
 }
 
 @MainActor
@@ -65,7 +113,6 @@ final class HotkeyService {
     private var pressed = false
     var onPress: (() -> Void)?
     var onRelease: (() -> Void)?
-    var onEscape: (() -> Void)?
 
     init(swallowMatchedEvents: Bool = false) {
         self.swallowMatchedEvents = swallowMatchedEvents
@@ -127,10 +174,6 @@ final class HotkeyService {
     private func handle(type: CGEventType, keyCode: CGKeyCode, flags: CGEventFlags) {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: true) }
-            return
-        }
-        if type == .keyDown, keyCode == 53 {
-            onEscape?()
             return
         }
         guard keyCode == descriptor.keyCode else { return }

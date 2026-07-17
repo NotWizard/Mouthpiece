@@ -54,7 +54,10 @@ final class SettingsRepository {
             ?? next.uiLanguage
         next.theme = AppTheme(rawValue: values["theme"] ?? "") ?? next.theme
         next.dictationKey = values["dictationKey"] ?? values["DICTATION_KEY"] ?? next.dictationKey
-        next.translationDictationKey = values["translationDictationKey"] ?? next.translationDictationKey
+        if let legacyTranslationKey = values["translationDictationKey"],
+           let suffix = TranslationHotkey.suffix(from: legacyTranslationKey) {
+            next.translationHotkeySuffix = suffix
+        }
         next.preferredLanguage = values["preferredLanguage"] ?? next.preferredLanguage
         next.selectedMicrophoneUID = values["selectedMicDeviceId"]
             ?? values["selectedMicDeviceUID"]

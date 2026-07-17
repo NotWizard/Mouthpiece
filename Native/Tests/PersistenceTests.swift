@@ -57,11 +57,42 @@ final class PersistenceTests: XCTestCase {
         settings.dictationKey = ""
         settings.cloudTranscriptionBaseURL = "not a url"
         settings.pauseOtherMediaDuringDictation = true
+        settings.automaticallyPasteTranscription = false
+        settings.keepTranscriptionInClipboard = true
+        settings.reasoningProvider = "local"
+        settings.reasoningModel = "qwen3-1.7b-q8_0"
+        settings.reasoningBaseURL = ""
         try repository.save(settings)
         let loaded = repository.load()
         XCTAssertEqual(loaded.dictationKey, "RightCommand")
         XCTAssertEqual(loaded.cloudTranscriptionBaseURL, "https://api.openai.com/v1")
         XCTAssertTrue(loaded.pauseOtherMediaDuringDictation)
+        XCTAssertFalse(loaded.automaticallyPasteTranscription)
+        XCTAssertTrue(loaded.keepTranscriptionInClipboard)
+        XCTAssertEqual(loaded.reasoningProvider, "openai")
+        XCTAssertEqual(loaded.reasoningModel, "gpt-4o-mini")
+        XCTAssertEqual(loaded.reasoningBaseURL, "https://api.openai.com/v1")
+    }
+
+    @MainActor
+    func testOlderSettingsKeepExistingTranscriptionDeliveryDefaults() throws {
+        let suite = "MouthpieceTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        var stored = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(AppSettings())) as? [String: Any]
+        )
+        stored.removeValue(forKey: "automaticallyPasteTranscription")
+        stored.removeValue(forKey: "keepTranscriptionInClipboard")
+        defaults.set(
+            try JSONSerialization.data(withJSONObject: stored),
+            forKey: "native.settings.v1"
+        )
+
+        let loaded = SettingsRepository(defaults: defaults).load()
+        XCTAssertTrue(loaded.automaticallyPasteTranscription)
+        XCTAssertFalse(loaded.keepTranscriptionInClipboard)
     }
 
     func testHistoryRepositoryMigratesLegacySchemaAndPreservesRawText() async throws {

@@ -13,8 +13,6 @@ final class AppEnvironment: ObservableObject {
     @Published private(set) var dictionaryWords: [String] = []
     @Published private(set) var selectedLocalModelInstalled = false
     @Published private(set) var modelInstallationState = ModelInstallationState.idle
-    @Published private(set) var selectedReasoningModelInstalled = false
-    @Published private(set) var reasoningModelInstallationState = ModelInstallationState.idle
     @Published private(set) var startupError: String?
 
     let settingsRepository = SettingsRepository()
@@ -27,21 +25,22 @@ final class AppEnvironment: ObservableObject {
     let hotkey = HotkeyService()
     let translationHotkey = HotkeyService(swallowMatchedEvents: true)
     let modelInstaller = LocalModelInstallationService()
-    let reasoningModelInstaller = LocalReasoningModelInstallationService()
     let updates = UpdateController()
 
     private var history: HistoryRepository?
     private var logger: DebugLogStore?
     private var coordinator: DictationCoordinator?
     private var hotkeyPressedAt: ContinuousClock.Instant?
+    private var pendingMainHotkeyTask: Task<Void, Never>?
+    private var mainHotkeyActivationPending = false
     private var toggleDictationObserver: NSObjectProtocol?
     private var applicationObservers: [NSObjectProtocol] = []
     private var workspaceObservers: [NSObjectProtocol] = []
+    private var escapeMonitors: [Any] = []
     private var activeActivation: DictationActivation = .main
     private var isShuttingDown = false
 
     init(bootstrap: Bool = true) {
-        capsule.model.onCancel = { [weak self] in self?.cancelDictation() }
         toggleDictationObserver = NotificationCenter.default.addObserver(
             forName: .mouthpieceToggleDictation,
             object: nil,
@@ -62,6 +61,7 @@ final class AppEnvironment: ObservableObject {
 
     func saveSettings(_ next: AppSettings) {
         do {
+            cancelPendingMainHotkey()
             try settingsRepository.save(next)
             settings = settingsRepository.load()
             Task { await logger?.setEnabled(settings.debugLoggingEnabled) }
@@ -69,7 +69,6 @@ final class AppEnvironment: ObservableObject {
             updateTranslationHotkey()
             applySystemSettings()
             refreshLocalModelStatus()
-            refreshReasoningModelStatus()
         } catch {
             startupError = error.localizedDescription
         }
@@ -132,8 +131,9 @@ final class AppEnvironment: ObservableObject {
     }
 
     func requestAccessibilityPermission() {
-        _ = permissionsService.requestAccessibilityPrompt()
-        refreshPermissions()
+        permissionsService.requestAccessibility(language: settings.uiLanguage) { [weak self] in
+            self?.refreshPermissions()
+        }
     }
 
     func openMicrophoneSettings() { permissionsService.openMicrophoneSettings() }
@@ -148,6 +148,7 @@ final class AppEnvironment: ObservableObject {
             hotkey.stop()
             translationHotkey.stop()
         }
+        updateEscapeMonitors()
     }
 
     func shutdown() async {
@@ -155,6 +156,8 @@ final class AppEnvironment: ObservableObject {
         isShuttingDown = true
         hotkey.stop()
         translationHotkey.stop()
+        stopEscapeMonitors()
+        cancelPendingMainHotkey()
         hotkeyPressedAt = nil
         await coordinator?.shutdown()
         await logger?.write(.info, "Application shutdown completed")
@@ -170,6 +173,7 @@ final class AppEnvironment: ObservableObject {
     func checkForUpdates() { updates.checkForUpdates() }
 
     func suspendHotkeysForCapture() {
+        cancelPendingMainHotkey()
         hotkey.stop()
         translationHotkey.stop()
     }
@@ -178,21 +182,6 @@ final class AppEnvironment: ObservableObject {
         guard permissions.accessibility else { return }
         try? hotkey.start(key: settings.dictationKey)
         updateTranslationHotkey()
-    }
-
-    func testPrompt(_ prompt: String, input: String) async throws -> String {
-        var testSettings = settings
-        testSettings.customPrompt = prompt == ReasoningService.defaultCleanupPrompt ? "" : prompt
-        testSettings.useReasoningModel = true
-        let service = ReasoningService(keychain: keychain)
-        do {
-            let result = try await service.process(input, settings: testSettings, target: nil)
-            await service.shutdown()
-            return result
-        } catch {
-            await service.shutdown()
-            throw error
-        }
     }
 
     func refreshLocalModelStatus() {
@@ -228,40 +217,6 @@ final class AppEnvironment: ObservableObject {
                 refreshLocalModelStatus()
             } catch {
                 modelInstallationState = .failed(model: model, message: error.localizedDescription)
-            }
-        }
-    }
-
-    func refreshReasoningModelStatus() {
-        let model = settings.reasoningModel
-        Task {
-            selectedReasoningModelInstalled = await reasoningModelInstaller.isInstalled(model: model)
-        }
-    }
-
-    func installSelectedReasoningModel() {
-        let model = settings.reasoningModel
-        Task {
-            do {
-                try await reasoningModelInstaller.install(model: model) { [weak self] state in
-                    Task { @MainActor in self?.reasoningModelInstallationState = state }
-                }
-                refreshReasoningModelStatus()
-            } catch {
-                reasoningModelInstallationState = .failed(model: model, message: error.localizedDescription)
-            }
-        }
-    }
-
-    func removeSelectedReasoningModel() {
-        let model = settings.reasoningModel
-        Task {
-            do {
-                try await reasoningModelInstaller.remove(model: model)
-                reasoningModelInstallationState = .idle
-                refreshReasoningModelStatus()
-            } catch {
-                reasoningModelInstallationState = .failed(model: model, message: error.localizedDescription)
             }
         }
     }
@@ -327,18 +282,14 @@ final class AppEnvironment: ObservableObject {
             self.coordinator = coordinator
             hotkey.onPress = { [weak self] in self?.handleHotkeyPress() }
             hotkey.onRelease = { [weak self] in self?.handleHotkeyRelease() }
-            hotkey.onEscape = { [weak self] in
-                guard let self, self.settings.escapeCancelsRecording, self.dictation.phase.isActive else { return }
-                self.cancelDictation()
-            }
             translationHotkey.onPress = { [weak self] in self?.handleTranslationHotkeyPress() }
             if permissions.accessibility {
                 try? hotkey.start(key: settings.dictationKey)
                 updateTranslationHotkey()
             }
+            updateEscapeMonitors()
             applySystemSettings()
             refreshLocalModelStatus()
-            refreshReasoningModelStatus()
             isReady = true
             Task { await coordinator.warmup(settings: settings) }
         } catch {
@@ -383,6 +334,27 @@ final class AppEnvironment: ObservableObject {
 
     private func handleHotkeyPress() {
         hotkeyPressedAt = .now
+        guard effectiveTranslationHotkey != nil, settings.translationEnabled else {
+            performMainHotkeyPress()
+            return
+        }
+
+        cancelPendingMainHotkey(resetPressTime: false)
+        mainHotkeyActivationPending = true
+        pendingMainHotkeyTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .milliseconds(140))
+            } catch {
+                return
+            }
+            guard let self else { return }
+            self.mainHotkeyActivationPending = false
+            self.pendingMainHotkeyTask = nil
+            self.performMainHotkeyPress()
+        }
+    }
+
+    private func performMainHotkeyPress() {
         switch settings.hotkeyBehavior {
         case .toggle:
             dictation.phase.isActive ? stopDictation() : startDictation(translation: false)
@@ -394,6 +366,15 @@ final class AppEnvironment: ObservableObject {
     }
 
     private func handleHotkeyRelease() {
+        let shouldCompletePendingPress = mainHotkeyActivationPending
+        cancelPendingMainHotkey(resetPressTime: false)
+        if shouldCompletePendingPress {
+            performMainHotkeyPress()
+        }
+        performMainHotkeyRelease()
+    }
+
+    private func performMainHotkeyRelease() {
         defer { hotkeyPressedAt = nil }
         guard activeActivation == .main else { return }
         switch settings.hotkeyBehavior {
@@ -410,8 +391,10 @@ final class AppEnvironment: ObservableObject {
     }
 
     private func handleTranslationHotkeyPress() {
-        guard settings.translationEnabled, !settings.translationDictationKey.isEmpty,
+        guard settings.translationEnabled, effectiveTranslationHotkey != nil,
+              hotkeyPressedAt != nil,
               let coordinator else { return }
+        cancelPendingMainHotkey(resetPressTime: false)
         if dictation.phase.isActive, activeActivation == .translation {
             stopDictation()
             return
@@ -430,15 +413,64 @@ final class AppEnvironment: ObservableObject {
     }
 
     private func updateTranslationHotkey() {
-        let key = settings.translationDictationKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard permissions.accessibility,
               settings.translationEnabled,
-              !key.isEmpty,
-              key != settings.dictationKey else {
+              let key = effectiveTranslationHotkey else {
             translationHotkey.stop()
             return
         }
         try? translationHotkey.update(key: key)
+    }
+
+    nonisolated static func shouldCancelForEscape(keyCode: UInt16, enabled: Bool, isActive: Bool) -> Bool {
+        keyCode == 53 && enabled && isActive
+    }
+
+    private func updateEscapeMonitors() {
+        stopEscapeMonitors()
+        if let local = NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
+            let keyCode = event.keyCode
+            Task { @MainActor in self?.handleEscape(keyCode) }
+            return event
+        }) {
+            escapeMonitors.append(local)
+        }
+        guard permissions.accessibility,
+              let global = NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
+                  let keyCode = event.keyCode
+                  Task { @MainActor in self?.handleEscape(keyCode) }
+              }) else { return }
+        escapeMonitors.append(global)
+    }
+
+    private func stopEscapeMonitors() {
+        escapeMonitors.forEach(NSEvent.removeMonitor)
+        escapeMonitors.removeAll()
+    }
+
+    private func handleEscape(_ keyCode: UInt16) {
+        guard Self.shouldCancelForEscape(
+            keyCode: keyCode,
+            enabled: settings.escapeCancelsRecording,
+            isActive: dictation.phase.isActive
+        ) else { return }
+        cancelPendingMainHotkey()
+        Task { await logger?.write(.debug, "Escape cancellation requested") }
+        cancelDictation()
+    }
+
+    private var effectiveTranslationHotkey: String? {
+        TranslationHotkey.combination(
+            dictationKey: settings.dictationKey,
+            suffix: settings.translationHotkeySuffix
+        )
+    }
+
+    private func cancelPendingMainHotkey(resetPressTime: Bool = true) {
+        pendingMainHotkeyTask?.cancel()
+        pendingMainHotkeyTask = nil
+        mainHotkeyActivationPending = false
+        if resetPressTime { hotkeyPressedAt = nil }
     }
 
     private func registerLifecycleObservers() {
@@ -471,6 +503,7 @@ final class AppEnvironment: ObservableObject {
     }
 
     private func prepareForSleep() async {
+        cancelPendingMainHotkey()
         hotkey.stop()
         translationHotkey.stop()
         hotkeyPressedAt = nil

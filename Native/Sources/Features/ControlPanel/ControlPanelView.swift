@@ -88,18 +88,10 @@ struct ControlPanelView: View {
         ControlPanelSection.resolve(storedSelection)
     }
 
-    private var selection: Binding<ControlPanelSection?> {
-        Binding(
-            get: { selectedSection },
-            set: { storedSelection = ($0 ?? .usage).rawValue }
-        )
-    }
-
     private var sidebar: some View {
         VStack(spacing: 0) {
             HStack(spacing: 9) {
-                Image(systemName: "waveform")
-                    .font(.system(size: 17, weight: .semibold))
+                MouthpieceBrandIcon(size: 18)
                 Text("Mouthpiece")
                     .font(.headline)
                 Spacer()
@@ -108,22 +100,46 @@ struct ControlPanelView: View {
             .padding(.top, 14)
             .padding(.bottom, 8)
 
-            List(ControlPanelSection.allCases, selection: selection) { section in
-                Label {
-                    Text(section.title)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
-                } icon: {
-                    Image(systemName: section.icon)
+            ScrollView {
+                VStack(spacing: 3) {
+                    ForEach(ControlPanelSection.allCases) { section in
+                        Button {
+                            withAnimation(.easeOut(duration: 0.16)) {
+                                storedSelection = section.rawValue
+                            }
+                        } label: {
+                            SidebarNavigationRow(
+                                section: section,
+                                isSelected: section == selectedSection
+                            )
+                        }
+                        .buttonStyle(SidebarNavigationButtonStyle())
+                        .help(section.title)
+                        .accessibilityAddTraits(section == selectedSection ? .isSelected : [])
+                        .onMoveCommand(perform: moveSelection)
+                    }
                 }
-                    .tag(section)
-                    .help(section.title)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
             }
-            .listStyle(.sidebar)
-            .scrollContentBackground(.hidden)
         }
         .background(SidebarGlassBackground())
         .navigationSplitViewColumnWidth(min: 188, ideal: 196, max: 204)
+    }
+
+    private func moveSelection(_ direction: MoveCommandDirection) {
+        let sections = ControlPanelSection.allCases
+        guard let index = sections.firstIndex(of: selectedSection) else { return }
+        let nextIndex: Int
+        switch direction {
+        case .up:
+            nextIndex = max(sections.startIndex, index - 1)
+        case .down:
+            nextIndex = min(sections.index(before: sections.endIndex), index + 1)
+        default:
+            return
+        }
+        storedSelection = sections[nextIndex].rawValue
     }
 
     @ViewBuilder
@@ -136,6 +152,81 @@ struct ControlPanelView: View {
         case .history: HistoryView()
         case .privacy: PrivacyDiagnosticsView()
         }
+    }
+}
+
+private struct SidebarNavigationRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let section: ControlPanelSection
+    let isSelected: Bool
+
+    @State private var isHovered = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: section.icon)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                .scaleEffect(isSelected ? 1.06 : 1)
+                .frame(width: 18)
+            Text(section.title)
+                .font(.body.weight(isSelected ? .semibold : .regular))
+                .foregroundStyle(isSelected ? Color.primary : Color.primary.opacity(0.78))
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+            Spacer(minLength: 4)
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 34)
+        .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .background {
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(backgroundGradient)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .stroke(
+                    isSelected ? Color.accentColor.opacity(colorScheme == .dark ? 0.28 : 0.2) : .clear,
+                    lineWidth: 0.5
+                )
+        }
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.12)) {
+                isHovered = hovering
+            }
+        }
+        .animation(.easeOut(duration: 0.16), value: isSelected)
+    }
+
+    private var backgroundGradient: LinearGradient {
+        let leadingOpacity: Double
+        let trailingOpacity: Double
+        if isSelected {
+            leadingOpacity = colorScheme == .dark ? 0.2 : 0.16
+            trailingOpacity = colorScheme == .dark ? 0.11 : 0.08
+        } else if isHovered {
+            leadingOpacity = colorScheme == .dark ? 0.08 : 0.055
+            trailingOpacity = colorScheme == .dark ? 0.04 : 0.025
+        } else {
+            leadingOpacity = 0
+            trailingOpacity = 0
+        }
+        return LinearGradient(
+            colors: [
+                Color.accentColor.opacity(leadingOpacity),
+                Color.accentColor.opacity(trailingOpacity),
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+}
+
+private struct SidebarNavigationButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.78 : 1)
     }
 }
 
