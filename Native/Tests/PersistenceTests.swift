@@ -75,6 +75,47 @@ final class PersistenceTests: XCTestCase {
     }
 
     @MainActor
+    func testTerminologyNormalizationHandlesDuplicateTrimmedKeys() throws {
+        let suite = "MouthpieceTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let repository = SettingsRepository(defaults: defaults)
+        var settings = AppSettings()
+        settings.terminologyProfile.replacementRules = [
+            " Mouthpiece ": "fallback",
+            "Mouthpiece": "preferred",
+        ]
+
+        try repository.save(settings)
+
+        XCTAssertEqual(
+            repository.load().terminologyProfile.replacementRules,
+            ["Mouthpiece": "preferred"]
+        )
+    }
+
+    @MainActor
+    func testLegacyTerminologyMigrationHandlesDuplicateMappings() throws {
+        let suite = "MouthpieceTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let repository = SettingsRepository(defaults: defaults)
+        let profile = """
+            {"homophoneMappings":[
+              {"source":"嘴替","target":"Mouthpiece Legacy"},
+              {"source":"嘴替","target":"Mouthpiece"}
+            ]}
+            """
+
+        try repository.importLegacyValues(["terminologyProfile": profile])
+
+        XCTAssertEqual(
+            repository.load().terminologyProfile.replacementRules,
+            ["嘴替": "Mouthpiece"]
+        )
+    }
+
+    @MainActor
     func testOlderSettingsKeepExistingTranscriptionDeliveryDefaults() throws {
         let suite = "MouthpieceTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

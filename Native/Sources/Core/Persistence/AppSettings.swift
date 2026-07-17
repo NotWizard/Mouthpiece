@@ -33,13 +33,20 @@ struct TerminologyProfile: Codable, Equatable, Sendable {
     mutating func normalize() {
         preferredTerms = Self.uniqueTrimmed(preferredTerms)
         avoidedTerms = Self.uniqueTrimmed(avoidedTerms)
-        replacementRules = Dictionary(
-            uniqueKeysWithValues: replacementRules.compactMap { key, value in
-                let cleanKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
-                let cleanValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
-                return cleanKey.isEmpty || cleanValue.isEmpty ? nil : (cleanKey, cleanValue)
-            }
-        )
+        var normalizedRules: [String: String] = [:]
+        let sortedRules = replacementRules.sorted { left, right in
+            let leftIsTrimmed = left.key == left.key.trimmingCharacters(in: .whitespacesAndNewlines)
+            let rightIsTrimmed = right.key == right.key.trimmingCharacters(in: .whitespacesAndNewlines)
+            if leftIsTrimmed != rightIsTrimmed { return leftIsTrimmed }
+            return left.key.localizedStandardCompare(right.key) == .orderedAscending
+        }
+        for (key, value) in sortedRules {
+            let cleanKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
+            let cleanValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleanKey.isEmpty, !cleanValue.isEmpty, normalizedRules[cleanKey] == nil else { continue }
+            normalizedRules[cleanKey] = cleanValue
+        }
+        replacementRules = normalizedRules
     }
 
     private static func uniqueTrimmed(_ values: [String]) -> [String] {

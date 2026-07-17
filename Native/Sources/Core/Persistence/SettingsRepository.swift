@@ -198,12 +198,13 @@ final class SettingsRepository {
             + (object["glossaryTerms"] as? [String] ?? [])
         let avoided = object["blacklistedTerms"] as? [String] ?? []
         let mappings = object["homophoneMappings"] as? [[String: Any]] ?? []
-        let replacements: [String: String] = Dictionary(uniqueKeysWithValues: mappings.compactMap { item -> (String, String)? in
+        var replacements: [String: String] = [:]
+        for item in mappings {
             guard let source = item["source"] as? String,
                   let target = item["target"] as? String,
-                  !source.isEmpty, !target.isEmpty else { return nil }
-            return (source, target)
-        })
+                  !source.isEmpty, !target.isEmpty else { continue }
+            replacements[source] = target
+        }
         var profile = TerminologyProfile(
             preferredTerms: preferred,
             avoidedTerms: avoided,

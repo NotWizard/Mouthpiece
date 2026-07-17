@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Prevented duplicate legacy terminology mappings, including keys that differ only by surrounding whitespace, from crashing settings migration or normalization.
+
 ### Added
 
 - Added independent controls for automatically inserting completed transcripts and retaining them in the system clipboard.
