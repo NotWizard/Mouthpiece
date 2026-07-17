@@ -1,6 +1,6 @@
 import AppKit
 import AVFoundation
-import ApplicationServices
+@preconcurrency import ApplicationServices
 import SwiftUI
 
 struct PermissionSnapshot: Equatable, Sendable {
@@ -37,6 +37,8 @@ final class PermissionService {
             onGranted()
             return
         }
+        let promptKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+        _ = AXIsProcessTrustedWithOptions([promptKey: true] as CFDictionary)
         openAccessibilitySettings()
         accessibilityGuide.show(
             language: language,
@@ -96,14 +98,19 @@ private final class AccessibilityPermissionGuideController {
             close: { [weak self] in self?.hide() }
         ))
         lastSettingsFrame = nil
-        updatePositionFromSystemSettings()
-        panel.orderFrontRegardless()
+        panel.orderOut(nil)
+        if updatePositionFromSystemSettings() {
+            panel.orderFrontRegardless()
+        }
 
         monitorTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(500))
+                try? await Task.sleep(for: .milliseconds(200))
                 guard !Task.isCancelled else { return }
-                self?.updatePositionFromSystemSettings()
+                if self?.updatePositionFromSystemSettings() == true,
+                   self?.panel.isVisible == false {
+                    self?.panel.orderFrontRegardless()
+                }
                 if AXIsProcessTrusted() {
                     onGranted()
                     self?.hide()
@@ -120,11 +127,13 @@ private final class AccessibilityPermissionGuideController {
         panel.orderOut(nil)
     }
 
-    private func updatePositionFromSystemSettings() {
-        guard let settingsFrame = Self.systemSettingsWindowFrame(),
-              settingsFrame != lastSettingsFrame else { return }
+    @discardableResult
+    private func updatePositionFromSystemSettings() -> Bool {
+        guard let settingsFrame = Self.systemSettingsWindowFrame() else { return false }
+        guard settingsFrame != lastSettingsFrame else { return true }
         lastSettingsFrame = settingsFrame
         positionPanel(nextTo: settingsFrame)
+        return true
     }
 
     private func positionPanel(nextTo settingsFrame: NSRect) {
@@ -143,20 +152,15 @@ private final class AccessibilityPermissionGuideController {
     }
 
     private static func systemSettingsWindowFrame() -> NSRect? {
-        let windows = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] ?? []
-        for window in windows {
-            guard (window[kCGWindowLayer as String] as? Int) == 0,
-                  let pid = window[kCGWindowOwnerPID as String] as? Int32,
-                  let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier,
-                  bundleID == "com.apple.settings.PrivacySecurity.extension"
-                    || bundleID == "com.apple.systempreferences",
-                  let bounds = window[kCGWindowBounds as String] as? [String: Any],
-                  let cgFrame = CGRect(dictionaryRepresentation: bounds as CFDictionary),
-                  cgFrame.width > 300,
-                  cgFrame.height > 300 else { continue }
-            return appKitFrame(for: cgFrame)
-        }
-        return nil
+        let windows = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID)
+            as? [[String: Any]] ?? []
+        guard let cgFrame = SystemSettingsWindowLocator.frame(
+            from: windows,
+            bundleIdentifierForPID: { pid in
+                NSRunningApplication(processIdentifier: pid)?.bundleIdentifier
+            }
+        ) else { return nil }
+        return appKitFrame(for: cgFrame)
     }
 
     private static func appKitFrame(for cgFrame: CGRect) -> NSRect? {
@@ -172,6 +176,32 @@ private final class AccessibilityPermissionGuideController {
                 width: cgFrame.width,
                 height: cgFrame.height
             )
+        }
+        return nil
+    }
+}
+
+enum SystemSettingsWindowLocator {
+    private static let bundleIdentifiers = [
+        "com.apple.settings.PrivacySecurity.extension",
+        "com.apple.systempreferences",
+    ]
+
+    static func frame(
+        from windows: [[String: Any]],
+        bundleIdentifierForPID: (pid_t) -> String?
+    ) -> CGRect? {
+        for window in windows {
+            guard (window[kCGWindowLayer as String] as? Int) == 0,
+                  (window[kCGWindowIsOnscreen as String] as? Bool) != false,
+                  let pid = window[kCGWindowOwnerPID as String] as? pid_t,
+                  let bundleIdentifier = bundleIdentifierForPID(pid),
+                  bundleIdentifiers.contains(bundleIdentifier),
+                  let bounds = window[kCGWindowBounds as String] as? [String: Any],
+                  let frame = CGRect(dictionaryRepresentation: bounds as CFDictionary),
+                  frame.width > 300,
+                  frame.height > 300 else { continue }
+            return frame
         }
         return nil
     }
@@ -215,7 +245,7 @@ private struct AccessibilityPermissionGuideView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Image(systemName: "hand.draw")
+                Image(systemName: "togglepower")
                     .font(.system(size: 18))
                     .foregroundStyle(.tint)
             }
@@ -225,7 +255,6 @@ private struct AccessibilityPermissionGuideView: View {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .stroke(.tint.opacity(0.35), lineWidth: 1)
             )
-            .overlay(AppBundleDragSource(appURL: appURL))
 
             HStack {
                 Text(localized("permissions.guide.waiting"))
@@ -246,55 +275,5 @@ private struct AccessibilityPermissionGuideView: View {
 
     private func localized(_ key: String) -> String {
         AppLocalization.string(key, language: language)
-    }
-}
-
-private struct AppBundleDragSource: NSViewRepresentable {
-    let appURL: URL
-
-    func makeNSView(context: Context) -> AppBundleDragSourceView {
-        AppBundleDragSourceView(appURL: appURL)
-    }
-
-    func updateNSView(_ nsView: AppBundleDragSourceView, context: Context) {
-        nsView.appURL = appURL
-    }
-}
-
-private final class AppBundleDragSourceView: NSView, NSDraggingSource {
-    var appURL: URL
-
-    init(appURL: URL) {
-        self.appURL = appURL
-        super.init(frame: .zero)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-
-    override func resetCursorRects() {
-        addCursorRect(bounds, cursor: .openHand)
-    }
-
-    override func mouseDragged(with event: NSEvent) {
-        let icon = NSWorkspace.shared.icon(forFile: appURL.path)
-        let point = convert(event.locationInWindow, from: nil)
-        let item = NSDraggingItem(pasteboardWriter: appURL as NSURL)
-        item.setDraggingFrame(
-            NSRect(x: point.x - 24, y: point.y - 24, width: 48, height: 48),
-            contents: icon
-        )
-        beginDraggingSession(with: [item], event: event, source: self)
-    }
-
-    func draggingSession(
-        _ session: NSDraggingSession,
-        sourceOperationMaskFor context: NSDraggingContext
-    ) -> NSDragOperation {
-        .copy
     }
 }

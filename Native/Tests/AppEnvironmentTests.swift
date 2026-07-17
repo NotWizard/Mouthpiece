@@ -94,6 +94,31 @@ final class AppEnvironmentTests: XCTestCase {
         )
     }
 
+    func testSystemSettingsWindowLocatorIgnoresHiddenWindows() {
+        func window(pid: pid_t, frame: CGRect, isOnscreen: Bool) -> [String: Any] {
+            [
+                kCGWindowLayer as String: 0,
+                kCGWindowOwnerPID as String: pid,
+                kCGWindowIsOnscreen as String: isOnscreen,
+                kCGWindowBounds as String: frame.dictionaryRepresentation,
+            ]
+        }
+
+        let hidden = CGRect(x: 10, y: 10, width: 900, height: 700)
+        let visible = CGRect(x: 1920, y: 40, width: 820, height: 640)
+        let result = SystemSettingsWindowLocator.frame(
+            from: [
+                window(pid: 1, frame: hidden, isOnscreen: false),
+                window(pid: 2, frame: visible, isOnscreen: true),
+            ],
+            bundleIdentifierForPID: { pid in
+                pid == 1 || pid == 2 ? "com.apple.systempreferences" : nil
+            }
+        )
+
+        XCTAssertEqual(result, visible)
+    }
+
     func testTranslationHotkeyCombinesModifierOnlyDictationWithSuffix() {
         XCTAssertEqual(
             TranslationHotkey.combination(dictationKey: "RightCommand", suffix: ","),

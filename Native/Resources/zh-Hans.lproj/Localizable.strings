@@ -95,8 +95,8 @@
 "permissions.allow" = "授权";
 "permissions.openSettings" = "打开系统设置";
 "permissions.guide.title" = "授权辅助功能";
-"permissions.guide.subtitle" = "将 Mouthpiece 拖入系统设置的辅助功能应用列表，然后打开权限开关。";
-"permissions.guide.drag" = "拖动到辅助功能列表";
+"permissions.guide.subtitle" = "在系统设置的辅助功能应用列表中找到 Mouthpiece，然后打开权限开关。";
+"permissions.guide.drag" = "打开辅助功能权限开关";
 "permissions.guide.waiting" = "正在等待系统授权…";
 "permissions.microphone.detail" = "只在听写会话进行时录音。";
 "permissions.accessibility.detail" = "将转录结果写入当前使用的应用。";

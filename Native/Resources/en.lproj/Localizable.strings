@@ -95,8 +95,8 @@
 "permissions.allow" = "Allow";
 "permissions.openSettings" = "Open System Settings";
 "permissions.guide.title" = "Allow Accessibility Access";
-"permissions.guide.subtitle" = "Drag Mouthpiece into the Accessibility app list in System Settings, then enable it.";
-"permissions.guide.drag" = "Drag to the Accessibility list";
+"permissions.guide.subtitle" = "Find Mouthpiece in the Accessibility app list in System Settings, then enable it.";
+"permissions.guide.drag" = "Turn on the Accessibility switch";
 "permissions.guide.waiting" = "Waiting for system authorization…";
 "permissions.microphone.detail" = "Records only while a dictation session is active.";
 "permissions.accessibility.detail" = "Inserts the transcript into the app you are using.";

@@ -95,8 +95,8 @@
 "permissions.allow" = "授權";
 "permissions.openSettings" = "開啟系統設定";
 "permissions.guide.title" = "授權輔助使用";
-"permissions.guide.subtitle" = "將 Mouthpiece 拖入系統設定的輔助使用 App 列表，然後開啟權限。";
-"permissions.guide.drag" = "拖到輔助使用列表";
+"permissions.guide.subtitle" = "在系統設定的輔助使用 App 列表中找到 Mouthpiece，然後開啟權限。";
+"permissions.guide.drag" = "開啟輔助使用權限開關";
 "permissions.guide.waiting" = "正在等待系統授權…";
 "permissions.microphone.detail" = "只在聽寫工作階段進行時錄音。";
 "permissions.accessibility.detail" = "將轉錄結果寫入目前使用的應用程式。";
