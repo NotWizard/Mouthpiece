@@ -143,6 +143,7 @@ actor LocalModelRuntime {
         for segment in segments where Self.rms(ofPCM16: segment) >= 0.001 {
             let task = session.webSocketTask(with: URL(string: "ws://127.0.0.1:\(server.port)")!)
             task.resume()
+            defer { task.cancel(with: .normalClosure, reason: nil) }
             var message = Data()
             message.appendLittleEndian(Int32(16_000))
             let floatSamples = Self.float32Samples(fromPCM16: segment)
@@ -157,7 +158,6 @@ actor LocalModelRuntime {
             @unknown default: text = ""
             }
             try await task.send(.string("Done"))
-            task.cancel(with: .normalClosure, reason: nil)
             results.append(Self.transcript(from: Data(text.utf8)))
         }
         return results.filter { !$0.isEmpty }.joined(separator: " ")

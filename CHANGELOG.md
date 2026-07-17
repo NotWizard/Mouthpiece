@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Closed each Parakeet transcription WebSocket on send, receive, and completion paths instead of leaking failed segment connections.
 - Closed Bailian WebSockets when warmup, connection, or reconnection handshakes time out or fail before configuration completes.
 - Cancelled partially opened realtime provider sessions when connection setup fails before switching to batch transcription fallback.
 - Restored an originally empty clipboard after automatic paste when transcript retention is disabled, instead of leaving the temporary transcript behind.
