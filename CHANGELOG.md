@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Positioned the recording capsule on the display containing the target application's front visible window, with mouse-screen fallback when no window can be resolved.
 - Continued deleting uploaded Soniox files and transcription jobs in an independent bounded cleanup task after the parent transcription is cancelled.
 - Treated launch-at-login approval as an already registered state, avoiding repeated denied registrations and unregistering it correctly when the setting is disabled.
 - Retained pending media-resume state when playback restoration fails or cannot be confirmed, allowing later session cleanup to retry instead of leaving media paused indefinitely.

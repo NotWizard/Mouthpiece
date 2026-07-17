@@ -70,6 +70,7 @@ final class CapsuleController {
     let model = CapsuleViewModel()
     private let panel: NSPanel
     private var observers: [NSObjectProtocol] = []
+    private var targetProcessIdentifier: pid_t?
 
     init() {
         panel = NSPanel(
@@ -137,6 +138,7 @@ final class CapsuleController {
     }
 
     func setTarget(processIdentifier: pid_t?, applicationName: String?) {
+        targetProcessIdentifier = processIdentifier
         model.setTarget(processIdentifier: processIdentifier, applicationName: applicationName)
     }
 
@@ -154,7 +156,8 @@ final class CapsuleController {
 
     private func reposition() {
         let mouse = NSEvent.mouseLocation
-        let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) })
+        let screen = targetProcessIdentifier.flatMap(Self.screenContainingFrontWindow)
+            ?? NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) })
             ?? NSScreen.main
             ?? NSScreen.screens.first
         guard let visible = screen?.visibleFrame else { return }
@@ -163,6 +166,54 @@ final class CapsuleController {
             y: visible.minY + 18
         )
         panel.setFrameOrigin(origin)
+    }
+
+    private static func screenContainingFrontWindow(processIdentifier: pid_t) -> NSScreen? {
+        let windows = CGWindowListCopyWindowInfo(
+            [.optionOnScreenOnly, .excludeDesktopElements],
+            kCGNullWindowID
+        ) as? [[String: Any]] ?? []
+        guard let windowFrame = CapsuleTargetWindowLocator.frame(
+            processIdentifier: processIdentifier,
+            windows: windows
+        ) else { return nil }
+
+        return NSScreen.screens.max { lhs, rhs in
+            intersectionArea(of: windowFrame, with: displayFrame(for: lhs))
+                < intersectionArea(of: windowFrame, with: displayFrame(for: rhs))
+        }.flatMap { screen in
+            intersectionArea(of: windowFrame, with: displayFrame(for: screen)) > 0 ? screen : nil
+        }
+    }
+
+    private static func displayFrame(for screen: NSScreen) -> CGRect {
+        guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
+            return .null
+        }
+        return CGDisplayBounds(CGDirectDisplayID(number.uint32Value))
+    }
+
+    private static func intersectionArea(of lhs: CGRect, with rhs: CGRect) -> CGFloat {
+        guard !rhs.isNull else { return 0 }
+        let intersection = lhs.intersection(rhs)
+        return intersection.isNull ? 0 : intersection.width * intersection.height
+    }
+}
+
+enum CapsuleTargetWindowLocator {
+    static func frame(processIdentifier: pid_t, windows: [[String: Any]]) -> CGRect? {
+        for window in windows {
+            guard (window[kCGWindowLayer as String] as? Int) == 0,
+                  (window[kCGWindowIsOnscreen as String] as? Bool) != false,
+                  (window[kCGWindowOwnerPID as String] as? pid_t) == processIdentifier,
+                  (window[kCGWindowAlpha as String] as? Double ?? 1) > 0,
+                  let bounds = window[kCGWindowBounds as String] as? [String: Any],
+                  let frame = CGRect(dictionaryRepresentation: bounds as CFDictionary),
+                  frame.width > 1,
+                  frame.height > 1 else { continue }
+            return frame
+        }
+        return nil
     }
 }
 

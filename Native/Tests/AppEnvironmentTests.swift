@@ -192,6 +192,31 @@ final class AppEnvironmentTests: XCTestCase {
         XCTAssertEqual(result, visible)
     }
 
+    func testCapsuleTargetWindowLocatorUsesVisibleWindowForTargetProcess() {
+        func window(pid: pid_t, frame: CGRect, isOnscreen: Bool, alpha: Double = 1) -> [String: Any] {
+            [
+                kCGWindowLayer as String: 0,
+                kCGWindowOwnerPID as String: pid,
+                kCGWindowIsOnscreen as String: isOnscreen,
+                kCGWindowAlpha as String: alpha,
+                kCGWindowBounds as String: frame.dictionaryRepresentation,
+            ]
+        }
+
+        let target = CGRect(x: 1920, y: 50, width: 900, height: 700)
+        let result = CapsuleTargetWindowLocator.frame(
+            processIdentifier: 42,
+            windows: [
+                window(pid: 7, frame: CGRect(x: 0, y: 0, width: 800, height: 600), isOnscreen: true),
+                window(pid: 42, frame: CGRect(x: 0, y: 0, width: 800, height: 600), isOnscreen: false),
+                window(pid: 42, frame: CGRect(x: 0, y: 0, width: 800, height: 600), isOnscreen: true, alpha: 0),
+                window(pid: 42, frame: target, isOnscreen: true),
+            ]
+        )
+
+        XCTAssertEqual(result, target)
+    }
+
     func testTranslationHotkeyCombinesModifierOnlyDictationWithSuffix() {
         XCTAssertEqual(
             TranslationHotkey.combination(dictationKey: "RightCommand", suffix: ","),
