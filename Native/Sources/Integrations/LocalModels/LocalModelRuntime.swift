@@ -51,7 +51,7 @@ actor LocalModelRuntime {
     func status(provider: LocalTranscriptionProvider, model: String) -> LocalModelStatus {
         let binary = binaryURL(for: provider) != nil
         let modelURL = modelURL(for: provider, model: model)
-        let downloaded = modelIsValid(provider: provider, url: modelURL)
+        let downloaded = modelIsValid(provider: provider, model: model, url: modelURL)
         let running: Bool
         switch provider {
         case .whisper: running = whisper?.process.isRunning == true && whisper?.model == model
@@ -170,7 +170,7 @@ actor LocalModelRuntime {
             throw LocalModelRuntimeError.binaryMissing(binaryName(for: .whisper))
         }
         let modelURL = modelURL(for: .whisper, model: model)
-        guard modelIsValid(provider: .whisper, url: modelURL) else {
+        guard modelIsValid(provider: .whisper, model: model, url: modelURL) else {
             throw LocalModelRuntimeError.modelMissing(model)
         }
         let port = try availablePort(in: 8178...8199)
@@ -202,7 +202,7 @@ actor LocalModelRuntime {
             throw LocalModelRuntimeError.binaryMissing(binaryName(for: .parakeet))
         }
         let modelURL = modelURL(for: .parakeet, model: model)
-        guard modelIsValid(provider: .parakeet, url: modelURL) else {
+        guard modelIsValid(provider: .parakeet, model: model, url: modelURL) else {
             throw LocalModelRuntimeError.modelMissing(model)
         }
         let port = try availablePort(in: 6006...6029)
@@ -237,7 +237,7 @@ actor LocalModelRuntime {
             throw LocalModelRuntimeError.binaryMissing(binaryName(for: .qwen))
         }
         let modelURL = modelURL(for: .qwen, model: model)
-        guard modelIsValid(provider: .qwen, url: modelURL) else {
+        guard modelIsValid(provider: .qwen, model: model, url: modelURL) else {
             throw LocalModelRuntimeError.modelMissing(model)
         }
         let port = try availablePort(in: 6030...6059)
@@ -380,7 +380,7 @@ actor LocalModelRuntime {
 
     private func modelURL(for provider: LocalTranscriptionProvider, model: String) -> URL {
         let candidates = modelURLs(for: provider, model: model)
-        return candidates.first { modelIsValid(provider: provider, url: $0) } ?? candidates[0]
+        return candidates.first { modelIsValid(provider: provider, model: model, url: $0) } ?? candidates[0]
     }
 
     private func modelURLs(for provider: LocalTranscriptionProvider, model: String) -> [URL] {
@@ -401,19 +401,21 @@ actor LocalModelRuntime {
         }
     }
 
-    private func modelIsValid(provider: LocalTranscriptionProvider, url: URL) -> Bool {
+    private func modelIsValid(provider: LocalTranscriptionProvider, model: String, url: URL) -> Bool {
         switch provider {
         case .whisper:
-            return fileManager.fileExists(atPath: url.path)
+            guard let descriptor = LocalModelCatalog.descriptor(provider: .whisper, id: model) else {
+                return false
+            }
+            return LocalModelInstallationService.whisperModelIsComplete(
+                url,
+                expectedSizeBytes: descriptor.expectedSizeBytes,
+                fileManager: fileManager
+            )
         case .parakeet:
-            return ["tokens.txt", "encoder.int8.onnx", "decoder.int8.onnx", "joiner.int8.onnx"]
-                .allSatisfy { fileManager.fileExists(atPath: url.appendingPathComponent($0).path) }
+            return LocalModelInstallationService.parakeetModelIsComplete(url, fileManager: fileManager)
         case .qwen:
-            let root = url.deletingLastPathComponent().deletingLastPathComponent()
-            let marker = root
-                .appendingPathComponent(".mouthpiece", isDirectory: true)
-                .appendingPathComponent(url.lastPathComponent.replacingOccurrences(of: "models--Qwen--", with: "qwen3-asr-").lowercased() + ".json")
-            return fileManager.fileExists(atPath: url.path) || fileManager.fileExists(atPath: marker.path)
+            return LocalModelInstallationService.qwenCacheIsComplete(url, fileManager: fileManager)
         }
     }
 

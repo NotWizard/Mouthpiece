@@ -38,20 +38,65 @@ actor LocalModelInstallationService {
         guard let descriptor = LocalModelCatalog.descriptor(provider: provider, id: model) else { return false }
         switch provider {
         case .whisper:
-            return whisperURLs(descriptor).contains { fileManager.fileExists(atPath: $0.path) }
+            return whisperURLs(descriptor).contains {
+                Self.whisperModelIsComplete(
+                    $0,
+                    expectedSizeBytes: descriptor.expectedSizeBytes,
+                    fileManager: fileManager
+                )
+            }
         case .parakeet:
             return [AppPaths.parakeetModelsDirectory, AppPaths.legacyParakeetModelsDirectory].contains { root in
                 let directory = root.appendingPathComponent(model)
-                return requiredParakeetFiles.allSatisfy {
-                    fileManager.fileExists(atPath: directory.appendingPathComponent($0).path)
-                }
+                return Self.parakeetModelIsComplete(directory, fileManager: fileManager)
             }
         case .qwen:
             return [AppPaths.qwenASRModelsDirectory, AppPaths.legacyQwenASRModelsDirectory].contains { root in
                 let cache = qwenCacheURL(descriptor, root: root)
-                let marker = root.appendingPathComponent(".mouthpiece/\(model).json")
-                return fileManager.fileExists(atPath: cache.path) || fileManager.fileExists(atPath: marker.path)
+                return Self.qwenCacheIsComplete(cache, fileManager: fileManager)
             }
+        }
+    }
+
+    nonisolated static func whisperModelIsComplete(
+        _ url: URL,
+        expectedSizeBytes: Int64,
+        fileManager: FileManager = .default
+    ) -> Bool {
+        guard let attributes = try? fileManager.attributesOfItem(atPath: url.path),
+              let size = attributes[.size] as? NSNumber else { return false }
+        return size.int64Value >= expectedSizeBytes * 8 / 10
+    }
+
+    nonisolated static func parakeetModelIsComplete(
+        _ directory: URL,
+        fileManager: FileManager = .default
+    ) -> Bool {
+        requiredParakeetFiles.allSatisfy { filename in
+            let url = directory.appendingPathComponent(filename)
+            guard let attributes = try? fileManager.attributesOfItem(atPath: url.path),
+                  let size = attributes[.size] as? NSNumber else { return false }
+            return size.int64Value > 0
+        }
+    }
+
+    nonisolated static func qwenCacheIsComplete(
+        _ cache: URL,
+        fileManager: FileManager = .default
+    ) -> Bool {
+        let reference = cache.appendingPathComponent("refs/main")
+        guard let revision = try? String(contentsOf: reference, encoding: .utf8)
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+              !revision.isEmpty else { return false }
+        let snapshot = cache.appendingPathComponent("snapshots/\(revision)", isDirectory: true)
+        guard fileManager.fileExists(atPath: snapshot.appendingPathComponent("config.json").path),
+              let enumerator = fileManager.enumerator(at: snapshot, includingPropertiesForKeys: nil) else {
+            return false
+        }
+        let weightExtensions: Set<String> = ["safetensors", "bin", "npz"]
+        return enumerator.contains { item in
+            guard let url = item as? URL else { return false }
+            return weightExtensions.contains(url.pathExtension.lowercased())
         }
     }
 
@@ -98,11 +143,6 @@ actor LocalModelInstallationService {
         for target in targets where fileManager.fileExists(atPath: target.path) {
             try fileManager.removeItem(at: target)
         }
-        if provider == .qwen {
-            for root in [AppPaths.qwenASRModelsDirectory, AppPaths.legacyQwenASRModelsDirectory] {
-                try? fileManager.removeItem(at: root.appendingPathComponent(".mouthpiece/\(model).json"))
-            }
-        }
     }
 
     private func installWhisper(_ descriptor: LocalModelDescriptor) async throws {
@@ -140,7 +180,7 @@ actor LocalModelInstallationService {
             executable: URL(fileURLWithPath: "/usr/bin/tar"),
             arguments: ["-xjf", localArchive.path, "-C", staging.path]
         )
-        let extracted = try findDirectory(containing: requiredParakeetFiles, under: staging)
+        let extracted = try findDirectory(containing: Self.requiredParakeetFiles, under: staging)
         let destination = AppPaths.parakeetModelsDirectory.appendingPathComponent(descriptor.id)
         try? fileManager.removeItem(at: destination)
         try fileManager.moveItem(at: extracted, to: destination)
@@ -182,11 +222,9 @@ actor LocalModelInstallationService {
             environment: qwenEnvironment(),
             timeout: .seconds(1_800)
         )
-        let markerDirectory = AppPaths.qwenASRModelsDirectory.appendingPathComponent(".mouthpiece", isDirectory: true)
-        try fileManager.createDirectory(at: markerDirectory, withIntermediateDirectories: true)
-        let marker = markerDirectory.appendingPathComponent("\(descriptor.id).json")
-        try JSONSerialization.data(withJSONObject: ["model": descriptor.id, "remote": remoteModelID])
-            .write(to: marker, options: .atomic)
+        guard isInstalled(provider: .qwen, model: descriptor.id) else {
+            throw ModelInstallationError.invalidDownload
+        }
 #else
         throw ModelInstallationError.unsupported
 #endif
@@ -247,9 +285,8 @@ actor LocalModelInstallationService {
             .appendingPathComponent("models--\((descriptor.remoteModelID ?? "").replacingOccurrences(of: "/", with: "--"))", isDirectory: true)
     }
 
-    private var requiredParakeetFiles: [String] {
+    private nonisolated static let requiredParakeetFiles: [String] =
         ["tokens.txt", "encoder.int8.onnx", "decoder.int8.onnx", "joiner.int8.onnx"]
-    }
 
     private func findDirectory(containing files: [String], under root: URL) throws -> URL {
         guard let enumerator = fileManager.enumerator(

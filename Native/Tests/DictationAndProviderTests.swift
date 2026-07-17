@@ -2,6 +2,50 @@ import XCTest
 @testable import Mouthpiece
 
 final class DictationAndProviderTests: XCTestCase {
+    func testQwenCacheRequiresACompleteSnapshot() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Mouthpiece-Qwen-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(
+            at: root.appendingPathComponent("refs", isDirectory: true),
+            withIntermediateDirectories: true
+        )
+        XCTAssertFalse(LocalModelInstallationService.qwenCacheIsComplete(root))
+
+        try "revision-1".write(
+            to: root.appendingPathComponent("refs/main"),
+            atomically: true,
+            encoding: .utf8
+        )
+        let snapshot = root.appendingPathComponent("snapshots/revision-1", isDirectory: true)
+        try FileManager.default.createDirectory(at: snapshot, withIntermediateDirectories: true)
+        try Data("{}".utf8).write(to: snapshot.appendingPathComponent("config.json"))
+        XCTAssertFalse(LocalModelInstallationService.qwenCacheIsComplete(root))
+
+        try Data([0]).write(to: snapshot.appendingPathComponent("model.safetensors"))
+        XCTAssertTrue(LocalModelInstallationService.qwenCacheIsComplete(root))
+    }
+
+    func testLocalModelFilesMustContainExpectedData() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Mouthpiece-Local-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+
+        let whisper = root.appendingPathComponent("ggml-test.bin")
+        try Data(repeating: 0, count: 7).write(to: whisper)
+        XCTAssertFalse(LocalModelInstallationService.whisperModelIsComplete(whisper, expectedSizeBytes: 10))
+        try Data(repeating: 0, count: 8).write(to: whisper)
+        XCTAssertTrue(LocalModelInstallationService.whisperModelIsComplete(whisper, expectedSizeBytes: 10))
+
+        for filename in ["tokens.txt", "encoder.int8.onnx", "decoder.int8.onnx", "joiner.int8.onnx"] {
+            try Data([1]).write(to: root.appendingPathComponent(filename))
+        }
+        XCTAssertTrue(LocalModelInstallationService.parakeetModelIsComplete(root))
+        try Data().write(to: root.appendingPathComponent("decoder.int8.onnx"))
+        XCTAssertFalse(LocalModelInstallationService.parakeetModelIsComplete(root))
+    }
+
     override func tearDown() {
         ProviderStubURLProtocol.reset()
         super.tearDown()
