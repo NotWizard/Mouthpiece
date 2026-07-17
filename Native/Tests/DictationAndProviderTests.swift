@@ -184,6 +184,27 @@ final class DictationAndProviderTests: XCTestCase {
             }
         )
     }
+
+    func testProcessCommandTerminatesPromptlyWhenCancelled() async {
+        let clock = ContinuousClock()
+        let task = Task {
+            try await ProcessCommand.run(
+                executable: URL(fileURLWithPath: "/bin/sleep"),
+                arguments: ["10"],
+                timeout: .seconds(30)
+            )
+        }
+        try? await Task.sleep(for: .milliseconds(100))
+        let cancelledAt = clock.now
+
+        task.cancel()
+        do {
+            try await task.value
+            XCTFail("Expected the process command to be cancelled")
+        } catch {}
+
+        XCTAssertLessThan(cancelledAt.duration(to: clock.now), .seconds(2))
+    }
 }
 
 private final class ProviderStubURLProtocol: URLProtocol, @unchecked Sendable {

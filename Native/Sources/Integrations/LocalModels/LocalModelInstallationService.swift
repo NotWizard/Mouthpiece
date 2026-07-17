@@ -267,7 +267,7 @@ actor LocalModelInstallationService {
     }
 }
 
-private final class ProcessCommand: @unchecked Sendable {
+final class ProcessCommand: @unchecked Sendable {
     private let executable: URL
     private let arguments: [String]
     private let environment: [String: String]?
@@ -330,26 +330,33 @@ private final class ProcessCommand: @unchecked Sendable {
             try? outputHandle.close()
             throw error
         }
-        return try await withThrowingTaskGroup(of: String.self) { group in
-            group.addTask {
-                process.waitUntilExit()
-                try? outputHandle.close()
-                let data = (try? Data(contentsOf: outputURL)) ?? Data()
-                let output = String(decoding: data, as: UTF8.self)
-                guard process.terminationStatus == 0 else {
-                    let message = output.trimmingCharacters(in: .whitespacesAndNewlines)
-                    throw ModelInstallationError.commandFailed(message.isEmpty ? "Command failed." : message)
+        return try await withTaskCancellationHandler {
+            try await withThrowingTaskGroup(of: String.self) { group in
+                group.addTask {
+                    process.waitUntilExit()
+                    try? outputHandle.close()
+                    try Task.checkCancellation()
+                    let data = (try? Data(contentsOf: outputURL)) ?? Data()
+                    let output = String(decoding: data, as: UTF8.self)
+                    guard process.terminationStatus == 0 else {
+                        let message = output.trimmingCharacters(in: .whitespacesAndNewlines)
+                        throw ModelInstallationError.commandFailed(message.isEmpty ? "Command failed." : message)
+                    }
+                    return output
                 }
-                return output
+                group.addTask {
+                    try await Task.sleep(for: self.timeout)
+                    if process.isRunning { process.terminate() }
+                    throw ModelInstallationError.commandFailed("Command timed out.")
+                }
+                let result = try await group.next()!
+                group.cancelAll()
+                return result
             }
-            group.addTask {
-                try await Task.sleep(for: self.timeout)
-                if process.isRunning { process.terminate() }
-                throw ModelInstallationError.commandFailed("Command timed out.")
+        } onCancel: {
+            if process.isRunning {
+                process.terminate()
             }
-            let result = try await group.next()!
-            group.cancelAll()
-            return result
         }
     }
 }
