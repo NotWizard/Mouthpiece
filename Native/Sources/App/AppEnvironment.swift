@@ -24,6 +24,7 @@ final class AppEnvironment: ObservableObject {
     let capsule = CapsuleController()
     let hotkey = HotkeyService()
     let translationHotkey = HotkeyService(swallowMatchedEvents: true)
+    let escapeHotkey = HotkeyService(swallowMatchedEvents: true)
     let modelInstaller = LocalModelInstallationService()
     let updates = UpdateController()
 
@@ -192,7 +193,8 @@ final class AppEnvironment: ObservableObject {
         isShuttingDown = true
         hotkey.stop()
         translationHotkey.stop()
-        stopEscapeMonitor()
+        escapeHotkey.stop()
+        stopEscapeLocalMonitor()
         cancelPendingMainHotkey()
         hotkeyPressedAt = nil
         await dictionarySaveTask?.value
@@ -213,6 +215,8 @@ final class AppEnvironment: ObservableObject {
         cancelPendingMainHotkey()
         hotkey.stop()
         translationHotkey.stop()
+        escapeHotkey.stop()
+        stopEscapeLocalMonitor()
     }
 
     func resumeHotkeysAfterCapture() {
@@ -338,7 +342,7 @@ final class AppEnvironment: ObservableObject {
             self.coordinator = coordinator
             hotkey.onPress = { [weak self] in self?.handleHotkeyPress() }
             hotkey.onRelease = { [weak self] in self?.handleHotkeyRelease() }
-            hotkey.onEscape = { [weak self] in self?.handleEscape(53) }
+            escapeHotkey.onPress = { [weak self] in self?.handleEscape(53) }
             translationHotkey.onPress = { [weak self] in self?.handleTranslationHotkeyPress() }
             updateHotkeyRegistrations()
             applySystemSettings()
@@ -471,10 +475,10 @@ final class AppEnvironment: ObservableObject {
     }
 
     private func updateHotkeyRegistrations() {
+        updateEscapeHotkey()
         guard permissions.accessibility else {
             hotkey.stop()
             translationHotkey.stop()
-            updateEscapeMonitor()
             return
         }
 
@@ -484,11 +488,9 @@ final class AppEnvironment: ObservableObject {
             hotkey.stop()
             translationHotkey.stop()
             startupError = error.localizedDescription
-            updateEscapeMonitor()
             return
         }
         updateTranslationHotkey()
-        updateEscapeMonitor()
     }
 
     private func updateTranslationHotkey() {
@@ -510,9 +512,27 @@ final class AppEnvironment: ObservableObject {
         keyCode == 53 && enabled && isActive
     }
 
-    private func updateEscapeMonitor() {
-        stopEscapeMonitor()
-        guard !hotkey.isRunning else { return }
+    private func updateEscapeHotkey() {
+        stopEscapeLocalMonitor()
+        guard settings.escapeCancelsRecording else {
+            escapeHotkey.stop()
+            return
+        }
+        guard permissions.accessibility else {
+            escapeHotkey.stop()
+            installEscapeLocalMonitor()
+            return
+        }
+        do {
+            try escapeHotkey.update(key: "Escape")
+        } catch {
+            escapeHotkey.stop()
+            startupError = error.localizedDescription
+            installEscapeLocalMonitor()
+        }
+    }
+
+    private func installEscapeLocalMonitor() {
         escapeLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
             let keyCode = event.keyCode
             Task { @MainActor in self?.handleEscape(keyCode) }
@@ -520,7 +540,7 @@ final class AppEnvironment: ObservableObject {
         })
     }
 
-    private func stopEscapeMonitor() {
+    private func stopEscapeLocalMonitor() {
         guard let escapeLocalMonitor else { return }
         NSEvent.removeMonitor(escapeLocalMonitor)
         self.escapeLocalMonitor = nil
@@ -584,6 +604,8 @@ final class AppEnvironment: ObservableObject {
         cancelPendingMainHotkey()
         hotkey.stop()
         translationHotkey.stop()
+        escapeHotkey.stop()
+        stopEscapeLocalMonitor()
         hotkeyPressedAt = nil
         await coordinator?.shutdown()
     }

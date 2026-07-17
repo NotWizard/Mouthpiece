@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Made Escape cancellation use a dedicated global shortcut channel that is independent from dictation-hotkey registration, with an app-local fallback when global monitoring is unavailable.
 - Refined the compact dictation capsule hierarchy with the monochrome Mouthpiece mark, a denser full-width waveform, stronger quiet-speech response, and a more neutral adaptive glass surface.
 - Stopped truncated Whisper and Parakeet files or incomplete Qwen Hugging Face caches from being reported as installed local models.
 - Surfaced global hotkey registration failures and updated active shortcut descriptors without unnecessarily recreating their event taps.

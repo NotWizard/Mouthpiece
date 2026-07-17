@@ -51,6 +51,7 @@ struct HotkeyDescriptor: Equatable, Sendable {
 
     private static let keyCodes: [String: CGKeyCode] = [
         "space": 49, "return": 36, "enter": 36, "tab": 48,
+        "escape": 53, "esc": 53,
         "a": 0, "s": 1, "d": 2, "f": 3, "h": 4, "g": 5,
         "z": 6, "x": 7, "c": 8, "v": 9, "b": 11, "q": 12,
         "w": 13, "e": 14, "r": 15, "y": 16, "t": 17,
@@ -113,7 +114,6 @@ final class HotkeyService {
     private var pressed = false
     var onPress: (() -> Void)?
     var onRelease: (() -> Void)?
-    var onEscape: (() -> Void)?
 
     var isRunning: Bool { eventTap != nil }
 
@@ -184,9 +184,6 @@ final class HotkeyService {
             if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: true) }
             return
         }
-        if Self.isEscapeKeyDown(type: type, keyCode: keyCode) {
-            onEscape?()
-        }
         guard keyCode == descriptor.keyCode else { return }
         let relevantFlags: CGEventFlags = [.maskCommand, .maskAlternate, .maskControl, .maskShift, .maskSecondaryFn]
         if descriptor.modifierOnly {
@@ -198,10 +195,6 @@ final class HotkeyService {
         } else if type == .keyUp {
             setPressed(false)
         }
-    }
-
-    nonisolated static func isEscapeKeyDown(type: CGEventType, keyCode: CGKeyCode) -> Bool {
-        type == .keyDown && keyCode == 53
     }
 
     private nonisolated func matches(type: CGEventType, keyCode: CGKeyCode, flags: CGEventFlags) -> Bool {
