@@ -3,6 +3,13 @@ import XCTest
 @testable import Mouthpiece
 
 final class AudioTests: XCTestCase {
+    func testSelectedMicrophoneFailureHasActionableDescription() {
+        XCTAssertEqual(
+            AudioCaptureError.selectedInputUnavailable.errorDescription,
+            "The selected microphone is unavailable. Choose another input device."
+        )
+    }
+
     @MainActor
     func testAudioCuePresetsHaveUniqueLocalizedNames() {
         XCTAssertEqual(Set(AudioCueService.presets.map(\.id)).count, AudioCueService.presets.count)

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Failed explicitly when a user-selected microphone is unavailable instead of silently recording from a different input device.
 - Reported Keychain read and final auto-save failures instead of presenting inaccessible credentials as missing or silently discarding persistence errors.
 - Made Escape cancellation use a dedicated global shortcut channel that is independent from dictation-hotkey registration, with an app-local fallback when global monitoring is unavailable.
 - Refined the compact dictation capsule hierarchy with the monochrome Mouthpiece mark, a denser full-width waveform, stronger quiet-speech response, and a more neutral adaptive glass surface.

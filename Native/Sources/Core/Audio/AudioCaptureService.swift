@@ -12,6 +12,7 @@ struct AudioInputDevice: Identifiable, Equatable, Sendable {
 enum AudioCaptureError: LocalizedError {
     case permissionDenied
     case unavailableInput
+    case selectedInputUnavailable
     case converterCreationFailed
     case converterFailed(String)
 
@@ -19,6 +20,7 @@ enum AudioCaptureError: LocalizedError {
         switch self {
         case .permissionDenied: "Microphone permission is required."
         case .unavailableInput: "No microphone input is available."
+        case .selectedInputUnavailable: "The selected microphone is unavailable. Choose another input device."
         case .converterCreationFailed: "Unable to create the microphone audio converter."
         case .converterFailed(let message): "Audio conversion failed: \(message)"
         }
@@ -60,7 +62,11 @@ final class AudioCaptureService {
         }
         let input = engine.inputNode
         if let selectedDeviceUID, !selectedDeviceUID.isEmpty {
-            try? Self.selectInputDevice(uid: selectedDeviceUID, on: input)
+            do {
+                try Self.selectInputDevice(uid: selectedDeviceUID, on: input)
+            } catch {
+                throw AudioCaptureError.selectedInputUnavailable
+            }
         }
         let inputFormat = input.outputFormat(forBus: 0)
         guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
