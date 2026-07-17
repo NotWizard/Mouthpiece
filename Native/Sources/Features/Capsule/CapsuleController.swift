@@ -54,7 +54,7 @@ struct CapsuleLevelHistory: Equatable {
 
 private enum CapsuleLayout {
     static let width: CGFloat = 280
-    static let compactHeight: CGFloat = 78
+    static let compactHeight: CGFloat = 76
     static let transcriptHeight: CGFloat = 112
     static let errorHeight: CGFloat = 86
 
@@ -171,21 +171,21 @@ private struct CapsuleView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 9) {
             HStack(spacing: 6) {
                 applicationIcon(model.targetApplicationIcon, fallback: "app.fill")
-                    .frame(width: 18, height: 18)
+                    .frame(width: 17, height: 17)
                 Text(model.targetApplicationName)
-                    .font(.system(size: 12.5, weight: .semibold))
+                    .font(.system(size: 12.5, weight: .semibold, design: .rounded))
                     .lineLimit(1)
                     .layoutPriority(1)
 
                 Spacer(minLength: 10)
 
                 HStack(spacing: 5) {
-                    MouthpieceBrandIcon(size: 13)
+                    MouthpieceBrandIcon(size: 12)
                     Text("Mouthpiece")
-                        .font(.system(size: 11.5, weight: .medium))
+                        .font(.system(size: 11.5, weight: .medium, design: .rounded))
                         .lineLimit(1)
                 }
                 .foregroundStyle(.secondary)
@@ -215,29 +215,51 @@ private struct CapsuleView: View {
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.vertical, 9)
         .frame(
             width: CapsuleLayout.width,
             height: CapsuleLayout.height(for: model.snapshot)
         )
         .background {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(.regularMaterial)
+                .fill(.ultraThinMaterial)
                 .overlay {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(colorScheme == .dark ? Color.black.opacity(0.14) : Color.white.opacity(0.22))
+                        .fill(surfaceTint)
                 }
         }
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(
-                    model.snapshot.phase == .recording
-                        ? Color.accentColor.opacity(0.30)
-                        : Color.primary.opacity(0.14),
-                    lineWidth: 0.6
-                )
+                .strokeBorder(borderTint, lineWidth: 0.7)
         )
+        .shadow(color: shadowTint, radius: 14, y: 6)
         .animation(.easeInOut(duration: 0.18), value: CapsuleLayout.height(for: model.snapshot))
+    }
+
+    private var surfaceTint: LinearGradient {
+        let colors: [Color] = if colorScheme == .dark {
+            [Color(red: 0.08, green: 0.17, blue: 0.16).opacity(0.42), Color.black.opacity(0.18)]
+        } else {
+            [Color.white.opacity(0.34), Color(red: 0.77, green: 0.91, blue: 0.86).opacity(0.22)]
+        }
+        return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    private var borderTint: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color.primary.opacity(colorScheme == .dark ? 0.22 : 0.16),
+                model.snapshot.phase == .recording
+                    ? Color.accentColor.opacity(0.34)
+                    : Color.primary.opacity(0.10),
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var shadowTint: Color {
+        colorScheme == .dark ? Color.black.opacity(0.34) : Color.black.opacity(0.18)
     }
 
     private var statusText: String? {
@@ -302,17 +324,38 @@ private struct RollingTranscriptView: View {
 
 private struct CapsuleWaveform: View {
     let levels: [Float]
+    private let spacing: CGFloat = 3
 
     var body: some View {
-        HStack(alignment: .center, spacing: 3.25) {
-            ForEach(Array(levels.enumerated()), id: \.offset) { _, level in
-                Capsule()
-                    .fill(Color.primary.opacity(0.72))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 3.5 + CGFloat(level) * 12.5)
-                    .animation(.easeOut(duration: 0.12), value: level)
+        GeometryReader { geometry in
+            let barWidth = CapsuleWaveformLayout.barWidth(
+                totalWidth: geometry.size.width,
+                sampleCount: levels.count,
+                spacing: spacing
+            )
+            HStack(alignment: .center, spacing: spacing) {
+                ForEach(Array(levels.enumerated()), id: \.offset) { _, level in
+                    Capsule()
+                        .fill(Color.primary.opacity(0.72))
+                        .frame(width: barWidth, height: CapsuleWaveformLayout.barHeight(for: level))
+                        .animation(.easeOut(duration: 0.10), value: level)
+                }
             }
+            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
         }
-        .frame(maxWidth: .infinity, minHeight: 17, maxHeight: 17)
+        .frame(maxWidth: .infinity, minHeight: 19, maxHeight: 19)
+    }
+}
+
+enum CapsuleWaveformLayout {
+    static func barWidth(totalWidth: CGFloat, sampleCount: Int, spacing: CGFloat) -> CGFloat {
+        guard sampleCount > 0 else { return 0 }
+        let gaps = CGFloat(sampleCount - 1) * spacing
+        return max(2, (totalWidth - gaps) / CGFloat(sampleCount))
+    }
+
+    static func barHeight(for level: Float) -> CGFloat {
+        let clamped = CGFloat(min(max(level, 0), 1))
+        return 3.5 + pow(clamped, 0.72) * 15.5
     }
 }

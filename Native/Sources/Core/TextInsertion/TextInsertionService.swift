@@ -107,8 +107,25 @@ final class TextInsertionService {
 
     private func isExternalApplication(_ application: NSRunningApplication?) -> Bool {
         guard let application else { return false }
-        return application.processIdentifier != ProcessInfo.processInfo.processIdentifier
-            && !application.isTerminated
+        return Self.isExternalApplication(
+            processIdentifier: application.processIdentifier,
+            bundleIdentifier: application.bundleIdentifier,
+            currentProcessIdentifier: ProcessInfo.processInfo.processIdentifier,
+            currentBundleIdentifier: Bundle.main.bundleIdentifier,
+            isTerminated: application.isTerminated
+        )
+    }
+
+    nonisolated static func isExternalApplication(
+        processIdentifier: pid_t,
+        bundleIdentifier: String?,
+        currentProcessIdentifier: pid_t,
+        currentBundleIdentifier: String?,
+        isTerminated: Bool
+    ) -> Bool {
+        guard !isTerminated, processIdentifier != currentProcessIdentifier else { return false }
+        guard let currentBundleIdentifier else { return true }
+        return bundleIdentifier != currentBundleIdentifier
     }
 
     func insert(

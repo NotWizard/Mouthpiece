@@ -8,6 +8,23 @@ final class AppEnvironmentTests: XCTestCase {
         XCTAssertTrue(AppEnvironment(bootstrap: false).isReady)
     }
 
+    func testTextInsertionNeverTargetsAnotherMouthpieceProcess() {
+        XCTAssertFalse(TextInsertionService.isExternalApplication(
+            processIdentifier: 202,
+            bundleIdentifier: "com.mouthpiece.app",
+            currentProcessIdentifier: 101,
+            currentBundleIdentifier: "com.mouthpiece.app",
+            isTerminated: false
+        ))
+        XCTAssertTrue(TextInsertionService.isExternalApplication(
+            processIdentifier: 202,
+            bundleIdentifier: "com.apple.TextEdit",
+            currentProcessIdentifier: 101,
+            currentBundleIdentifier: "com.mouthpiece.app",
+            isTerminated: false
+        ))
+    }
+
     func testControlPanelNavigationRestoresKnownSectionAndFallsBackToUsage() {
         XCTAssertEqual(ControlPanelSection.resolve("history"), .history)
         XCTAssertEqual(ControlPanelSection.resolve("unknown"), .usage)

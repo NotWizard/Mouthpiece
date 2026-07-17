@@ -23,6 +23,14 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(history.samples, [0, 0, 0])
     }
 
+    func testCapsuleWaveformFillsAvailableWidthAndAmplifiesSpeech() {
+        let width = CapsuleWaveformLayout.barWidth(totalWidth: 252, sampleCount: 32, spacing: 3)
+        XCTAssertEqual(width * 32 + 31 * 3, 252, accuracy: 0.001)
+        XCTAssertEqual(CapsuleWaveformLayout.barHeight(for: 0), 3.5, accuracy: 0.001)
+        XCTAssertGreaterThan(CapsuleWaveformLayout.barHeight(for: 0.25), 8)
+        XCTAssertEqual(CapsuleWaveformLayout.barHeight(for: 1), 19, accuracy: 0.001)
+    }
+
     func testStateMachineRejectsStaleSessionEvents() throws {
         var machine = DictationStateMachine()
         let sessionID = UUID()
