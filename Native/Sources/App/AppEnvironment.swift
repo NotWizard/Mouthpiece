@@ -68,9 +68,7 @@ final class AppEnvironment: ObservableObject {
             try settingsRepository.save(next)
             settings = settingsRepository.load()
             Task { await logger?.setEnabled(settings.debugLoggingEnabled) }
-            try? hotkey.update(key: settings.dictationKey)
-            updateTranslationHotkey()
-            updateEscapeMonitor()
+            updateHotkeyRegistrations()
             applySystemSettings()
             refreshLocalModelStatus()
         } catch {
@@ -186,14 +184,7 @@ final class AppEnvironment: ObservableObject {
 
     func refreshPermissions() {
         permissions = permissionsService.current()
-        if permissions.accessibility {
-            try? hotkey.start(key: settings.dictationKey)
-            updateTranslationHotkey()
-        } else {
-            hotkey.stop()
-            translationHotkey.stop()
-        }
-        updateEscapeMonitor()
+        updateHotkeyRegistrations()
     }
 
     func shutdown() async {
@@ -225,10 +216,7 @@ final class AppEnvironment: ObservableObject {
     }
 
     func resumeHotkeysAfterCapture() {
-        guard permissions.accessibility else { return }
-        try? hotkey.start(key: settings.dictationKey)
-        updateTranslationHotkey()
-        updateEscapeMonitor()
+        updateHotkeyRegistrations()
     }
 
     func refreshLocalModelStatus() {
@@ -352,11 +340,7 @@ final class AppEnvironment: ObservableObject {
             hotkey.onRelease = { [weak self] in self?.handleHotkeyRelease() }
             hotkey.onEscape = { [weak self] in self?.handleEscape(53) }
             translationHotkey.onPress = { [weak self] in self?.handleTranslationHotkeyPress() }
-            if permissions.accessibility {
-                try? hotkey.start(key: settings.dictationKey)
-                updateTranslationHotkey()
-            }
-            updateEscapeMonitor()
+            updateHotkeyRegistrations()
             applySystemSettings()
             refreshLocalModelStatus()
             isReady = true
@@ -486,6 +470,27 @@ final class AppEnvironment: ObservableObject {
         }
     }
 
+    private func updateHotkeyRegistrations() {
+        guard permissions.accessibility else {
+            hotkey.stop()
+            translationHotkey.stop()
+            updateEscapeMonitor()
+            return
+        }
+
+        do {
+            try hotkey.update(key: settings.dictationKey)
+        } catch {
+            hotkey.stop()
+            translationHotkey.stop()
+            startupError = error.localizedDescription
+            updateEscapeMonitor()
+            return
+        }
+        updateTranslationHotkey()
+        updateEscapeMonitor()
+    }
+
     private func updateTranslationHotkey() {
         guard permissions.accessibility,
               settings.translationEnabled,
@@ -493,7 +498,12 @@ final class AppEnvironment: ObservableObject {
             translationHotkey.stop()
             return
         }
-        try? translationHotkey.update(key: key)
+        do {
+            try translationHotkey.update(key: key)
+        } catch {
+            translationHotkey.stop()
+            startupError = error.localizedDescription
+        }
     }
 
     nonisolated static func shouldCancelForEscape(keyCode: UInt16, enabled: Bool, isActive: Bool) -> Bool {

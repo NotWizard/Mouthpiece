@@ -148,7 +148,12 @@ final class HotkeyService {
     }
 
     func update(key: String) throws {
-        try start(key: key)
+        guard isRunning else {
+            try start(key: key)
+            return
+        }
+        descriptor = .parse(key)
+        pressed = false
     }
 
     func stop() {
