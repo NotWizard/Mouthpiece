@@ -80,7 +80,10 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         }
         self.configuration = configuration
         warmCreatedAt = nil
-        try await flushPendingAudio()
+        guard let socket else { throw CancellationError() }
+        let generation = self.generation
+        try await flushPendingAudio(over: socket, generation: generation)
+        try ensureCurrent(socket: socket, generation: generation)
         startReceiveLoop()
     }
 
@@ -101,14 +104,17 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         guard let socket, configured, socket.state == .running else {
             return resolvedText
         }
+        let generation = self.generation
         let payload: [String: Any] = [
             "event_id": UUID().uuidString,
             "type": "session.finish",
         ]
         try await sendJSON(payload, over: socket)
+        try ensureCurrent(socket: socket, generation: generation)
         let deadline = ContinuousClock.now + .seconds(5)
         while !sessionFinished && ContinuousClock.now < deadline {
             try await Task.sleep(for: .milliseconds(40))
+            try ensureCurrent(socket: socket, generation: generation)
         }
         let text = resolvedText
         await closeSocket()
@@ -129,16 +135,19 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         self.configuration = configuration
         self.configured = false
         generation += 1
+        let generation = self.generation
         socket.resume()
 
         do {
             let deadline = ContinuousClock.now + .seconds(30)
             while ContinuousClock.now < deadline {
                 let message = try await receive(socket: socket, timeout: .seconds(30))
+                try ensureCurrent(socket: socket, generation: generation)
                 guard let payload = BailianMessageParser.payload(from: message),
                       let type = payload["type"] as? String else { continue }
                 if type == "session.created" {
                     try await sendJSON(sessionUpdate(configuration), over: socket)
+                    try ensureCurrent(socket: socket, generation: generation)
                 } else if type == "session.updated" {
                     configured = true
                     return
@@ -148,7 +157,7 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
             }
             throw BailianRealtimeError.timedOut
         } catch {
-            if self.socket === socket { await closeSocket() }
+            if isCurrent(socket: socket, generation: generation) { await closeSocket() }
             throw error
         }
     }
@@ -167,6 +176,9 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         do {
             while !Task.isCancelled, expectedGeneration == generation {
                 let message = try await socket.receive()
+                guard isCurrent(socket: socket, generation: expectedGeneration), !Task.isCancelled else {
+                    return
+                }
                 guard let payload = BailianMessageParser.payload(from: message) else { continue }
                 handle(payload)
             }
@@ -239,8 +251,12 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         replayAudio.removeAll()
         replayAudioBytes = 0
         try await createConfiguredSocket(configuration)
+        guard let socket else { throw CancellationError() }
+        let generation = self.generation
         for frame in replay {
+            try ensureCurrent(socket: socket, generation: generation)
             try await send(pcm16: frame)
+            try ensureCurrent(socket: socket, generation: generation)
         }
         startReceiveLoop()
     }
@@ -259,11 +275,17 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         try await reconnectAndReplay()
     }
 
-    private func flushPendingAudio() async throws {
+    private func flushPendingAudio(
+        over socket: URLSessionWebSocketTask,
+        generation: Int
+    ) async throws {
         let frames = pendingAudio
         pendingAudio.removeAll()
         pendingAudioBytes = 0
-        for frame in frames { try await send(pcm16: frame) }
+        for frame in frames {
+            try ensureCurrent(socket: socket, generation: generation)
+            try await sendAudio(frame, over: socket)
+        }
     }
 
     private func appendBounded(_ data: Data, to frames: inout [Data], byteCount: inout Int) {
@@ -339,6 +361,16 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         socket = nil
         configured = false
         warmCreatedAt = nil
+    }
+
+    private func ensureCurrent(socket: URLSessionWebSocketTask, generation: Int) throws {
+        guard isCurrent(socket: socket, generation: generation), !Task.isCancelled else {
+            throw CancellationError()
+        }
+    }
+
+    private func isCurrent(socket: URLSessionWebSocketTask, generation: Int) -> Bool {
+        generation == self.generation && self.socket === socket
     }
 
     private func resetTranscript() {

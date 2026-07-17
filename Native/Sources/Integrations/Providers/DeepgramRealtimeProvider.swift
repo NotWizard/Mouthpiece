@@ -9,6 +9,7 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
     private var pendingBytes = 0
     private var finalSegments: [String] = []
     private var finished = false
+    private var generation = 0
 
     init(session: URLSession = .shared) { self.session = session }
 
@@ -26,6 +27,7 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
         eventHandler = onEvent
         finalSegments.removeAll()
         finished = false
+        let generation = self.generation
         var components = URLComponents(string: "wss://api.deepgram.com/v1/listen")!
         var query = [
             URLQueryItem(name: "encoding", value: "linear16"),
@@ -49,8 +51,10 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
         let socket = session.webSocketTask(with: request)
         self.socket = socket
         socket.resume()
-        receiveTask = Task { [weak self] in await self?.receiveLoop(socket) }
-        try await flush()
+        receiveTask = Task { [weak self] in
+            await self?.receiveLoop(socket, generation: generation)
+        }
+        try await flush(socket: socket, generation: generation)
     }
 
     func send(pcm16: Data) async throws {
@@ -63,11 +67,15 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
 
     func finish() async throws -> String {
         guard let socket else { return finalSegments.joined(separator: " ") }
+        let generation = self.generation
         try await socket.send(.string(#"{"type":"Finalize"}"#))
+        try ensureCurrent(socket: socket, generation: generation)
         try await socket.send(.string(#"{"type":"CloseStream"}"#))
+        try ensureCurrent(socket: socket, generation: generation)
         let deadline = ContinuousClock.now + .seconds(5)
         while !finished && ContinuousClock.now < deadline {
             try await Task.sleep(for: .milliseconds(40))
+            try ensureCurrent(socket: socket, generation: generation)
         }
         let result = finalSegments.joined(separator: " ")
         await cancel()
@@ -75,18 +83,21 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
     }
 
     func cancel() async {
+        generation += 1
         receiveTask?.cancel()
         receiveTask = nil
         socket?.cancel(with: .goingAway, reason: nil)
         socket = nil
+        eventHandler = nil
         pendingAudio.removeAll()
         pendingBytes = 0
     }
 
-    private func receiveLoop(_ socket: URLSessionWebSocketTask) async {
+    private func receiveLoop(_ socket: URLSessionWebSocketTask, generation: Int) async {
         do {
-            while !Task.isCancelled {
+            while isCurrent(socket: socket, generation: generation), !Task.isCancelled {
                 let message = try await socket.receive()
+                guard isCurrent(socket: socket, generation: generation), !Task.isCancelled else { return }
                 guard let payload = json(message), let type = payload["type"] as? String else { continue }
                 switch type {
                 case "Results":
@@ -106,9 +117,13 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
                 }
             }
         } catch {
-            if !Task.isCancelled { eventHandler?(.error(error.localizedDescription)) }
+            if isCurrent(socket: socket, generation: generation), !Task.isCancelled {
+                eventHandler?(.error(error.localizedDescription))
+            }
         }
-        finished = true
+        if isCurrent(socket: socket, generation: generation), !Task.isCancelled {
+            finished = true
+        }
     }
 
     private func appendPending(_ data: Data) {
@@ -117,11 +132,24 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
         while pendingBytes > 96_000, !pendingAudio.isEmpty { pendingBytes -= pendingAudio.removeFirst().count }
     }
 
-    private func flush() async throws {
+    private func flush(socket: URLSessionWebSocketTask, generation: Int) async throws {
         let frames = pendingAudio
         pendingAudio.removeAll()
         pendingBytes = 0
-        for frame in frames { try await send(pcm16: frame) }
+        for frame in frames {
+            try ensureCurrent(socket: socket, generation: generation)
+            try await socket.send(.data(frame))
+        }
+    }
+
+    private func ensureCurrent(socket: URLSessionWebSocketTask, generation: Int) throws {
+        guard isCurrent(socket: socket, generation: generation), !Task.isCancelled else {
+            throw CancellationError()
+        }
+    }
+
+    private func isCurrent(socket: URLSessionWebSocketTask, generation: Int) -> Bool {
+        generation == self.generation && self.socket === socket
     }
 
     private func json(_ message: URLSessionWebSocketTask.Message) -> [String: Any]? {

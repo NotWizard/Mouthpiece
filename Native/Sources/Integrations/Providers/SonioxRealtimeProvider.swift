@@ -12,6 +12,7 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
     private var configured = false
     private var pendingAudio: [Data] = []
     private var pendingAudioBytes = 0
+    private var generation = 0
     private let maximumBufferedBytes = 3 * 16_000 * 2
 
     init(session: URLSession = .shared) { self.session = session }
@@ -29,14 +30,19 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
         liveText = ""
         finalized = false
         configured = false
+        let generation = self.generation
         let socket = session.webSocketTask(with: URL(string: "wss://stt-rt.soniox.com/transcribe-websocket")!)
         self.socket = socket
         socket.resume()
         let config = Self.configurationPayload(for: configuration)
         try await sendJSON(config, socket: socket)
+        try ensureCurrent(socket: socket, generation: generation)
         configured = true
-        try await flushPendingAudio(socket)
-        receiveTask = Task { [weak self] in await self?.receiveLoop(socket) }
+        try await flushPendingAudio(socket, generation: generation)
+        try ensureCurrent(socket: socket, generation: generation)
+        receiveTask = Task { [weak self] in
+            await self?.receiveLoop(socket, generation: generation)
+        }
     }
 
     static func configurationPayload(
@@ -67,11 +73,15 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
 
     func finish() async throws -> String {
         guard let socket else { return liveText }
+        let generation = self.generation
         try await sendJSON(["type": "finalize"], socket: socket)
+        try ensureCurrent(socket: socket, generation: generation)
         try await socket.send(.data(Data()))
+        try ensureCurrent(socket: socket, generation: generation)
         let deadline = ContinuousClock.now + .seconds(5)
         while !finalized && ContinuousClock.now < deadline {
             try await Task.sleep(for: .milliseconds(40))
+            try ensureCurrent(socket: socket, generation: generation)
         }
         let result = liveText
         await cancel()
@@ -79,19 +89,22 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
     }
 
     func cancel() async {
+        generation += 1
         receiveTask?.cancel()
         receiveTask = nil
         socket?.cancel(with: .goingAway, reason: nil)
         socket = nil
+        eventHandler = nil
         configured = false
         pendingAudio.removeAll()
         pendingAudioBytes = 0
     }
 
-    private func receiveLoop(_ socket: URLSessionWebSocketTask) async {
+    private func receiveLoop(_ socket: URLSessionWebSocketTask, generation: Int) async {
         do {
-            while !Task.isCancelled {
+            while isCurrent(socket: socket, generation: generation), !Task.isCancelled {
                 let message = try await socket.receive()
+                guard isCurrent(socket: socket, generation: generation), !Task.isCancelled else { return }
                 let data: Data
                 switch message {
                 case .data(let value): data = value
@@ -122,7 +135,9 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
                 if finalized { eventHandler?(.sessionFinished(stable)) }
             }
         } catch {
-            if !Task.isCancelled { eventHandler?(.error(error.localizedDescription)) }
+            if isCurrent(socket: socket, generation: generation), !Task.isCancelled {
+                eventHandler?(.error(error.localizedDescription))
+            }
         }
     }
 
@@ -145,11 +160,24 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
         }
     }
 
-    private func flushPendingAudio(_ socket: URLSessionWebSocketTask) async throws {
+    private func flushPendingAudio(_ socket: URLSessionWebSocketTask, generation: Int) async throws {
         let frames = pendingAudio
         pendingAudio.removeAll()
         pendingAudioBytes = 0
-        for frame in frames { try await socket.send(.data(frame)) }
+        for frame in frames {
+            try ensureCurrent(socket: socket, generation: generation)
+            try await socket.send(.data(frame))
+        }
+    }
+
+    private func ensureCurrent(socket: URLSessionWebSocketTask, generation: Int) throws {
+        guard isCurrent(socket: socket, generation: generation), !Task.isCancelled else {
+            throw CancellationError()
+        }
+    }
+
+    private func isCurrent(socket: URLSessionWebSocketTask, generation: Int) -> Bool {
+        generation == self.generation && self.socket === socket
     }
 }
 
