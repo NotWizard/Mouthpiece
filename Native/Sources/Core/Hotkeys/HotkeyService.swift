@@ -191,18 +191,43 @@ final class HotkeyService {
             || keyCode == descriptor.keyCode
     }
 
+    nonisolated static func matchesShortcutEvent(
+        type: CGEventType,
+        keyCode: CGKeyCode,
+        flags: CGEventFlags,
+        descriptor: HotkeyDescriptor
+    ) -> Bool {
+        guard keyCode == descriptor.keyCode else { return false }
+        if descriptor.modifierOnly {
+            return type == .flagsChanged && flags.intersection(descriptor.modifiers) == descriptor.modifiers
+        }
+        let relevantFlags: CGEventFlags = [
+            .maskCommand,
+            .maskAlternate,
+            .maskControl,
+            .maskShift,
+            .maskSecondaryFn,
+        ]
+        return (type == .keyDown || type == .keyUp)
+            && flags.intersection(relevantFlags) == descriptor.modifiers
+    }
+
     private func handle(type: CGEventType, keyCode: CGKeyCode, flags: CGEventFlags) {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: true) }
             return
         }
         guard keyCode == descriptor.keyCode else { return }
-        let relevantFlags: CGEventFlags = [.maskCommand, .maskAlternate, .maskControl, .maskShift, .maskSecondaryFn]
         if descriptor.modifierOnly {
             let isNowPressed = flags.intersection(descriptor.modifiers) == descriptor.modifiers
             setPressed(isNowPressed)
         } else if type == .keyDown,
-                  flags.intersection(relevantFlags).intersection(descriptor.modifiers) == descriptor.modifiers {
+                  Self.matchesShortcutEvent(
+                      type: type,
+                      keyCode: keyCode,
+                      flags: flags,
+                      descriptor: descriptor
+                  ) {
             setPressed(true)
         } else if type == .keyUp {
             setPressed(false)
@@ -210,13 +235,12 @@ final class HotkeyService {
     }
 
     private nonisolated func matches(type: CGEventType, keyCode: CGKeyCode, flags: CGEventFlags) -> Bool {
-        guard keyCode == descriptor.keyCode else { return false }
-        let relevantFlags: CGEventFlags = [.maskCommand, .maskAlternate, .maskControl, .maskShift, .maskSecondaryFn]
-        if descriptor.modifierOnly {
-            return type == .flagsChanged && flags.intersection(descriptor.modifiers) == descriptor.modifiers
-        }
-        return (type == .keyDown || type == .keyUp)
-            && flags.intersection(relevantFlags).intersection(descriptor.modifiers) == descriptor.modifiers
+        Self.matchesShortcutEvent(
+            type: type,
+            keyCode: keyCode,
+            flags: flags,
+            descriptor: descriptor
+        )
     }
 
     private func setPressed(_ value: Bool) {

@@ -161,6 +161,37 @@ final class DictationAndProviderTests: XCTestCase {
         ))
     }
 
+    func testCombinationHotkeysRequireExactModifierFlags() {
+        let descriptor = HotkeyDescriptor.parse("Command+K")
+
+        XCTAssertTrue(HotkeyService.matchesShortcutEvent(
+            type: .keyDown,
+            keyCode: descriptor.keyCode,
+            flags: .maskCommand,
+            descriptor: descriptor
+        ))
+        XCTAssertFalse(HotkeyService.matchesShortcutEvent(
+            type: .keyDown,
+            keyCode: descriptor.keyCode,
+            flags: [.maskCommand, .maskShift],
+            descriptor: descriptor
+        ))
+        XCTAssertFalse(HotkeyService.matchesShortcutEvent(
+            type: .keyDown,
+            keyCode: descriptor.keyCode,
+            flags: [],
+            descriptor: descriptor
+        ))
+
+        let modifierOnly = HotkeyDescriptor.parse("RightCommand")
+        XCTAssertTrue(HotkeyService.matchesShortcutEvent(
+            type: .flagsChanged,
+            keyCode: modifierOnly.keyCode,
+            flags: [.maskCommand, .maskShift],
+            descriptor: modifierOnly
+        ))
+    }
+
     func testTranscriptJoinerKeepsChineseCompactAndSoftensTurnBoundary() {
         XCTAssertEqual(TranscriptJoiner.join("你好", "世界", language: "zh-CN"), "你好世界")
         XCTAssertEqual(TranscriptJoiner.softenBoundary("第一句。"), "第一句，")
