@@ -300,12 +300,20 @@ actor MediaPlaybackController {
 
     func resumeIfPaused() async {
         guard pausedByMouthpiece else { return }
-        pausedByMouthpiece = false
-        if send(Self.playCommand) { return }
+        if send(Self.playCommand) {
+            pausedByMouthpiece = false
+            return
+        }
 
         // A media key is a toggle, so only use it when the session is still paused.
-        guard await isPlaying() == false else { return }
-        _ = Self.postPlayPauseMediaKey()
+        switch await isPlaying() {
+        case true:
+            pausedByMouthpiece = false
+        case false where Self.postPlayPauseMediaKey():
+            pausedByMouthpiece = false
+        default:
+            break
+        }
     }
 
     private func isPlaying() async -> Bool? {
