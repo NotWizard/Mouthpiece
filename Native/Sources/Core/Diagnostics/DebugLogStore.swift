@@ -71,9 +71,15 @@ actor DebugLogStore {
                 fileManager.createFile(atPath: fileURL.path, contents: nil)
             }
             let handle = try FileHandle(forWritingTo: fileURL)
+            defer {
+                do {
+                    try handle.close()
+                } catch {
+                    logger.error("Failed to close debug log: \(error.localizedDescription, privacy: .public)")
+                }
+            }
             try handle.seekToEnd()
             try handle.write(contentsOf: data)
-            try handle.close()
         } catch {
             logger.error("Failed to write debug log: \(error.localizedDescription, privacy: .public)")
         }
