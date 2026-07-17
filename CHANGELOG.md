@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Routed Escape cancellation through the same global CGEvent tap as the dictation hotkey, with an app-local fallback when the tap is unavailable.
 - Expanded the capsule waveform across its full content width, improved quiet-speech motion, refined the adaptive glass surface, and prevented another Mouthpiece process from being shown as the target application.
 - Terminated local model installation commands promptly when their parent task is cancelled.
 - Terminated newly launched local model servers when startup is cancelled or fails before registration.

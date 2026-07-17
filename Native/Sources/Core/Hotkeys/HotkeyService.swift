@@ -113,6 +113,9 @@ final class HotkeyService {
     private var pressed = false
     var onPress: (() -> Void)?
     var onRelease: (() -> Void)?
+    var onEscape: (() -> Void)?
+
+    var isRunning: Bool { eventTap != nil }
 
     init(swallowMatchedEvents: Bool = false) {
         self.swallowMatchedEvents = swallowMatchedEvents
@@ -176,6 +179,9 @@ final class HotkeyService {
             if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: true) }
             return
         }
+        if Self.isEscapeKeyDown(type: type, keyCode: keyCode) {
+            onEscape?()
+        }
         guard keyCode == descriptor.keyCode else { return }
         let relevantFlags: CGEventFlags = [.maskCommand, .maskAlternate, .maskControl, .maskShift, .maskSecondaryFn]
         if descriptor.modifierOnly {
@@ -187,6 +193,10 @@ final class HotkeyService {
         } else if type == .keyUp {
             setPressed(false)
         }
+    }
+
+    nonisolated static func isEscapeKeyDown(type: CGEventType, keyCode: CGKeyCode) -> Bool {
+        type == .keyDown && keyCode == 53
     }
 
     private nonisolated func matches(type: CGEventType, keyCode: CGKeyCode, flags: CGEventFlags) -> Bool {

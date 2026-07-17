@@ -88,6 +88,9 @@ final class AppEnvironmentTests: XCTestCase {
         XCTAssertTrue(AppEnvironment.shouldCancelForEscape(keyCode: 53, enabled: true, isActive: true))
         XCTAssertFalse(AppEnvironment.shouldCancelForEscape(keyCode: 53, enabled: false, isActive: true))
         XCTAssertFalse(AppEnvironment.shouldCancelForEscape(keyCode: 49, enabled: true, isActive: true))
+        XCTAssertTrue(HotkeyService.isEscapeKeyDown(type: .keyDown, keyCode: 53))
+        XCTAssertFalse(HotkeyService.isEscapeKeyDown(type: .keyUp, keyCode: 53))
+        XCTAssertFalse(HotkeyService.isEscapeKeyDown(type: .keyDown, keyCode: 49))
     }
 
     func testTranslationHotkeyCombinesModifierOnlyDictationWithSuffix() {

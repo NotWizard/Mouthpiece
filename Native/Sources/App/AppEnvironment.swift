@@ -36,7 +36,7 @@ final class AppEnvironment: ObservableObject {
     private var toggleDictationObserver: NSObjectProtocol?
     private var applicationObservers: [NSObjectProtocol] = []
     private var workspaceObservers: [NSObjectProtocol] = []
-    private var escapeMonitors: [Any] = []
+    private var escapeLocalMonitor: Any?
     private var activeActivation: DictationActivation = .main
     private var isShuttingDown = false
 
@@ -67,6 +67,7 @@ final class AppEnvironment: ObservableObject {
             Task { await logger?.setEnabled(settings.debugLoggingEnabled) }
             try? hotkey.update(key: settings.dictationKey)
             updateTranslationHotkey()
+            updateEscapeMonitor()
             applySystemSettings()
             refreshLocalModelStatus()
         } catch {
@@ -148,7 +149,7 @@ final class AppEnvironment: ObservableObject {
             hotkey.stop()
             translationHotkey.stop()
         }
-        updateEscapeMonitors()
+        updateEscapeMonitor()
     }
 
     func shutdown() async {
@@ -156,7 +157,7 @@ final class AppEnvironment: ObservableObject {
         isShuttingDown = true
         hotkey.stop()
         translationHotkey.stop()
-        stopEscapeMonitors()
+        stopEscapeMonitor()
         cancelPendingMainHotkey()
         hotkeyPressedAt = nil
         await coordinator?.shutdown()
@@ -182,6 +183,7 @@ final class AppEnvironment: ObservableObject {
         guard permissions.accessibility else { return }
         try? hotkey.start(key: settings.dictationKey)
         updateTranslationHotkey()
+        updateEscapeMonitor()
     }
 
     func refreshLocalModelStatus() {
@@ -282,12 +284,13 @@ final class AppEnvironment: ObservableObject {
             self.coordinator = coordinator
             hotkey.onPress = { [weak self] in self?.handleHotkeyPress() }
             hotkey.onRelease = { [weak self] in self?.handleHotkeyRelease() }
+            hotkey.onEscape = { [weak self] in self?.handleEscape(53) }
             translationHotkey.onPress = { [weak self] in self?.handleTranslationHotkeyPress() }
             if permissions.accessibility {
                 try? hotkey.start(key: settings.dictationKey)
                 updateTranslationHotkey()
             }
-            updateEscapeMonitors()
+            updateEscapeMonitor()
             applySystemSettings()
             refreshLocalModelStatus()
             isReady = true
@@ -426,26 +429,20 @@ final class AppEnvironment: ObservableObject {
         keyCode == 53 && enabled && isActive
     }
 
-    private func updateEscapeMonitors() {
-        stopEscapeMonitors()
-        if let local = NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
+    private func updateEscapeMonitor() {
+        stopEscapeMonitor()
+        guard !hotkey.isRunning else { return }
+        escapeLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
             let keyCode = event.keyCode
             Task { @MainActor in self?.handleEscape(keyCode) }
             return event
-        }) {
-            escapeMonitors.append(local)
-        }
-        guard permissions.accessibility,
-              let global = NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
-                  let keyCode = event.keyCode
-                  Task { @MainActor in self?.handleEscape(keyCode) }
-              }) else { return }
-        escapeMonitors.append(global)
+        })
     }
 
-    private func stopEscapeMonitors() {
-        escapeMonitors.forEach(NSEvent.removeMonitor)
-        escapeMonitors.removeAll()
+    private func stopEscapeMonitor() {
+        guard let escapeLocalMonitor else { return }
+        NSEvent.removeMonitor(escapeLocalMonitor)
+        self.escapeLocalMonitor = nil
     }
 
     private func handleEscape(_ keyCode: UInt16) {
