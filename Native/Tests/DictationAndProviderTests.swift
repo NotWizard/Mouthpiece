@@ -139,6 +139,10 @@ final class DictationAndProviderTests: XCTestCase {
             HotkeyDescriptor.parse("F12"),
             HotkeyDescriptor(keyCode: 111, modifiers: [], modifierOnly: false)
         )
+        XCTAssertTrue(HotkeyDescriptor.isValid("Command+K"))
+        XCTAssertTrue(HotkeyDescriptor.isValid("RightCommand"))
+        XCTAssertFalse(HotkeyDescriptor.isValid("Hyper+K"))
+        XCTAssertFalse(HotkeyDescriptor.isValid("Command++K"))
     }
 
     func testHotkeyEventDispatchSkipsUnrelatedKeyEvents() {

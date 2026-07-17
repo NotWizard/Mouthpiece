@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Rejected malformed or unknown hotkey modifiers during settings normalization instead of silently turning them into unsafe shortcuts.
 - Required exact modifier flags for ordinary hotkey combinations so extra held modifiers no longer trigger or swallow the wrong shortcut.
 - Filtered unrelated global keyboard events before scheduling main-thread hotkey work, eliminating redundant tasks for ordinary typing.
 - Deferred cloud transcription and reasoning model-name persistence until editing completes instead of rewriting the full settings payload for every keystroke.

@@ -35,16 +35,41 @@ struct HotkeyDescriptor: Equatable, Sendable {
         }
     }
 
+    static func isValid(_ value: String) -> Bool {
+        switch value.lowercased() {
+        case "rightcommand", "right command",
+             "leftcommand", "left command",
+             "rightshift", "right shift",
+             "leftshift", "left shift",
+             "rightoption", "right option", "rightalt",
+             "leftoption", "left option", "leftalt",
+             "rightcontrol", "right control",
+             "leftcontrol", "left control",
+             "fn", "globe":
+            true
+        default:
+            parseCombination(value) != nil
+        }
+    }
+
     private static func parseCombination(_ value: String) -> HotkeyDescriptor? {
-        let parts = value.lowercased().split(separator: "+").map(String.init)
-        guard let key = parts.last, let keyCode = keyCodes[key] else { return nil }
+        let parts = value.lowercased().split(
+            separator: "+",
+            omittingEmptySubsequences: false
+        ).map(String.init)
+        guard let key = parts.last,
+              !parts.contains(where: \.isEmpty),
+              let keyCode = keyCodes[key] else { return nil }
         var flags: CGEventFlags = []
         for part in parts.dropLast() {
-            if part == "command" || part == "cmd" { flags.insert(.maskCommand) }
-            if part == "option" || part == "alt" { flags.insert(.maskAlternate) }
-            if part == "control" || part == "ctrl" { flags.insert(.maskControl) }
-            if part == "shift" { flags.insert(.maskShift) }
-            if part == "fn" || part == "globe" { flags.insert(.maskSecondaryFn) }
+            switch part {
+            case "command", "cmd": flags.insert(.maskCommand)
+            case "option", "alt": flags.insert(.maskAlternate)
+            case "control", "ctrl": flags.insert(.maskControl)
+            case "shift": flags.insert(.maskShift)
+            case "fn", "globe": flags.insert(.maskSecondaryFn)
+            default: return nil
+            }
         }
         return HotkeyDescriptor(keyCode: keyCode, modifiers: flags, modifierOnly: false)
     }

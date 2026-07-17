@@ -54,7 +54,8 @@ final class PersistenceTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suite) }
         let repository = SettingsRepository(defaults: defaults)
         var settings = AppSettings()
-        settings.dictationKey = ""
+        settings.dictationKey = "Hyper+K"
+        settings.translationHotkeySuffix = "not-a-key"
         settings.cloudTranscriptionBaseURL = "not a url"
         settings.pauseOtherMediaDuringDictation = true
         settings.automaticallyPasteTranscription = false
@@ -65,6 +66,7 @@ final class PersistenceTests: XCTestCase {
         try repository.save(settings)
         let loaded = repository.load()
         XCTAssertEqual(loaded.dictationKey, "RightCommand")
+        XCTAssertEqual(loaded.translationHotkeySuffix, TranslationHotkey.defaultSuffix)
         XCTAssertEqual(loaded.cloudTranscriptionBaseURL, "https://api.openai.com/v1")
         XCTAssertTrue(loaded.pauseOtherMediaDuringDictation)
         XCTAssertFalse(loaded.automaticallyPasteTranscription)

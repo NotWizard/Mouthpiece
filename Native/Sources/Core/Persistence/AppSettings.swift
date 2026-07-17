@@ -115,9 +115,12 @@ struct AppSettings: Codable, Equatable, Sendable {
     var onboardingCompleted = false
 
     mutating func normalize() {
-        if dictationKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        dictationKey = dictationKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !HotkeyDescriptor.isValid(dictationKey) {
             dictationKey = "RightCommand"
         }
+        translationHotkeySuffix = TranslationHotkey.normalizedSuffix(translationHotkeySuffix)
+            ?? TranslationHotkey.defaultSuffix
         if reasoningProvider == "local" {
             reasoningProvider = "openai"
             reasoningModel = "gpt-4o-mini"
