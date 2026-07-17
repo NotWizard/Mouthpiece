@@ -279,11 +279,16 @@ actor DictationCoordinator {
         guard machine.snapshot.sessionID == sessionID, machine.snapshot.phase.isActive else { return }
         pcm.append(frame)
         _ = speechGate.consume(frame)
-        guard providerSessionID == sessionID else { return }
-        do { try await provider?.send(pcm16: frame) } catch {
+        guard providerSessionID == sessionID, let provider else { return }
+        do {
+            try await provider.send(pcm16: frame)
+        } catch {
+            self.provider = nil
+            providerSessionID = nil
+            await provider.cancel()
             await logger.write(
                 .warning,
-                "Realtime frame send failed",
+                "Realtime frame send failed; retaining audio for batch fallback",
                 metadata: ["error": error.localizedDescription],
                 sessionID: sessionID
             )

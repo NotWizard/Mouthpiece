@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Stopped retrying and logging every audio frame after a realtime provider send failure, while retaining recorded audio for batch transcription fallback.
 - Prevented duplicate legacy terminology mappings, including keys that differ only by surrounding whitespace, from crashing settings migration or normalization.
 
 ### Added
