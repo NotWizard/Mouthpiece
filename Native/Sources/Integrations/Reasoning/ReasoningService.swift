@@ -197,13 +197,7 @@ actor ReasoningService {
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         let data = try await responseData(for: request)
-        guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let content = payload["content"] as? [[String: Any]],
-              let text = content.compactMap({ $0["text"] as? String }).first,
-              !text.isEmpty else {
-            throw ReasoningServiceError.emptyResponse
-        }
-        return text
+        return try Self.anthropicText(from: data)
     }
 
     private func requestGemini(prompt: String, settings: AppSettings) async throws -> String {
@@ -219,12 +213,30 @@ actor ReasoningService {
             "generationConfig": ["temperature": 0.1],
         ])
         let data = try await responseData(for: request)
+        return try Self.geminiText(from: data)
+    }
+
+    static func anthropicText(from data: Data) throws -> String {
+        guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let content = payload["content"] as? [[String: Any]] else {
+            throw ReasoningServiceError.emptyResponse
+        }
+        let text = content.compactMap { $0["text"] as? String }.joined()
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw ReasoningServiceError.emptyResponse
+        }
+        return text
+    }
+
+    static func geminiText(from data: Data) throws -> String {
         guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let candidates = payload["candidates"] as? [[String: Any]],
               let content = candidates.first?["content"] as? [String: Any],
-              let parts = content["parts"] as? [[String: Any]],
-              let text = parts.compactMap({ $0["text"] as? String }).first,
-              !text.isEmpty else {
+              let parts = content["parts"] as? [[String: Any]] else {
+            throw ReasoningServiceError.emptyResponse
+        }
+        let text = parts.compactMap { $0["text"] as? String }.joined()
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ReasoningServiceError.emptyResponse
         }
         return text

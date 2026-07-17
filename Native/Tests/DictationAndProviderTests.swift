@@ -204,6 +204,14 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(result, "Use mouthpiece")
     }
 
+    func testReasoningResponsesJoinEveryProviderTextBlock() throws {
+        let anthropic = Data(#"{"content":[{"type":"text","text":"first "},{"type":"tool_use"},{"type":"text","text":"second"}]}"#.utf8)
+        let gemini = Data(#"{"candidates":[{"content":{"parts":[{"text":"first "},{"text":"second"}]}}]}"#.utf8)
+
+        XCTAssertEqual(try ReasoningService.anthropicText(from: anthropic), "first second")
+        XCTAssertEqual(try ReasoningService.geminiText(from: gemini), "first second")
+    }
+
     func testSensitiveAppDetectionUsesBundleAndDisplayName() async {
         let target = TextInsertionTarget(
             processIdentifier: 1,
