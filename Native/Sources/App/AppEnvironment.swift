@@ -43,6 +43,8 @@ final class AppEnvironment: ObservableObject {
     private var localModelStatusRequest = 0
     private var dictionarySaveRevision = 0
     private var dictionarySaveTask: Task<Void, Never>?
+    private var initializationTask: Task<Void, Never>?
+    private var warmupTask: Task<Void, Never>?
 
     init(bootstrap: Bool = true) {
         toggleDictationObserver = NotificationCenter.default.addObserver(
@@ -57,7 +59,9 @@ final class AppEnvironment: ObservableObject {
             await self?.shutdown()
         }
         if bootstrap {
-            Task { await initialize() }
+            initializationTask = Task { [weak self] in
+                await self?.initialize()
+            }
         } else {
             isReady = true
         }
@@ -170,7 +174,9 @@ final class AppEnvironment: ObservableObject {
         } else {
             try await keychain.write(clean, for: account)
         }
-        if account == .bailian { await coordinator?.warmup(settings: settings) }
+        if account == .bailian, let coordinator, !isShuttingDown {
+            scheduleWarmup(coordinator: coordinator)
+        }
     }
 
     func requestMicrophonePermission() {
@@ -197,12 +203,18 @@ final class AppEnvironment: ObservableObject {
     func shutdown() async {
         guard !isShuttingDown else { return }
         isShuttingDown = true
+        initializationTask?.cancel()
+        warmupTask?.cancel()
         hotkey.stop()
         translationHotkey.stop()
         escapeHotkey.stop()
         stopEscapeLocalMonitor()
         cancelPendingMainHotkey()
         hotkeyPressedAt = nil
+        await initializationTask?.value
+        initializationTask = nil
+        await warmupTask?.value
+        warmupTask = nil
         await dictionarySaveTask?.value
         await coordinator?.shutdown()
         await logger?.write(.info, "Application shutdown completed")
@@ -315,12 +327,14 @@ final class AppEnvironment: ObservableObject {
 
     private func initialize() async {
         do {
+            try ensureInitializationCanContinue()
             try AppPaths.prepareApplicationSupport()
             if ProcessInfo.processInfo.environment["MOUTHPIECE_SKIP_LEGACY_MIGRATION"] != "1" {
                 _ = try await LegacyMigrationCoordinator().run(
                     settings: settingsRepository,
                     keychain: keychain
                 )
+                try ensureInitializationCanContinue()
             }
             settings = settingsRepository.load()
             let history = try HistoryRepository()
@@ -328,11 +342,15 @@ final class AppEnvironment: ObservableObject {
             let logger = DebugLogStore(enabled: settings.debugLoggingEnabled)
             self.logger = logger
             try await logger.prune()
+            try ensureInitializationCanContinue()
             transcriptions = try await history.recent(limit: 200)
+            try ensureInitializationCanContinue()
             let storedDictionary = try await history.dictionary()
+            try ensureInitializationCanContinue()
             dictionaryWords = settings.terminologyProfile.preferredTerms
             if storedDictionary != dictionaryWords {
                 try await history.replaceDictionary(dictionaryWords)
+                try ensureInitializationCanContinue()
             }
             microphones = audio.availableInputDevices()
             permissions = permissionsService.current()
@@ -356,10 +374,25 @@ final class AppEnvironment: ObservableObject {
             applySystemSettings()
             refreshLocalModelStatus()
             isReady = true
-            Task { await coordinator.warmup(settings: settings) }
+            scheduleWarmup(coordinator: coordinator)
         } catch {
+            guard !isShuttingDown, !Task.isCancelled else { return }
             startupError = error.localizedDescription
             isReady = true
+        }
+    }
+
+    private func ensureInitializationCanContinue() throws {
+        try Task.checkCancellation()
+        if isShuttingDown { throw CancellationError() }
+    }
+
+    private func scheduleWarmup(coordinator: DictationCoordinator) {
+        warmupTask?.cancel()
+        let settings = settings
+        warmupTask = Task { [weak self] in
+            guard let self, !self.isShuttingDown else { return }
+            await coordinator.warmup(settings: settings)
         }
     }
 
@@ -637,7 +670,7 @@ final class AppEnvironment: ObservableObject {
         refreshPermissions()
         capsule.repositionIfVisible()
         if rewarmRealtime, let coordinator {
-            Task { await coordinator.warmup(settings: settings) }
+            scheduleWarmup(coordinator: coordinator)
         }
     }
 }
