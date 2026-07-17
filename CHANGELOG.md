@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Serialized dictionary persistence, made normalized settings the authoritative terminology source, and reconciled stale database mirrors during startup.
 - Preserved the visible transcription history and reported persistence failures when history reads or mutations fail instead of silently showing an empty or stale result.
 - Prevented delayed local-model status and installation callbacks from overwriting the UI after the user selects a different provider or model.
 - Prevented custom provider API keys from being sent to remote plaintext HTTP endpoints while retaining HTTP support for loopback development services.

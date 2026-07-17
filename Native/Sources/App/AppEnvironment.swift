@@ -40,6 +40,8 @@ final class AppEnvironment: ObservableObject {
     private var activeActivation: DictationActivation = .main
     private var isShuttingDown = false
     private var localModelStatusRequest = 0
+    private var dictionarySaveRevision = 0
+    private var dictionarySaveTask: Task<Void, Never>?
 
     init(bootstrap: Bool = true) {
         toggleDictationObserver = NotificationCenter.default.addObserver(
@@ -123,11 +125,33 @@ final class AppEnvironment: ObservableObject {
     }
 
     func saveDictionary(_ words: [String]) {
-        dictionaryWords = words
-        Task { try? await history?.replaceDictionary(words) }
         var next = settings
         next.terminologyProfile.preferredTerms = words
+        next.normalize()
+        let normalizedWords = next.terminologyProfile.preferredTerms
         saveSettings(next)
+        guard settings.terminologyProfile.preferredTerms == normalizedWords else { return }
+        dictionaryWords = normalizedWords
+
+        dictionarySaveRevision += 1
+        let revision = dictionarySaveRevision
+        let previousSave = dictionarySaveTask
+        dictionarySaveTask = Task { [weak self] in
+            await previousSave?.value
+            guard let self else { return }
+            defer {
+                if revision == self.dictionarySaveRevision {
+                    self.dictionarySaveTask = nil
+                }
+            }
+            guard let history = self.history else { return }
+            do {
+                try await history.replaceDictionary(normalizedWords)
+            } catch {
+                guard revision == self.dictionarySaveRevision else { return }
+                self.startupError = error.localizedDescription
+            }
+        }
     }
 
     func credential(_ account: CredentialAccount) async -> String {
@@ -180,6 +204,7 @@ final class AppEnvironment: ObservableObject {
         stopEscapeMonitor()
         cancelPendingMainHotkey()
         hotkeyPressedAt = nil
+        await dictionarySaveTask?.value
         await coordinator?.shutdown()
         await logger?.write(.info, "Application shutdown completed")
     }
@@ -304,10 +329,10 @@ final class AppEnvironment: ObservableObject {
             self.logger = logger
             try await logger.prune()
             transcriptions = try await history.recent(limit: 200)
-            dictionaryWords = try await history.dictionary()
-            if dictionaryWords.isEmpty, !settings.terminologyProfile.preferredTerms.isEmpty {
-                try await history.replaceDictionary(settings.terminologyProfile.preferredTerms)
-                dictionaryWords = try await history.dictionary()
+            let storedDictionary = try await history.dictionary()
+            dictionaryWords = settings.terminologyProfile.preferredTerms
+            if storedDictionary != dictionaryWords {
+                try await history.replaceDictionary(dictionaryWords)
             }
             microphones = audio.availableInputDevices()
             permissions = permissionsService.current()
