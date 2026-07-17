@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Refined the compact dictation capsule hierarchy with the monochrome Mouthpiece mark, a denser full-width waveform, stronger quiet-speech response, and a more neutral adaptive glass surface.
 - Stopped truncated Whisper and Parakeet files or incomplete Qwen Hugging Face caches from being reported as installed local models.
 - Surfaced global hotkey registration failures and updated active shortcut descriptors without unnecessarily recreating their event taps.
 - Serialized dictionary persistence, made normalized settings the authoritative terminology source, and reconciled stale database mirrors during startup.

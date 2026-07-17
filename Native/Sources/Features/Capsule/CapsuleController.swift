@@ -38,7 +38,7 @@ final class CapsuleViewModel: ObservableObject {
 struct CapsuleLevelHistory: Equatable {
     private(set) var samples: [Float]
 
-    init(sampleCount: Int = 32) {
+    init(sampleCount: Int = 36) {
         samples = Array(repeating: 0, count: max(1, sampleCount))
     }
 
@@ -171,24 +171,24 @@ private struct CapsuleView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 7) {
                 applicationIcon(model.targetApplicationIcon, fallback: "app.fill")
-                    .frame(width: 17, height: 17)
+                    .frame(width: 18, height: 18)
                 Text(model.targetApplicationName)
-                    .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                    .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
                     .layoutPriority(1)
 
                 Spacer(minLength: 10)
 
-                HStack(spacing: 5) {
-                    MouthpieceBrandIcon(size: 12)
+                HStack(spacing: 4) {
+                    MouthpieceBrandIcon(size: 13)
                     Text("Mouthpiece")
-                        .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                        .font(.system(size: 12, weight: .medium))
                         .lineLimit(1)
                 }
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.tertiary)
             }
 
             if model.snapshot.phase == .failed {
@@ -214,7 +214,7 @@ private struct CapsuleView: View {
                 CapsuleWaveform(levels: model.audioLevels)
             }
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 12)
         .padding(.vertical, 9)
         .frame(
             width: CapsuleLayout.width,
@@ -222,7 +222,7 @@ private struct CapsuleView: View {
         )
         .background {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(.ultraThinMaterial)
+                .fill(.thinMaterial)
                 .overlay {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .fill(surfaceTint)
@@ -230,17 +230,17 @@ private struct CapsuleView: View {
         }
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(borderTint, lineWidth: 0.7)
+                .strokeBorder(borderTint, lineWidth: 0.8)
         )
-        .shadow(color: shadowTint, radius: 14, y: 6)
+        .shadow(color: shadowTint, radius: 12, y: 5)
         .animation(.easeInOut(duration: 0.18), value: CapsuleLayout.height(for: model.snapshot))
     }
 
     private var surfaceTint: LinearGradient {
         let colors: [Color] = if colorScheme == .dark {
-            [Color(red: 0.08, green: 0.17, blue: 0.16).opacity(0.42), Color.black.opacity(0.18)]
+            [Color(nsColor: .windowBackgroundColor).opacity(0.58), Color.black.opacity(0.12)]
         } else {
-            [Color.white.opacity(0.34), Color(red: 0.77, green: 0.91, blue: 0.86).opacity(0.22)]
+            [Color.white.opacity(0.46), Color(red: 0.84, green: 0.92, blue: 0.91).opacity(0.16)]
         }
         return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
     }
@@ -248,10 +248,10 @@ private struct CapsuleView: View {
     private var borderTint: LinearGradient {
         LinearGradient(
             colors: [
-                Color.primary.opacity(colorScheme == .dark ? 0.22 : 0.16),
+                Color.primary.opacity(colorScheme == .dark ? 0.24 : 0.15),
                 model.snapshot.phase == .recording
-                    ? Color.accentColor.opacity(0.34)
-                    : Color.primary.opacity(0.10),
+                    ? Color.accentColor.opacity(0.28)
+                    : Color.primary.opacity(0.08),
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -324,7 +324,7 @@ private struct RollingTranscriptView: View {
 
 private struct CapsuleWaveform: View {
     let levels: [Float]
-    private let spacing: CGFloat = 3
+    private let spacing: CGFloat = 2.5
 
     var body: some View {
         GeometryReader { geometry in
@@ -343,7 +343,7 @@ private struct CapsuleWaveform: View {
             }
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
         }
-        .frame(maxWidth: .infinity, minHeight: 19, maxHeight: 19)
+        .frame(maxWidth: .infinity, minHeight: 21, maxHeight: 21)
     }
 }
 
@@ -356,6 +356,6 @@ enum CapsuleWaveformLayout {
 
     static func barHeight(for level: Float) -> CGFloat {
         let clamped = CGFloat(min(max(level, 0), 1))
-        return 3.5 + pow(clamped, 0.72) * 15.5
+        return 5 + pow(clamped, 0.58) * 16
     }
 }

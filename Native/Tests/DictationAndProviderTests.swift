@@ -52,7 +52,7 @@ final class DictationAndProviderTests: XCTestCase {
     }
 
     func testCapsuleLevelHistoryUsesFullWidthSampleCountByDefault() {
-        XCTAssertEqual(CapsuleLevelHistory().samples.count, 32)
+        XCTAssertEqual(CapsuleLevelHistory().samples.count, 36)
     }
 
     func testCapsuleLevelHistoryKeepsAClampedSlidingWindow() {
@@ -68,11 +68,11 @@ final class DictationAndProviderTests: XCTestCase {
     }
 
     func testCapsuleWaveformFillsAvailableWidthAndAmplifiesSpeech() {
-        let width = CapsuleWaveformLayout.barWidth(totalWidth: 252, sampleCount: 32, spacing: 3)
-        XCTAssertEqual(width * 32 + 31 * 3, 252, accuracy: 0.001)
-        XCTAssertEqual(CapsuleWaveformLayout.barHeight(for: 0), 3.5, accuracy: 0.001)
-        XCTAssertGreaterThan(CapsuleWaveformLayout.barHeight(for: 0.25), 8)
-        XCTAssertEqual(CapsuleWaveformLayout.barHeight(for: 1), 19, accuracy: 0.001)
+        let width = CapsuleWaveformLayout.barWidth(totalWidth: 256, sampleCount: 36, spacing: 2.5)
+        XCTAssertEqual(width * 36 + 35 * 2.5, 256, accuracy: 0.001)
+        XCTAssertEqual(CapsuleWaveformLayout.barHeight(for: 0), 5, accuracy: 0.001)
+        XCTAssertGreaterThan(CapsuleWaveformLayout.barHeight(for: 0.25), 11)
+        XCTAssertEqual(CapsuleWaveformLayout.barHeight(for: 1), 21, accuracy: 0.001)
     }
 
     func testStateMachineRejectsStaleSessionEvents() throws {
