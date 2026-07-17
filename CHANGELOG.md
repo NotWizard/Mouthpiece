@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Restored an originally empty clipboard after automatic paste when transcript retention is disabled, instead of leaving the temporary transcript behind.
 - Failed explicitly when a user-selected microphone is unavailable instead of silently recording from a different input device.
 - Reported Keychain read and final auto-save failures instead of presenting inaccessible credentials as missing or silently discarding persistence errors.
 - Made Escape cancellation use a dedicated global shortcut channel that is independent from dictation-hotkey registration, with an app-local fallback when global monitoring is unavailable.

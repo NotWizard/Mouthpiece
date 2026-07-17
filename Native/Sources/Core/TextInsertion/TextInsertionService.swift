@@ -175,13 +175,7 @@ final class TextInsertionService {
 
     private func paste(_ text: String, into target: TextInsertionTarget) async throws {
         let pasteboard = NSPasteboard.general
-        let oldItems = pasteboard.pasteboardItems?.compactMap { item -> [NSPasteboard.PasteboardType: Data]? in
-            var values: [NSPasteboard.PasteboardType: Data] = [:]
-            for type in item.types {
-                if let data = item.data(forType: type) { values[type] = data }
-            }
-            return values.isEmpty ? nil : values
-        }
+        let oldItems = Self.snapshot(of: pasteboard)
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         let insertedChangeCount = pasteboard.changeCount
@@ -189,7 +183,7 @@ final class TextInsertionService {
         guard let source = CGEventSource(stateID: .hidSystemState),
               let down = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true),
               let up = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false) else {
-            restore(oldItems, ifUnchanged: insertedChangeCount, expectedText: text, pasteboard: pasteboard)
+            Self.restore(oldItems, ifUnchanged: insertedChangeCount, expectedText: text, pasteboard: pasteboard)
             throw TextInsertionError.insertionFailed(.failure)
         }
         down.flags = .maskCommand
@@ -198,19 +192,29 @@ final class TextInsertionService {
         up.postToPid(target.processIdentifier)
 
         try await Task.sleep(for: pasteDelay(for: target))
-        restore(oldItems, ifUnchanged: insertedChangeCount, expectedText: text, pasteboard: pasteboard)
+        Self.restore(oldItems, ifUnchanged: insertedChangeCount, expectedText: text, pasteboard: pasteboard)
     }
 
-    private func restore(
-        _ oldItems: [[NSPasteboard.PasteboardType: Data]]?,
+    static func snapshot(of pasteboard: NSPasteboard) -> [[NSPasteboard.PasteboardType: Data]] {
+        pasteboard.pasteboardItems?.compactMap { item -> [NSPasteboard.PasteboardType: Data]? in
+            var values: [NSPasteboard.PasteboardType: Data] = [:]
+            for type in item.types {
+                if let data = item.data(forType: type) { values[type] = data }
+            }
+            return values.isEmpty ? nil : values
+        } ?? []
+    }
+
+    static func restore(
+        _ oldItems: [[NSPasteboard.PasteboardType: Data]],
         ifUnchanged changeCount: Int,
         expectedText: String,
         pasteboard: NSPasteboard
     ) {
-        guard let oldItems,
-              pasteboard.changeCount == changeCount,
+        guard pasteboard.changeCount == changeCount,
               pasteboard.string(forType: .string) == expectedText else { return }
         pasteboard.clearContents()
+        guard !oldItems.isEmpty else { return }
         let restored = oldItems.map { values -> NSPasteboardItem in
             let item = NSPasteboardItem()
             for (type, data) in values { item.setData(data, forType: type) }

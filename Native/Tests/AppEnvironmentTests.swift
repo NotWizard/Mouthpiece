@@ -25,6 +25,25 @@ final class AppEnvironmentTests: XCTestCase {
         ))
     }
 
+    func testTextInsertionRestoresAnOriginallyEmptyPasteboard() {
+        let pasteboard = NSPasteboard.withUniqueName()
+        pasteboard.clearContents()
+        let snapshot = TextInsertionService.snapshot(of: pasteboard)
+        XCTAssertTrue(snapshot.isEmpty)
+
+        pasteboard.setString("temporary transcript", forType: .string)
+        let changeCount = pasteboard.changeCount
+        TextInsertionService.restore(
+            snapshot,
+            ifUnchanged: changeCount,
+            expectedText: "temporary transcript",
+            pasteboard: pasteboard
+        )
+
+        XCTAssertNil(pasteboard.string(forType: .string))
+        XCTAssertTrue(pasteboard.pasteboardItems?.isEmpty ?? true)
+    }
+
     func testControlPanelNavigationRestoresKnownSectionAndFallsBackToUsage() {
         XCTAssertEqual(ControlPanelSection.resolve("history"), .history)
         XCTAssertEqual(ControlPanelSection.resolve("unknown"), .usage)
