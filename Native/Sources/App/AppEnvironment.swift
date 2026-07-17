@@ -39,6 +39,7 @@ final class AppEnvironment: ObservableObject {
     private var escapeLocalMonitor: Any?
     private var activeActivation: DictationActivation = .main
     private var isShuttingDown = false
+    private var localModelStatusRequest = 0
 
     init(bootstrap: Bool = true) {
         toggleDictationObserver = NotificationCenter.default.addObserver(
@@ -189,8 +190,18 @@ final class AppEnvironment: ObservableObject {
     func refreshLocalModelStatus() {
         let provider = settings.localTranscriptionProvider
         let model = selectedLocalModelID
+        localModelStatusRequest += 1
+        let request = localModelStatusRequest
+        selectedLocalModelInstalled = false
+        if modelInstallationState.modelID != nil, modelInstallationState.modelID != model {
+            modelInstallationState = .idle
+        }
         Task {
-            selectedLocalModelInstalled = await modelInstaller.isInstalled(provider: provider, model: model)
+            let installed = await modelInstaller.isInstalled(provider: provider, model: model)
+            guard request == localModelStatusRequest,
+                  provider == settings.localTranscriptionProvider,
+                  model == selectedLocalModelID else { return }
+            selectedLocalModelInstalled = installed
         }
     }
 
@@ -200,10 +211,17 @@ final class AppEnvironment: ObservableObject {
         Task {
             do {
                 try await modelInstaller.install(provider: provider, model: model) { [weak self] state in
-                    Task { @MainActor in self?.modelInstallationState = state }
+                    Task { @MainActor in
+                        guard let self,
+                              provider == self.settings.localTranscriptionProvider,
+                              model == self.selectedLocalModelID else { return }
+                        self.modelInstallationState = state
+                    }
                 }
                 refreshLocalModelStatus()
             } catch {
+                guard provider == settings.localTranscriptionProvider,
+                      model == selectedLocalModelID else { return }
                 modelInstallationState = .failed(model: model, message: error.localizedDescription)
             }
         }
@@ -215,9 +233,13 @@ final class AppEnvironment: ObservableObject {
         Task {
             do {
                 try await modelInstaller.remove(provider: provider, model: model)
+                guard provider == settings.localTranscriptionProvider,
+                      model == selectedLocalModelID else { return }
                 modelInstallationState = .idle
                 refreshLocalModelStatus()
             } catch {
+                guard provider == settings.localTranscriptionProvider,
+                      model == selectedLocalModelID else { return }
                 modelInstallationState = .failed(model: model, message: error.localizedDescription)
             }
         }
@@ -521,4 +543,13 @@ final class AppEnvironment: ObservableObject {
 private enum DictationActivation {
     case main
     case translation
+}
+
+private extension ModelInstallationState {
+    var modelID: String? {
+        switch self {
+        case .idle: nil
+        case .installing(let model, _), .installed(let model), .failed(let model, _): model
+        }
+    }
 }
