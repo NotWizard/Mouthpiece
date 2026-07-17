@@ -131,21 +131,26 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         generation += 1
         socket.resume()
 
-        let deadline = ContinuousClock.now + .seconds(30)
-        while ContinuousClock.now < deadline {
-            let message = try await receive(socket: socket, timeout: .seconds(30))
-            guard let payload = BailianMessageParser.payload(from: message),
-                  let type = payload["type"] as? String else { continue }
-            if type == "session.created" {
-                try await sendJSON(sessionUpdate(configuration), over: socket)
-            } else if type == "session.updated" {
-                configured = true
-                return
-            } else if type == "error" {
-                throw BailianRealtimeError.protocolError(BailianMessageParser.errorMessage(payload))
+        do {
+            let deadline = ContinuousClock.now + .seconds(30)
+            while ContinuousClock.now < deadline {
+                let message = try await receive(socket: socket, timeout: .seconds(30))
+                guard let payload = BailianMessageParser.payload(from: message),
+                      let type = payload["type"] as? String else { continue }
+                if type == "session.created" {
+                    try await sendJSON(sessionUpdate(configuration), over: socket)
+                } else if type == "session.updated" {
+                    configured = true
+                    return
+                } else if type == "error" {
+                    throw BailianRealtimeError.protocolError(BailianMessageParser.errorMessage(payload))
+                }
             }
+            throw BailianRealtimeError.timedOut
+        } catch {
+            if self.socket === socket { await closeSocket() }
+            throw error
         }
-        throw BailianRealtimeError.timedOut
     }
 
     private func startReceiveLoop() {
