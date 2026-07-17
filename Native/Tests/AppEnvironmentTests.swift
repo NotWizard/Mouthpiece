@@ -9,6 +9,27 @@ final class AppEnvironmentTests: XCTestCase {
         XCTAssertTrue(AppEnvironment(bootstrap: false).isReady)
     }
 
+    func testCredentialLoadDoesNotOverwriteAnotherAccountOrNewInput() {
+        XCTAssertTrue(CredentialEditor.shouldApplyLoadedCredential(
+            targetAccount: .openAI,
+            currentAccount: .openAI,
+            valueBeforeLoad: "",
+            currentValue: ""
+        ))
+        XCTAssertFalse(CredentialEditor.shouldApplyLoadedCredential(
+            targetAccount: .openAI,
+            currentAccount: .bailian,
+            valueBeforeLoad: "",
+            currentValue: ""
+        ))
+        XCTAssertFalse(CredentialEditor.shouldApplyLoadedCredential(
+            targetAccount: .openAI,
+            currentAccount: .openAI,
+            valueBeforeLoad: "",
+            currentValue: "new-key"
+        ))
+    }
+
     func testRuntimeSettingsChangesSkipUnrelatedSystemWork() {
         let original = AppSettings()
         var textEdit = original

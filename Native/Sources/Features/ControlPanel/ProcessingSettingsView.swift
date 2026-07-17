@@ -111,6 +111,7 @@ struct ProcessingSettingsView: View {
     @ViewBuilder
     private var reasoningRows: some View {
         CredentialEditor(account: reasoningCredential, showsDivider: true)
+            .id(reasoningCredential)
         SettingsRow(
             icon: "cube",
             title: "processing.model",

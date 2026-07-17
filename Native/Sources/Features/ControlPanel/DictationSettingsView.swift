@@ -115,6 +115,7 @@ struct CloudTranscriptionRows: View {
         ) {
             onCredentialSaved?($0)
         }
+        .id(CloudTranscriptionSupport.credential(for: environment.settings.cloudTranscriptionProvider))
         SettingsRow(
             icon: "cube",
             title: "speech.model",

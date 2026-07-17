@@ -402,13 +402,24 @@ struct CredentialEditor: View {
             }
         }
         .task(id: account) {
+            let targetAccount = account
+            let valueBeforeLoad = value
             revealsValue = false
             do {
-                let credential = try await environment.credential(account)
+                let credential = try await environment.credential(targetAccount)
+                try Task.checkCancellation()
+                guard Self.shouldApplyLoadedCredential(
+                    targetAccount: targetAccount,
+                    currentAccount: account,
+                    valueBeforeLoad: valueBeforeLoad,
+                    currentValue: value
+                ) else { return }
                 value = credential
                 savedValue = credential
                 state = .idle
                 onSaved?(!credential.isEmpty)
+            } catch is CancellationError {
+                return
             } catch {
                 state = .failed(error.localizedDescription)
                 onSaved?(false)
@@ -430,6 +441,15 @@ struct CredentialEditor: View {
                 }
             }
         }
+    }
+
+    nonisolated static func shouldApplyLoadedCredential(
+        targetAccount: CredentialAccount,
+        currentAccount: CredentialAccount,
+        valueBeforeLoad: String,
+        currentValue: String
+    ) -> Bool {
+        targetAccount == currentAccount && valueBeforeLoad == currentValue
     }
 
     private func scheduleSave(_ newValue: String) {

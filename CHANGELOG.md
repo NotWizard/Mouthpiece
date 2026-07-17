@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Isolated API-key editor state by provider and ignored stale credential loads so switching providers or typing during a load cannot reveal or overwrite the wrong key.
 - Prevented asynchronous initialization and realtime warmup work from restarting integrations after application shutdown begins.
 - Ignored stale asynchronous debug-log toggle updates when settings change again before the logger actor applies them.
 - Closed realtime transcription providers after finalize failures before continuing with successful batch fallback, preventing abandoned WebSocket connections.
