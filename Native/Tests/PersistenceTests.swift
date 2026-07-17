@@ -137,6 +137,25 @@ final class PersistenceTests: XCTestCase {
     }
 
     @MainActor
+    func testMigrationBackupRestoreNormalizesRuntimeSettings() throws {
+        let suite = "MouthpieceTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let repository = SettingsRepository(defaults: defaults)
+        var backup = AppSettings()
+        backup.dictationKey = ""
+        backup.reasoningProvider = "local"
+        backup.cloudTranscriptionBaseURL = "http://api.example.com/v1"
+
+        repository.restoreMigrationBackup(try JSONEncoder().encode(backup))
+
+        let restored = repository.load()
+        XCTAssertEqual(restored.dictationKey, "RightCommand")
+        XCTAssertEqual(restored.reasoningProvider, "openai")
+        XCTAssertEqual(restored.cloudTranscriptionBaseURL, "https://api.openai.com/v1")
+    }
+
+    @MainActor
     func testSettingsRejectRemotePlaintextProviderURLs() throws {
         let suite = "MouthpieceTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

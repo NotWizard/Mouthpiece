@@ -142,7 +142,8 @@ final class SettingsRepository {
     }
 
     func restoreMigrationBackup(_ data: Data?) {
-        if let data, let restored = Self.decodeWithDefaults(data) {
+        if let data, var restored = Self.decodeWithDefaults(data) {
+            restored.normalize()
             defaults.set(data, forKey: Self.storageKey)
             cached = restored
         } else {
