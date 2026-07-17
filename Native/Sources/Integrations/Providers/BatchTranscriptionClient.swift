@@ -221,18 +221,36 @@ struct BatchTranscriptionClient: Sendable {
         return payload
     }
 
-    private func deleteSonioxResource(path: String, apiKey: String) async {
+    private static func deleteSonioxResource(
+        path: String,
+        apiKey: String,
+        session: URLSession
+    ) async {
         var request = URLRequest(url: URL(string: "https://api.soniox.com/v1/\(path)")!)
         request.httpMethod = "DELETE"
+        request.timeoutInterval = 15
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         _ = try? await session.data(for: request)
     }
 
     private func deleteSonioxResources(fileID: String, transcriptionID: String?, apiKey: String) async {
-        if let transcriptionID {
-            await deleteSonioxResource(path: "transcriptions/\(transcriptionID)", apiKey: apiKey)
+        let session = session
+        let cleanup = Task.detached(priority: .utility) {
+            if let transcriptionID {
+                await Self.deleteSonioxResource(
+                    path: "transcriptions/\(transcriptionID)",
+                    apiKey: apiKey,
+                    session: session
+                )
+            }
+            await Self.deleteSonioxResource(
+                path: "files/\(fileID)",
+                apiKey: apiKey,
+                session: session
+            )
         }
-        await deleteSonioxResource(path: "files/\(fileID)", apiKey: apiKey)
+        guard !Task.isCancelled else { return }
+        await cleanup.value
     }
 
     private func baseLanguage(_ language: String) -> String {

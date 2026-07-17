@@ -322,6 +322,64 @@ final class DictationAndProviderTests: XCTestCase {
         )
     }
 
+    func testSonioxCancellationStillDeletesRemoteResources() async {
+        ProviderStubURLProtocol.handler = { request in
+            switch (request.httpMethod, request.url?.path) {
+            case ("POST", "/v1/files"):
+                return (200, #"{"id":"file-1"}"#)
+            case ("POST", "/v1/transcriptions"):
+                return (200, #"{"id":"transcription-1"}"#)
+            case ("GET", "/v1/transcriptions/transcription-1"):
+                return (200, #"{"status":"pending"}"#)
+            case ("DELETE", "/v1/transcriptions/transcription-1"),
+                 ("DELETE", "/v1/files/file-1"):
+                return (200, #"{}"#)
+            default:
+                return (404, #"{}"#)
+            }
+        }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [ProviderStubURLProtocol.self]
+        let client = BatchTranscriptionClient(session: URLSession(configuration: configuration))
+        let task = Task {
+            try await client.transcribe(
+                wavData: Data([0, 1]),
+                configuration: BatchTranscriptionConfiguration(
+                    provider: "soniox",
+                    endpoint: URL(string: "https://unused.invalid")!,
+                    apiKey: "test-key",
+                    model: "stt-async-v5"
+                )
+            )
+        }
+
+        for _ in 0..<50 {
+            if ProviderStubURLProtocol.requests.contains(where: {
+                $0.httpMethod == "GET" && $0.url?.path == "/v1/transcriptions/transcription-1"
+            }) { break }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        task.cancel()
+        _ = await task.result
+
+        for _ in 0..<50 {
+            let requests = ProviderStubURLProtocol.requests
+            if requests.contains(where: {
+                $0.httpMethod == "DELETE" && $0.url?.path == "/v1/transcriptions/transcription-1"
+            }), requests.contains(where: {
+                $0.httpMethod == "DELETE" && $0.url?.path == "/v1/files/file-1"
+            }) { break }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        let requests = ProviderStubURLProtocol.requests
+        XCTAssertTrue(requests.contains {
+            $0.httpMethod == "DELETE" && $0.url?.path == "/v1/transcriptions/transcription-1"
+        })
+        XCTAssertTrue(requests.contains {
+            $0.httpMethod == "DELETE" && $0.url?.path == "/v1/files/file-1"
+        })
+    }
+
     func testSonioxRealtimeConfigurationUsesSelectedModel() {
         let payload = SonioxRealtimeProvider.configurationPayload(
             for: RealtimeTranscriptionConfiguration(
