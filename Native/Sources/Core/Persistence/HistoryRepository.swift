@@ -70,10 +70,16 @@ actor HistoryRepository {
         defer { sqlite3_finalize(statement) }
         sqlite3_bind_int(statement, 1, Int32(max(1, min(limit, 1_000))))
         var records: [TranscriptionRecord] = []
-        while sqlite3_step(statement) == SQLITE_ROW {
-            records.append(Self.decodeRecord(statement))
+        while true {
+            switch sqlite3_step(statement) {
+            case SQLITE_ROW:
+                records.append(Self.decodeRecord(statement))
+            case SQLITE_DONE:
+                return records
+            default:
+                throw currentError()
+            }
         }
-        return records
     }
 
     func delete(id: Int64) throws {
@@ -107,12 +113,18 @@ actor HistoryRepository {
         let statement = try prepare("SELECT word FROM custom_dictionary ORDER BY id ASC")
         defer { sqlite3_finalize(statement) }
         var words: [String] = []
-        while sqlite3_step(statement) == SQLITE_ROW {
-            if let value = sqlite3_column_text(statement, 0) {
-                words.append(String(cString: value))
+        while true {
+            switch sqlite3_step(statement) {
+            case SQLITE_ROW:
+                if let value = sqlite3_column_text(statement, 0) {
+                    words.append(String(cString: value))
+                }
+            case SQLITE_DONE:
+                return words
+            default:
+                throw currentError()
             }
         }
-        return words
     }
 
     func replaceDictionary(_ words: [String]) throws {
@@ -142,7 +154,9 @@ actor HistoryRepository {
         )
         defer { sqlite3_finalize(statement) }
         sqlite3_bind_int64(statement, 1, id)
-        guard sqlite3_step(statement) == SQLITE_ROW else {
+        let result = sqlite3_step(statement)
+        guard result == SQLITE_ROW else {
+            if result != SQLITE_DONE { throw currentError() }
             throw HistoryRepositoryError.sqlite(message: "Inserted transcription could not be read")
         }
         return Self.decodeRecord(statement)
@@ -173,7 +187,8 @@ actor HistoryRepository {
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
             """)
-        if !columnNames(database, table: "transcriptions").contains("raw_text") {
+        let transcriptionColumns = try columnNames(database, table: "transcriptions")
+        if !transcriptionColumns.contains("raw_text") {
             try execute(database, "ALTER TABLE transcriptions ADD COLUMN raw_text TEXT")
         }
         try execute(
@@ -189,19 +204,29 @@ actor HistoryRepository {
             """)
     }
 
-    private static func columnNames(_ database: OpaquePointer?, table: String) -> Set<String> {
+    private static func columnNames(_ database: OpaquePointer?, table: String) throws -> Set<String> {
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(database, "PRAGMA table_info(\(table))", -1, &statement, nil) == SQLITE_OK else {
-            return []
+            throw HistoryRepositoryError.sqlite(
+                message: database.map { String(cString: sqlite3_errmsg($0)) } ?? "SQLite error"
+            )
         }
         defer { sqlite3_finalize(statement) }
         var names = Set<String>()
-        while sqlite3_step(statement) == SQLITE_ROW {
-            if let name = sqlite3_column_text(statement, 1) {
-                names.insert(String(cString: name))
+        while true {
+            switch sqlite3_step(statement) {
+            case SQLITE_ROW:
+                if let name = sqlite3_column_text(statement, 1) {
+                    names.insert(String(cString: name))
+                }
+            case SQLITE_DONE:
+                return names
+            default:
+                throw HistoryRepositoryError.sqlite(
+                    message: database.map { String(cString: sqlite3_errmsg($0)) } ?? "SQLite error"
+                )
             }
         }
-        return names
     }
 
     private func prepare(_ sql: String) throws -> OpaquePointer? {

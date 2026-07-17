@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Propagated SQLite row-reading failures instead of returning partial history, dictionary, or migration metadata as successful query results.
 - Closed debug log file handles on every write exit path, including seek and write failures.
 - Removed the microphone input tap and converter state when `AVAudioEngine` fails to start, keeping the next recording attempt from inheriting a stale tap.
 - Applied the user-selected Soniox realtime model when configuring its WebSocket session instead of always sending `stt-rt-v4`.
