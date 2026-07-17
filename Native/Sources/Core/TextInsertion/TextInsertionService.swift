@@ -184,11 +184,18 @@ final class TextInsertionService {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         let insertedChangeCount = pasteboard.changeCount
+        defer {
+            Self.restore(
+                oldItems,
+                ifUnchanged: insertedChangeCount,
+                expectedText: text,
+                pasteboard: pasteboard
+            )
+        }
 
         guard let source = CGEventSource(stateID: .hidSystemState),
               let down = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true),
               let up = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false) else {
-            Self.restore(oldItems, ifUnchanged: insertedChangeCount, expectedText: text, pasteboard: pasteboard)
             throw TextInsertionError.insertionFailed(.failure)
         }
         down.flags = .maskCommand
@@ -197,7 +204,6 @@ final class TextInsertionService {
         up.postToPid(target.processIdentifier)
 
         try await Task.sleep(for: pasteDelay(for: target))
-        Self.restore(oldItems, ifUnchanged: insertedChangeCount, expectedText: text, pasteboard: pasteboard)
     }
 
     static func snapshot(of pasteboard: NSPasteboard) -> [[NSPasteboard.PasteboardType: Data]] {
