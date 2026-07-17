@@ -117,9 +117,12 @@ struct ProcessingSettingsView: View {
             showsDivider: environment.settings.reasoningProvider == "bailian"
                 || environment.settings.reasoningProvider == "custom"
         ) {
-            TextField("speech.model.placeholder", text: settingBinding(environment, \.reasoningModel))
-                .textFieldStyle(.roundedBorder)
-                .frame(width: SettingsControlMetrics.configurationFieldWidth)
+            DeferredSettingTextField(
+                "speech.model.placeholder",
+                value: environment.settings.reasoningModel,
+                keyPath: \.reasoningModel,
+                width: SettingsControlMetrics.configurationFieldWidth
+            )
         }
         if environment.settings.reasoningProvider == "custom" {
             SettingsRow(icon: "link", title: "processing.baseURL") {

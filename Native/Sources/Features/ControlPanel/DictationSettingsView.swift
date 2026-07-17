@@ -120,9 +120,12 @@ struct CloudTranscriptionRows: View {
             title: "speech.model",
             showsDivider: supportsRealtime || environment.settings.cloudTranscriptionProvider == "custom"
         ) {
-            TextField("speech.model.placeholder", text: settingBinding(environment, \.cloudTranscriptionModel))
-                .textFieldStyle(.roundedBorder)
-                .frame(width: SettingsControlMetrics.configurationFieldWidth)
+            DeferredSettingTextField(
+                "speech.model.placeholder",
+                value: environment.settings.cloudTranscriptionModel,
+                keyPath: \.cloudTranscriptionModel,
+                width: SettingsControlMetrics.configurationFieldWidth
+            )
         }
         if environment.settings.cloudTranscriptionProvider == "custom" {
             SettingsRow(icon: "link", title: "processing.baseURL", showsDivider: false) {
