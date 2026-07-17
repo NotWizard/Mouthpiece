@@ -70,7 +70,7 @@ final class AppEnvironment: ObservableObject {
             settings = settingsRepository.load()
             let changes = RuntimeSettingsChanges(previous: previous, current: settings)
             if changes.debugLogging {
-                Task { await logger?.setEnabled(settings.debugLoggingEnabled) }
+                synchronizeDebugLogging(settings.debugLoggingEnabled)
             }
             if changes.hotkeys {
                 cancelPendingMainHotkey()
@@ -401,6 +401,13 @@ final class AppEnvironment: ObservableObject {
             }
         } catch {
             startupError = error.localizedDescription
+        }
+    }
+
+    private func synchronizeDebugLogging(_ enabled: Bool) {
+        Task { [weak self] in
+            guard let self, self.settings.debugLoggingEnabled == enabled else { return }
+            await self.logger?.setEnabled(enabled)
         }
     }
 
