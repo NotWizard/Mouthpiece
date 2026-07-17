@@ -168,9 +168,25 @@ final class SettingsRepository {
         let stored = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return nil
         }
-        defaults.merge(stored) { _, stored in stored }
-        guard let merged = try? JSONSerialization.data(withJSONObject: defaults) else { return nil }
+        let combined = merge(defaults: defaults, stored: stored)
+        guard let merged = try? JSONSerialization.data(withJSONObject: combined) else { return nil }
         return try? JSONDecoder().decode(AppSettings.self, from: merged)
+    }
+
+    private static func merge(
+        defaults: [String: Any],
+        stored: [String: Any]
+    ) -> [String: Any] {
+        var combined = defaults
+        for (key, value) in stored {
+            if let defaultObject = defaults[key] as? [String: Any],
+               let storedObject = value as? [String: Any] {
+                combined[key] = merge(defaults: defaultObject, stored: storedObject)
+            } else {
+                combined[key] = value
+            }
+        }
+        return combined
     }
 
     private static func decodedJSONString(_ value: String?) -> String? {

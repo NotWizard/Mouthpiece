@@ -137,6 +137,28 @@ final class PersistenceTests: XCTestCase {
     }
 
     @MainActor
+    func testOlderNestedSettingsGainMissingDefaultsWithoutDataLoss() throws {
+        let suite = "MouthpieceTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let stored: [String: Any] = [
+            "uiLanguage": UILanguage.english.rawValue,
+            "terminologyProfile": ["preferredTerms": ["Qwen"]],
+        ]
+        defaults.set(
+            try JSONSerialization.data(withJSONObject: stored),
+            forKey: "native.settings.v1"
+        )
+
+        let loaded = SettingsRepository(defaults: defaults).load()
+
+        XCTAssertEqual(loaded.uiLanguage, .english)
+        XCTAssertEqual(loaded.terminologyProfile.preferredTerms, ["Qwen"])
+        XCTAssertTrue(loaded.terminologyProfile.avoidedTerms.isEmpty)
+        XCTAssertTrue(loaded.terminologyProfile.replacementRules.isEmpty)
+    }
+
+    @MainActor
     func testMigrationBackupRestoreNormalizesRuntimeSettings() throws {
         let suite = "MouthpieceTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Recursively filled missing nested setting defaults so older terminology profiles no longer cause the entire settings file to be discarded.
 - Normalized the in-memory settings restored after a failed legacy migration so rollback cannot temporarily bypass current runtime invariants.
 - Allowed custom provider base URLs to be entered as a draft and validated on submit or focus loss instead of resetting the field after every partial keystroke.
 - Closed each Parakeet transcription WebSocket on send, receive, and completion paths instead of leaking failed segment connections.
