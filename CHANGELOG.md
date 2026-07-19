@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Kept the control panel in its intended titleless full-content layout after onboarding instead of restoring the standard macOS toolbar and duplicate window title.
 - Stabilized the dictation capsule across recording, processing, transcript, and error states by keeping one fixed frame and replacing content within a reserved slot.
 - Split the Mouthpiece brand mark into interface and compact menu-bar assets so sidebar branding stays legible while small system surfaces remain centered and uncluttered.
 - Serialized local model installation and removal, cancelled tracked model operations during shutdown, and kept model-operation UI state stable across provider changes.

@@ -251,6 +251,10 @@ private struct ControlPanelWindowConfiguration: NSViewRepresentable {
         window.minSize = ControlPanelWindowMetrics.minimumWindowSize
         window.standardWindowButton(.zoomButton)?.isEnabled = true
         window.collectionBehavior.insert(.fullScreenPrimary)
+        window.toolbar?.isVisible = false
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.styleMask.insert(.fullSizeContentView)
         if currentSize.width < ControlPanelWindowMetrics.minimumWindowSize.width
             || currentSize.height < ControlPanelWindowMetrics.minimumWindowSize.height {
             window.setContentSize(ControlPanelWindowMetrics.defaultContentSize)

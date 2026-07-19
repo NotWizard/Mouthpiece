@@ -658,10 +658,10 @@ private struct OnboardingWindowConfiguration: NSViewRepresentable {
         guard let window = nsView.window else { return }
         window.standardWindowButton(.zoomButton)?.isEnabled = true
         window.collectionBehavior.insert(.fullScreenPrimary)
-        window.toolbar?.isVisible = true
-        window.titleVisibility = .visible
-        window.titlebarAppearsTransparent = false
-        window.styleMask.remove(.fullSizeContentView)
+        window.toolbar?.isVisible = false
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.styleMask.insert(.fullSizeContentView)
     }
 
     @MainActor
