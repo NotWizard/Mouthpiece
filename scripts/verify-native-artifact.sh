@@ -28,6 +28,9 @@ codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 codesign --verify --strict \
   -R="identifier \"com.mouthpiece.app\" and certificate root = H\"$EXPECTED_SHA1\"" \
   "$APP_PATH"
+codesign -d --entitlements :- "$APP_PATH" 2>/dev/null \
+  | plutil -extract com.apple.security.cs.disable-library-validation raw - \
+  | grep -qx true
 test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$APP_PATH/Contents/Info.plist")" = "15.0"
 lipo "$EXECUTABLE" -verify_arch "$EXPECTED_ARCH"
 if ! spctl --assess --type execute --verbose=4 "$APP_PATH"; then

@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Allowed the hardened self-signed app to load its bundled Sparkle framework so Homebrew and DMG installations launch normally on user machines.
+- Updated the generated Homebrew cask to use the current symbolic macOS dependency syntax.
 - Generated separate signed Sparkle feeds for Apple Silicon and Intel packages so both architectures can publish the same app version without conflicting appcast entries.
 - Reacquired stale Accessibility focus and activated the original target application before synthetic paste so automatic insertion no longer fails intermittently after delayed transcription.
 - Displayed target-application identity throughout capsule preparation instead of briefly flashing a preparing message.
