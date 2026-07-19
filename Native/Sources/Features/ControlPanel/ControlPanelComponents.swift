@@ -616,7 +616,7 @@ struct TranslationHotkeyRecorder: View {
     }
 }
 
-private struct HotkeyCaptureSheet: View {
+struct HotkeyCaptureSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var environment: AppEnvironment
 

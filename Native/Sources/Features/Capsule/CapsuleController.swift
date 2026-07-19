@@ -319,6 +319,7 @@ private struct CapsuleView: View {
         case .recording: nil
         case .stopping, .finalizing: AppLocalization.string("capsule.transcribing", language: model.language)
         case .inserting: AppLocalization.string("capsule.inserting", language: model.language)
+        case .completed: AppLocalization.string("capsule.success", language: model.language)
         default: nil
         }
     }

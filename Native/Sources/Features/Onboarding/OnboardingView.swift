@@ -4,7 +4,7 @@ import SwiftUI
 enum OnboardingStep: Int, CaseIterable, Identifiable {
     case welcome
     case permissions
-    case service
+    case hotkey
     case tryIt
 
     var id: Int { rawValue }
@@ -13,17 +13,17 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
         switch self {
         case .welcome: "onboarding.step.welcome"
         case .permissions: "onboarding.step.permissions"
-        case .service: "onboarding.step.service"
+        case .hotkey: "onboarding.step.hotkey"
         case .tryIt: "onboarding.step.try"
         }
     }
 
     var icon: String {
         switch self {
-        case .welcome: "waveform"
+        case .welcome: "sparkles"
         case .permissions: "checkmark.shield"
-        case .service: "server.rack"
-        case .tryIt: "mic"
+        case .hotkey: "keyboard"
+        case .tryIt: "waveform"
         }
     }
 }
@@ -32,27 +32,160 @@ enum OnboardingProgress {
     static func firstIncomplete(
         welcomeSeen: Bool,
         microphoneGranted: Bool,
-        serviceReady: Bool
+        accessibilityGranted: Bool,
+        hotkeyConfigured: Bool
     ) -> OnboardingStep {
         guard welcomeSeen else { return .welcome }
-        guard microphoneGranted else { return .permissions }
-        guard serviceReady else { return .service }
+        guard microphoneGranted, accessibilityGranted else { return .permissions }
+        guard hotkeyConfigured else { return .hotkey }
         return .tryIt
+    }
+}
+
+private enum OnboardingVerificationState: Equatable {
+    case idle
+    case ready
+    case recording
+    case success
+    case failed(String)
+}
+
+@MainActor
+private final class OnboardingVerificationController: ObservableObject {
+    @Published private(set) var state = OnboardingVerificationState.idle
+
+    private let audio = AudioCaptureService()
+    private let capsule = CapsuleController()
+    private let hotkey = HotkeyService(swallowMatchedEvents: true)
+    private let escape = HotkeyService(swallowMatchedEvents: true)
+    private var selectedDeviceUID: String?
+    private var sessionID: UUID?
+    private var hideTask: Task<Void, Never>?
+
+    func activate(key: String, selectedDeviceUID: String?, language: UILanguage) {
+        deactivate()
+        self.selectedDeviceUID = selectedDeviceUID
+        capsule.setLanguage(language)
+        capsule.setTarget(
+            processIdentifier: ProcessInfo.processInfo.processIdentifier,
+            applicationName: "Mouthpiece"
+        )
+        hotkey.onPress = { [weak self] in self?.toggleCapture() }
+        escape.onPress = { [weak self] in self?.stopCapture() }
+        do {
+            try hotkey.start(key: key)
+            try escape.start(key: "Escape")
+            state = .ready
+        } catch {
+            hotkey.stop()
+            escape.stop()
+            state = .failed(error.localizedDescription)
+        }
+    }
+
+    func deactivate() {
+        hideTask?.cancel()
+        hideTask = nil
+        hotkey.stop()
+        escape.stop()
+        sessionID = nil
+        if audio.isRunning {
+            Task { await audio.stop() }
+        }
+        capsule.hide()
+        state = .idle
+    }
+
+    private func toggleCapture() {
+        if state == .recording {
+            stopCapture()
+        } else if state == .ready || state == .success {
+            startCapture()
+        }
+    }
+
+    private func startCapture() {
+        hideTask?.cancel()
+        let id = UUID()
+        sessionID = id
+        let snapshot = DictationSnapshot(
+            sessionID: id,
+            phase: .recording,
+            partialText: "",
+            audioLevel: 0,
+            errorMessage: nil,
+            isTranslation: false
+        )
+        capsule.show(snapshot)
+        do {
+            try audio.start(
+                selectedDeviceUID: selectedDeviceUID,
+                onFrame: { _ in },
+                onLevel: { [weak self] level in
+                    Task { @MainActor in self?.updateLevel(level, sessionID: id) }
+                }
+            )
+            state = .recording
+        } catch {
+            sessionID = nil
+            capsule.hide()
+            state = .failed(error.localizedDescription)
+        }
+    }
+
+    private func updateLevel(_ level: Float, sessionID: UUID) {
+        guard self.sessionID == sessionID, state == .recording else { return }
+        capsule.update(DictationSnapshot(
+            sessionID: sessionID,
+            phase: .recording,
+            partialText: "",
+            audioLevel: level,
+            errorMessage: nil,
+            isTranslation: false
+        ))
+    }
+
+    private func stopCapture() {
+        guard state == .recording, let id = sessionID else { return }
+        sessionID = nil
+        state = .success
+        Task {
+            await audio.stop()
+            guard state == .success else { return }
+            capsule.show(DictationSnapshot(
+                sessionID: id,
+                phase: .completed,
+                partialText: "",
+                audioLevel: 0,
+                errorMessage: nil,
+                isTranslation: false
+            ))
+            hideTask = Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(900))
+                guard !Task.isCancelled else { return }
+                self?.capsule.hide()
+            }
+        }
     }
 }
 
 struct OnboardingView: View {
     @EnvironmentObject private var environment: AppEnvironment
     @AppStorage("onboarding.welcomeSeen") private var welcomeSeen = false
+    @AppStorage("onboarding.hotkeyConfigured") private var hotkeyConfigured = false
+    @AppStorage("controlPanel.selectedSection") private var storedSection = ControlPanelSection.usage.rawValue
 
+    @StateObject private var verification = OnboardingVerificationController()
     @State private var step = OnboardingStep.welcome
-    @State private var credentialConfigured = false
-    @State private var localModelReady = false
-    @State private var testResult = ""
-    @State private var testError = ""
-    @State private var testSucceeded = false
-    @State private var historyIDsAtTestStart = Set<Int64>()
-    @State private var awaitingTestResult = false
+    @State private var selectedHotkey: String?
+    @State private var isHotkeyCapturePresented = false
+
+    private static let hotkeyPresets = [
+        "RightCommand",
+        "RightShift",
+        "RightOption",
+        "RightControl",
+    ]
 
     var body: some View {
         HStack(spacing: 0) {
@@ -64,14 +197,14 @@ struct OnboardingView: View {
                     startupErrorBanner(error)
                 }
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        header
+                    VStack(alignment: step == .welcome ? .center : .leading, spacing: 24) {
+                        if step != .welcome { header }
                         stepContent
                     }
                     .padding(.horizontal, 32)
                     .padding(.top, 28)
                     .padding(.bottom, 24)
-                    .frame(maxWidth: 590, alignment: .leading)
+                    .frame(maxWidth: 590, alignment: step == .welcome ? .center : .leading)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 Divider()
@@ -81,26 +214,36 @@ struct OnboardingView: View {
         }
         .frame(minWidth: 760, minHeight: 560)
         .background(OnboardingWindowConfiguration())
-        .task { await restoreProgress() }
-        .onChange(of: environment.dictation) { _, snapshot in
-            updateTestState(snapshot)
+        .sheet(isPresented: $isHotkeyCapturePresented) {
+            HotkeyCaptureSheet { selectedHotkey = $0 }
+                .environmentObject(environment)
         }
-        .onChange(of: environment.transcriptions) { _, records in
-            updateTestResult(from: records)
+        .task { restoreProgress() }
+        .onChange(of: step) { _, next in
+            if next == .tryIt {
+                activateVerification()
+            } else {
+                verification.deactivate()
+            }
+        }
+        .onDisappear {
+            verification.deactivate()
+            if environment.settings.onboardingCompleted {
+                environment.resumeHotkeysAfterCapture()
+            }
         }
     }
 
     private var stepSidebar: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 9) {
-                Image(systemName: "waveform")
-                    .font(.system(size: 17, weight: .semibold))
+                MouthpieceBrandIcon(size: 18)
                 Text("Mouthpiece")
                     .font(.headline)
             }
             .padding(.horizontal, 16)
-            .padding(.top, 18)
-            .padding(.bottom, 22)
+            .padding(.top, 26)
+            .padding(.bottom, 18)
 
             VStack(spacing: 6) {
                 ForEach(OnboardingStep.allCases) { item in
@@ -164,144 +307,149 @@ struct OnboardingView: View {
     @ViewBuilder
     private var stepContent: some View {
         switch step {
-        case .welcome:
-            welcomeContent
-        case .permissions:
-            permissionsContent
-        case .service:
-            serviceContent
-        case .tryIt:
-            tryItContent
+        case .welcome: welcomeContent
+        case .permissions: permissionsContent
+        case .hotkey: hotkeyContent
+        case .tryIt: tryItContent
         }
     }
 
     private var welcomeContent: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            Image(systemName: "waveform.circle.fill")
-                .font(.system(size: 64))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 10) {
-                Text("onboarding.welcome.anywhere")
-                    .font(.title3.weight(.medium))
-                HStack(spacing: 10) {
-                    Text("onboarding.welcome.shortcut")
-                        .foregroundStyle(.secondary)
-                    Text(
-                        HotkeyCapture.displayName(
-                            for: environment.settings.dictationKey,
-                            language: environment.settings.uiLanguage
-                        )
-                    )
-                        .font(.system(.body, design: .monospaced).weight(.medium))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color(nsColor: .controlBackgroundColor))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                }
+        VStack(spacing: 18) {
+            Image(nsImage: NSApplication.shared.applicationIconImage)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 80, height: 80)
+            VStack(spacing: 7) {
+                Text("onboarding.welcome.title")
+                    .font(.largeTitle.weight(.semibold))
+                Text("onboarding.welcome.body")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 430)
             }
         }
-        .padding(.top, 18)
+        .frame(maxWidth: .infinity, minHeight: 410, alignment: .center)
     }
 
     private var permissionsContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             PermissionRows()
-            if !environment.permissions.microphone {
-                Label("onboarding.permissions.microphoneRequired", systemImage: "info.circle")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else if !environment.permissions.accessibility {
-                Label("onboarding.permissions.accessibilityOptional", systemImage: "info.circle")
+            if !permissionsReady {
+                Label("onboarding.permissions.bothRequired", systemImage: "info.circle")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
     }
 
-    private var serviceContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SettingsSection(title: "onboarding.service.configuration") {
-                TranscriptionModePicker()
-                if environment.settings.useLocalTranscription {
-                    LocalTranscriptionRows { localModelReady = $0 }
-                } else {
-                    CloudTranscriptionRows { credentialConfigured = $0 }
+    private var hotkeyContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("onboarding.hotkey.choose")
+                .font(.subheadline.weight(.semibold))
+                .padding(.leading, 2)
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                ForEach(Self.hotkeyPresets, id: \.self) { value in
+                    hotkeyOption(value)
                 }
             }
-            if serviceReady {
-                InlineStatus("onboarding.service.ready", kind: .success)
-            } else {
-                InlineStatus(
-                    environment.settings.useLocalTranscription
-                        ? "onboarding.service.localRequired"
-                        : "onboarding.service.credentialRequired",
-                    kind: .warning
-                )
+            Button {
+                isHotkeyCapturePresented = true
+            } label: {
+                HStack(spacing: 11) {
+                    Image(systemName: "keyboard.badge.ellipsis")
+                        .font(.system(size: 18))
+                        .foregroundStyle(.tint)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("onboarding.hotkey.custom")
+                            .font(.body.weight(.medium))
+                        Text("onboarding.hotkey.customDetail")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    if let selectedHotkey, !Self.hotkeyPresets.contains(selectedHotkey) {
+                        Text(verbatim: hotkeyName(selectedHotkey))
+                            .font(.system(.body, design: .monospaced).weight(.medium))
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.tint)
+                    } else {
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .padding(.horizontal, 14)
+                .frame(height: 62)
+                .background(Color(nsColor: .controlBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func hotkeyOption(_ value: String) -> some View {
+        Button { selectedHotkey = value } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "keyboard")
+                    .foregroundStyle(selectedHotkey == value ? Color.accentColor : Color.secondary)
+                Text(verbatim: hotkeyName(value))
+                    .font(.body.weight(.medium))
+                Spacer()
+                if selectedHotkey == value {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.tint)
+                }
+            }
+            .padding(.horizontal, 14)
+            .frame(height: 54)
+            .background(
+                selectedHotkey == value
+                    ? Color.accentColor.opacity(0.1)
+                    : Color(nsColor: .controlBackgroundColor)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(
+                        selectedHotkey == value ? Color.accentColor.opacity(0.65) : Color.primary.opacity(0.08),
+                        lineWidth: selectedHotkey == value ? 1.2 : 0.5
+                    )
             }
         }
+        .buttonStyle(.plain)
     }
 
     private var tryItContent: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            SettingsSection(title: "onboarding.try.status") {
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack(spacing: 12) {
-                        Image(systemName: testSucceeded ? "checkmark.circle.fill" : "waveform")
-                            .font(.system(size: 24))
-                            .foregroundStyle(testSucceeded ? Color.green : Color.accentColor)
-                            .frame(width: 32)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(dictationStatusTitle)
-                                .font(.body.weight(.medium))
-                            Text("onboarding.try.shortcutHint")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Button {
-                            if environment.dictation.phase.isActive {
-                                environment.stopDictation()
-                            } else {
-                                testResult = ""
-                                testError = ""
-                                testSucceeded = false
-                                historyIDsAtTestStart = Set(environment.transcriptions.map(\.id))
-                                awaitingTestResult = true
-                                environment.startDictation()
-                            }
-                        } label: {
-                            Text(
-                                environment.dictation.phase.isActive
-                                    ? LocalizedStringKey("onboarding.try.stop")
-                                    : LocalizedStringKey("onboarding.try.start")
-                            )
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(!serviceReady || !environment.permissions.microphone)
-                    }
-
-                    if !displayedTranscript.isEmpty {
-                        Text(displayedTranscript)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(12)
-                            .background(Color(nsColor: .textBackgroundColor))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-
-                    if !testError.isEmpty {
-                        InlineStatus(verbatim: testError, kind: .error)
-                    }
+        SettingsSection(title: "onboarding.try.status") {
+            HStack(spacing: 14) {
+                Image(systemName: verificationIcon)
+                    .font(.system(size: 25))
+                    .foregroundStyle(verificationColor)
+                    .frame(width: 34)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(verificationTitle)
+                        .font(.body.weight(.medium))
+                    verificationDetail
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(14)
+                Spacer(minLength: 16)
+                if let selectedHotkey {
+                    Text(verbatim: hotkeyName(selectedHotkey))
+                        .font(.system(.body, design: .monospaced).weight(.medium))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color(nsColor: .controlBackgroundColor))
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                }
             }
-
-            if !environment.permissions.accessibility {
-                Label("onboarding.try.noInsertion", systemImage: "accessibility")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            .padding(14)
         }
     }
 
@@ -316,18 +464,10 @@ struct OnboardingView: View {
 
             Spacer()
 
-            if step == .service {
-                Button("onboarding.setupLater") { environment.completeOnboarding() }
-            } else if step == .tryIt {
-                Button("onboarding.tryLater") { environment.completeOnboarding() }
-            }
-
-            Button(primaryActionTitle) {
-                advance()
-            }
-            .buttonStyle(.borderedProminent)
-            .keyboardShortcut(.defaultAction)
-            .disabled(!canAdvance)
+            Button(primaryActionTitle) { advance() }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+                .disabled(!canAdvance)
         }
         .padding(.horizontal, 20)
         .frame(height: 60)
@@ -337,7 +477,7 @@ struct OnboardingView: View {
         switch step {
         case .welcome: "onboarding.welcome.title"
         case .permissions: "onboarding.permissions.title"
-        case .service: "onboarding.provider.title"
+        case .hotkey: "onboarding.hotkey.title"
         case .tryIt: "onboarding.try.title"
         }
     }
@@ -346,7 +486,7 @@ struct OnboardingView: View {
         switch step {
         case .welcome: "onboarding.welcome.body"
         case .permissions: "onboarding.permissions.body"
-        case .service: "onboarding.provider.body"
+        case .hotkey: "onboarding.hotkey.body"
         case .tryIt: "onboarding.try.body"
         }
     }
@@ -355,51 +495,87 @@ struct OnboardingView: View {
         step == .tryIt ? "onboarding.finish" : "onboarding.continue"
     }
 
+    private var permissionsReady: Bool {
+        environment.permissions.microphone && environment.permissions.accessibility
+    }
+
     private var canAdvance: Bool {
         switch step {
         case .welcome: true
-        case .permissions: environment.permissions.microphone
-        case .service: serviceReady
-        case .tryIt: testSucceeded
+        case .permissions: permissionsReady
+        case .hotkey: selectedHotkey != nil
+        case .tryIt: verification.state == .success
         }
     }
 
-    private var serviceReady: Bool {
-        environment.settings.useLocalTranscription ? localModelReady : credentialConfigured
-    }
-
-    private var displayedTranscript: String {
-        if !environment.dictation.partialText.isEmpty { return environment.dictation.partialText }
-        return testResult
-    }
-
-    private var dictationStatusTitle: LocalizedStringKey {
-        if testSucceeded { return "onboarding.try.success" }
-        return switch environment.dictation.phase {
-        case .preparing: "capsule.preparing"
-        case .recording: "capsule.listening"
-        case .stopping, .finalizing: "capsule.transcribing"
-        case .inserting: "capsule.inserting"
-        case .failed: "capsule.failed"
+    private var verificationTitle: LocalizedStringKey {
+        switch verification.state {
+        case .recording: "onboarding.try.recording"
+        case .success: "onboarding.try.success"
+        case .failed: "onboarding.try.failedTitle"
         default: "onboarding.try.ready"
         }
     }
 
+    private var verificationDetail: Text {
+        switch verification.state {
+        case .recording:
+            Text("onboarding.try.stopHint")
+        case .success:
+            Text("onboarding.try.successDetail")
+        case .failed(let message):
+            Text(verbatim: message)
+        default:
+            Text("onboarding.try.shortcutHint")
+        }
+    }
+
+    private var verificationIcon: String {
+        switch verification.state {
+        case .recording: "waveform"
+        case .success: "checkmark.circle.fill"
+        case .failed: "exclamationmark.triangle.fill"
+        default: "keyboard"
+        }
+    }
+
+    private var verificationColor: Color {
+        switch verification.state {
+        case .success: .green
+        case .failed: .red
+        default: .accentColor
+        }
+    }
+
     private func advance() {
-        if step == .welcome { welcomeSeen = true }
-        if step == .tryIt {
+        switch step {
+        case .welcome:
+            welcomeSeen = true
+            step = .permissions
+        case .permissions:
+            step = .hotkey
+        case .hotkey:
+            guard let selectedHotkey else { return }
+            var settings = environment.settings
+            settings.dictationKey = selectedHotkey
+            environment.saveSettings(settings)
+            hotkeyConfigured = true
+            environment.suspendHotkeysForCapture()
+            step = .tryIt
+        case .tryIt:
+            guard verification.state == .success else { return }
+            storedSection = ControlPanelSection.dictation.rawValue
+            verification.deactivate()
             environment.completeOnboarding()
-        } else if let next = OnboardingStep(rawValue: step.rawValue + 1) {
-            step = next
         }
     }
 
     private func isComplete(_ item: OnboardingStep) -> Bool {
         switch item {
-        case .welcome: welcomeSeen || step.rawValue > item.rawValue
-        case .permissions: environment.permissions.microphone
-        case .service: serviceReady
-        case .tryIt: testSucceeded
+        case .welcome: welcomeSeen
+        case .permissions: permissionsReady
+        case .hotkey: hotkeyConfigured
+        case .tryIt: verification.state == .success
         }
     }
 
@@ -407,55 +583,37 @@ struct OnboardingView: View {
         switch item {
         case .welcome: true
         case .permissions: welcomeSeen
-        case .service: welcomeSeen && environment.permissions.microphone
-        case .tryIt: welcomeSeen && environment.permissions.microphone && serviceReady
+        case .hotkey: welcomeSeen && permissionsReady
+        case .tryIt: welcomeSeen && permissionsReady && hotkeyConfigured
         }
     }
 
-    private func restoreProgress() async {
+    private func restoreProgress() {
         environment.refreshPermissions()
-        localModelReady = environment.selectedLocalModelInstalled
-        let account = CloudTranscriptionSupport.credential(for: environment.settings.cloudTranscriptionProvider)
-        do {
-            credentialConfigured = !(try await environment.credential(account)).isEmpty
-        } catch {
-            credentialConfigured = false
-            environment.report(error)
-        }
-
+        selectedHotkey = hotkeyConfigured ? environment.settings.dictationKey : nil
         step = OnboardingProgress.firstIncomplete(
             welcomeSeen: welcomeSeen,
             microphoneGranted: environment.permissions.microphone,
-            serviceReady: serviceReady
+            accessibilityGranted: environment.permissions.accessibility,
+            hotkeyConfigured: hotkeyConfigured
+        )
+        environment.suspendHotkeysForCapture()
+        if step == .tryIt { activateVerification() }
+    }
+
+    private func activateVerification() {
+        guard hotkeyConfigured else { return }
+        environment.suspendHotkeysForCapture()
+        verification.activate(
+            key: environment.settings.dictationKey,
+            selectedDeviceUID: environment.settings.selectedMicrophoneUID.isEmpty
+                ? nil : environment.settings.selectedMicrophoneUID,
+            language: environment.settings.uiLanguage
         )
     }
 
-    private func updateTestState(_ snapshot: DictationSnapshot) {
-        if snapshot.phase == .completed, !snapshot.partialText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            testResult = snapshot.partialText
-            testSucceeded = true
-            testError = ""
-            awaitingTestResult = false
-        } else if snapshot.phase == .failed {
-            testError = snapshot.errorMessage ?? AppLocalization.string(
-                "onboarding.try.failed",
-                language: environment.settings.uiLanguage
-            )
-            testSucceeded = false
-            awaitingTestResult = false
-        }
-    }
-
-    private func updateTestResult(from records: [TranscriptionRecord]) {
-        guard awaitingTestResult,
-              !testSucceeded,
-              let record = records.first(where: { !historyIDsAtTestStart.contains($0.id) }) else { return }
-        testResult = record.text
-        testSucceeded = !record.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        if testSucceeded {
-            testError = ""
-            awaitingTestResult = false
-        }
+    private func hotkeyName(_ value: String) -> String {
+        HotkeyCapture.displayName(for: value, language: environment.settings.uiLanguage)
     }
 
     private func startupErrorBanner(_ message: String) -> some View {
@@ -500,6 +658,10 @@ private struct OnboardingWindowConfiguration: NSViewRepresentable {
         guard let window = nsView.window else { return }
         window.standardWindowButton(.zoomButton)?.isEnabled = true
         window.collectionBehavior.insert(.fullScreenPrimary)
+        window.toolbar?.isVisible = true
+        window.titleVisibility = .visible
+        window.titlebarAppearsTransparent = false
+        window.styleMask.remove(.fullSizeContentView)
     }
 
     @MainActor
@@ -508,7 +670,10 @@ private struct OnboardingWindowConfiguration: NSViewRepresentable {
         window.minSize = NSSize(width: 760, height: 560)
         window.standardWindowButton(.zoomButton)?.isEnabled = false
         window.collectionBehavior.remove(.fullScreenPrimary)
+        window.toolbar?.isVisible = false
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.styleMask.insert(.fullSizeContentView)
         window.center()
     }
-
 }

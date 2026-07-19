@@ -13,6 +13,7 @@ enum ModelInstallationError: LocalizedError {
     case pythonMissing
     case commandFailed(String)
     case unsupported
+    case operationInProgress
 
     var errorDescription: String? {
         switch self {
@@ -21,17 +22,27 @@ enum ModelInstallationError: LocalizedError {
         case .pythonMissing: "Python 3.10 or newer is required to install Qwen ASR MLX."
         case .commandFailed(let message): message
         case .unsupported: "Qwen ASR MLX requires an Apple Silicon Mac."
+        case .operationInProgress: "Another local model operation is already in progress."
         }
     }
 }
 
 actor LocalModelInstallationService {
     private let fileManager: FileManager
-    private let session: URLSession
+    private let download: @Sendable (URL) async throws -> (URL, URLResponse)
+    private var operationInProgress = false
 
     init(fileManager: FileManager = .default, session: URLSession = .shared) {
         self.fileManager = fileManager
-        self.session = session
+        download = { try await session.download(from: $0) }
+    }
+
+    init(
+        fileManager: FileManager = .default,
+        download: @escaping @Sendable (URL) async throws -> (URL, URLResponse)
+    ) {
+        self.fileManager = fileManager
+        self.download = download
     }
 
     func isInstalled(provider: LocalTranscriptionProvider, model: String) -> Bool {
@@ -105,6 +116,8 @@ actor LocalModelInstallationService {
         model: String,
         onState: @escaping @Sendable (ModelInstallationState) -> Void
     ) async throws {
+        try beginOperation()
+        defer { operationInProgress = false }
         guard let descriptor = LocalModelCatalog.descriptor(provider: provider, id: model) else {
             throw ModelInstallationError.unknownModel
         }
@@ -127,6 +140,8 @@ actor LocalModelInstallationService {
     }
 
     func remove(provider: LocalTranscriptionProvider, model: String) throws {
+        try beginOperation()
+        defer { operationInProgress = false }
         guard let descriptor = LocalModelCatalog.descriptor(provider: provider, id: model) else {
             throw ModelInstallationError.unknownModel
         }
@@ -145,10 +160,15 @@ actor LocalModelInstallationService {
         }
     }
 
+    private func beginOperation() throws {
+        guard !operationInProgress else { throw ModelInstallationError.operationInProgress }
+        operationInProgress = true
+    }
+
     private func installWhisper(_ descriptor: LocalModelDescriptor) async throws {
         guard let remote = descriptor.downloadURL else { throw ModelInstallationError.unknownModel }
         try fileManager.createDirectory(at: AppPaths.whisperModelsDirectory, withIntermediateDirectories: true)
-        let (temporary, response) = try await session.download(from: remote)
+        let (temporary, response) = try await download(remote)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
               try fileManager.attributesOfItem(atPath: temporary.path)[.size] as? Int64 ?? 0
                 >= descriptor.expectedSizeBytes * 8 / 10 else {
@@ -165,7 +185,7 @@ actor LocalModelInstallationService {
     ) async throws {
         guard let remote = descriptor.downloadURL else { throw ModelInstallationError.unknownModel }
         try fileManager.createDirectory(at: AppPaths.parakeetModelsDirectory, withIntermediateDirectories: true)
-        let (archive, response) = try await session.download(from: remote)
+        let (archive, response) = try await download(remote)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             throw ModelInstallationError.invalidDownload
         }

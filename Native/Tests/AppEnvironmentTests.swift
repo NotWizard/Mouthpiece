@@ -133,7 +133,8 @@ final class AppEnvironmentTests: XCTestCase {
             OnboardingProgress.firstIncomplete(
                 welcomeSeen: false,
                 microphoneGranted: true,
-                serviceReady: true
+                accessibilityGranted: true,
+                hotkeyConfigured: true
             ),
             .welcome
         )
@@ -141,7 +142,8 @@ final class AppEnvironmentTests: XCTestCase {
             OnboardingProgress.firstIncomplete(
                 welcomeSeen: true,
                 microphoneGranted: false,
-                serviceReady: true
+                accessibilityGranted: true,
+                hotkeyConfigured: true
             ),
             .permissions
         )
@@ -149,15 +151,26 @@ final class AppEnvironmentTests: XCTestCase {
             OnboardingProgress.firstIncomplete(
                 welcomeSeen: true,
                 microphoneGranted: true,
-                serviceReady: false
+                accessibilityGranted: false,
+                hotkeyConfigured: true
             ),
-            .service
+            .permissions
         )
         XCTAssertEqual(
             OnboardingProgress.firstIncomplete(
                 welcomeSeen: true,
                 microphoneGranted: true,
-                serviceReady: true
+                accessibilityGranted: true,
+                hotkeyConfigured: false
+            ),
+            .hotkey
+        )
+        XCTAssertEqual(
+            OnboardingProgress.firstIncomplete(
+                welcomeSeen: true,
+                microphoneGranted: true,
+                accessibilityGranted: true,
+                hotkeyConfigured: true
             ),
             .tryIt
         )
@@ -383,9 +396,11 @@ final class AppEnvironmentTests: XCTestCase {
             "promptStudio.discard.title",
             "onboarding.step.welcome",
             "onboarding.step.permissions",
-            "onboarding.step.service",
+            "onboarding.step.hotkey",
             "onboarding.step.try",
             "onboarding.try.success",
+            "permissions.guide.existing",
+            "capsule.success",
         ]
         XCTAssertTrue(required.isSubset(of: keySets[0]))
     }

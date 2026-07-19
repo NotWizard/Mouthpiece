@@ -45,6 +45,7 @@ final class AppEnvironment: ObservableObject {
     private var dictionarySaveTask: Task<Void, Never>?
     private var initializationTask: Task<Void, Never>?
     private var warmupTask: Task<Void, Never>?
+    private var localModelOperationTask: Task<Void, Never>?
 
     init(bootstrap: Bool = true) {
         toggleDictationObserver = NotificationCenter.default.addObserver(
@@ -209,12 +210,16 @@ final class AppEnvironment: ObservableObject {
         translationHotkey.stop()
         escapeHotkey.stop()
         stopEscapeLocalMonitor()
+        removeLifecycleObservers()
         cancelPendingMainHotkey()
         hotkeyPressedAt = nil
+        localModelOperationTask?.cancel()
         await initializationTask?.value
         initializationTask = nil
         await warmupTask?.value
         warmupTask = nil
+        await localModelOperationTask?.value
+        localModelOperationTask = nil
         await dictionarySaveTask?.value
         await coordinator?.shutdown()
         await logger?.write(.info, "Application shutdown completed")
@@ -224,6 +229,7 @@ final class AppEnvironment: ObservableObject {
         var next = settings
         next.onboardingCompleted = true
         saveSettings(next)
+        updateHotkeyRegistrations()
     }
 
     func report(_ error: Error) { startupError = error.localizedDescription }
@@ -249,7 +255,9 @@ final class AppEnvironment: ObservableObject {
         localModelStatusRequest += 1
         let request = localModelStatusRequest
         selectedLocalModelInstalled = false
-        if modelInstallationState.modelID != nil, modelInstallationState.modelID != model {
+        if localModelOperationTask == nil,
+           modelInstallationState.modelID != nil,
+           modelInstallationState.modelID != model {
             modelInstallationState = .idle
         }
         Task {
@@ -262,9 +270,12 @@ final class AppEnvironment: ObservableObject {
     }
 
     func installSelectedLocalModel() {
+        guard localModelOperationTask == nil else { return }
         let provider = settings.localTranscriptionProvider
         let model = selectedLocalModelID
-        Task {
+        localModelOperationTask = Task { [weak self] in
+            guard let self else { return }
+            defer { finishLocalModelOperation() }
             do {
                 try await modelInstaller.install(provider: provider, model: model) { [weak self] state in
                     Task { @MainActor in
@@ -274,8 +285,8 @@ final class AppEnvironment: ObservableObject {
                         self.modelInstallationState = state
                     }
                 }
-                refreshLocalModelStatus()
             } catch {
+                guard !Task.isCancelled else { return }
                 guard provider == settings.localTranscriptionProvider,
                       model == selectedLocalModelID else { return }
                 modelInstallationState = .failed(model: model, message: error.localizedDescription)
@@ -284,21 +295,34 @@ final class AppEnvironment: ObservableObject {
     }
 
     func removeSelectedLocalModel() {
+        guard localModelOperationTask == nil else { return }
         let provider = settings.localTranscriptionProvider
         let model = selectedLocalModelID
-        Task {
+        localModelOperationTask = Task { [weak self] in
+            guard let self else { return }
+            defer { finishLocalModelOperation() }
             do {
                 try await modelInstaller.remove(provider: provider, model: model)
                 guard provider == settings.localTranscriptionProvider,
                       model == selectedLocalModelID else { return }
                 modelInstallationState = .idle
-                refreshLocalModelStatus()
             } catch {
+                guard !Task.isCancelled else { return }
                 guard provider == settings.localTranscriptionProvider,
                       model == selectedLocalModelID else { return }
                 modelInstallationState = .failed(model: model, message: error.localizedDescription)
             }
         }
+    }
+
+    private func finishLocalModelOperation() {
+        localModelOperationTask = nil
+        guard !isShuttingDown else { return }
+        if modelInstallationState.modelID != nil,
+           modelInstallationState.modelID != selectedLocalModelID {
+            modelInstallationState = .idle
+        }
+        refreshLocalModelStatus()
     }
 
     func startDictation(translation: Bool = false) {
@@ -530,7 +554,7 @@ final class AppEnvironment: ObservableObject {
 
     private func updateHotkeyRegistrations() {
         updateEscapeHotkey()
-        guard permissions.accessibility else {
+        guard settings.onboardingCompleted, permissions.accessibility else {
             hotkey.stop()
             translationHotkey.stop()
             return
@@ -652,6 +676,18 @@ final class AppEnvironment: ObservableObject {
                 self?.recoverSystemIntegrations(rewarmRealtime: true)
             }
         })
+    }
+
+    private func removeLifecycleObservers() {
+        if let toggleDictationObserver {
+            NotificationCenter.default.removeObserver(toggleDictationObserver)
+            self.toggleDictationObserver = nil
+        }
+        applicationObservers.forEach(NotificationCenter.default.removeObserver)
+        applicationObservers.removeAll()
+        let workspaceCenter = NSWorkspace.shared.notificationCenter
+        workspaceObservers.forEach(workspaceCenter.removeObserver)
+        workspaceObservers.removeAll()
     }
 
     private func prepareForSleep() async {

@@ -249,6 +249,10 @@ private struct AccessibilityPermissionGuideView: View {
                     .font(.system(size: 18))
                     .foregroundStyle(.tint)
             }
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .onDrag {
+                NSItemProvider(object: appURL as NSURL)
+            }
             .padding(12)
             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay(
@@ -257,9 +261,12 @@ private struct AccessibilityPermissionGuideView: View {
             )
 
             HStack {
-                Text(localized("permissions.guide.waiting"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(localized("permissions.guide.waiting"))
+                    Text(localized("permissions.guide.existing"))
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
                 Spacer()
                 Button(localized("permissions.openSettings"), action: openSettings)
             }

@@ -52,6 +52,48 @@ final class DictationAndProviderTests: XCTestCase {
         super.tearDown()
     }
 
+    func testLocalModelOperationsAreSerialized() async {
+        let probe = DownloadProbe()
+        let service = LocalModelInstallationService(download: { remote in
+            await probe.markStarted()
+            try await Task.sleep(for: .milliseconds(200))
+            let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            try Data([0]).write(to: temporary)
+            return (
+                temporary,
+                HTTPURLResponse(url: remote, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            )
+        })
+        let install = Task {
+            try await service.install(provider: .whisper, model: "tiny") { _ in }
+        }
+
+        for _ in 0..<100 {
+            if await probe.hasStarted() { break }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        let didStart = await probe.hasStarted()
+        XCTAssertTrue(didStart)
+
+        do {
+            try await service.remove(provider: .whisper, model: "tiny")
+            XCTFail("Expected the overlapping model operation to be rejected")
+        } catch ModelInstallationError.operationInProgress {
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        _ = await install.result
+
+        do {
+            try await service.remove(provider: .whisper, model: "missing")
+            XCTFail("Expected the unknown model to be rejected")
+        } catch ModelInstallationError.unknownModel {
+        } catch {
+            XCTFail("The operation guard was not released: \(error)")
+        }
+    }
+
     func testCapsuleLevelHistoryUsesFullWidthSampleCountByDefault() {
         XCTAssertEqual(CapsuleLevelHistory().samples.count, 36)
     }
@@ -414,6 +456,28 @@ final class DictationAndProviderTests: XCTestCase {
 
         XCTAssertLessThan(cancelledAt.duration(to: clock.now), .seconds(2))
     }
+
+    func testLocalModelRuntimeForceStopsProcessThatIgnoresTermination() throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = ["-c", "trap '' TERM; exec /bin/sleep 10"]
+        try process.run()
+        Thread.sleep(forTimeInterval: 0.05)
+
+        let startedAt = Date()
+        LocalModelRuntime.terminate(process, gracePeriod: 0.05)
+
+        XCTAssertFalse(process.isRunning)
+        XCTAssertLessThan(Date().timeIntervalSince(startedAt), 1)
+        XCTAssertEqual(process.terminationReason, .uncaughtSignal)
+    }
+}
+
+private actor DownloadProbe {
+    private var started = false
+
+    func markStarted() { started = true }
+    func hasStarted() -> Bool { started }
 }
 
 private final class ProviderStubURLProtocol: URLProtocol, @unchecked Sendable {

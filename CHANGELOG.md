@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Serialized local model installation and removal, cancelled tracked model operations during shutdown, and kept model-operation UI state stable across provider changes.
+- Removed application and workspace notification observers during shutdown instead of leaving lifecycle callbacks registered.
+- Escalated unresponsive local model server termination after a bounded grace period so shutdown cannot leave child processes running.
 - Isolated API-key editor state by provider and ignored stale credential loads so switching providers or typing during a load cannot reveal or overwrite the wrong key.
 - Prevented asynchronous initialization and realtime warmup work from restarting integrations after application shutdown begins.
 - Ignored stale asynchronous debug-log toggle updates when settings change again before the logger actor applies them.
@@ -72,9 +75,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Reworked onboarding into required Welcome, Permissions, Shortcut, and Capsule Check steps; removed provider setup and network transcription from first-run setup, restored the first incomplete step, and opened Dictation Models after completion.
+- Made the Accessibility onboarding card export the real Mouthpiece app bundle as a native file drag item, while requiring both microphone and Accessibility authorization before continuing.
+- Added an isolated microphone-and-capsule onboarding check driven by the selected shortcut or Escape, with live audio levels and no transcription, history, clipboard, or insertion side effects.
 - Renamed Privacy & Diagnostics to Permissions & Diagnostics and added an always-visible drag guide that opens the macOS Accessibility settings and accepts the real Mouthpiece app bundle.
 - Reduced the dictation capsule from 520 points to 280 points wide, introduced compact state-specific heights, and replaced the heavy gray surface with a lighter adaptive glass treatment.
-- Reduced native switch sizing throughout the control panel, changed translation activation to the dictation modifier plus a configurable extra key, and replaced the solid mouse mark with a lighter outline-and-waveform brand icon.
+- Reduced native switch sizing throughout the control panel, changed translation activation to the dictation modifier plus a configurable extra key, and refined the shared brand icon as a closed mouse outline with a raised five-bar M waveform.
+- Tightened the onboarding sidebar's top spacing so the brand and setup steps sit closer to the window controls.
 - Simplified Prompt Studio into Edit and Test tabs, replaced the simulated test runner with real dictation into a native placeholder editor, and surfaced the configured shortcut in the testing workflow.
 - Replaced generic waveform branding in the control panel sidebar and macOS menu bar with a shared template-aware Mouthpiece mouse mark.
 - Redesigned the dictation capsule as a fixed bottom-center overlay with target and Mouthpiece app identities, a full-width live audio waveform, and a smoothly rolling two-line realtime transcript.

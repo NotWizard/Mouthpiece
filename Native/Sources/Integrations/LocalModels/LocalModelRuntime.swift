@@ -525,8 +525,20 @@ actor LocalModelRuntime {
     }
 
     private func stop(_ process: Process) {
+        Self.terminate(process)
+    }
+
+    nonisolated static func terminate(_ process: Process, gracePeriod: TimeInterval = 0.5) {
         guard process.isRunning else { return }
         process.terminate()
+        let deadline = Date().addingTimeInterval(gracePeriod)
+        while process.isRunning, Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.01)
+        }
+        if process.isRunning {
+            Darwin.kill(process.processIdentifier, SIGKILL)
+        }
+        process.waitUntilExit()
     }
 }
 
