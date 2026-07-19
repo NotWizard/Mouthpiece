@@ -331,7 +331,7 @@ actor DictationCoordinator {
 
     private func consume(level: Float, sessionID: UUID) async {
         guard (try? machine.updateAudioLevel(level, sessionID: sessionID)) != nil else { return }
-        await publish()
+        await capsule.updateAudioLevel(level, sessionID: sessionID)
     }
 
     private func handle(event: RealtimeTranscriptionEvent, sessionID: UUID) async {

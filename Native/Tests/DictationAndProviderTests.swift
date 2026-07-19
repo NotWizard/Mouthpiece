@@ -110,6 +110,29 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(history.samples, [0, 0, 0])
     }
 
+    @MainActor
+    func testCapsuleViewModelAcceptsOnlyCurrentRecordingLevels() {
+        let model = CapsuleViewModel()
+        let sessionID = UUID()
+        model.apply(DictationSnapshot(
+            sessionID: sessionID,
+            phase: .recording,
+            partialText: "",
+            audioLevel: 0,
+            errorMessage: nil,
+            isTranslation: false
+        ))
+
+        model.updateAudioLevel(1, sessionID: sessionID)
+        XCTAssertEqual(model.waveform.levels.last, 1)
+
+        model.updateAudioLevel(0.5, sessionID: UUID())
+        XCTAssertEqual(model.waveform.levels.last, 1)
+
+        model.apply(.idle)
+        XCTAssertTrue(model.waveform.levels.allSatisfy { $0 == 0 })
+    }
+
     func testCapsuleWaveformFillsAvailableWidthAndAmplifiesSpeech() {
         let width = CapsuleWaveformLayout.barWidth(totalWidth: 256, sampleCount: 36, spacing: 2.5)
         XCTAssertEqual(width * 36 + 35 * 2.5, 256, accuracy: 0.001)

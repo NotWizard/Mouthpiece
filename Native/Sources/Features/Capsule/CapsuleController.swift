@@ -1,27 +1,45 @@
 import AppKit
+import QuartzCore
 import SwiftUI
+
+@MainActor
+final class CapsuleWaveformModel: ObservableObject {
+    @Published private(set) var levels = CapsuleLevelHistory().samples
+    private var levelHistory = CapsuleLevelHistory()
+
+    func update(_ level: Float) {
+        levelHistory.append(level)
+        levels = levelHistory.samples
+    }
+
+    func reset() {
+        levelHistory.reset()
+        levels = levelHistory.samples
+    }
+}
 
 @MainActor
 final class CapsuleViewModel: ObservableObject {
     @Published private(set) var snapshot: DictationSnapshot = .idle
-    @Published private(set) var audioLevels = CapsuleLevelHistory().samples
     @Published private(set) var targetApplicationName = "Current App"
     @Published private(set) var targetApplicationIcon: NSImage?
     @Published var language = UILanguage.system
 
-    private var levelHistory = CapsuleLevelHistory()
+    let waveform = CapsuleWaveformModel()
 
     func apply(_ snapshot: DictationSnapshot) {
         if snapshot.sessionID != self.snapshot.sessionID {
-            levelHistory.reset()
+            waveform.reset()
         }
         self.snapshot = snapshot
-        if snapshot.phase == .recording {
-            levelHistory.append(snapshot.audioLevel)
-        } else if snapshot.phase != .preparing {
-            levelHistory.reset()
+        if snapshot.phase != .recording && snapshot.phase != .preparing {
+            waveform.reset()
         }
-        audioLevels = levelHistory.samples
+    }
+
+    func updateAudioLevel(_ level: Float, sessionID: UUID) {
+        guard snapshot.sessionID == sessionID, snapshot.phase == .recording else { return }
+        waveform.update(level)
     }
 
     func setTarget(processIdentifier: pid_t?, applicationName: String?) {
@@ -33,6 +51,7 @@ final class CapsuleViewModel: ObservableObject {
             .flatMap(NSRunningApplication.init(processIdentifier:))?
             .icon
     }
+
 }
 
 struct CapsuleLevelHistory: Equatable {
@@ -55,6 +74,9 @@ struct CapsuleLevelHistory: Equatable {
 private enum CapsuleLayout {
     static let width: CGFloat = 280
     static let height: CGFloat = 86
+    static let shadowInset: CGFloat = 18
+    static let windowWidth = width + shadowInset * 2
+    static let windowHeight = height + shadowInset * 2
 }
 
 enum CapsuleContentKind: Equatable {
@@ -85,8 +107,8 @@ final class CapsuleController {
             contentRect: NSRect(
                 x: 0,
                 y: 0,
-                width: CapsuleLayout.width,
-                height: CapsuleLayout.height
+                width: CapsuleLayout.windowWidth,
+                height: CapsuleLayout.windowHeight
             ),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
@@ -95,14 +117,17 @@ final class CapsuleController {
         panel.level = .statusBar
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
+        panel.hasShadow = false
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.isMovable = false
         panel.isMovableByWindowBackground = false
         panel.ignoresMouseEvents = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
-        panel.contentView = NSHostingView(rootView: CapsuleView(model: model))
+        let hostingView = NSHostingView(rootView: CapsuleView(model: model))
+        hostingView.wantsLayer = true
+        hostingView.layer?.backgroundColor = NSColor.clear.cgColor
+        panel.contentView = hostingView
 
         let center = NotificationCenter.default
         observers.append(center.addObserver(
@@ -134,6 +159,10 @@ final class CapsuleController {
         }
     }
 
+    func updateAudioLevel(_ level: Float, sessionID: UUID) {
+        model.updateAudioLevel(level, sessionID: sessionID)
+    }
+
     func hide() {
         panel.orderOut(nil)
     }
@@ -160,7 +189,7 @@ final class CapsuleController {
         guard let visible = screen?.visibleFrame else { return }
         let origin = NSPoint(
             x: visible.midX - panel.frame.width / 2,
-            y: visible.minY + 18
+            y: visible.minY + 18 - CapsuleLayout.shadowInset
         )
         panel.setFrameOrigin(origin)
     }
@@ -225,7 +254,8 @@ private struct CapsuleView: View {
                 .transition(.opacity)
                 .frame(maxWidth: .infinity, minHeight: 34, maxHeight: 34, alignment: .topLeading)
 
-            CapsuleWaveform(levels: model.audioLevels)
+            CapsuleWaveform(model: model.waveform)
+                .frame(maxWidth: .infinity, minHeight: 21, maxHeight: 21)
                 .opacity(contentKind == .error ? 0 : 1)
         }
         .padding(.horizontal, 12)
@@ -242,11 +272,14 @@ private struct CapsuleView: View {
                         .fill(surfaceTint)
                 }
         }
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(borderTint, lineWidth: 0.8)
         )
         .shadow(color: shadowTint, radius: 12, y: 5)
+        .padding(CapsuleLayout.shadowInset)
+        .frame(width: CapsuleLayout.windowWidth, height: CapsuleLayout.windowHeight)
         .animation(.easeOut(duration: 0.14), value: contentKind)
     }
 
@@ -388,28 +421,116 @@ private struct RollingTranscriptView: View {
     }
 }
 
-private struct CapsuleWaveform: View {
-    let levels: [Float]
-    private let spacing: CGFloat = 2.5
+private struct CapsuleWaveform: NSViewRepresentable {
+    @ObservedObject var model: CapsuleWaveformModel
 
-    var body: some View {
-        GeometryReader { geometry in
-            let barWidth = CapsuleWaveformLayout.barWidth(
-                totalWidth: geometry.size.width,
-                sampleCount: levels.count,
-                spacing: spacing
-            )
-            HStack(alignment: .center, spacing: spacing) {
-                ForEach(Array(levels.enumerated()), id: \.offset) { _, level in
-                    Capsule()
-                        .fill(Color.primary.opacity(0.72))
-                        .frame(width: barWidth, height: CapsuleWaveformLayout.barHeight(for: level))
-                        .animation(.easeOut(duration: 0.10), value: level)
-                }
-            }
-            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
+    func makeNSView(context: Context) -> CapsuleWaveformView {
+        let view = CapsuleWaveformView()
+        view.update(model.levels)
+        return view
+    }
+
+    func updateNSView(_ nsView: CapsuleWaveformView, context: Context) {
+        nsView.update(model.levels)
+    }
+}
+
+private final class CapsuleWaveformView: NSView {
+    private let spacing: CGFloat = 2.5
+    private var targetLevels: [CGFloat] = []
+    private var displayedLevels: [CGFloat] = []
+    private var displayLink: CADisplayLink?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.clear.cgColor
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard window != nil else {
+            displayLink?.invalidate()
+            displayLink = nil
+            return
         }
-        .frame(maxWidth: .infinity, minHeight: 21, maxHeight: 21)
+        guard displayLink == nil else { return }
+        let link = displayLink(target: self, selector: #selector(drawFrame(_:)))
+        link.add(to: .main, forMode: .common)
+        link.isPaused = displayedLevels == targetLevels
+        displayLink = link
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    func update(_ levels: [Float]) {
+        targetLevels = levels.map { CGFloat(min(max($0, 0), 1)) }
+        if displayedLevels.count != targetLevels.count {
+            displayedLevels = targetLevels
+        }
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            displayedLevels = targetLevels
+            displayLink?.isPaused = true
+            needsDisplay = true
+        } else if displayedLevels != targetLevels {
+            displayLink?.isPaused = false
+        }
+    }
+
+    @objc private func drawFrame(_ link: CADisplayLink) {
+        guard displayedLevels.count == targetLevels.count else { return }
+        let delta = max(1.0 / 240.0, min(link.targetTimestamp - link.timestamp, 1.0 / 30.0))
+        let interpolation = CGFloat(1 - exp(-delta * 24))
+        var moving = false
+
+        for index in displayedLevels.indices {
+            let difference = targetLevels[index] - displayedLevels[index]
+            if abs(difference) > 0.001 {
+                displayedLevels[index] += difference * interpolation
+                moving = true
+            } else {
+                displayedLevels[index] = targetLevels[index]
+            }
+        }
+
+        needsDisplay = true
+        link.isPaused = !moving
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        guard !displayedLevels.isEmpty else { return }
+        let barWidth = CapsuleWaveformLayout.barWidth(
+            totalWidth: bounds.width,
+            sampleCount: displayedLevels.count,
+            spacing: spacing
+        )
+
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            NSColor.labelColor.withAlphaComponent(0.72).setFill()
+            for (index, level) in displayedLevels.enumerated() {
+                let height = CapsuleWaveformLayout.barHeight(for: Float(level))
+                let rect = NSRect(
+                    x: CGFloat(index) * (barWidth + spacing),
+                    y: (bounds.height - height) / 2,
+                    width: barWidth,
+                    height: height
+                )
+                NSBezierPath(
+                    roundedRect: rect,
+                    xRadius: min(barWidth, height) / 2,
+                    yRadius: min(barWidth, height) / 2
+                ).fill()
+            }
+        }
     }
 }
 

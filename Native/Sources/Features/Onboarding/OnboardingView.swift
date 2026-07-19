@@ -135,14 +135,7 @@ private final class OnboardingVerificationController: ObservableObject {
 
     private func updateLevel(_ level: Float, sessionID: UUID) {
         guard self.sessionID == sessionID, state == .recording else { return }
-        capsule.update(DictationSnapshot(
-            sessionID: sessionID,
-            phase: .recording,
-            partialText: "",
-            audioLevel: level,
-            errorMessage: nil,
-            isTranslation: false
-        ))
+        capsule.updateAudioLevel(level, sessionID: sessionID)
     }
 
     private func stopCapture() {
