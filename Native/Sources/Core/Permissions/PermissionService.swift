@@ -37,8 +37,6 @@ final class PermissionService {
             onGranted()
             return
         }
-        let promptKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
-        _ = AXIsProcessTrustedWithOptions([promptKey: true] as CFDictionary)
         openAccessibilitySettings()
         accessibilityGuide.show(
             language: language,
