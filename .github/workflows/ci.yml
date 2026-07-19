@@ -20,6 +20,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Select Xcode 26.3 on macOS 15
+        if: matrix.runner == 'macos-15'
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+
       - name: Install XcodeGen
         run: brew install xcodegen
 

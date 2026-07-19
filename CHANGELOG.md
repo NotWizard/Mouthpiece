@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Selected the Swift 6.3 toolchain explicitly on macOS 15 CI and release runners so the locked LevelDB package resolves consistently across the supported test matrix.
 - Removed the rectangular native window shadow around the rounded dictation capsule and moved waveform animation onto a display-synchronized AppKit renderer without publishing audio levels through the global application state.
 - Enlarged and optically centered the Mouthpiece interface and menu-bar marks so they align cleanly with adjacent text and system status icons.
 - Removed the redundant macOS Accessibility prompt when the app already opens System Settings and provides its drag-to-authorize guide.
