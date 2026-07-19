@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Removed the rectangular native window shadow around the rounded dictation capsule and moved waveform animation onto a display-synchronized AppKit renderer without publishing audio levels through the global application state.
+- Enlarged and optically centered the Mouthpiece interface and menu-bar marks so they align cleanly with adjacent text and system status icons.
 - Removed the redundant macOS Accessibility prompt when the app already opens System Settings and provides its drag-to-authorize guide.
 - Kept the control panel in its intended titleless full-content layout after onboarding instead of restoring the standard macOS toolbar and duplicate window title.
 - Stabilized the dictation capsule across recording, processing, transcript, and error states by keeping one fixed frame and replacing content within a reserved slot.
