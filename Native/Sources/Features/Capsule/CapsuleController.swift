@@ -54,14 +54,22 @@ struct CapsuleLevelHistory: Equatable {
 
 private enum CapsuleLayout {
     static let width: CGFloat = 280
-    static let compactHeight: CGFloat = 76
-    static let transcriptHeight: CGFloat = 112
-    static let errorHeight: CGFloat = 86
+    static let height: CGFloat = 86
+}
 
-    static func height(for snapshot: DictationSnapshot) -> CGFloat {
-        if snapshot.phase == .failed { return errorHeight }
-        if !snapshot.partialText.isEmpty { return transcriptHeight }
-        return compactHeight
+enum CapsuleContentKind: Equatable {
+    case identity
+    case status
+    case transcript
+    case error
+
+    static func resolve(_ snapshot: DictationSnapshot) -> Self {
+        if snapshot.phase == .failed { return .error }
+        if !snapshot.partialText.isEmpty { return .transcript }
+        switch snapshot.phase {
+        case .preparing, .stopping, .finalizing, .inserting, .completed: return .status
+        default: return .identity
+        }
     }
 }
 
@@ -78,7 +86,7 @@ final class CapsuleController {
                 x: 0,
                 y: 0,
                 width: CapsuleLayout.width,
-                height: CapsuleLayout.compactHeight
+                height: CapsuleLayout.height
             ),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
@@ -115,15 +123,12 @@ final class CapsuleController {
 
     func show(_ snapshot: DictationSnapshot) {
         model.apply(snapshot)
-        resize(for: snapshot)
         reposition()
         panel.orderFrontRegardless()
     }
 
     func update(_ snapshot: DictationSnapshot) {
         model.apply(snapshot)
-        let resized = resize(for: snapshot)
-        if resized, panel.isVisible { reposition() }
         if snapshot.phase.isActive || snapshot.phase == .failed {
             if !panel.isVisible { show(snapshot) }
         }
@@ -144,14 +149,6 @@ final class CapsuleController {
 
     func repositionIfVisible() {
         if panel.isVisible { reposition() }
-    }
-
-    @discardableResult
-    private func resize(for snapshot: DictationSnapshot) -> Bool {
-        let size = NSSize(width: CapsuleLayout.width, height: CapsuleLayout.height(for: snapshot))
-        guard panel.frame.size != size else { return false }
-        panel.setContentSize(size)
-        return true
     }
 
     private func reposition() {
@@ -223,53 +220,19 @@ private struct CapsuleView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 7) {
-                applicationIcon(model.targetApplicationIcon, fallback: "app.fill")
-                    .frame(width: 18, height: 18)
-                Text(model.targetApplicationName)
-                    .font(.system(size: 13, weight: .semibold))
-                    .lineLimit(1)
-                    .layoutPriority(1)
+            topContent
+                .id(contentKind)
+                .transition(.opacity)
+                .frame(maxWidth: .infinity, minHeight: 34, maxHeight: 34, alignment: .topLeading)
 
-                Spacer(minLength: 10)
-
-                HStack(spacing: 4) {
-                    MouthpieceBrandIcon(size: 13)
-                    Text("Mouthpiece")
-                        .font(.system(size: 12, weight: .medium))
-                        .lineLimit(1)
-                }
-                .foregroundStyle(.tertiary)
-            }
-
-            if model.snapshot.phase == .failed {
-                HStack(alignment: .top, spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                    Text(model.snapshot.errorMessage ?? AppLocalization.string(
-                        "capsule.failed",
-                        language: model.language
-                    ))
-                    .lineLimit(2)
-                }
-                .font(.system(size: 11.5, weight: .medium))
-            } else {
-                if !model.snapshot.partialText.isEmpty {
-                    RollingTranscriptView(text: model.snapshot.partialText)
-                } else if let status = statusText {
-                    Text(status)
-                        .font(.system(size: 11.5, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                CapsuleWaveform(levels: model.audioLevels)
-            }
+            CapsuleWaveform(levels: model.audioLevels)
+                .opacity(contentKind == .error ? 0 : 1)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
         .frame(
             width: CapsuleLayout.width,
-            height: CapsuleLayout.height(for: model.snapshot)
+            height: CapsuleLayout.height
         )
         .background {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -284,7 +247,58 @@ private struct CapsuleView: View {
                 .strokeBorder(borderTint, lineWidth: 0.8)
         )
         .shadow(color: shadowTint, radius: 12, y: 5)
-        .animation(.easeInOut(duration: 0.18), value: CapsuleLayout.height(for: model.snapshot))
+        .animation(.easeOut(duration: 0.14), value: contentKind)
+    }
+
+    private var contentKind: CapsuleContentKind {
+        CapsuleContentKind.resolve(model.snapshot)
+    }
+
+    @ViewBuilder
+    private var topContent: some View {
+        switch contentKind {
+        case .identity:
+            identityRow
+        case .status:
+            Text(statusText ?? "")
+                .font(.system(size: 11.5, weight: .medium))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        case .transcript:
+            RollingTranscriptView(text: model.snapshot.partialText)
+        case .error:
+            HStack(alignment: .top, spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red)
+                Text(model.snapshot.errorMessage ?? AppLocalization.string(
+                    "capsule.failed",
+                    language: model.language
+                ))
+                .lineLimit(2)
+            }
+            .font(.system(size: 11.5, weight: .medium))
+        }
+    }
+
+    private var identityRow: some View {
+        HStack(spacing: 7) {
+            applicationIcon(model.targetApplicationIcon, fallback: "app.fill")
+                .frame(width: 18, height: 18)
+            Text(model.targetApplicationName)
+                .font(.system(size: 13, weight: .semibold))
+                .lineLimit(1)
+                .layoutPriority(1)
+
+            Spacer(minLength: 10)
+
+            HStack(spacing: 4) {
+                MouthpieceBrandIcon(size: 13, compact: true)
+                Text("Mouthpiece")
+                    .font(.system(size: 12, weight: .medium))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(.tertiary)
+        }
     }
 
     private var surfaceTint: LinearGradient {

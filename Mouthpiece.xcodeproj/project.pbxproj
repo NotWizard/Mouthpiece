@@ -50,6 +50,7 @@
 		BAB55B4AB4A206574AC342C0 /* TranscriptionProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD15DDB4974E8338A9223CBC /* TranscriptionProvider.swift */; };
 		BB52C51AEF1B38A7CB931508 /* ProcessingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0944AA15411498349BC4E82 /* ProcessingSettingsView.swift */; };
 		BBFB3EA1322BA1862CAD2129 /* DebugLogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B68D767A89514C2F25309937 /* DebugLogStore.swift */; };
+		BCAEFBCB10A388C050E04573 /* mouthpiece-menubar-mark.svg in Resources */ = {isa = PBXBuildFile; fileRef = 871C50B88CEA598EF7F41391 /* mouthpiece-menubar-mark.svg */; };
 		C087CA335286E7D79EEC7FB9 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 6D51BE0C469FD773D295D0B9 /* Sparkle */; };
 		C0E3D6E50DB92F5E4DA894E6 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FB4E666C85506C60072109F /* libsqlite3.tbd */; };
 		C75391A3121C91FAAD7FCE67 /* TextInsertionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B46BD5418BD14A71E9B04135 /* TextInsertionService.swift */; };
@@ -116,6 +117,7 @@
 		7F25BDD2906CBC56D91B779A /* LegacyMigrationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyMigrationCoordinator.swift; sourceTree = "<group>"; };
 		82D4C3234DFE8927E6B80953 /* AppLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocalization.swift; sourceTree = "<group>"; };
 		82FC2F38172C9F6D2401A7C4 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		871C50B88CEA598EF7F41391 /* mouthpiece-menubar-mark.svg */ = {isa = PBXFileReference; path = "mouthpiece-menubar-mark.svg"; sourceTree = "<group>"; };
 		985AC5EB7663AEBC56A4E41F /* LocalModelRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalModelRuntime.swift; sourceTree = "<group>"; };
 		9F07BDA1719C968AE23A7997 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9F0AA63B360B006DB2405323 /* provider-anthropic.svg */ = {isa = PBXFileReference; path = "provider-anthropic.svg"; sourceTree = "<group>"; };
@@ -339,6 +341,7 @@
 			children = (
 				531364AC24AAD1894E4DBB28 /* Mouthpiece.icns */,
 				A10000000000000000000002 /* mouthpiece-mark.svg */,
+				871C50B88CEA598EF7F41391 /* mouthpiece-menubar-mark.svg */,
 				71C4CEA23ED3CCFB11B6A7E2 /* Localizable.strings */,
 				22ECCF55F5EEE717CCA030A9 /* ProviderIcons */,
 			);
@@ -526,6 +529,7 @@
 				D398048BF564B5ADF2251AAF /* Localizable.strings in Resources */,
 				930134D742359C55F3140F82 /* Mouthpiece.icns in Resources */,
 				A10000000000000000000001 /* mouthpiece-mark.svg in Resources */,
+				BCAEFBCB10A388C050E04573 /* mouthpiece-menubar-mark.svg in Resources */,
 				0AC4A0D057AC1D5B184050EB /* provider-alibaba-cloud.svg in Resources */,
 				879E33605FB4F96D271478A0 /* provider-anthropic.svg in Resources */,
 				5DD8CB5CA74DEF7E5FAC94E7 /* provider-assemblyai.png in Resources */,

@@ -118,6 +118,27 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(CapsuleWaveformLayout.barHeight(for: 1), 21, accuracy: 0.001)
     }
 
+    func testCapsuleContentUsesOneStableSlotAcrossStates() {
+        let sessionID = UUID()
+        var snapshot = DictationSnapshot(
+            sessionID: sessionID,
+            phase: .recording,
+            partialText: "",
+            audioLevel: 0,
+            errorMessage: nil,
+            isTranslation: false
+        )
+
+        XCTAssertEqual(CapsuleContentKind.resolve(snapshot), .identity)
+        snapshot.phase = .finalizing
+        XCTAssertEqual(CapsuleContentKind.resolve(snapshot), .status)
+        snapshot.partialText = "Transcript"
+        XCTAssertEqual(CapsuleContentKind.resolve(snapshot), .transcript)
+        snapshot.phase = .failed
+        snapshot.errorMessage = "Failure"
+        XCTAssertEqual(CapsuleContentKind.resolve(snapshot), .error)
+    }
+
     func testStateMachineRejectsStaleSessionEvents() throws {
         var machine = DictationStateMachine()
         let sessionID = UUID()

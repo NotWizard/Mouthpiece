@@ -237,7 +237,7 @@ struct OnboardingView: View {
     private var stepSidebar: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 9) {
-                MouthpieceBrandIcon(size: 18)
+                MouthpieceBrandIcon(size: 22)
                 Text("Mouthpiece")
                     .font(.headline)
             }

@@ -184,21 +184,29 @@ struct ProviderSelectionGrid: View {
 }
 
 enum MouthpieceBrandMark {
-    static let image: NSImage? = {
-        guard let url = Bundle.main.url(forResource: "mouthpiece-mark", withExtension: "svg"),
+    static let interfaceImage = load("mouthpiece-mark")
+    static let compactImage = load(
+        "mouthpiece-menubar-mark",
+        size: NSSize(width: 18, height: 18)
+    )
+
+    private static func load(_ name: String, size: NSSize? = nil) -> NSImage? {
+        guard let url = Bundle.main.url(forResource: name, withExtension: "svg"),
               let image = NSImage(contentsOf: url) else {
             return nil
         }
         image.isTemplate = true
+        if let size { image.size = size }
         return image
-    }()
+    }
 }
 
 struct MouthpieceBrandIcon: View {
     var size: CGFloat = 18
+    var compact = false
 
     var body: some View {
-        if let image = MouthpieceBrandMark.image {
+        if let image = compact ? MouthpieceBrandMark.compactImage : MouthpieceBrandMark.interfaceImage {
             Image(nsImage: image)
                 .resizable()
                 .scaledToFit()

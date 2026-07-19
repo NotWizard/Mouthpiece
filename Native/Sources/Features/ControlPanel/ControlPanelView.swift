@@ -91,7 +91,7 @@ struct ControlPanelView: View {
     private var sidebar: some View {
         VStack(spacing: 0) {
             HStack(spacing: 9) {
-                MouthpieceBrandIcon(size: 18)
+                MouthpieceBrandIcon(size: 22)
                 Text("Mouthpiece")
                     .font(.headline)
                 Spacer()
