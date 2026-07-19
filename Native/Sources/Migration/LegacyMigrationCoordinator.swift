@@ -273,7 +273,7 @@ final class LegacyMigrationCoordinator {
         "whisperModel", "parakeetModel", "qwenAsrModel", "fallbackWhisperModel",
         "cloudTranscriptionProvider", "cloudTranscriptionModel", "cloudTranscriptionBaseUrl",
         "OPENAI_API_BASE", "reasoningProvider", "reasoningModel", "cloudReasoningBaseUrl",
-        "translationTargetLang", "soundPreset", "bailianRealtimeEnabled",
+        "translationTargetLang", "soundPreset",
         "deepgramStreamingEnabled", "sonioxRealtimeEnabled", "assemblyAiStreaming",
         "useLocalWhisper", "allowOpenAIFallback", "allowCloudFallback", "allowLocalFallback",
         "useReasoningModel", "bailianReasoningEnableThinking", "customReasoningEnableThinking",

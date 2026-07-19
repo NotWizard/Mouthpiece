@@ -82,8 +82,6 @@ final class SettingsRepository {
         next.translationTargetLanguage = values["translationTargetLang"]
             ?? next.translationTargetLanguage
         next.soundPreset = values["soundPreset"] ?? next.soundPreset
-        next.bailianRealtimeEnabled = Self.bool(values["bailianRealtimeEnabled"])
-            ?? next.bailianRealtimeEnabled
         next.deepgramStreamingEnabled = Self.bool(values["deepgramStreamingEnabled"])
             ?? next.deepgramStreamingEnabled
         next.sonioxRealtimeEnabled = Self.bool(values["sonioxRealtimeEnabled"])

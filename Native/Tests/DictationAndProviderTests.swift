@@ -244,19 +244,32 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(TranscriptJoiner.join("hello", "world", language: "en"), "hello world")
     }
 
-    func testBailianProtocolReplayFixturesDecodeTextCompletionAndError() throws {
+    func testBailianFunASRFixturesDecodePartialFinalAndError() throws {
         let fixtures = [
-            #"{"type":"conversation.item.input_audio_transcription.text","text":"你好","stash":"世界"}"#,
-            #"{"type":"conversation.item.input_audio_transcription.completed","item_id":"1","transcript":"你好世界"}"#,
-            #"{"type":"error","error":{"code":"InvalidAudio","message":"bad frame"}}"#,
+            #"{"header":{"event":"result-generated"},"payload":{"output":{"sentence":{"begin_time":0,"end_time":420,"text":"你好","sentence_end":false,"words":[{"begin_time":0,"end_time":210,"text":"你"},{"begin_time":210,"end_time":420,"text":"好"}]}}}}"#,
+            #"{"header":{"event":"result-generated"},"payload":{"output":{"sentence":{"begin_time":0,"end_time":650,"text":"你好世界。","sentence_end":true}}}}"#,
+            #"{"header":{"event":"task-failed","error_code":"InvalidAudio","error_message":"bad frame"}}"#,
         ]
         let payloads = fixtures.compactMap {
             BailianMessageParser.payload(from: .string($0))
         }
 
         XCTAssertEqual(payloads.count, fixtures.count)
-        XCTAssertEqual(payloads[0]["text"] as? String, "你好")
-        XCTAssertEqual(payloads[1]["transcript"] as? String, "你好世界")
+        XCTAssertEqual(BailianMessageParser.event(in: payloads[0]), "result-generated")
+        XCTAssertEqual(
+            BailianMessageParser.sentence(in: payloads[0]),
+            BailianSentence(
+                beginTime: 0,
+                endTime: 420,
+                text: "你好",
+                sentenceEnd: false,
+                words: [
+                    BailianWord(beginTime: 0, endTime: 210, text: "你", punctuation: ""),
+                    BailianWord(beginTime: 210, endTime: 420, text: "好", punctuation: ""),
+                ]
+            )
+        )
+        XCTAssertEqual(BailianMessageParser.sentence(in: payloads[1])?.sentenceEnd, true)
         XCTAssertEqual(BailianMessageParser.errorMessage(payloads[2]), "bad frame")
     }
 

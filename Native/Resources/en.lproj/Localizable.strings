@@ -115,8 +115,8 @@
 "speech.installing" = "Installing...";
 "speech.installModel" = "Install model";
 "speech.removeModel" = "Remove model";
-"speech.bailianRealtime" = "Use Bailian realtime recognition";
 "speech.realtime" = "Realtime transcription";
+"speech.bailianFunASROnly" = "Alibaba Cloud Bailian transcription uses the fun-asr-realtime model exclusively.";
 "speech.apiKey" = "API key";
 "credential.show" = "Show API key";
 "credential.hide" = "Hide API key";

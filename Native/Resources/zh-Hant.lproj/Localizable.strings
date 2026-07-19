@@ -115,8 +115,8 @@
 "speech.installing" = "正在安裝…";
 "speech.installModel" = "安裝模型";
 "speech.removeModel" = "刪除模型";
-"speech.bailianRealtime" = "使用百鍊即時辨識";
 "speech.realtime" = "即時轉錄";
+"speech.bailianFunASROnly" = "阿里雲百鍊聽寫僅支援 fun-asr-realtime 即時模型。";
 "speech.apiKey" = "API 金鑰";
 "credential.show" = "顯示 API 金鑰";
 "credential.hide" = "隱藏 API 金鑰";

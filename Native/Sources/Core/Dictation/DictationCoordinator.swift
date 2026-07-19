@@ -60,7 +60,6 @@ actor DictationCoordinator {
 
     func warmup(settings: AppSettings) async {
         guard settings.cloudTranscriptionProvider == "bailian",
-              settings.bailianRealtimeEnabled,
               let key = try? await keychain.read(.bailian),
               !key.isEmpty else { return }
         let configuration = realtimeConfiguration(settings: settings, apiKey: key)
@@ -157,6 +156,9 @@ actor DictationCoordinator {
                 } catch {
                     await realtime.provider.cancel()
                     guard isCurrent(sessionID, phase: .preparing) else { return }
+                    if settings.cloudTranscriptionProvider == "bailian" {
+                        throw error
+                    }
                     await logger.write(
                         .warning,
                         "Realtime connection failed; retaining audio for batch fallback",
@@ -205,6 +207,9 @@ actor DictationCoordinator {
                     if !realtimeText.isEmpty { rawText = realtimeText }
                 } catch {
                     guard isCurrent(sessionID, phase: .finalizing) else { return }
+                    if activeSettings.cloudTranscriptionProvider == "bailian" {
+                        throw error
+                    }
                     await logger.write(
                         .warning,
                         "Realtime finalize failed; using batch fallback",
@@ -220,6 +225,9 @@ actor DictationCoordinator {
             }
             guard isCurrent(sessionID, phase: .finalizing) else { return }
             if rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                guard activeSettings.cloudTranscriptionProvider != "bailian" else {
+                    throw BailianRealtimeError.protocolError("Fun-ASR did not return a transcript.")
+                }
                 rawText = try await transcribeRecordedAudio(
                     pcm16: recordedPCM,
                     settings: activeSettings,
@@ -304,6 +312,10 @@ actor DictationCoordinator {
             self.provider = nil
             providerSessionID = nil
             await provider.cancel()
+            if activeSettings.cloudTranscriptionProvider == "bailian" {
+                await fail(error, sessionID: sessionID)
+                return
+            }
             await logger.write(
                 .warning,
                 "Realtime frame send failed; retaining audio for batch fallback",
@@ -333,13 +345,18 @@ actor DictationCoordinator {
             break
         case .error(let message):
             await logger.write(.warning, "Realtime provider error", metadata: ["error": message], sessionID: sessionID)
+            if activeSettings.cloudTranscriptionProvider == "bailian" {
+                await fail(BailianRealtimeError.protocolError(message), sessionID: sessionID)
+            }
         }
     }
 
     private func batchTranscribe(pcm16: Data, settings: AppSettings) async throws -> String {
+        guard settings.cloudTranscriptionProvider != "bailian" else {
+            throw BailianRealtimeError.protocolError("Alibaba Bailian only supports Fun-ASR realtime transcription.")
+        }
         let account: CredentialAccount
         switch settings.cloudTranscriptionProvider {
-        case "bailian": account = .bailian
         case "mistral": account = .mistral
         case "groq": account = .groq
         case "deepgram": account = .deepgram
@@ -426,7 +443,6 @@ actor DictationCoordinator {
 
     private func batchBaseURL(_ settings: AppSettings) -> String {
         switch settings.cloudTranscriptionProvider {
-        case "bailian": "https://dashscope.aliyuncs.com/compatible-mode/v1"
         case "groq": "https://api.groq.com/openai/v1"
         case "mistral": "https://api.mistral.ai/v1"
         case "custom": settings.cloudTranscriptionBaseURL
@@ -438,8 +454,8 @@ actor DictationCoordinator {
         for settings: AppSettings
     ) -> (provider: any RealtimeTranscriptionProvider, account: CredentialAccount, defaultModel: String)? {
         switch settings.cloudTranscriptionProvider {
-        case "bailian" where settings.bailianRealtimeEnabled:
-            (bailianProvider, .bailian, "qwen3-asr-flash-realtime")
+        case "bailian":
+            (bailianProvider, .bailian, BailianRealtimeProvider.model)
         case "deepgram" where settings.deepgramStreamingEnabled:
             (deepgramProvider, .deepgram, "nova-3")
         case "soniox" where settings.sonioxRealtimeEnabled:
@@ -454,7 +470,7 @@ actor DictationCoordinator {
     private func realtimeConfiguration(
         settings: AppSettings,
         apiKey: String,
-        defaultModel: String = "qwen3-asr-flash-realtime"
+        defaultModel: String = BailianRealtimeProvider.model
     ) -> RealtimeTranscriptionConfiguration {
         RealtimeTranscriptionConfiguration(
             apiKey: apiKey,
@@ -463,14 +479,15 @@ actor DictationCoordinator {
                 configured: settings.cloudTranscriptionModel,
                 fallback: defaultModel
             ),
-            language: settings.preferredLanguage
+            language: settings.preferredLanguage,
+            preferredTerms: settings.terminologyProfile.preferredTerms
         )
     }
 
     private func realtimeModel(provider: String, configured: String, fallback: String) -> String {
         let value = configured.trimmingCharacters(in: .whitespacesAndNewlines)
         switch provider {
-        case "bailian": return value.contains("realtime") ? value : fallback
+        case "bailian": return BailianRealtimeProvider.model
         case "deepgram": return value.hasPrefix("nova-") ? value : fallback
         case "soniox": return value.hasPrefix("stt-rt-") ? value : fallback
         case "assemblyai": return value.hasPrefix("universal-streaming") ? value : fallback

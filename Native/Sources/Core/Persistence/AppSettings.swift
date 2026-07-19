@@ -93,7 +93,6 @@ struct AppSettings: Codable, Equatable, Sendable {
     var assemblyAIStreaming = true
     var deepgramStreamingEnabled = false
     var sonioxRealtimeEnabled = true
-    var bailianRealtimeEnabled = false
 
     var useReasoningModel = true
     var reasoningProvider = "openai"
@@ -125,6 +124,9 @@ struct AppSettings: Codable, Equatable, Sendable {
             reasoningProvider = "openai"
             reasoningModel = "gpt-4o-mini"
             reasoningBaseURL = "https://api.openai.com/v1"
+        }
+        if cloudTranscriptionProvider == "bailian" {
+            cloudTranscriptionModel = BailianRealtimeProvider.model
         }
         cloudTranscriptionBaseURL = Self.normalizedURL(
             cloudTranscriptionBaseURL,
