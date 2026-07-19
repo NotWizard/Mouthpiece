@@ -29,7 +29,7 @@ codesign --verify --strict \
   -R="identifier \"com.mouthpiece.app\" and certificate root = H\"$EXPECTED_SHA1\"" \
   "$APP_PATH"
 test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$APP_PATH/Contents/Info.plist")" = "15.0"
-lipo -verify_arch "$EXPECTED_ARCH" "$EXECUTABLE"
+lipo "$EXECUTABLE" -verify_arch "$EXPECTED_ARCH"
 if ! spctl --assess --type execute --verbose=4 "$APP_PATH"; then
   echo "Gatekeeper rejected the self-signed app as expected without prior certificate trust; signature and DR checks passed." >&2
 fi

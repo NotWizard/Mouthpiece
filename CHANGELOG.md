@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Corrected the native artifact architecture check so both arm64 and x86_64 release packages are validated with the supported `lipo` argument order.
 - Pinned the LevelDB migration dependency to a Swift 6.2-compatible manifest and selected Xcode 26.3 explicitly on macOS 15 runners so the package resolves consistently across the supported test matrix.
 - Removed the rectangular native window shadow around the rounded dictation capsule and moved waveform animation onto a display-synchronized AppKit renderer without publishing audio levels through the global application state.
 - Enlarged and optically centered the Mouthpiece interface and menu-bar marks so they align cleanly with adjacent text and system status icons.
