@@ -117,6 +117,8 @@
 "speech.removeModel" = "刪除模型";
 "speech.realtime" = "即時轉錄";
 "speech.bailianFunASROnly" = "阿里雲百鍊聽寫僅支援 fun-asr-realtime 即時模型。";
+"speech.volcengineModel" = "豆包串流語音辨識 2.0";
+"speech.volcengineOnly" = "僅支援豆包串流語音辨識 2.0 按時長版。";
 "speech.apiKey" = "API 金鑰";
 "credential.show" = "顯示 API 金鑰";
 "credential.hide" = "隱藏 API 金鑰";
@@ -129,6 +131,7 @@
 "speech.local" = "本機";
 "provider.openai" = "OpenAI";
 "provider.bailian" = "阿里雲百鍊";
+"provider.volcengine" = "火山引擎豆包";
 "provider.anthropic" = "Anthropic";
 "provider.gemini" = "Gemini";
 "provider.groq" = "Groq";

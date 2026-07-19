@@ -470,6 +470,52 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(payload["enable_language_identification"] as? Bool, true)
     }
 
+    func testVolcengineRealtimeFramesAndIncrementalResponse() throws {
+        let request = try VolcengineFrameCodec.fullRequest(
+            configuration: RealtimeTranscriptionConfiguration(apiKey: "test-key")
+        )
+        XCTAssertEqual(Array(request.prefix(4)), [0x11, 0x10, 0x10, 0x00])
+        let requestSize = request[4..<8].reduce(0) { ($0 << 8) | Int($1) }
+        XCTAssertEqual(requestSize, request.count - 8)
+        let payload = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: request.subdata(in: 8..<request.count)) as? [String: Any]
+        )
+        let audio = try XCTUnwrap(payload["audio"] as? [String: Any])
+        let options = try XCTUnwrap(payload["request"] as? [String: Any])
+        XCTAssertEqual(audio["format"] as? String, "pcm")
+        XCTAssertEqual(audio["rate"] as? Int, 16_000)
+        XCTAssertEqual(options["model_name"] as? String, "bigmodel")
+        XCTAssertEqual(options["enable_nonstream"] as? Bool, true)
+
+        XCTAssertEqual(Array(VolcengineFrameCodec.audio(Data([1, 2]), isLast: false).prefix(4)), [0x11, 0x20, 0x00, 0x00])
+        XCTAssertEqual(Array(VolcengineFrameCodec.audio(Data(), isLast: true).prefix(4)), [0x11, 0x22, 0x00, 0x00])
+
+        let responseJSON = Data("""
+        {
+          "code": 0,
+          "is_last_package": true,
+          "payload_msg": {
+            "result": {
+              "text": "你好世界",
+              "utterances": [
+                {"text":"你好","definite":true,"start_time":0,"end_time":320,"words":[]},
+                {"text":"世界","definite":false,"start_time":321,"end_time":640,"words":[]}
+              ]
+            }
+          }
+        }
+        """.utf8)
+        var response = Data([0x11, 0x91, 0x10, 0x00, 0x00, 0x00, 0x00, 0x01])
+        var responseSize = UInt32(responseJSON.count).bigEndian
+        response.append(Data(bytes: &responseSize, count: 4))
+        response.append(responseJSON)
+
+        let parsed = try VolcengineFrameCodec.parseResponse(response)
+        XCTAssertTrue(parsed.isLast)
+        XCTAssertEqual(parsed.result?.text, "你好世界")
+        XCTAssertEqual(parsed.result?.utterances.map(\.definite), [true, false])
+    }
+
     func testProcessCommandTerminatesPromptlyWhenCancelled() async {
         let clock = ContinuousClock()
         let task = Task {

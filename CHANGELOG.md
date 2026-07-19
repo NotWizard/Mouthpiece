@@ -68,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added Volcengine Doubao Streaming ASR 2.0 as an independent realtime-only transcription provider with API Key authentication, incremental utterance updates, and a dedicated control-panel option.
 - Added independent controls for automatically inserting completed transcripts and retaining them in the system clipboard.
 - Added an option to pause the active system media session during dictation and resume it after stop, cancellation, failure, or shutdown.
 - Added a complete macOS 26 control panel and onboarding redesign specification covering information architecture, cool-tinted lightweight Glass navigation, near-white content surfaces, page-level interactions, accessibility, compatibility, implementation phases, and acceptance criteria.

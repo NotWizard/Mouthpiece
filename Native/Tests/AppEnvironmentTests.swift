@@ -289,6 +289,11 @@ final class AppEnvironmentTests: XCTestCase {
             "my-fine-tuned-asr"
         )
         XCTAssertEqual(CloudTranscriptionSupport.credential(for: "assemblyai"), .assemblyAI)
+        XCTAssertEqual(CloudTranscriptionSupport.credential(for: "volcengine"), .volcengine)
+        XCTAssertEqual(
+            CloudTranscriptionSupport.model(afterSelecting: "volcengine", current: "custom-model"),
+            "bigmodel"
+        )
         XCTAssertEqual(CloudTranscriptionSupport.credential(for: "custom"), .customTranscription)
     }
 
@@ -324,6 +329,7 @@ final class AppEnvironmentTests: XCTestCase {
         let assets = [
             ("provider-openai", "svg"),
             ("provider-alibaba-cloud", "svg"),
+            ("provider-volcengine", "svg"),
             ("provider-anthropic", "svg"),
             ("provider-gemini", "svg"),
             ("provider-groq", "svg"),

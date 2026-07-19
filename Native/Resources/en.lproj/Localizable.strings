@@ -117,6 +117,8 @@
 "speech.removeModel" = "Remove model";
 "speech.realtime" = "Realtime transcription";
 "speech.bailianFunASROnly" = "Alibaba Cloud Bailian transcription uses the fun-asr-realtime model exclusively.";
+"speech.volcengineModel" = "Doubao Streaming ASR 2.0";
+"speech.volcengineOnly" = "Only the duration-billed Doubao Streaming ASR 2.0 service is supported.";
 "speech.apiKey" = "API key";
 "credential.show" = "Show API key";
 "credential.hide" = "Hide API key";
@@ -129,6 +131,7 @@
 "speech.local" = "Local";
 "provider.openai" = "OpenAI";
 "provider.bailian" = "Alibaba Cloud Bailian";
+"provider.volcengine" = "Volcengine Doubao";
 "provider.anthropic" = "Anthropic";
 "provider.gemini" = "Gemini";
 "provider.groq" = "Groq";

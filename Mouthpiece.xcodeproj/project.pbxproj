@@ -7,16 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A10000000000000000000001 /* mouthpiece-mark.svg in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* mouthpiece-mark.svg */; };
 		07408B987BBE686D4A2867C8 /* AssemblyAIRealtimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2400733301B8C6B62BBBBADE /* AssemblyAIRealtimeProvider.swift */; };
 		0A440C120208A9FAA7026F3A /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D4C3234DFE8927E6B80953 /* AppLocalization.swift */; };
 		0AC4A0D057AC1D5B184050EB /* provider-alibaba-cloud.svg in Resources */ = {isa = PBXBuildFile; fileRef = 4FF10FB8792E36433269C821 /* provider-alibaba-cloud.svg */; };
 		0CC9ECF7F562AD5316B0D744 /* DictationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E60374F56B1400EFAA2E6ABC /* DictationCoordinator.swift */; };
 		0EC4D9AE76C4613A63CCA0CF /* provider-gemini.svg in Resources */ = {isa = PBXBuildFile; fileRef = EBF9512E0313324EAB4D27AF /* provider-gemini.svg */; };
+		16506CE0651229C235E6997F /* provider-volcengine.svg in Resources */ = {isa = PBXBuildFile; fileRef = 473B94E3083AC662E10BB2F3 /* provider-volcengine.svg */; };
 		1C251ED433E1ADD7BE0CCC97 /* AudioCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E3585937DFD74537CD06375 /* AudioCaptureService.swift */; };
 		21A230C967F31BBEFF0D7E79 /* LegacyMigrationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F25BDD2906CBC56D91B779A /* LegacyMigrationCoordinator.swift */; };
 		2D95C800B8100F754AB4FEC6 /* VocabularyRulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6AF4263364F99415FE81C5 /* VocabularyRulesView.swift */; };
 		321E53850470F38EB87BD3E4 /* AppEnvironmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09EB05050047AEA5E7AF2A0F /* AppEnvironmentTests.swift */; };
+		38C6EAC44D32457CEBAAE9AE /* VolcengineRealtimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4A1007A71A94BEFBAC33308 /* VolcengineRealtimeProvider.swift */; };
 		393DA3F6B2481CBC599F9828 /* HistoryRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4296C56083431AF4D8B75F2 /* HistoryRepository.swift */; };
 		44384E8791662B41641112B2 /* HotkeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FE9307D1D6F3C430EB81C47 /* HotkeyService.swift */; };
 		4D2EFEB2F4185781B7272688 /* ControlPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1827FCF96D30560F007B93C /* ControlPanelView.swift */; };
@@ -24,6 +25,7 @@
 		4FB05E7D0CDE2589D8A3FABD /* MouthpieceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 202A5C104CA1D33343D7EB28 /* MouthpieceApp.swift */; };
 		5114DA72C8727D9B4F23A72D /* provider-openai.svg in Resources */ = {isa = PBXBuildFile; fileRef = F33CE4BB76FFC238A6A35B30 /* provider-openai.svg */; };
 		53BE6F512E01624BE516DBF6 /* PersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C55850A84F69D2693F16674 /* PersistenceTests.swift */; };
+		583C66018112909D4C31B399 /* mouthpiece-mark.svg in Resources */ = {isa = PBXBuildFile; fileRef = 5BBEF14EF7D7B5E4B7925B11 /* mouthpiece-mark.svg */; };
 		5CE5B3948AE7DBFC00EAB40F /* PrivacyDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7041F0F70A5B0304F21B6BB6 /* PrivacyDiagnosticsView.swift */; };
 		5DD8CB5CA74DEF7E5FAC94E7 /* provider-assemblyai.png in Resources */ = {isa = PBXBuildFile; fileRef = 616849886AEB53652DF4F366 /* provider-assemblyai.png */; };
 		625822921D132F271BDDACE8 /* provider-groq.svg in Resources */ = {isa = PBXBuildFile; fileRef = B182DDF5D81617CECF2EE06C /* provider-groq.svg */; };
@@ -83,7 +85,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		A10000000000000000000002 /* mouthpiece-mark.svg */ = {isa = PBXFileReference; path = "mouthpiece-mark.svg"; sourceTree = "<group>"; };
 		010E09EF0048FE7224083DD8 /* DictationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationSettingsView.swift; sourceTree = "<group>"; };
 		09EB05050047AEA5E7AF2A0F /* AppEnvironmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironmentTests.swift; sourceTree = "<group>"; };
 		0C07998451259427FC5F9268 /* SonioxRealtimeProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonioxRealtimeProvider.swift; sourceTree = "<group>"; };
@@ -101,11 +102,13 @@
 		3447C40CD33646B1C77CFEAD /* DeepgramRealtimeProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepgramRealtimeProvider.swift; sourceTree = "<group>"; };
 		40DCD77EEE51E5CD93773591 /* DictationAndProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationAndProviderTests.swift; sourceTree = "<group>"; };
 		42E56BBE96DE36354A1C2355 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
+		473B94E3083AC662E10BB2F3 /* provider-volcengine.svg */ = {isa = PBXFileReference; path = "provider-volcengine.svg"; sourceTree = "<group>"; };
 		4FB4E666C85506C60072109F /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		4FF10FB8792E36433269C821 /* provider-alibaba-cloud.svg */ = {isa = PBXFileReference; path = "provider-alibaba-cloud.svg"; sourceTree = "<group>"; };
 		531364AC24AAD1894E4DBB28 /* Mouthpiece.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Mouthpiece.icns; sourceTree = "<group>"; };
 		5347628D5BA72A65E1824F5C /* provider-soniox.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "provider-soniox.png"; sourceTree = "<group>"; };
 		58C2E9CA9C9D5BF8111BD9A1 /* LocalModelInstallationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalModelInstallationService.swift; sourceTree = "<group>"; };
+		5BBEF14EF7D7B5E4B7925B11 /* mouthpiece-mark.svg */ = {isa = PBXFileReference; path = "mouthpiece-mark.svg"; sourceTree = "<group>"; };
 		5CEC2B190C02DB63C5BAD403 /* LegacyEnvironmentImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyEnvironmentImporter.swift; sourceTree = "<group>"; };
 		5ED34ECC5C67BE03CD9033D9 /* LegacyLocalStorageImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyLocalStorageImporter.swift; sourceTree = "<group>"; };
 		616849886AEB53652DF4F366 /* provider-assemblyai.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "provider-assemblyai.png"; sourceTree = "<group>"; };
@@ -122,6 +125,7 @@
 		9F07BDA1719C968AE23A7997 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9F0AA63B360B006DB2405323 /* provider-anthropic.svg */ = {isa = PBXFileReference; path = "provider-anthropic.svg"; sourceTree = "<group>"; };
 		A32ED6154EF45C286E3C807C /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		A4A1007A71A94BEFBAC33308 /* VolcengineRealtimeProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolcengineRealtimeProvider.swift; sourceTree = "<group>"; };
 		AD15DDB4974E8338A9223CBC /* TranscriptionProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionProvider.swift; sourceTree = "<group>"; };
 		AFB1FA0A318163DC8EBA246D /* DictationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationState.swift; sourceTree = "<group>"; };
 		B1501A6F849E3703BD3FAB3F /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.strings"; sourceTree = "<group>"; };
@@ -196,6 +200,7 @@
 				25D63F24AE6F5D1F437FCA08 /* provider-mistral.png */,
 				F33CE4BB76FFC238A6A35B30 /* provider-openai.svg */,
 				5347628D5BA72A65E1824F5C /* provider-soniox.png */,
+				473B94E3083AC662E10BB2F3 /* provider-volcengine.svg */,
 			);
 			path = ProviderIcons;
 			sourceTree = "<group>";
@@ -284,6 +289,7 @@
 				3447C40CD33646B1C77CFEAD /* DeepgramRealtimeProvider.swift */,
 				0C07998451259427FC5F9268 /* SonioxRealtimeProvider.swift */,
 				AD15DDB4974E8338A9223CBC /* TranscriptionProvider.swift */,
+				A4A1007A71A94BEFBAC33308 /* VolcengineRealtimeProvider.swift */,
 			);
 			path = Providers;
 			sourceTree = "<group>";
@@ -339,9 +345,9 @@
 		C00297656DCF9390C9BC5997 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				531364AC24AAD1894E4DBB28 /* Mouthpiece.icns */,
-				A10000000000000000000002 /* mouthpiece-mark.svg */,
+				5BBEF14EF7D7B5E4B7925B11 /* mouthpiece-mark.svg */,
 				871C50B88CEA598EF7F41391 /* mouthpiece-menubar-mark.svg */,
+				531364AC24AAD1894E4DBB28 /* Mouthpiece.icns */,
 				71C4CEA23ED3CCFB11B6A7E2 /* Localizable.strings */,
 				22ECCF55F5EEE717CCA030A9 /* ProviderIcons */,
 			);
@@ -528,7 +534,7 @@
 				EA5CF8F0B523222C5AEBAD54 /* Binaries in Resources */,
 				D398048BF564B5ADF2251AAF /* Localizable.strings in Resources */,
 				930134D742359C55F3140F82 /* Mouthpiece.icns in Resources */,
-				A10000000000000000000001 /* mouthpiece-mark.svg in Resources */,
+				583C66018112909D4C31B399 /* mouthpiece-mark.svg in Resources */,
 				BCAEFBCB10A388C050E04573 /* mouthpiece-menubar-mark.svg in Resources */,
 				0AC4A0D057AC1D5B184050EB /* provider-alibaba-cloud.svg in Resources */,
 				879E33605FB4F96D271478A0 /* provider-anthropic.svg in Resources */,
@@ -539,6 +545,7 @@
 				DE8EF049174BD51DE610DA2B /* provider-mistral.png in Resources */,
 				5114DA72C8727D9B4F23A72D /* provider-openai.svg in Resources */,
 				E983B3F9295BDBA78FD26760 /* provider-soniox.png in Resources */,
+				16506CE0651229C235E6997F /* provider-volcengine.svg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -602,6 +609,7 @@
 				9E6B73D27BF5EAB22FAE3506 /* UpdateController.swift in Sources */,
 				E0C75E131F314CEC3114585E /* UsageSettingsView.swift in Sources */,
 				2D95C800B8100F754AB4FEC6 /* VocabularyRulesView.swift in Sources */,
+				38C6EAC44D32457CEBAAE9AE /* VolcengineRealtimeProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
