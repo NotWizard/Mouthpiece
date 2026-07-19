@@ -127,6 +127,8 @@ struct AppSettings: Codable, Equatable, Sendable {
         }
         if cloudTranscriptionProvider == "bailian" {
             cloudTranscriptionModel = BailianRealtimeProvider.model
+        } else if cloudTranscriptionProvider == "volcengine" {
+            cloudTranscriptionModel = VolcengineRealtimeProvider.model
         }
         cloudTranscriptionBaseURL = Self.normalizedURL(
             cloudTranscriptionBaseURL,
@@ -166,6 +168,7 @@ enum CredentialAccount: String, CaseIterable, Sendable {
     case mistral = "mistral-api-key"
     case soniox = "soniox-api-key"
     case bailian = "bailian-api-key"
+    case volcengine = "volcengine-api-key"
     case assemblyAI = "assemblyai-api-key"
     case customTranscription = "custom-transcription-api-key"
     case customReasoning = "custom-reasoning-api-key"

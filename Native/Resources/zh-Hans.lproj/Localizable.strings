@@ -117,6 +117,8 @@
 "speech.removeModel" = "删除模型";
 "speech.realtime" = "实时转录";
 "speech.bailianFunASROnly" = "阿里云百炼听写仅支持 fun-asr-realtime 实时模型。";
+"speech.volcengineModel" = "豆包流式语音识别 2.0";
+"speech.volcengineOnly" = "仅支持豆包流式语音识别 2.0 按时长版。";
 "speech.apiKey" = "API 密钥";
 "credential.show" = "显示 API 密钥";
 "credential.hide" = "隐藏 API 密钥";
@@ -129,6 +131,7 @@
 "speech.local" = "本地";
 "provider.openai" = "OpenAI";
 "provider.bailian" = "阿里云百炼";
+"provider.volcengine" = "火山引擎豆包";
 "provider.anthropic" = "Anthropic";
 "provider.gemini" = "Gemini";
 "provider.groq" = "Groq";

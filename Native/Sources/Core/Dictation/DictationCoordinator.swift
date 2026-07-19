@@ -12,6 +12,7 @@ actor DictationCoordinator {
     private let deepgramProvider: DeepgramRealtimeProvider
     private let sonioxProvider: SonioxRealtimeProvider
     private let assemblyAIProvider: AssemblyAIRealtimeProvider
+    private let volcengineProvider: VolcengineRealtimeProvider
     private let localRuntime: LocalModelRuntime
     private let reasoning: ReasoningService
     private let mediaPlayback = MediaPlaybackController()
@@ -38,6 +39,7 @@ actor DictationCoordinator {
         deepgramProvider: DeepgramRealtimeProvider = DeepgramRealtimeProvider(),
         sonioxProvider: SonioxRealtimeProvider = SonioxRealtimeProvider(),
         assemblyAIProvider: AssemblyAIRealtimeProvider = AssemblyAIRealtimeProvider(),
+        volcengineProvider: VolcengineRealtimeProvider = VolcengineRealtimeProvider(),
         localRuntime: LocalModelRuntime = LocalModelRuntime(),
         reasoningService: ReasoningService? = nil,
         onSnapshot: @escaping @MainActor @Sendable (DictationSnapshot) -> Void
@@ -53,6 +55,7 @@ actor DictationCoordinator {
         self.deepgramProvider = deepgramProvider
         self.sonioxProvider = sonioxProvider
         self.assemblyAIProvider = assemblyAIProvider
+        self.volcengineProvider = volcengineProvider
         self.localRuntime = localRuntime
         self.reasoning = reasoningService ?? ReasoningService(keychain: keychain)
         self.onSnapshot = onSnapshot
@@ -80,6 +83,7 @@ actor DictationCoordinator {
         await deepgramProvider.cancel()
         await sonioxProvider.cancel()
         await assemblyAIProvider.cancel()
+        await volcengineProvider.cancel()
         await localRuntime.stopAll()
         provider = nil
         providerSessionID = nil
@@ -156,7 +160,7 @@ actor DictationCoordinator {
                 } catch {
                     await realtime.provider.cancel()
                     guard isCurrent(sessionID, phase: .preparing) else { return }
-                    if settings.cloudTranscriptionProvider == "bailian" {
+                    if isRealtimeOnlyProvider(settings.cloudTranscriptionProvider) {
                         throw error
                     }
                     await logger.write(
@@ -207,7 +211,7 @@ actor DictationCoordinator {
                     if !realtimeText.isEmpty { rawText = realtimeText }
                 } catch {
                     guard isCurrent(sessionID, phase: .finalizing) else { return }
-                    if activeSettings.cloudTranscriptionProvider == "bailian" {
+                    if isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider) {
                         throw error
                     }
                     await logger.write(
@@ -225,8 +229,8 @@ actor DictationCoordinator {
             }
             guard isCurrent(sessionID, phase: .finalizing) else { return }
             if rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                guard activeSettings.cloudTranscriptionProvider != "bailian" else {
-                    throw BailianRealtimeError.protocolError("Fun-ASR did not return a transcript.")
+                guard !isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider) else {
+                    throw BailianRealtimeError.protocolError("The realtime provider did not return a transcript.")
                 }
                 rawText = try await transcribeRecordedAudio(
                     pcm16: recordedPCM,
@@ -312,7 +316,7 @@ actor DictationCoordinator {
             self.provider = nil
             providerSessionID = nil
             await provider.cancel()
-            if activeSettings.cloudTranscriptionProvider == "bailian" {
+            if isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider) {
                 await fail(error, sessionID: sessionID)
                 return
             }
@@ -345,15 +349,15 @@ actor DictationCoordinator {
             break
         case .error(let message):
             await logger.write(.warning, "Realtime provider error", metadata: ["error": message], sessionID: sessionID)
-            if activeSettings.cloudTranscriptionProvider == "bailian" {
+            if isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider) {
                 await fail(BailianRealtimeError.protocolError(message), sessionID: sessionID)
             }
         }
     }
 
     private func batchTranscribe(pcm16: Data, settings: AppSettings) async throws -> String {
-        guard settings.cloudTranscriptionProvider != "bailian" else {
-            throw BailianRealtimeError.protocolError("Alibaba Bailian only supports Fun-ASR realtime transcription.")
+        guard !isRealtimeOnlyProvider(settings.cloudTranscriptionProvider) else {
+            throw BailianRealtimeError.protocolError("The selected provider only supports realtime transcription.")
         }
         let account: CredentialAccount
         switch settings.cloudTranscriptionProvider {
@@ -456,6 +460,8 @@ actor DictationCoordinator {
         switch settings.cloudTranscriptionProvider {
         case "bailian":
             (bailianProvider, .bailian, BailianRealtimeProvider.model)
+        case "volcengine":
+            (volcengineProvider, .volcengine, VolcengineRealtimeProvider.model)
         case "deepgram" where settings.deepgramStreamingEnabled:
             (deepgramProvider, .deepgram, "nova-3")
         case "soniox" where settings.sonioxRealtimeEnabled:
@@ -488,11 +494,16 @@ actor DictationCoordinator {
         let value = configured.trimmingCharacters(in: .whitespacesAndNewlines)
         switch provider {
         case "bailian": return BailianRealtimeProvider.model
+        case "volcengine": return VolcengineRealtimeProvider.model
         case "deepgram": return value.hasPrefix("nova-") ? value : fallback
         case "soniox": return value.hasPrefix("stt-rt-") ? value : fallback
         case "assemblyai": return value.hasPrefix("universal-streaming") ? value : fallback
         default: return value.isEmpty ? fallback : value
         }
+    }
+
+    private func isRealtimeOnlyProvider(_ provider: String) -> Bool {
+        provider == "bailian" || provider == "volcengine"
     }
 
     private func fail(_ error: Error, sessionID: UUID) async {

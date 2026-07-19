@@ -131,6 +131,16 @@ struct CloudTranscriptionRows: View {
                         .accessibilityLabel("speech.bailianFunASROnly")
                 }
                 .frame(width: SettingsControlMetrics.configurationFieldWidth, alignment: .trailing)
+            } else if environment.settings.cloudTranscriptionProvider == "volcengine" {
+                HStack(spacing: 8) {
+                    Text("speech.volcengineModel")
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(.tertiary)
+                        .help("speech.volcengineOnly")
+                        .accessibilityLabel("speech.volcengineOnly")
+                }
+                .frame(width: SettingsControlMetrics.configurationFieldWidth, alignment: .trailing)
             } else {
                 DeferredSettingTextField(
                     "speech.model.placeholder",
@@ -297,6 +307,7 @@ struct LocalTranscriptionRows: View {
 enum CloudTranscriptionSupport {
     static let providers = [
         ProviderChoice(id: "bailian", title: "provider.bailian", assetName: "provider-alibaba-cloud", fallbackIcon: "cloud", rendersAsTemplate: false),
+        ProviderChoice(id: "volcengine", title: "provider.volcengine", assetName: "provider-volcengine", fallbackIcon: "waveform", rendersAsTemplate: false),
         ProviderChoice(id: "openai", title: "provider.openai", assetName: "provider-openai", fallbackIcon: "sparkles"),
         ProviderChoice(id: "deepgram", title: "provider.deepgram", assetName: "provider-deepgram", fallbackIcon: "waveform", rendersAsTemplate: false),
         ProviderChoice(id: "soniox", title: "provider.soniox", assetName: "provider-soniox", assetExtension: "png", fallbackIcon: "waveform", rendersAsTemplate: false),
@@ -314,6 +325,7 @@ enum CloudTranscriptionSupport {
     static func credential(for provider: String) -> CredentialAccount {
         switch provider {
         case "bailian": .bailian
+        case "volcengine": .volcengine
         case "deepgram": .deepgram
         case "soniox": .soniox
         case "groq": .groq
@@ -327,6 +339,7 @@ enum CloudTranscriptionSupport {
     static func defaultModel(for provider: String) -> String? {
         [
             "bailian": BailianRealtimeProvider.model,
+            "volcengine": VolcengineRealtimeProvider.model,
             "openai": "gpt-4o-mini-transcribe",
             "deepgram": "nova-3",
             "soniox": "stt-rt-v4",
@@ -338,6 +351,7 @@ enum CloudTranscriptionSupport {
 
     static func model(afterSelecting provider: String, current: String) -> String {
         if provider == "bailian" { return BailianRealtimeProvider.model }
+        if provider == "volcengine" { return VolcengineRealtimeProvider.model }
         guard let fallback = defaultModel(for: provider) else { return current }
         let knownDefaults = Set(providers.compactMap { defaultModel(for: $0.id) })
         let clean = current.trimmingCharacters(in: .whitespacesAndNewlines)
