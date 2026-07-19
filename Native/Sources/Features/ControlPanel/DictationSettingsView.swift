@@ -119,14 +119,26 @@ struct CloudTranscriptionRows: View {
         SettingsRow(
             icon: "cube",
             title: "speech.model",
-            showsDivider: supportsRealtime || environment.settings.cloudTranscriptionProvider == "custom"
+            showsDivider: modelShowsDivider
         ) {
-            DeferredSettingTextField(
-                "speech.model.placeholder",
-                value: environment.settings.cloudTranscriptionModel,
-                keyPath: \.cloudTranscriptionModel,
-                width: SettingsControlMetrics.configurationFieldWidth
-            )
+            if environment.settings.cloudTranscriptionProvider == "bailian" {
+                HStack(spacing: 8) {
+                    Text(BailianRealtimeProvider.model)
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(.tertiary)
+                        .help("speech.bailianFunASROnly")
+                        .accessibilityLabel("speech.bailianFunASROnly")
+                }
+                .frame(width: SettingsControlMetrics.configurationFieldWidth, alignment: .trailing)
+            } else {
+                DeferredSettingTextField(
+                    "speech.model.placeholder",
+                    value: environment.settings.cloudTranscriptionModel,
+                    keyPath: \.cloudTranscriptionModel,
+                    width: SettingsControlMetrics.configurationFieldWidth
+                )
+            }
         }
         if environment.settings.cloudTranscriptionProvider == "custom" {
             SettingsRow(icon: "link", title: "processing.baseURL", showsDivider: false) {
@@ -143,20 +155,17 @@ struct CloudTranscriptionRows: View {
     }
 
     private var supportsRealtime: Bool {
-        ["bailian", "deepgram", "soniox", "assemblyai"]
+        ["deepgram", "soniox", "assemblyai"]
             .contains(environment.settings.cloudTranscriptionProvider)
+    }
+
+    private var modelShowsDivider: Bool {
+        supportsRealtime || environment.settings.cloudTranscriptionProvider == "custom"
     }
 
     @ViewBuilder
     private var realtimeRow: some View {
         switch environment.settings.cloudTranscriptionProvider {
-        case "bailian":
-            SettingsRow(icon: "bolt", title: "speech.realtime", showsDivider: false) {
-                Toggle("", isOn: settingBinding(environment, \.bailianRealtimeEnabled))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
-            }
         case "deepgram":
             SettingsRow(icon: "bolt", title: "speech.realtime", showsDivider: false) {
                 Toggle("", isOn: settingBinding(environment, \.deepgramStreamingEnabled))
@@ -317,7 +326,7 @@ enum CloudTranscriptionSupport {
 
     static func defaultModel(for provider: String) -> String? {
         [
-            "bailian": "qwen3-asr-flash",
+            "bailian": BailianRealtimeProvider.model,
             "openai": "gpt-4o-mini-transcribe",
             "deepgram": "nova-3",
             "soniox": "stt-rt-v4",
@@ -328,6 +337,7 @@ enum CloudTranscriptionSupport {
     }
 
     static func model(afterSelecting provider: String, current: String) -> String {
+        if provider == "bailian" { return BailianRealtimeProvider.model }
         guard let fallback = defaultModel(for: provider) else { return current }
         let knownDefaults = Set(providers.compactMap { defaultModel(for: $0.id) })
         let clean = current.trimmingCharacters(in: .whitespacesAndNewlines)

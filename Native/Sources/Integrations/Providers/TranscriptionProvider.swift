@@ -6,19 +6,22 @@ struct RealtimeTranscriptionConfiguration: Equatable, Sendable {
     var sampleRate: Int
     var language: String?
     var silenceDurationMilliseconds: Int
+    var preferredTerms: [String]
 
     init(
         apiKey: String,
-        model: String = "qwen3-asr-flash-realtime",
+        model: String = "fun-asr-realtime",
         sampleRate: Int = 16_000,
         language: String? = nil,
-        silenceDurationMilliseconds: Int = 400
+        silenceDurationMilliseconds: Int = 400,
+        preferredTerms: [String] = []
     ) {
         self.apiKey = apiKey
         self.model = model
         self.sampleRate = sampleRate
         self.language = language == "auto" ? nil : language
         self.silenceDurationMilliseconds = max(200, silenceDurationMilliseconds)
+        self.preferredTerms = preferredTerms
     }
 }
 

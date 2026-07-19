@@ -266,23 +266,40 @@ final class AppEnvironmentTests: XCTestCase {
         XCTAssertEqual(TranslationHotkey.suffix(from: "Command+."), ".")
     }
 
-    func testProviderSelectionPreservesCustomModelAndUpdatesKnownDefault() {
+    func testProviderSelectionPinsBailianToFunASRAndPreservesOtherCustomModels() {
         XCTAssertEqual(
             CloudTranscriptionSupport.model(
                 afterSelecting: "bailian",
                 current: "gpt-4o-mini-transcribe"
             ),
-            "qwen3-asr-flash"
+            "fun-asr-realtime"
         )
         XCTAssertEqual(
             CloudTranscriptionSupport.model(
                 afterSelecting: "bailian",
                 current: "my-fine-tuned-asr"
             ),
+            "fun-asr-realtime"
+        )
+        XCTAssertEqual(
+            CloudTranscriptionSupport.model(
+                afterSelecting: "openai",
+                current: "my-fine-tuned-asr"
+            ),
             "my-fine-tuned-asr"
         )
         XCTAssertEqual(CloudTranscriptionSupport.credential(for: "assemblyai"), .assemblyAI)
         XCTAssertEqual(CloudTranscriptionSupport.credential(for: "custom"), .customTranscription)
+    }
+
+    func testSettingsNormalizationMigratesBailianToFunASR() {
+        var settings = AppSettings()
+        settings.cloudTranscriptionProvider = "bailian"
+        settings.cloudTranscriptionModel = "qwen3-asr-flash"
+
+        settings.normalize()
+
+        XCTAssertEqual(settings.cloudTranscriptionModel, "fun-asr-realtime")
     }
 
     func testReasoningProviderDefaultsDoNotOverwriteCustomConfiguration() {

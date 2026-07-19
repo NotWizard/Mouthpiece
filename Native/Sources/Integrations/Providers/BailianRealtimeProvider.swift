@@ -17,40 +17,36 @@ enum BailianRealtimeError: LocalizedError, Equatable {
 }
 
 actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
-    static let endpoint = URL(
-        string: "wss://dashscope.aliyuncs.com/api-ws/v1/realtime?model=qwen3-asr-flash-realtime"
-    )!
+    static let endpoint = URL(string: "wss://dashscope.aliyuncs.com/api-ws/v1/inference/")!
+    static let model = "fun-asr-realtime"
 
     private let session: URLSession
+    private let vocabularyService: BailianVocabularyService
     private var socket: URLSessionWebSocketTask?
     private var configuration: RealtimeTranscriptionConfiguration?
     private var eventHandler: (@Sendable (RealtimeTranscriptionEvent) -> Void)?
     private var receiveTask: Task<Void, Never>?
-    private var livenessTask: Task<Void, Never>?
     private var generation = 0
-    private var configured = false
+    private var taskID = ""
+    private var taskStarted = false
+    private var taskFinished = false
     private var warmCreatedAt: Date?
-    private var serverEventSeen = false
-    private var reconnectAttempted = false
-    private var pendingAudio: [Data] = []
-    private var pendingAudioBytes = 0
-    private var replayAudio: [Data] = []
-    private var replayAudioBytes = 0
-    private var accumulatedText = ""
-    private var liveText = ""
-    private var completedItemIDs = Set<String>()
-    private var sessionFinished = false
+    private var pendingAudio = Data()
+    private var committedText = ""
+    private var activeText = ""
+    private var completedSentenceBegins = Set<Int>()
 
-    private let maximumBufferedBytes = 3 * 16_000 * 2
+    private let networkChunkBytes = 3_200
     private let warmTTL: TimeInterval = 5 * 60
 
     init(session: URLSession = .shared) {
         self.session = session
+        self.vocabularyService = BailianVocabularyService(session: session)
     }
 
     func warmup(configuration: RealtimeTranscriptionConfiguration) async throws {
         guard !configuration.apiKey.isEmpty else { throw BailianRealtimeError.missingAPIKey }
-        if configured,
+        if taskStarted,
            self.configuration == configuration,
            let warmCreatedAt,
            Date().timeIntervalSince(warmCreatedAt) < warmTTL,
@@ -58,7 +54,7 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
             return
         }
         await closeSocket()
-        try await createConfiguredSocket(configuration)
+        try await createTask(configuration)
         warmCreatedAt = Date()
     }
 
@@ -70,52 +66,55 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         resetTranscript()
         eventHandler = onEvent
 
-        let canUseWarm = configured
+        let canUseWarm = taskStarted
             && self.configuration == configuration
             && warmCreatedAt.map { Date().timeIntervalSince($0) < warmTTL } == true
             && socket?.state == .running
         if !canUseWarm {
             await closeSocket()
-            try await createConfiguredSocket(configuration)
+            try await createTask(configuration)
         }
         self.configuration = configuration
         warmCreatedAt = nil
-        guard let socket else { throw CancellationError() }
-        let generation = self.generation
-        try await flushPendingAudio(over: socket, generation: generation)
-        try ensureCurrent(socket: socket, generation: generation)
         startReceiveLoop()
     }
 
     func send(pcm16: Data) async throws {
         guard !pcm16.isEmpty else { return }
-        guard configured, let socket, socket.state == .running else {
-            appendBounded(pcm16, to: &pendingAudio, byteCount: &pendingAudioBytes)
+        guard taskStarted, let socket, socket.state == .running else {
+            pendingAudio.append(pcm16)
+            let maximumPendingBytes = 3 * 16_000 * 2
+            if pendingAudio.count > maximumPendingBytes {
+                pendingAudio.removeFirst(pendingAudio.count - maximumPendingBytes)
+            }
             return
         }
-        if !serverEventSeen {
-            appendBounded(pcm16, to: &replayAudio, byteCount: &replayAudioBytes)
-            startLivenessCheck()
+        pendingAudio.append(pcm16)
+        while pendingAudio.count >= networkChunkBytes {
+            let chunk = Data(pendingAudio.prefix(networkChunkBytes))
+            pendingAudio.removeFirst(networkChunkBytes)
+            try await socket.send(.data(chunk))
         }
-        try await sendAudio(pcm16, over: socket)
     }
 
     func finish() async throws -> String {
-        guard let socket, configured, socket.state == .running else {
-            return resolvedText
+        guard let socket, taskStarted, socket.state == .running else {
+            throw BailianRealtimeError.connectionLost("Fun-ASR task is not active")
         }
-        let generation = self.generation
-        let payload: [String: Any] = [
-            "event_id": UUID().uuidString,
-            "type": "session.finish",
-        ]
-        try await sendJSON(payload, over: socket)
-        try ensureCurrent(socket: socket, generation: generation)
+        let expectedGeneration = generation
+        if !pendingAudio.isEmpty {
+            try await socket.send(.data(pendingAudio))
+            pendingAudio.removeAll(keepingCapacity: true)
+        }
+        try await sendJSON(finishTask(), over: socket)
+        try ensureCurrent(socket: socket, generation: expectedGeneration)
+
         let deadline = ContinuousClock.now + .seconds(5)
-        while !sessionFinished && ContinuousClock.now < deadline {
+        while !taskFinished && ContinuousClock.now < deadline {
             try await Task.sleep(for: .milliseconds(40))
-            try ensureCurrent(socket: socket, generation: generation)
+            try ensureCurrent(socket: socket, generation: expectedGeneration)
         }
+        guard taskFinished else { throw BailianRealtimeError.timedOut }
         let text = resolvedText
         await closeSocket()
         return text
@@ -126,38 +125,47 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         resetTranscript()
     }
 
-    private func createConfiguredSocket(_ configuration: RealtimeTranscriptionConfiguration) async throws {
+    private func createTask(_ configuration: RealtimeTranscriptionConfiguration) async throws {
         var request = URLRequest(url: Self.endpoint)
         request.timeoutInterval = 30
         request.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("enable", forHTTPHeaderField: "X-DashScope-DataInspection")
         let socket = session.webSocketTask(with: request)
         self.socket = socket
         self.configuration = configuration
-        self.configured = false
         generation += 1
-        let generation = self.generation
+        let expectedGeneration = generation
+        taskID = Self.makeTaskID()
+        taskStarted = false
+        taskFinished = false
         socket.resume()
 
         do {
+            let vocabularyID = try? await vocabularyService.vocabularyID(
+                apiKey: configuration.apiKey,
+                terms: configuration.preferredTerms
+            )
+            try ensureCurrent(socket: socket, generation: expectedGeneration)
+            try await sendJSON(runTask(configuration, vocabularyID: vocabularyID), over: socket)
+
             let deadline = ContinuousClock.now + .seconds(30)
             while ContinuousClock.now < deadline {
                 let message = try await receive(socket: socket, timeout: .seconds(30))
-                try ensureCurrent(socket: socket, generation: generation)
-                guard let payload = BailianMessageParser.payload(from: message),
-                      let type = payload["type"] as? String else { continue }
-                if type == "session.created" {
-                    try await sendJSON(sessionUpdate(configuration), over: socket)
-                    try ensureCurrent(socket: socket, generation: generation)
-                } else if type == "session.updated" {
-                    configured = true
+                try ensureCurrent(socket: socket, generation: expectedGeneration)
+                guard let payload = BailianMessageParser.payload(from: message) else { continue }
+                switch BailianMessageParser.event(in: payload) {
+                case "task-started":
+                    taskStarted = true
                     return
-                } else if type == "error" {
+                case "task-failed":
                     throw BailianRealtimeError.protocolError(BailianMessageParser.errorMessage(payload))
+                default:
+                    continue
                 }
             }
             throw BailianRealtimeError.timedOut
         } catch {
-            if isCurrent(socket: socket, generation: generation) { await closeSocket() }
+            if isCurrent(socket: socket, generation: expectedGeneration) { await closeSocket() }
             throw error
         }
     }
@@ -184,125 +192,84 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
             }
         } catch {
             guard !Task.isCancelled, expectedGeneration == generation else { return }
-            if !serverEventSeen && !reconnectAttempted && !replayAudio.isEmpty {
-                do {
-                    try await reconnectAndReplay()
-                    return
-                } catch {
-                    eventHandler?(.error(error.localizedDescription))
-                }
-            } else {
-                eventHandler?(.error(BailianRealtimeError.connectionLost(error.localizedDescription).localizedDescription))
-            }
+            eventHandler?(.error(
+                BailianRealtimeError.connectionLost(error.localizedDescription).localizedDescription
+            ))
         }
     }
 
     private func handle(_ payload: [String: Any]) {
-        guard let type = payload["type"] as? String else { return }
-        serverEventSeen = true
-        livenessTask?.cancel()
-        livenessTask = nil
-        replayAudio.removeAll(keepingCapacity: false)
-        replayAudioBytes = 0
-
-        switch type {
-        case "conversation.item.input_audio_transcription.text":
-            let stable = payload["text"] as? String ?? ""
-            let active = payload["stash"] as? String ?? ""
-            liveText = stable + active
-            eventHandler?(.partial(
-                stable: TranscriptJoiner.join(accumulatedText, stable, language: configuration?.language),
-                active: active
-            ))
-        case "conversation.item.input_audio_transcription.completed":
-            liveText = ""
-            let itemID = payload["item_id"] as? String
-            if itemID == nil || completedItemIDs.insert(itemID!).inserted {
-                let transcript = payload["transcript"] as? String ?? ""
-                accumulatedText = TranscriptJoiner.join(
-                    TranscriptJoiner.softenBoundary(accumulatedText),
-                    transcript,
-                    language: configuration?.language
-                )
+        switch BailianMessageParser.event(in: payload) {
+        case "result-generated":
+            guard let sentence = BailianMessageParser.sentence(in: payload) else { return }
+            if sentence.sentenceEnd {
+                activeText = ""
+                if completedSentenceBegins.insert(sentence.beginTime).inserted {
+                    committedText = TranscriptJoiner.join(
+                        committedText,
+                        sentence.displayText,
+                        language: configuration?.language
+                    )
+                }
+                eventHandler?(.final(committedText))
+            } else {
+                activeText = sentence.displayText
+                eventHandler?(.partial(stable: committedText, active: activeText))
             }
-            eventHandler?(.final(accumulatedText))
-        case "input_audio_buffer.speech_started":
-            eventHandler?(.speechStarted)
-        case "session.finished":
-            sessionFinished = true
+        case "task-finished":
+            taskFinished = true
             eventHandler?(.sessionFinished(resolvedText))
-        case "conversation.item.input_audio_transcription.failed", "error":
+        case "task-failed":
             eventHandler?(.error(BailianMessageParser.errorMessage(payload)))
         default:
             break
         }
     }
 
-    private func reconnectAndReplay() async throws {
-        guard !reconnectAttempted, let configuration else { return }
-        reconnectAttempted = true
-        let replay = replayAudio
-        receiveTask?.cancel()
-        receiveTask = nil
-        socket?.cancel(with: .goingAway, reason: nil)
-        socket = nil
-        configured = false
-        serverEventSeen = false
-        replayAudio.removeAll()
-        replayAudioBytes = 0
-        try await createConfiguredSocket(configuration)
-        guard let socket else { throw CancellationError() }
-        let generation = self.generation
-        for frame in replay {
-            try ensureCurrent(socket: socket, generation: generation)
-            try await send(pcm16: frame)
-            try ensureCurrent(socket: socket, generation: generation)
-        }
-        startReceiveLoop()
-    }
-
-    private func startLivenessCheck() {
-        guard livenessTask == nil, !reconnectAttempted else { return }
-        livenessTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(2_500))
-            guard !Task.isCancelled, let self else { return }
-            try? await self.reconnectAndReplayIfNeeded()
-        }
-    }
-
-    private func reconnectAndReplayIfNeeded() async throws {
-        guard !serverEventSeen, !reconnectAttempted, !replayAudio.isEmpty else { return }
-        try await reconnectAndReplay()
-    }
-
-    private func flushPendingAudio(
-        over socket: URLSessionWebSocketTask,
-        generation: Int
-    ) async throws {
-        let frames = pendingAudio
-        pendingAudio.removeAll()
-        pendingAudioBytes = 0
-        for frame in frames {
-            try ensureCurrent(socket: socket, generation: generation)
-            try await sendAudio(frame, over: socket)
-        }
-    }
-
-    private func appendBounded(_ data: Data, to frames: inout [Data], byteCount: inout Int) {
-        frames.append(data)
-        byteCount += data.count
-        while byteCount > maximumBufferedBytes, !frames.isEmpty {
-            byteCount -= frames.removeFirst().count
-        }
-    }
-
-    private func sendAudio(_ data: Data, over socket: URLSessionWebSocketTask) async throws {
-        let payload: [String: Any] = [
-            "event_id": UUID().uuidString,
-            "type": "input_audio_buffer.append",
-            "audio": data.base64EncodedString(),
+    private func runTask(
+        _ configuration: RealtimeTranscriptionConfiguration,
+        vocabularyID: String?
+    ) -> [String: Any] {
+        var parameters: [String: Any] = [
+            "format": "pcm",
+            "sample_rate": configuration.sampleRate,
+            "max_sentence_silence": configuration.silenceDurationMilliseconds,
         ]
-        try await sendJSON(payload, over: socket)
+        if let vocabularyID, !vocabularyID.isEmpty {
+            parameters["vocabulary_id"] = vocabularyID
+        }
+        var input: [String: Any] = [:]
+        if !configuration.preferredTerms.isEmpty {
+            input["context"] = [[
+                "text": configuration.preferredTerms.joined(separator: "，"),
+            ]]
+        }
+        return [
+            "header": [
+                "action": "run-task",
+                "task_id": taskID,
+                "streaming": "duplex",
+            ],
+            "payload": [
+                "task_group": "audio",
+                "task": "asr",
+                "function": "recognition",
+                "model": Self.model,
+                "parameters": parameters,
+                "input": input,
+            ],
+        ]
+    }
+
+    private func finishTask() -> [String: Any] {
+        [
+            "header": [
+                "action": "finish-task",
+                "task_id": taskID,
+                "streaming": "duplex",
+            ],
+            "payload": [String: Any](),
+        ]
     }
 
     private func sendJSON(_ payload: [String: Any], over socket: URLSessionWebSocketTask) async throws {
@@ -311,28 +278,6 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
             throw BailianRealtimeError.protocolError("Unable to encode Bailian request")
         }
         try await socket.send(.string(text))
-    }
-
-    private func sessionUpdate(_ configuration: RealtimeTranscriptionConfiguration) -> [String: Any] {
-        var transcription: [String: Any] = [:]
-        if let language = configuration.language, !language.isEmpty {
-            transcription["language"] = language
-        }
-        return [
-            "event_id": UUID().uuidString,
-            "type": "session.update",
-            "session": [
-                "input_audio_format": "pcm",
-                "sample_rate": configuration.sampleRate,
-                "input_audio_transcription": transcription,
-                "turn_detection": [
-                    "type": "server_vad",
-                    "threshold": 0.0,
-                    "silence_duration_ms": configuration.silenceDurationMilliseconds,
-                    "prefix_padding_ms": 300,
-                ],
-            ],
-        ]
     }
 
     private func receive(
@@ -352,15 +297,15 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
     }
 
     private func closeSocket() async {
-        livenessTask?.cancel()
-        livenessTask = nil
         receiveTask?.cancel()
         receiveTask = nil
         generation += 1
         socket?.cancel(with: .goingAway, reason: nil)
         socket = nil
-        configured = false
+        taskStarted = false
+        taskFinished = false
         warmCreatedAt = nil
+        pendingAudio.removeAll(keepingCapacity: false)
     }
 
     private func ensureCurrent(socket: URLSessionWebSocketTask, generation: Int) throws {
@@ -374,21 +319,175 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
     }
 
     private func resetTranscript() {
-        accumulatedText = ""
-        liveText = ""
-        completedItemIDs.removeAll()
-        sessionFinished = false
-        serverEventSeen = false
-        reconnectAttempted = false
-        pendingAudio.removeAll()
-        pendingAudioBytes = 0
-        replayAudio.removeAll()
-        replayAudioBytes = 0
+        pendingAudio.removeAll(keepingCapacity: true)
+        committedText = ""
+        activeText = ""
+        completedSentenceBegins.removeAll()
+        taskFinished = false
     }
 
     private var resolvedText: String {
-        TranscriptJoiner.join(accumulatedText, liveText, language: configuration?.language)
+        TranscriptJoiner.join(committedText, activeText, language: configuration?.language)
     }
+
+    private static func makeTaskID() -> String {
+        UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+    }
+}
+
+actor BailianVocabularyService {
+    private static let endpoint = URL(
+        string: "https://dashscope.aliyuncs.com/api/v1/services/audio/asr/customization"
+    )!
+    private static let prefix = "mouthpiece"
+
+    private let session: URLSession
+    private var cachedTerms: [String] = []
+    private var cachedVocabularyID: String?
+
+    init(session: URLSession = .shared) {
+        self.session = session
+    }
+
+    func vocabularyID(apiKey: String, terms: [String]) async throws -> String? {
+        let terms = Self.normalizedTerms(terms)
+        guard !terms.isEmpty else { return nil }
+        if terms == cachedTerms, let cachedVocabularyID {
+            return cachedVocabularyID
+        }
+
+        let vocabularyID = try await existingVocabularyID(apiKey: apiKey)
+        if let vocabularyID {
+            _ = try await request(
+                apiKey: apiKey,
+                input: [
+                    "action": "update_vocabulary",
+                    "vocabulary_id": vocabularyID,
+                    "vocabulary": Self.vocabularyEntries(terms),
+                ]
+            )
+        } else {
+            let response = try await request(
+                apiKey: apiKey,
+                input: [
+                    "action": "create_vocabulary",
+                    "target_model": BailianRealtimeProvider.model,
+                    "prefix": Self.prefix,
+                    "vocabulary": Self.vocabularyEntries(terms),
+                ]
+            )
+            guard let createdID = Self.output(response)["vocabulary_id"] as? String else {
+                throw BailianRealtimeError.protocolError("Bailian did not return a vocabulary ID.")
+            }
+            cachedVocabularyID = createdID
+        }
+
+        let resolvedID = vocabularyID ?? cachedVocabularyID
+        if let resolvedID {
+            try await waitUntilReady(apiKey: apiKey, vocabularyID: resolvedID)
+        }
+        cachedTerms = terms
+        cachedVocabularyID = resolvedID
+        return resolvedID
+    }
+
+    private func existingVocabularyID(apiKey: String) async throws -> String? {
+        let response = try await request(
+            apiKey: apiKey,
+            input: [
+                "action": "list_vocabulary",
+                "prefix": Self.prefix,
+                "page_index": 0,
+                "page_size": 10,
+            ]
+        )
+        let output = Self.output(response)
+        let values = output["vocabulary_list"] as? [[String: Any]]
+            ?? output["vocabularies"] as? [[String: Any]]
+            ?? []
+        return values.first?["vocabulary_id"] as? String
+    }
+
+    private func waitUntilReady(apiKey: String, vocabularyID: String) async throws {
+        for _ in 0..<10 {
+            let response = try await request(
+                apiKey: apiKey,
+                input: [
+                    "action": "query_vocabulary",
+                    "vocabulary_id": vocabularyID,
+                ]
+            )
+            let status = Self.output(response)["status"] as? String
+            if status == nil || status == "OK" { return }
+            if status == "FAILED" {
+                throw BailianRealtimeError.protocolError("Bailian vocabulary synchronization failed.")
+            }
+            try await Task.sleep(for: .milliseconds(200))
+        }
+        throw BailianRealtimeError.timedOut
+    }
+
+    private func request(apiKey: String, input: [String: Any]) async throws -> [String: Any] {
+        var request = URLRequest(url: Self.endpoint)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "model": "speech-biasing",
+            "input": input,
+        ])
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            let message = String(data: data, encoding: .utf8) ?? "Unknown vocabulary error"
+            throw BailianRealtimeError.protocolError(message)
+        }
+        guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw BailianRealtimeError.protocolError("Bailian returned an invalid vocabulary response.")
+        }
+        return payload
+    }
+
+    private static func output(_ payload: [String: Any]) -> [String: Any] {
+        payload["output"] as? [String: Any] ?? [:]
+    }
+
+    private static func vocabularyEntries(_ terms: [String]) -> [[String: Any]] {
+        terms.map { ["text": $0, "weight": 4] }
+    }
+
+    private static func normalizedTerms(_ terms: [String]) -> [String] {
+        var seen = Set<String>()
+        return terms.compactMap { value in
+            let term = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !term.isEmpty, !term.contains("\n") else { return nil }
+            let isASCII = term.unicodeScalars.allSatisfy(\.isASCII)
+            guard isASCII ? term.split(separator: " ").count <= 7 : term.count <= 15 else { return nil }
+            guard seen.insert(term.lowercased()).inserted else { return nil }
+            return term
+        }
+        .prefix(500)
+        .map { $0 }
+    }
+}
+
+struct BailianSentence: Equatable, Sendable {
+    let beginTime: Int
+    let endTime: Int
+    let text: String
+    let sentenceEnd: Bool
+    let words: [BailianWord]
+
+    var displayText: String {
+        guard !words.isEmpty else { return text }
+        return words.map { $0.text + $0.punctuation }.joined()
+    }
+}
+
+struct BailianWord: Equatable, Sendable {
+    let beginTime: Int
+    let endTime: Int
+    let text: String
+    let punctuation: String
 }
 
 enum BailianMessageParser {
@@ -402,13 +501,40 @@ enum BailianMessageParser {
         return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
     }
 
-    static func errorMessage(_ payload: [String: Any]) -> String {
-        if let error = payload["error"] as? [String: Any] {
-            return error["message"] as? String
-                ?? error["code"] as? String
-                ?? "Alibaba Bailian realtime error"
+    static func event(in payload: [String: Any]) -> String? {
+        (payload["header"] as? [String: Any])?["event"] as? String
+    }
+
+    static func sentence(in payload: [String: Any]) -> BailianSentence? {
+        guard let body = payload["payload"] as? [String: Any],
+              let output = body["output"] as? [String: Any],
+              let sentence = output["sentence"] as? [String: Any],
+              let text = sentence["text"] as? String else { return nil }
+        let words = (sentence["words"] as? [[String: Any]] ?? []).compactMap { word -> BailianWord? in
+            guard let text = word["text"] as? String else { return nil }
+            return BailianWord(
+                beginTime: word["begin_time"] as? Int ?? 0,
+                endTime: word["end_time"] as? Int ?? 0,
+                text: text,
+                punctuation: word["punctuation"] as? String ?? ""
+            )
         }
-        return payload["message"] as? String ?? "Alibaba Bailian realtime error"
+        return BailianSentence(
+            beginTime: sentence["begin_time"] as? Int ?? 0,
+            endTime: sentence["end_time"] as? Int ?? 0,
+            text: text,
+            sentenceEnd: sentence["sentence_end"] as? Bool ?? false,
+            words: words
+        )
+    }
+
+    static func errorMessage(_ payload: [String: Any]) -> String {
+        if let header = payload["header"] as? [String: Any] {
+            return header["error_message"] as? String
+                ?? header["error_code"] as? String
+                ?? "Alibaba Bailian Fun-ASR error"
+        }
+        return payload["message"] as? String ?? "Alibaba Bailian Fun-ASR error"
     }
 }
 

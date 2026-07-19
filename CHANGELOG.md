@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Replaced Alibaba Cloud Bailian Qwen ASR Flash transcription with the dedicated `fun-asr-realtime` WebSocket path, including binary PCM streaming, incremental sentence updates, and dictionary-backed hotword synchronization.
+- Fixed the Bailian model to `fun-asr-realtime` in settings and removed its realtime toggle and batch-transcription fallback.
+
 ### Fixed
 
 - Stabilized the dictation capsule across recording, processing, transcript, and error states by keeping one fixed frame and replacing content within a reserved slot.
