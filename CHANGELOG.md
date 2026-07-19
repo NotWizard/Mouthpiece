@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-07-19
+
 ### Changed
 
 - Replaced Alibaba Cloud Bailian Qwen ASR Flash transcription with the dedicated `fun-asr-realtime` WebSocket path, including binary PCM streaming, incremental sentence updates, and dictionary-backed hotword synchronization.
@@ -77,13 +79,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added an option to pause the active system media session during dictation and resume it after stop, cancellation, failure, or shutdown.
 - Added a complete macOS 26 control panel and onboarding redesign specification covering information architecture, cool-tinted lightweight Glass navigation, near-white content surfaces, page-level interactions, accessibility, compatibility, implementation phases, and acceptance criteria.
 - Added six task-focused native control panel pages with shared settings components, inline credential and model states, shortcut capture, processing previews, searchable history with Undo, and explicit audio and transcript data-path summaries.
-- Added a four-step onboarding flow that combines system permissions, configures cloud or local dictation, runs a real first-dictation check, restores the first incomplete step, and keeps recoverable errors inline.
 - Added a pure native Swift macOS application with an official macOS 15 Sequoia and macOS 26 Tahoe compatibility matrix, SwiftUI control panel and onboarding, an AppKit cross-Space dictation capsule, AVFoundation audio capture, CGEvent hotkeys, Accessibility text insertion, Keychain credentials, SQLite history, and Sparkle updates.
 - Added native realtime transcription for Bailian, Deepgram, Soniox, and AssemblyAI, OpenAI-compatible batch transcription, and local Whisper, Parakeet, and Qwen ASR MLX runtimes.
 - Added a native dual-architecture release pipeline that verifies the stable self-signed certificate and Designated Requirement, signs Sparkle archives, publishes GitHub Releases, and updates the Homebrew tap automatically.
 - Added isolated data-root, preferences, migration, and updater launch controls for native UI automation without reading a developer's live settings, history, models, Keychain entries, or Sparkle choices.
 - Added speech activity gating with pre-roll, 20 ms PCM framing, provider protocol replay fixtures, a 10-minute audio processing benchmark, and macOS 15/26 CI coverage.
-- Added the complete native Prompt Studio workflow, avoided-term and replacement-rule editors, and raw transcript disclosure.
 
 ### Changed
 
@@ -153,6 +153,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made legacy import single-instance, allowlisted, versioned, read-back validated, and rollback-safe for settings, Keychain credentials, and copied SQLite files.
 - Preserved a captured Accessibility focus target, distinguished permission denial from a busy application, and stopped clipboard restoration from overwriting a user's newer clipboard contents.
 - Completed AssemblyAI setup in onboarding, exposed custom transcription endpoints, isolated capsule-position preferences during automation, and added executable coverage for seven-day debug-log retention.
+
+### Documentation
+
+- Added the complete macOS-only Swift native rewrite plan, including repository cleanup, feature parity, existing data compatibility, exact self-signed Designated Requirement continuity, native updates, testing, and merge-to-main release gates.
+- Updated the Chinese and English project guides, native release acceptance checklist, release-note rules, and bilingual v2.0.0 user notes to match the final macOS-only feature set.
 
 ## [1.4.8] - 2026-07-02
 

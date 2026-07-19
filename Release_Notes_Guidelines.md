@@ -32,7 +32,6 @@ When publishing to a GitHub Release, the first-line `# vX.Y.Z: ...` becomes the 
    - ❌ "Fixed export bug"
 4. **The title states this release's focus**, not "vX.Y.Z released".
 5. **Zero code, zero jargon.** Component names / tech stack / PR numbers belong in the PR description, not in user-facing notes.
-6. **New features include a screenshot/GIF placeholder**: `[📷 Screenshot: description]` / `[🎬 GIF: description]`.
 
 ### Breaking-change three-layer rule
 
@@ -52,9 +51,9 @@ For things users hand-write (config keys, URLs, command flags), provide a `befor
 
 ### Length reference
 
-- Patch: 50–150 words, 0–1 screenshots.
-- Minor: 200–400 words, 1–3 screenshots.
-- Major: 400–800 words plus a highlights section, 3–5 screenshots.
+- Patch: 50–150 words.
+- Minor: 200–400 words.
+- Major: 400–800 words plus a highlights section.
 
 ### Pre-publish checklist
 

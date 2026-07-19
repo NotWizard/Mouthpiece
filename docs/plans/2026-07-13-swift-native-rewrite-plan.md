@@ -15,7 +15,7 @@
 - 项目只面向 macOS，不再支持 Windows 或 Linux。
 - 重写完成后，从主分支删除所有 Windows、Linux 和通用跨平台兼容代码、构建脚本、二进制、依赖、测试与文档入口。
 - 原生版本同时提供 Apple Silicon `arm64` 和 Intel `x86_64` 构建。
-- 最低系统版本定为 macOS 15 Sequoia，正式兼容与验收范围为 macOS 15 Sequoia 和 macOS 26 Tahoe（当前大版本及上一代）。Apple 的产品版本号从 macOS 15 直接切换到 macOS 26，并不存在公开发布的 macOS 23；Darwin 23 对应的是 macOS 14 Sonoma。工程不为 macOS 14 及更早版本增加兼容分支。
+- 默认最低系统版本定为 macOS 13。若发布前仍需支持 macOS 11 或 12，必须先单独完成 API 可用性审计，不在实现过程中零散增加兼容分支。
 - 原生版本保持产品名 `Mouthpiece`、应用文件名 `Mouthpiece.app`、Bundle ID `com.mouthpiece.app` 和 URL Scheme `mouthpiece`。
 - 生产安装位置继续使用 `/Applications/Mouthpiece.app`。
 
@@ -441,7 +441,7 @@ Release workflow 必须：
 9. 运行 `codesign -R '<expected requirement>' --verify`，确认新 App 满足旧要求。
 10. 检查所有 Mach-O 文件均非 ad-hoc，并且 Authority 为预期证书。
 
-实现基线已锁定证书 SHA-1 `DB4FFD2432826CB4DA396D12CD2B3193E51448D7`、SHA-256 `AD386695155758F30DEDDDCE3A88022E3A74D2B6B60CD368FD0994DE677BA04F` 与完整 DR。Release workflow 在 `macos-15`、`macos-26` 和 Intel 编译环境中运行测试或构建，任何指纹、DR、签名、部署目标、架构、DMG 完整性或启动冒烟测试异常都会中止发布。
+当前 workflow 只检查 DR 中是否出现 `certificate leaf` 或 `certificate root`，这不够严格；换成另一张自签名证书也会通过，却会让所有用户重新授权。原生化前必须修正这一检查。
 
 ### 8.5 权限连续性真实验证
 
@@ -701,8 +701,6 @@ Release job不得在自签名 Secrets 缺失时回退为 unsigned 或 ad-hoc 构
 ## 15. Definition of Done
 
 只有以下项目全部完成，Swift 原生化才算完成：
-
-自动化结果与发布前真机检查统一记录在 [`docs/testing/native-release-acceptance.md`](../testing/native-release-acceptance.md)。源码实现完成不等于可直接发布，真机矩阵仍需在合并和打 tag 前全部通过。
 
 - [ ] macOS 当前功能 parity checklist 全部通过。
 - [ ] 主分支和最终 App bundle 中不存在 Electron runtime、React、Node.js 或 Chromium。

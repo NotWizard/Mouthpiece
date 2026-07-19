@@ -14,11 +14,13 @@ Starting with 2.0, the project ships only for macOS. Windows and Linux builds ar
 ## Features
 
 - Modifier-only and combination hotkeys with hold-to-talk and toggle modes
-- A separate translation hotkey
+- A separate translation chord based on the dictation hotkey
 - A native dictation capsule across displays, Spaces, and full-screen apps
-- Bailian, OpenAI, Deepgram, Soniox, AssemblyAI, Groq, Mistral, and custom compatible endpoints
+- Bailian, Volcengine, OpenAI, Deepgram, Soniox, AssemblyAI, Groq, Mistral, and custom compatible endpoints
 - Local Whisper, Parakeet, and Qwen ASR MLX transcription
-- Terminology, replacements, custom prompts, raw transcript history, and sensitive-app protection
+- OpenAI, Bailian, Anthropic, Gemini, Groq, and custom compatible text-processing services
+- A personal dictionary, custom prompts, raw transcript history, automatic paste, and clipboard-retention controls
+- Pausing active media during dictation and resuming it afterward
 - Sparkle in-app updates, GitHub Releases, and Homebrew cask distribution
 
 ## Development

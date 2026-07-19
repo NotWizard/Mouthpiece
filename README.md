@@ -14,12 +14,13 @@ Mouthpiece 是一款纯原生 macOS 语音听写应用。它使用 Swift、Swift
 ## 功能
 
 - 修饰键、组合键、按住说话和点击切换听写
-- 独立的翻译快捷键
+- 以听写快捷键为基础的独立翻译组合键
 - 原生录音胶囊，支持多显示器、Spaces 和全屏应用
-- 百炼、OpenAI、Deepgram、Soniox、AssemblyAI、Groq、Mistral 和自定义兼容端点
+- 百炼、火山引擎、OpenAI、Deepgram、Soniox、AssemblyAI、Groq、Mistral 和自定义兼容端点
 - 本地 Whisper、Parakeet 和 Qwen ASR MLX
-- 本地 GGUF 文字整理模型，运行于随包提供的 llama.cpp
-- 词典、替换规则、自定义 Prompt、原文历史和敏感应用保护
+- OpenAI、百炼、Anthropic、Gemini、Groq 和自定义兼容文字处理服务
+- 词典、自定义 Prompt、原文历史、自动粘贴与剪贴板保留控制
+- 听写时暂停其他媒体，并在听写结束后恢复播放
 - Sparkle 应用内更新、GitHub Releases 和 Homebrew cask
 
 ## 本地开发
