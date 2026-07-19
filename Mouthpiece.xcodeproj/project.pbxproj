@@ -513,7 +513,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				B771FF7B55BAE57781BE88C4 /* XCRemoteSwiftPackageReference "Sparkle" */,
-				FBA141FF904C124F86D6FED5 /* XCRemoteSwiftPackageReference "swift-leveldb" */,
+				3EC06D5FF02B31CD1870D29A /* XCRemoteSwiftPackageReference "swift-leveldb" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AD1F20AFA6173D6E8C94500D /* Products */;
@@ -867,20 +867,20 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		3EC06D5FF02B31CD1870D29A /* XCRemoteSwiftPackageReference "swift-leveldb" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/NotWizard/swift-leveldb.git";
+			requirement = {
+				kind = revision;
+				revision = de3b97721e2f7458ee3c22ff4b230dfda7d839cd;
+			};
+		};
 		B771FF7B55BAE57781BE88C4 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sparkle-project/Sparkle.git";
 			requirement = {
 				kind = exactVersion;
 				version = 2.9.4;
-			};
-		};
-		FBA141FF904C124F86D6FED5 /* XCRemoteSwiftPackageReference "swift-leveldb" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/OpenCow42/swift-leveldb.git";
-			requirement = {
-				kind = exactVersion;
-				version = 1.23;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -893,7 +893,7 @@
 		};
 		80FCD703E340F3DEC2EB4AF2 /* swift-leveldb */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = FBA141FF904C124F86D6FED5 /* XCRemoteSwiftPackageReference "swift-leveldb" */;
+			package = 3EC06D5FF02B31CD1870D29A /* XCRemoteSwiftPackageReference "swift-leveldb" */;
 			productName = "swift-leveldb";
 		};
 /* End XCSwiftPackageProductDependency section */

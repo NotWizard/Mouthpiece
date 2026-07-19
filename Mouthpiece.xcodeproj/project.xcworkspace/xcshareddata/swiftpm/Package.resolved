@@ -1,5 +1,5 @@
 {
-  "originHash" : "3461409d2296f7802fc687d2a282eb3b71b3072c74d9e7a95e3fde34932d169b",
+  "originHash" : "2b7fde1ba1bc9d67617e45e62d4cd2cc1820524747e09b5c1a6b91120db7bb3e",
   "pins" : [
     {
       "identity" : "sparkle",
@@ -13,10 +13,9 @@
     {
       "identity" : "swift-leveldb",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/OpenCow42/swift-leveldb.git",
+      "location" : "https://github.com/NotWizard/swift-leveldb.git",
       "state" : {
-        "revision" : "1d9531151b6dd6ef848fbeb176df4defda34d125",
-        "version" : "1.23.0"
+        "revision" : "de3b97721e2f7458ee3c22ff4b230dfda7d839cd"
       }
     },
     {
