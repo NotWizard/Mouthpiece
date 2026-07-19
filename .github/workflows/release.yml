@@ -134,17 +134,21 @@ jobs:
           TAG: ${{ needs.prepare.outputs.tag }}
         run: |
           test -n "$SPARKLE_PRIVATE_KEY" || { echo "Missing SPARKLE_PRIVATE_KEY" >&2; exit 1; }
-          mkdir -p "$RUNNER_TEMP/sparkle" "$RUNNER_TEMP/appcast-input"
+          mkdir -p "$RUNNER_TEMP/sparkle"
           curl -fsSL "https://github.com/sparkle-project/Sparkle/releases/download/2.9.4/Sparkle-2.9.4.tar.xz" \
             -o "$RUNNER_TEMP/sparkle.tar.xz"
           tar -xJf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle"
-          cp release-assets/Mouthpiece-"$VERSION"-*-mac.zip "$RUNNER_TEMP/appcast-input/"
-          printf '%s' "$SPARKLE_PRIVATE_KEY" | "$RUNNER_TEMP/sparkle/bin/generate_appcast" \
-            --ed-key-file - \
-            --download-url-prefix "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/" \
-            --link "https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG" \
-            "$RUNNER_TEMP/appcast-input"
-          cp "$RUNNER_TEMP/appcast-input/appcast.xml" release-assets/appcast.xml
+          for ARCH in arm64 x64; do
+            INPUT="$RUNNER_TEMP/appcast-input-$ARCH"
+            mkdir -p "$INPUT"
+            cp "release-assets/Mouthpiece-$VERSION-$ARCH-mac.zip" "$INPUT/"
+            printf '%s' "$SPARKLE_PRIVATE_KEY" | "$RUNNER_TEMP/sparkle/bin/generate_appcast" \
+              --ed-key-file - \
+              --download-url-prefix "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/" \
+              --link "https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG" \
+              "$INPUT"
+            cp "$INPUT/appcast.xml" "release-assets/appcast-$ARCH.xml"
+          done
 
       - name: Validate artifacts and release notes
         env:
@@ -154,9 +158,11 @@ jobs:
           test -f "release-assets/Mouthpiece-$VERSION-x64.dmg"
           test -f "release-assets/Mouthpiece-$VERSION-arm64-mac.zip"
           test -f "release-assets/Mouthpiece-$VERSION-x64-mac.zip"
-          test -s release-assets/appcast.xml
-          grep -q 'sparkle:edSignature=' release-assets/appcast.xml
-          grep -q '15.0' release-assets/appcast.xml
+          for ARCH in arm64 x64; do
+            test -s "release-assets/appcast-$ARCH.xml"
+            grep -q 'sparkle:edSignature=' "release-assets/appcast-$ARCH.xml"
+            grep -q '15.0' "release-assets/appcast-$ARCH.xml"
+          done
           test -f "docs/releases/v$VERSION.md"
 
       - name: Publish GitHub Release

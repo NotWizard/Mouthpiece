@@ -5,6 +5,14 @@ import XCTest
 
 @MainActor
 final class AppEnvironmentTests: XCTestCase {
+    func testUpdateFeedMatchesBuildArchitecture() {
+        #if arch(arm64)
+        XCTAssertTrue(ArchitectureUpdateFeedDelegate.feedURLString.hasSuffix("appcast-arm64.xml"))
+        #else
+        XCTAssertTrue(ArchitectureUpdateFeedDelegate.feedURLString.hasSuffix("appcast-x64.xml"))
+        #endif
+    }
+
     func testEnvironmentStartsReady() {
         XCTAssertTrue(AppEnvironment(bootstrap: false).isReady)
     }

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Generated separate signed Sparkle feeds for Apple Silicon and Intel packages so both architectures can publish the same app version without conflicting appcast entries.
 - Reacquired stale Accessibility focus and activated the original target application before synthetic paste so automatic insertion no longer fails intermittently after delayed transcription.
 - Displayed target-application identity throughout capsule preparation instead of briefly flashing a preparing message.
 - Treated provider transcripts as authoritative when local voice activity detection misses quiet speech, while distinguishing empty microphone capture from genuine silence.
