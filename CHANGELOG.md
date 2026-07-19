@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Reacquired stale Accessibility focus and activated the original target application before synthetic paste so automatic insertion no longer fails intermittently after delayed transcription.
+- Displayed target-application identity throughout capsule preparation instead of briefly flashing a preparing message.
+- Treated provider transcripts as authoritative when local voice activity detection misses quiet speech, while distinguishing empty microphone capture from genuine silence.
+- Normalized the capsule waveform against the adaptive ambient-noise floor and removed low-level visual amplification so silence no longer appears near full scale.
+- Included the required empty `payload.input` object in Bailian Fun-ASR `finish-task` WebSocket messages so completed dictation sessions can finish cleanly and reach text processing.
+- Removed automatic Bailian realtime warmup during launch, credential changes, and wake recovery so a slow WebSocket handshake cannot block the first dictation hotkey behind an in-flight provider task.
 - Corrected the native artifact architecture check so both arm64 and x86_64 release packages are validated with the supported `lipo` argument order.
 - Pinned the LevelDB migration dependency to a Swift 6.2-compatible manifest and selected Xcode 26.3 explicitly on macOS 15 runners so the package resolves consistently across the supported test matrix.
 - Removed the rectangular native window shadow around the rounded dictation capsule and moved waveform animation onto a display-synchronized AppKit renderer without publishing audio levels through the global application state.
@@ -158,6 +164,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- Reworked the Chinese and English READMEs into user-focused project pages with branded presentation, release and platform badges, a product overview, core features, installation guidance, quick-start instructions, a combined native control-panel and onboarding hero screenshot, and MIT license information.
 - Added the complete macOS-only Swift native rewrite plan, including repository cleanup, feature parity, existing data compatibility, exact self-signed Designated Requirement continuity, native updates, testing, and merge-to-main release gates.
 - Updated the Chinese and English project guides, native release acceptance checklist, release-note rules, and bilingual v2.0.0 user notes to match the final macOS-only feature set.
 

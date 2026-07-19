@@ -82,6 +82,20 @@ final class AudioTests: XCTestCase {
         XCTAssertFalse(gate.speechDetectedEver)
     }
 
+    func testSpeechActivityGateSettlesAmbientNoiseBeforeShowingSpeech() {
+        var gate = SpeechActivityGate()
+        let ambient = pcmFrame(amplitude: 300, milliseconds: 20)
+        let speech = pcmFrame(amplitude: 6_000, milliseconds: 20)
+        var result = gate.consume(ambient)
+
+        for _ in 0..<50 { result = gate.consume(ambient) }
+        let ambientLevel = result.visualLevel
+        for _ in 0..<4 { result = gate.consume(speech) }
+
+        XCTAssertLessThan(ambientLevel, 0.1)
+        XCTAssertGreaterThan(result.visualLevel, ambientLevel + 0.3)
+    }
+
     func testSpeechActivityGateDetectsSpeechAndKeepsPreRoll() {
         var gate = SpeechActivityGate()
         let silence = pcmFrame(amplitude: 0, milliseconds: 20)

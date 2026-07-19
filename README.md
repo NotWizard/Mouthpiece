@@ -1,59 +1,85 @@
-# Mouthpiece
+<div align="center">
+  <img src="docs/assets/readme/mouthpiece-icon.png" width="128" alt="Mouthpiece 图标" />
 
-Mouthpiece 是一款纯原生 macOS 语音听写应用。它使用 Swift、SwiftUI、AppKit 和 AVFoundation 构建，不包含 Electron、Chromium、React 或 Node.js runtime。
+  <h1>Mouthpiece</h1>
 
-## 系统要求
+  <p>
+    纯原生 macOS 语音听写工具。<br />
+    按下快捷键，说话，文本就会自动出现在你正在使用的应用中。
+  </p>
 
-- 正式兼容并验收 macOS 15 Sequoia 与 macOS 26 Tahoe
+  <p>
+    <a href="https://github.com/NotWizard/Mouthpiece/releases/latest">
+      <img src="https://img.shields.io/github/v/release/NotWizard/Mouthpiece?style=flat-square&color=1677ff" alt="最新版本" />
+    </a>
+    <a href="https://github.com/NotWizard/Mouthpiece/actions/workflows/ci.yml">
+      <img src="https://github.com/NotWizard/Mouthpiece/actions/workflows/ci.yml/badge.svg" alt="构建状态" />
+    </a>
+    <img src="https://img.shields.io/badge/macOS-15%2B-111111?style=flat-square&logo=apple&logoColor=white" alt="macOS 15 及以上" />
+    <img src="https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6" />
+    <a href="LICENSE">
+      <img src="https://img.shields.io/github/license/NotWizard/Mouthpiece?style=flat-square&color=2ea44f" alt="MIT License" />
+    </a>
+  </p>
+
+  <p>
+    <a href="https://github.com/NotWizard/Mouthpiece/releases/latest"><strong>下载最新版本</strong></a>
+    ·
+    <a href="#快速开始">快速开始</a>
+    ·
+    <a href="README.en.md">English</a>
+  </p>
+</div>
+
+<p align="center">
+  <img src="docs/assets/readme/mouthpiece-hero.png" width="1200" alt="Mouthpiece 当前原生控制面板与首次引导" />
+</p>
+
+## 什么是 Mouthpiece？
+
+Mouthpiece 是一款专为 macOS 打造的语音听写应用。无论你正在写邮件、聊天、记录笔记还是编写文档，只需使用全局快捷键开始说话，Mouthpiece 就能完成语音识别、可选的文本整理与翻译，并将结果插入当前应用。
+
+应用使用 Swift、SwiftUI、AppKit 和 AVFoundation 构建，不包含 Electron、Chromium、React 或 Node.js runtime。你可以在本机运行语音识别，也可以连接自己选择的云服务。
+
+## 核心功能
+
+- **随处听写**：在支持文本输入的 macOS 应用中使用全局快捷键录音并自动插入结果。
+- **纯原生体验**：原生窗口、菜单栏、快捷键、音频采集和文本插入，空闲时几乎不占用 CPU 或 GPU。
+- **本地或云端识别**：支持本地 Whisper、Parakeet 和 Qwen ASR，也可连接百炼、火山引擎、OpenAI、Deepgram、Soniox、AssemblyAI、Groq、Mistral 及兼容服务。
+- **实时听写胶囊**：显示录音状态、音量、实时文本和错误，并适配多显示器、Spaces 与全屏应用。
+- **整理与翻译**：支持独立翻译快捷键、自定义 Prompt、个人词典和多种文本处理服务。
+- **完整听写控制**：支持按住说话、点击切换、自动判断、Escape 取消、自动粘贴、剪贴板保留和听写时暂停媒体。
+
+## 安装
+
+### 系统要求
+
+- macOS 15 Sequoia 或 macOS 26 Tahoe
 - Apple Silicon 或 Intel Mac
-- Xcode 26 或兼容的较新版本
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen)
+- 麦克风权限
+- 辅助功能权限，用于全局快捷键和自动插入文本
 
-项目从 2.0 起只提供 macOS 版本，不再维护 Windows 或 Linux 构建，也不兼容 macOS 14 及更早版本。
+Mouthpiece 2.0 起仅提供 macOS 版本，不再维护 Windows、Linux 或 macOS 14 及更早版本。
 
-## 功能
+### 下载
 
-- 修饰键、组合键、按住说话和点击切换听写
-- 以听写快捷键为基础的独立翻译组合键
-- 原生录音胶囊，支持多显示器、Spaces 和全屏应用
-- 百炼、火山引擎、OpenAI、Deepgram、Soniox、AssemblyAI、Groq、Mistral 和自定义兼容端点
-- 本地 Whisper、Parakeet 和 Qwen ASR MLX
-- OpenAI、百炼、Anthropic、Gemini、Groq 和自定义兼容文字处理服务
-- 词典、自定义 Prompt、原文历史、自动粘贴与剪贴板保留控制
-- 听写时暂停其他媒体，并在听写结束后恢复播放
-- Sparkle 应用内更新、GitHub Releases 和 Homebrew cask
+1. 前往 [GitHub Releases](https://github.com/NotWizard/Mouthpiece/releases/latest)。
+2. 根据 Mac 架构下载对应的 DMG。
+3. 打开 DMG，将 `Mouthpiece.app` 拖入“应用程序”文件夹。
+4. 首次打开时按照引导授予麦克风和辅助功能权限。
 
-## 本地开发
+> [!NOTE]
+> Mouthpiece 使用稳定的自签名 macOS 身份，目前没有 Apple notarization。手动下载 DMG 后，macOS 可能要求你右键点击应用并选择“打开”，或前往“系统设置 → 隐私与安全性”确认运行。
 
-```bash
-brew install xcodegen cmake
-xcodegen generate
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
-  xcodebuild -project Mouthpiece.xcodeproj -scheme Mouthpiece \
-  -configuration Debug test
-```
+## 快速开始
 
-建议本地使用 Xcode 默认的 DerivedData 目录。若仓库位于 `Downloads`，不要把测试产物写回仓库内，否则 macOS 可能阻止 XCTest runner 读取测试 bundle。
+1. 安装并打开 Mouthpiece。
+2. 按照首次引导授予麦克风和辅助功能权限。
+3. 选择本地语音识别，或配置一个云端语音服务。
+4. 设置听写快捷键和触发方式。
+5. 在任意文本输入位置按下快捷键，说话，然后停止录音。
+6. Mouthpiece 会识别语音，并根据设置自动整理、复制或插入结果。
 
-本地模型 runtime 不提交到 Git。需要运行完整本地模型链路时执行：
+## License
 
-```bash
-scripts/download-native-binaries.sh arm64
-# Intel 构建使用：scripts/download-native-binaries.sh x64
-```
-
-## 数据与升级
-
-设置保存在 `UserDefaults`，API Key 保存在 macOS Keychain，历史记录位于：
-
-```text
-~/Library/Application Support/Mouthpiece/transcriptions.db
-```
-
-本地模型继续使用 `~/.cache/mouthpiece/`。原生版首次启动会备份并迁移旧版 Mouthpiece、OpenWhispr 或 VoiceInk 数据，不会重新下载仍然有效的模型。
-
-## 发布
-
-版本号由 `project.yml` 的 `MARKETING_VERSION` 管理。创建 `vX.Y.Z` tag 前，需要准备 `docs/releases/vX.Y.Z.md` 双语说明。Release workflow 会自动构建 arm64 与 x86_64、使用固定自签名身份签名、生成 Sparkle appcast、发布 GitHub Release 并更新 `NotWizard/homebrew-mouthpiece`。
-
-签名和权限保持机制见 [Code Signing Runbook](docs/release/code-signing-runbook.md)。
+Mouthpiece 以 [MIT License](LICENSE) 开源。

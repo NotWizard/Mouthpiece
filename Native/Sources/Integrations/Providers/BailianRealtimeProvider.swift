@@ -262,13 +262,19 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
     }
 
     private func finishTask() -> [String: Any] {
+        Self.finishTaskPayload(taskID: taskID)
+    }
+
+    static func finishTaskPayload(taskID: String) -> [String: Any] {
         [
             "header": [
                 "action": "finish-task",
                 "task_id": taskID,
                 "streaming": "duplex",
             ],
-            "payload": [String: Any](),
+            "payload": [
+                "input": [String: Any](),
+            ],
         ]
     }
 

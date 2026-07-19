@@ -1,59 +1,85 @@
-# Mouthpiece
+<div align="center">
+  <img src="docs/assets/readme/mouthpiece-icon.png" width="128" alt="Mouthpiece icon" />
 
-Mouthpiece is a native macOS dictation app built with Swift, SwiftUI, AppKit, and AVFoundation. It contains no Electron, Chromium, React, or Node.js runtime.
+  <h1>Mouthpiece</h1>
 
-## Requirements
+  <p>
+    A native macOS dictation app.<br />
+    Press a hotkey, speak, and your words appear in the app you are using.
+  </p>
 
-- Officially supported and validated on macOS 15 Sequoia and macOS 26 Tahoe
-- Apple Silicon or Intel Mac
-- Xcode 26 or a compatible newer release
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen)
+  <p>
+    <a href="https://github.com/NotWizard/Mouthpiece/releases/latest">
+      <img src="https://img.shields.io/github/v/release/NotWizard/Mouthpiece?style=flat-square&color=1677ff" alt="Latest release" />
+    </a>
+    <a href="https://github.com/NotWizard/Mouthpiece/actions/workflows/ci.yml">
+      <img src="https://github.com/NotWizard/Mouthpiece/actions/workflows/ci.yml/badge.svg" alt="Build status" />
+    </a>
+    <img src="https://img.shields.io/badge/macOS-15%2B-111111?style=flat-square&logo=apple&logoColor=white" alt="macOS 15 or later" />
+    <img src="https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6" />
+    <a href="LICENSE">
+      <img src="https://img.shields.io/github/license/NotWizard/Mouthpiece?style=flat-square&color=2ea44f" alt="MIT License" />
+    </a>
+  </p>
 
-Starting with 2.0, the project ships only for macOS. Windows and Linux builds are no longer maintained, and macOS 14 or earlier is not supported.
+  <p>
+    <a href="https://github.com/NotWizard/Mouthpiece/releases/latest"><strong>Download the latest release</strong></a>
+    ·
+    <a href="#quick-start">Quick Start</a>
+    ·
+    <a href="README.md">简体中文</a>
+  </p>
+</div>
+
+<p align="center">
+  <img src="docs/assets/readme/mouthpiece-hero.png" width="1200" alt="Mouthpiece native control panel and onboarding" />
+</p>
+
+## What is Mouthpiece?
+
+Mouthpiece is a dictation app designed specifically for macOS. Whether you are writing an email, chatting, taking notes, or editing a document, use a global hotkey to start speaking. Mouthpiece transcribes your voice, optionally cleans up or translates the result, and inserts it into the active app.
+
+The app is built with Swift, SwiftUI, AppKit, and AVFoundation. It contains no Electron, Chromium, React, or Node.js runtime. Speech recognition can run locally on your Mac or through a cloud provider of your choice.
 
 ## Features
 
-- Modifier-only and combination hotkeys with hold-to-talk and toggle modes
-- A separate translation chord based on the dictation hotkey
-- A native dictation capsule across displays, Spaces, and full-screen apps
-- Bailian, Volcengine, OpenAI, Deepgram, Soniox, AssemblyAI, Groq, Mistral, and custom compatible endpoints
-- Local Whisper, Parakeet, and Qwen ASR MLX transcription
-- OpenAI, Bailian, Anthropic, Gemini, Groq, and custom compatible text-processing services
-- A personal dictionary, custom prompts, raw transcript history, automatic paste, and clipboard-retention controls
-- Pausing active media during dictation and resuming it afterward
-- Sparkle in-app updates, GitHub Releases, and Homebrew cask distribution
+- **Dictate anywhere**: Record with a global hotkey and insert the result into any macOS app that accepts text input.
+- **Native macOS experience**: Native windows, menu bar integration, hotkeys, audio capture, and text insertion with virtually no idle CPU or GPU usage.
+- **Local or cloud transcription**: Use local Whisper, Parakeet, or Qwen ASR models, or connect Bailian, Volcengine, OpenAI, Deepgram, Soniox, AssemblyAI, Groq, Mistral, and compatible services.
+- **Live dictation capsule**: See recording state, audio level, live text, and errors across displays, Spaces, and full-screen apps.
+- **Cleanup and translation**: Use a separate translation shortcut, custom prompts, a personal dictionary, and multiple text-processing providers.
+- **Complete dictation controls**: Hold-to-talk, toggle and automatic activation, Escape cancellation, automatic paste, clipboard retention, and media pause and resume.
 
-## Development
+## Installation
 
-```bash
-brew install xcodegen cmake
-xcodegen generate
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
-  xcodebuild -project Mouthpiece.xcodeproj -scheme Mouthpiece \
-  -configuration Debug test
-```
+### Requirements
 
-Use Xcode's default DerivedData location for local tests. If the repository is under `Downloads`, writing test products back into the repository can prevent the macOS XCTest runner from reading the test bundle.
+- macOS 15 Sequoia or macOS 26 Tahoe
+- Apple Silicon or Intel Mac
+- Microphone permission
+- Accessibility permission for global hotkeys and automatic text insertion
 
-Native model runtimes are generated and are not committed. To exercise local models:
+Starting with Mouthpiece 2.0, only macOS is supported. Windows, Linux, and macOS 14 or earlier are no longer maintained.
 
-```bash
-scripts/download-native-binaries.sh arm64
-# For Intel builds: scripts/download-native-binaries.sh x64
-```
+### Download
 
-## Data and upgrades
+1. Open [GitHub Releases](https://github.com/NotWizard/Mouthpiece/releases/latest).
+2. Download the DMG matching your Mac architecture.
+3. Open the DMG and drag `Mouthpiece.app` into the Applications folder.
+4. Follow the onboarding flow to grant Microphone and Accessibility permissions.
 
-Settings use `UserDefaults`, API keys use the macOS Keychain, and history is stored at:
+> [!NOTE]
+> Mouthpiece uses a stable self-signed macOS identity and is not currently notarized by Apple. After installing from a DMG, macOS may require you to right-click the app and choose Open, or approve it in System Settings under Privacy & Security.
 
-```text
-~/Library/Application Support/Mouthpiece/transcriptions.db
-```
+## Quick Start
 
-Local models remain under `~/.cache/mouthpiece/`. On first launch, the native app backs up and migrates legacy Mouthpiece, OpenWhispr, or VoiceInk data without re-downloading valid models.
+1. Install and open Mouthpiece.
+2. Grant Microphone and Accessibility permissions during onboarding.
+3. Choose local transcription or configure a cloud transcription provider.
+4. Configure your dictation hotkey and activation behavior.
+5. Focus any text field, press the hotkey, speak, and stop recording.
+6. Mouthpiece transcribes your speech and, depending on your settings, cleans up, copies, or inserts the result.
 
-## Releases
+## License
 
-`MARKETING_VERSION` in `project.yml` is the source of truth. Before tagging `vX.Y.Z`, add bilingual notes at `docs/releases/vX.Y.Z.md`. The release workflow builds arm64 and x86_64 packages, applies the stable self-signed identity, generates a Sparkle appcast, publishes the GitHub Release, and updates `NotWizard/homebrew-mouthpiece`.
-
-See the [Code Signing Runbook](docs/release/code-signing-runbook.md) for the permission-preserving signing process.
+Mouthpiece is open source under the [MIT License](LICENSE).

@@ -133,7 +133,7 @@ final class TextInsertionService {
         into target: TextInsertionTarget,
         settings: AppSettings
     ) async throws {
-        guard NSRunningApplication(processIdentifier: target.processIdentifier) != nil else {
+        guard let application = NSRunningApplication(processIdentifier: target.processIdentifier) else {
             throw TextInsertionError.targetUnavailable
         }
         if settings.sensitiveAppProtectionEnabled,
@@ -141,29 +141,49 @@ final class TextInsertionService {
            Self.isSensitive(target) {
             throw TextInsertionError.blockedSensitiveApplication(target.applicationName)
         }
-        let focusedResult = focusedElement(for: target)
-        if focusedResult.error == .apiDisabled {
+        guard AXIsProcessTrusted() else {
             throw TextInsertionError.accessibilityPermissionDenied
         }
-        if let focused = focusedResult.element {
-            let directError = AXUIElementSetAttributeValue(
-                focused,
-                kAXSelectedTextAttribute as CFString,
-                text as CFTypeRef
-            )
-            if directError == .success { return }
-            if directError == .apiDisabled { throw TextInsertionError.accessibilityPermissionDenied }
+
+        var directError = setSelectedText(text, on: target.focusedElement)
+        if directError == .success { return }
+        if directError == .apiDisabled { throw TextInsertionError.accessibilityPermissionDenied }
+
+        var focusedResult = currentFocusedElement(processIdentifier: target.processIdentifier)
+        directError = setSelectedText(text, on: focusedResult.element)
+        if directError == .success { return }
+        if directError == .apiDisabled || focusedResult.error == .apiDisabled {
+            throw TextInsertionError.accessibilityPermissionDenied
         }
+
+        if !application.isActive {
+            application.activate(options: [.activateIgnoringOtherApps])
+            for _ in 0..<10 {
+                if NSWorkspace.shared.frontmostApplication?.processIdentifier == target.processIdentifier {
+                    break
+                }
+                try await Task.sleep(for: .milliseconds(30))
+            }
+            focusedResult = currentFocusedElement(processIdentifier: target.processIdentifier)
+            directError = setSelectedText(text, on: focusedResult.element)
+            if directError == .success { return }
+            if directError == .apiDisabled || focusedResult.error == .apiDisabled {
+                throw TextInsertionError.accessibilityPermissionDenied
+            }
+        }
+        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == target.processIdentifier else {
+            throw TextInsertionError.targetBusy(target.applicationName)
+        }
+
         do {
             try await paste(text, into: target)
-        } catch where focusedResult.error == .cannotComplete {
+        } catch where directError == .cannotComplete || focusedResult.error == .cannotComplete {
             throw TextInsertionError.targetBusy(target.applicationName)
         }
     }
 
-    private func focusedElement(for target: TextInsertionTarget) -> (element: AXUIElement?, error: AXError) {
-        if let focusedElement = target.focusedElement { return (focusedElement, .success) }
-        let appElement = AXUIElementCreateApplication(target.processIdentifier)
+    private func currentFocusedElement(processIdentifier: pid_t) -> (element: AXUIElement?, error: AXError) {
+        let appElement = AXUIElementCreateApplication(processIdentifier)
         var focusedValue: CFTypeRef?
         let error = AXUIElementCopyAttributeValue(
             appElement,
@@ -171,6 +191,15 @@ final class TextInsertionService {
             &focusedValue
         )
         return (Self.accessibilityElement(from: focusedValue), error)
+    }
+
+    private func setSelectedText(_ text: String, on element: AXUIElement?) -> AXError {
+        guard let element else { return .noValue }
+        return AXUIElementSetAttributeValue(
+            element,
+            kAXSelectedTextAttribute as CFString,
+            text as CFTypeRef
+        )
     }
 
     nonisolated static func accessibilityElement(from value: CFTypeRef?) -> AXUIElement? {
@@ -200,8 +229,8 @@ final class TextInsertionService {
         }
         down.flags = .maskCommand
         up.flags = .maskCommand
-        down.postToPid(target.processIdentifier)
-        up.postToPid(target.processIdentifier)
+        down.post(tap: .cghidEventTap)
+        up.post(tap: .cghidEventTap)
 
         try await Task.sleep(for: pasteDelay(for: target))
     }

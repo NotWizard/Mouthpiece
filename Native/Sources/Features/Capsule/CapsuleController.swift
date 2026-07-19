@@ -89,7 +89,7 @@ enum CapsuleContentKind: Equatable {
         if snapshot.phase == .failed { return .error }
         if !snapshot.partialText.isEmpty { return .transcript }
         switch snapshot.phase {
-        case .preparing, .stopping, .finalizing, .inserting, .completed: return .status
+        case .stopping, .finalizing, .inserting, .completed: return .status
         default: return .identity
         }
     }
@@ -543,6 +543,6 @@ enum CapsuleWaveformLayout {
 
     static func barHeight(for level: Float) -> CGFloat {
         let clamped = CGFloat(min(max(level, 0), 1))
-        return 5 + pow(clamped, 0.58) * 16
+        return 5 + clamped * 16
     }
 }

@@ -13,6 +13,7 @@ enum AudioCaptureError: LocalizedError {
     case permissionDenied
     case unavailableInput
     case selectedInputUnavailable
+    case noAudioFrames
     case converterCreationFailed
     case converterFailed(String)
 
@@ -21,6 +22,7 @@ enum AudioCaptureError: LocalizedError {
         case .permissionDenied: "Microphone permission is required."
         case .unavailableInput: "No microphone input is available."
         case .selectedInputUnavailable: "The selected microphone is unavailable. Choose another input device."
+        case .noAudioFrames: "The microphone did not provide any audio. Check the selected input device."
         case .converterCreationFailed: "Unable to create the microphone audio converter."
         case .converterFailed(let message): "Audio conversion failed: \(message)"
         }

@@ -44,7 +44,6 @@ final class AppEnvironment: ObservableObject {
     private var dictionarySaveRevision = 0
     private var dictionarySaveTask: Task<Void, Never>?
     private var initializationTask: Task<Void, Never>?
-    private var warmupTask: Task<Void, Never>?
     private var localModelOperationTask: Task<Void, Never>?
 
     init(bootstrap: Bool = true) {
@@ -175,9 +174,6 @@ final class AppEnvironment: ObservableObject {
         } else {
             try await keychain.write(clean, for: account)
         }
-        if account == .bailian, let coordinator, !isShuttingDown {
-            scheduleWarmup(coordinator: coordinator)
-        }
     }
 
     func requestMicrophonePermission() {
@@ -205,7 +201,6 @@ final class AppEnvironment: ObservableObject {
         guard !isShuttingDown else { return }
         isShuttingDown = true
         initializationTask?.cancel()
-        warmupTask?.cancel()
         hotkey.stop()
         translationHotkey.stop()
         escapeHotkey.stop()
@@ -216,8 +211,6 @@ final class AppEnvironment: ObservableObject {
         localModelOperationTask?.cancel()
         await initializationTask?.value
         initializationTask = nil
-        await warmupTask?.value
-        warmupTask = nil
         await localModelOperationTask?.value
         localModelOperationTask = nil
         await dictionarySaveTask?.value
@@ -398,7 +391,6 @@ final class AppEnvironment: ObservableObject {
             applySystemSettings()
             refreshLocalModelStatus()
             isReady = true
-            scheduleWarmup(coordinator: coordinator)
         } catch {
             guard !isShuttingDown, !Task.isCancelled else { return }
             startupError = error.localizedDescription
@@ -409,15 +401,6 @@ final class AppEnvironment: ObservableObject {
     private func ensureInitializationCanContinue() throws {
         try Task.checkCancellation()
         if isShuttingDown { throw CancellationError() }
-    }
-
-    private func scheduleWarmup(coordinator: DictationCoordinator) {
-        warmupTask?.cancel()
-        let settings = settings
-        warmupTask = Task { [weak self] in
-            guard let self, !self.isShuttingDown else { return }
-            await coordinator.warmup(settings: settings)
-        }
     }
 
     private func reloadHistory() async throws {
@@ -655,7 +638,7 @@ final class AppEnvironment: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.recoverSystemIntegrations(rewarmRealtime: false) }
+            Task { @MainActor in self?.recoverSystemIntegrations() }
         })
 
         let workspaceCenter = NSWorkspace.shared.notificationCenter
@@ -673,7 +656,7 @@ final class AppEnvironment: ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(400))
-                self?.recoverSystemIntegrations(rewarmRealtime: true)
+                self?.recoverSystemIntegrations()
             }
         })
     }
@@ -700,14 +683,11 @@ final class AppEnvironment: ObservableObject {
         await coordinator?.shutdown()
     }
 
-    private func recoverSystemIntegrations(rewarmRealtime: Bool) {
+    private func recoverSystemIntegrations() {
         guard !isShuttingDown else { return }
         microphones = audio.availableInputDevices()
         refreshPermissions()
         capsule.repositionIfVisible()
-        if rewarmRealtime, let coordinator {
-            scheduleWarmup(coordinator: coordinator)
-        }
     }
 }
 

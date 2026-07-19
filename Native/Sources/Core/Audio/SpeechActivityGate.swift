@@ -3,6 +3,7 @@ import Foundation
 struct SpeechActivityGate: Sendable {
     struct Result: Equatable, Sendable {
         let rms: Double
+        let visualLevel: Float
         let speechDetected: Bool
         let speechDetectedEver: Bool
     }
@@ -24,6 +25,7 @@ struct SpeechActivityGate: Sendable {
     private var candidateStartByte: Int?
     private var firstSpeechByte: Int?
     private var lastSpeechByte: Int?
+    private var visualLevel: Float = 0
     private(set) var speechDetectedEver = false
     private(set) var peakRMS = 0.0
 
@@ -89,8 +91,21 @@ struct SpeechActivityGate: Sendable {
             let alpha = activeForNoise ? 0.015 : 0.08
             noiseFloor += (max(Self.minimumNoiseFloor, rms) - noiseFloor) * alpha
         }
+        let visualSNR = 20 * log10(
+            max(Self.minimumNoiseFloor, rms) / max(Self.minimumNoiseFloor, noiseFloor)
+        )
+        let relativeLevel = min(max((visualSNR - 3) / 15, 0), 1)
+        let absoluteStrength = min(max(rms / Self.minimumSpeechRMS, 0), 1)
+        let visualTarget = Float(relativeLevel * absoluteStrength)
+        let visualAlpha: Float = visualTarget > visualLevel ? 0.42 : 0.16
+        visualLevel += (visualTarget - visualLevel) * visualAlpha
         speechDetectedEver = speechDetectedEver || speechDetected
-        return Result(rms: rms, speechDetected: speechDetected, speechDetectedEver: speechDetectedEver)
+        return Result(
+            rms: rms,
+            visualLevel: visualLevel,
+            speechDetected: speechDetected,
+            speechDetectedEver: speechDetectedEver
+        )
     }
 
     func trimmed(_ pcm16: Data) -> Data {

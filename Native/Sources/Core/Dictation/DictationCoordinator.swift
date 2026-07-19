@@ -128,9 +128,7 @@ actor DictationCoordinator {
                 onFrame: { [weak self] frame in
                     Task { await self?.consume(frame: frame, sessionID: sessionID) }
                 },
-                onLevel: { [weak self] level in
-                    Task { await self?.consume(level: level, sessionID: sessionID) }
-                }
+                onLevel: { _ in }
             )
             guard isCurrent(sessionID, phase: .preparing) else {
                 await audio.stop()
@@ -198,10 +196,18 @@ actor DictationCoordinator {
             try machine.transition(to: .finalizing, sessionID: sessionID)
             await publish()
 
-            guard speechGate.speechDetectedEver else {
-                throw DictationSessionError.noSpeech
-            }
             let recordedPCM = speechGate.trimmed(pcm)
+            await logger.write(
+                .debug,
+                "Audio capture completed",
+                metadata: [
+                    "bytes": String(pcm.count),
+                    "durationMilliseconds": String(pcm.count * 1_000 / (AudioCaptureService.outputSampleRate * 2)),
+                    "peakRMS": String(format: "%.6f", speechGate.peakRMS),
+                    "speechDetected": String(speechGate.speechDetectedEver),
+                ],
+                sessionID: sessionID
+            )
 
             var rawText = machine.snapshot.partialText
             if let provider, providerSessionID == sessionID {
@@ -229,8 +235,9 @@ actor DictationCoordinator {
             }
             guard isCurrent(sessionID, phase: .finalizing) else { return }
             if rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                guard !pcm.isEmpty else { throw AudioCaptureError.noAudioFrames }
                 guard !isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider) else {
-                    throw BailianRealtimeError.protocolError("The realtime provider did not return a transcript.")
+                    throw DictationSessionError.noSpeech
                 }
                 rawText = try await transcribeRecordedAudio(
                     pcm16: recordedPCM,
@@ -241,7 +248,7 @@ actor DictationCoordinator {
             guard isCurrent(sessionID, phase: .finalizing) else { return }
             let normalizedRawText = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !normalizedRawText.isEmpty else {
-                throw BailianRealtimeError.protocolError("No speech was transcribed.")
+                throw DictationSessionError.noSpeech
             }
             let finalText: String
             do {
@@ -308,7 +315,8 @@ actor DictationCoordinator {
     private func consume(frame: Data, sessionID: UUID) async {
         guard machine.snapshot.sessionID == sessionID, machine.snapshot.phase.isActive else { return }
         pcm.append(frame)
-        _ = speechGate.consume(frame)
+        let activity = speechGate.consume(frame)
+        await consume(level: activity.visualLevel, sessionID: sessionID)
         guard providerSessionID == sessionID, let provider else { return }
         do {
             try await provider.send(pcm16: frame)
@@ -338,11 +346,9 @@ actor DictationCoordinator {
         guard machine.snapshot.sessionID == sessionID else { return }
         switch event {
         case .partial(let stable, let active):
-            guard speechGate.speechDetectedEver else { return }
             try? machine.updatePartial(stable + active, sessionID: sessionID)
             await publish()
         case .final(let text), .sessionFinished(let text):
-            guard speechGate.speechDetectedEver else { return }
             try? machine.updatePartial(text, sessionID: sessionID)
             await publish()
         case .speechStarted:

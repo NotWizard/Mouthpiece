@@ -133,11 +133,11 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertTrue(model.waveform.levels.allSatisfy { $0 == 0 })
     }
 
-    func testCapsuleWaveformFillsAvailableWidthAndAmplifiesSpeech() {
+    func testCapsuleWaveformFillsAvailableWidthAndUsesLinearAmplitude() {
         let width = CapsuleWaveformLayout.barWidth(totalWidth: 256, sampleCount: 36, spacing: 2.5)
         XCTAssertEqual(width * 36 + 35 * 2.5, 256, accuracy: 0.001)
         XCTAssertEqual(CapsuleWaveformLayout.barHeight(for: 0), 5, accuracy: 0.001)
-        XCTAssertGreaterThan(CapsuleWaveformLayout.barHeight(for: 0.25), 11)
+        XCTAssertEqual(CapsuleWaveformLayout.barHeight(for: 0.25), 9, accuracy: 0.001)
         XCTAssertEqual(CapsuleWaveformLayout.barHeight(for: 1), 21, accuracy: 0.001)
     }
 
@@ -152,6 +152,8 @@ final class DictationAndProviderTests: XCTestCase {
             isTranslation: false
         )
 
+        XCTAssertEqual(CapsuleContentKind.resolve(snapshot), .identity)
+        snapshot.phase = .preparing
         XCTAssertEqual(CapsuleContentKind.resolve(snapshot), .identity)
         snapshot.phase = .finalizing
         XCTAssertEqual(CapsuleContentKind.resolve(snapshot), .status)
@@ -315,6 +317,18 @@ final class DictationAndProviderTests: XCTestCase {
         )
         XCTAssertEqual(BailianMessageParser.sentence(in: payloads[1])?.sentenceEnd, true)
         XCTAssertEqual(BailianMessageParser.errorMessage(payloads[2]), "bad frame")
+    }
+
+    func testBailianFinishTaskIncludesRequiredInputPayload() throws {
+        let message = BailianRealtimeProvider.finishTaskPayload(taskID: "task-1")
+        let header = try XCTUnwrap(message["header"] as? [String: Any])
+        let payload = try XCTUnwrap(message["payload"] as? [String: Any])
+        let input = try XCTUnwrap(payload["input"] as? [String: Any])
+
+        XCTAssertEqual(header["action"] as? String, "finish-task")
+        XCTAssertEqual(header["task_id"] as? String, "task-1")
+        XCTAssertEqual(header["streaming"] as? String, "duplex")
+        XCTAssertTrue(input.isEmpty)
     }
 
     func testReasoningPromptIncludesDictionaryTranslationAndCustomInstructions() {
