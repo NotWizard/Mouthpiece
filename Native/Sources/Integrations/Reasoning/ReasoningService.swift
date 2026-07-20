@@ -33,17 +33,20 @@ actor ReasoningService {
         let clean = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty else { return clean }
 
-        let cloudAllowed = target.map { !TextInsertionService.isSensitive($0) } != false
-            || settings.allowSensitiveAppCloudReasoning
-        let shouldCallModel = (settings.useReasoningModel || settings.translationEnabled) && cloudAllowed
         let result: String
-        if shouldCallModel {
+        if Self.shouldCallModel(settings: settings, target: target) {
             let prompt = Self.prompt(transcript: clean, settings: settings)
             result = try await request(prompt: prompt, settings: settings)
         } else {
             result = clean
         }
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    static func shouldCallModel(settings: AppSettings, target: TextInsertionTarget?) -> Bool {
+        let cloudAllowed = target.map { !TextInsertionService.isSensitive($0) } != false
+            || settings.allowSensitiveAppCloudReasoning
+        return (settings.useReasoningModel || settings.translationEnabled) && cloudAllowed
     }
 
     static func prompt(transcript: String, settings: AppSettings) -> String {

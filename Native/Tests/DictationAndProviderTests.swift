@@ -159,6 +159,8 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(CapsuleContentKind.resolve(snapshot), .status)
         snapshot.partialText = "Transcript"
         XCTAssertEqual(CapsuleContentKind.resolve(snapshot), .transcript)
+        snapshot.phase = .processing
+        XCTAssertEqual(CapsuleContentKind.resolve(snapshot), .status)
         snapshot.phase = .failed
         snapshot.errorMessage = "Failure"
         XCTAssertEqual(CapsuleContentKind.resolve(snapshot), .error)
@@ -183,6 +185,7 @@ final class DictationAndProviderTests: XCTestCase {
             DictationPhase.recording,
             .stopping,
             .finalizing,
+            .processing,
             .inserting,
             .completed,
         ] {

@@ -6,6 +6,7 @@ enum DictationPhase: String, Codable, Sendable {
     case recording
     case stopping
     case finalizing
+    case processing
     case inserting
     case completed
     case cancelled
@@ -13,7 +14,7 @@ enum DictationPhase: String, Codable, Sendable {
 
     var isActive: Bool {
         switch self {
-        case .preparing, .recording, .stopping, .finalizing, .inserting: true
+        case .preparing, .recording, .stopping, .finalizing, .processing, .inserting: true
         default: false
         }
     }
@@ -110,7 +111,8 @@ struct DictationStateMachine: Sendable {
         .preparing: [.recording, .stopping, .cancelled, .failed],
         .recording: [.stopping, .cancelled, .failed],
         .stopping: [.finalizing, .cancelled, .failed],
-        .finalizing: [.inserting, .completed, .cancelled, .failed],
+        .finalizing: [.processing, .inserting, .completed, .cancelled, .failed],
+        .processing: [.inserting, .completed, .cancelled, .failed],
         .inserting: [.completed, .cancelled, .failed],
         .completed: [.idle, .preparing],
         .cancelled: [.idle, .preparing],

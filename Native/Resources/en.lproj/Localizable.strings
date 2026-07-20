@@ -256,6 +256,7 @@
 "capsule.preparing" = "Preparing…";
 "capsule.listening" = "Listening";
 "capsule.transcribing" = "Transcribing…";
+"capsule.polishing" = "Refining…";
 "capsule.inserting" = "Inserting text…";
 "capsule.success" = "Ready";
 "capsule.failed" = "Dictation failed";

@@ -217,12 +217,15 @@ actor DictationCoordinator {
                     if !realtimeText.isEmpty { rawText = realtimeText }
                 } catch {
                     guard isCurrent(sessionID, phase: .finalizing) else { return }
-                    if isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider) {
+                    let hasPartial = !rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    if isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider), !hasPartial {
                         throw error
                     }
                     await logger.write(
                         .warning,
-                        "Realtime finalize failed; using batch fallback",
+                        hasPartial
+                            ? "Realtime finalize failed; using the latest partial transcript"
+                            : "Realtime finalize failed; using batch fallback",
                         metadata: ["error": error.localizedDescription],
                         sessionID: sessionID
                     )
@@ -250,6 +253,10 @@ actor DictationCoordinator {
             guard !normalizedRawText.isEmpty else {
                 throw DictationSessionError.noSpeech
             }
+            if ReasoningService.shouldCallModel(settings: activeSettings, target: target) {
+                try machine.transition(to: .processing, sessionID: sessionID)
+                await publish()
+            }
             let finalText: String
             do {
                 finalText = try await reasoning.process(
@@ -257,9 +264,9 @@ actor DictationCoordinator {
                     settings: activeSettings,
                     target: target
                 )
-                guard isCurrent(sessionID, phase: .finalizing) else { return }
+                guard isCurrent(sessionID, phase: .finalizing) || isCurrent(sessionID, phase: .processing) else { return }
             } catch {
-                guard isCurrent(sessionID, phase: .finalizing) else { return }
+                guard isCurrent(sessionID, phase: .finalizing) || isCurrent(sessionID, phase: .processing) else { return }
                 finalText = normalizedRawText
                 await logger.write(
                     .warning,
@@ -267,7 +274,7 @@ actor DictationCoordinator {
                     metadata: ["error": error.localizedDescription],
                     sessionID: sessionID
                 )
-                guard isCurrent(sessionID, phase: .finalizing) else { return }
+                guard isCurrent(sessionID, phase: .finalizing) || isCurrent(sessionID, phase: .processing) else { return }
             }
 
             let completionPhase: DictationPhase

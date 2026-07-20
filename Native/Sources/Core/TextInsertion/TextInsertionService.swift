@@ -186,6 +186,19 @@ final class TextInsertionService {
         let element: AXUIElement
     }
 
+    private final class ResumeGate: @unchecked Sendable {
+        private var claimed = false
+        private let lock = NSLock()
+
+        func claim() -> Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            if claimed { return false }
+            claimed = true
+            return true
+        }
+    }
+
     private struct FocusedResult: @unchecked Sendable {
         let element: AXUIElement?
         let error: AXError
@@ -195,30 +208,20 @@ final class TextInsertionService {
         processIdentifier: pid_t
     ) async -> (element: AXUIElement?, error: AXError) {
         let appElement = AXElementBox(element: AXUIElementCreateApplication(processIdentifier))
-        return await withTaskGroup(of: FocusedResult?.self) { group in
-            group.addTask {
-                var focusedValue: CFTypeRef?
-                let err = AXUIElementCopyAttributeValue(
-                    appElement.element,
-                    kAXFocusedUIElementAttribute as CFString,
-                    &focusedValue
-                )
-                return FocusedResult(
-                    element: Self.accessibilityElement(from: focusedValue),
-                    error: err
-                )
-            }
-            group.addTask {
-                try? await Task.sleep(for: .seconds(3))
-                return nil
-            }
-            let first = await group.next() ?? nil
-            group.cancelAll()
-            if let result = first {
-                return (result.element, result.error)
-            }
-            return (nil, .cannotComplete)
+        let result = await raceWithTimeout(.milliseconds(1500)) {
+            var focusedValue: CFTypeRef?
+            let err = AXUIElementCopyAttributeValue(
+                appElement.element,
+                kAXFocusedUIElementAttribute as CFString,
+                &focusedValue
+            )
+            return FocusedResult(
+                element: Self.accessibilityElement(from: focusedValue),
+                error: err
+            )
         }
+        guard let result else { return (nil, .cannotComplete) }
+        return (result.element, result.error)
     }
 
     private nonisolated static func setSelectedText(
@@ -227,21 +230,32 @@ final class TextInsertionService {
     ) async -> AXError {
         guard let element else { return .noValue }
         let box = AXElementBox(element: element)
-        return await withTaskGroup(of: AXError?.self) { group in
-            group.addTask {
-                AXUIElementSetAttributeValue(
-                    box.element,
-                    kAXSelectedTextAttribute as CFString,
-                    text as CFTypeRef
-                )
+        return await raceWithTimeout(.seconds(3)) {
+            AXUIElementSetAttributeValue(
+                box.element,
+                kAXSelectedTextAttribute as CFString,
+                text as CFTypeRef
+            )
+        } ?? .cannotComplete
+    }
+
+    // AX calls are blocking C APIs that ignore Task cancellation, so race them
+    // on unstructured GCD threads and abandon the loser. A withTaskGroup child
+    // blocked inside AX would keep the scope (and the caller) waiting on a hung
+    // target app, which made the previous 3-second timeout unenforceable.
+    private nonisolated static func raceWithTimeout<T: Sendable>(
+        _ timeout: DispatchTimeInterval,
+        operation: @escaping @Sendable () -> T
+    ) async -> T? {
+        let gate = ResumeGate()
+        return await withCheckedContinuation { (continuation: CheckedContinuation<T?, Never>) in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let result = operation()
+                if gate.claim() { continuation.resume(returning: result) }
             }
-            group.addTask {
-                try? await Task.sleep(for: .seconds(3))
-                return nil
+            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + timeout) {
+                if gate.claim() { continuation.resume(returning: nil) }
             }
-            let first = await group.next() ?? nil
-            group.cancelAll()
-            return first ?? .cannotComplete
         }
     }
 

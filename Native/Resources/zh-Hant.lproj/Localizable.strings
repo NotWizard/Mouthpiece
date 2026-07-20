@@ -256,6 +256,7 @@
 "capsule.preparing" = "正在準備…";
 "capsule.listening" = "正在聆聽";
 "capsule.transcribing" = "正在轉錄…";
+"capsule.polishing" = "正在潤色…";
 "capsule.inserting" = "正在插入文字…";
 "capsule.success" = "準備就緒";
 "capsule.failed" = "聽寫失敗";

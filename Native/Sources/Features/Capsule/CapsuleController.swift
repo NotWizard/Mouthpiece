@@ -87,9 +87,10 @@ enum CapsuleContentKind: Equatable {
 
     static func resolve(_ snapshot: DictationSnapshot) -> Self {
         if snapshot.phase == .failed { return .error }
+        if snapshot.phase == .processing { return .status }
         if !snapshot.partialText.isEmpty { return .transcript }
         switch snapshot.phase {
-        case .stopping, .finalizing, .inserting, .completed: return .status
+        case .stopping, .finalizing, .processing, .inserting, .completed: return .status
         default: return .identity
         }
     }
@@ -365,6 +366,7 @@ private struct CapsuleView: View {
         case .preparing: AppLocalization.string("capsule.preparing", language: model.language)
         case .recording: nil
         case .stopping, .finalizing: AppLocalization.string("capsule.transcribing", language: model.language)
+        case .processing: AppLocalization.string("capsule.polishing", language: model.language)
         case .inserting: AppLocalization.string("capsule.inserting", language: model.language)
         case .completed: AppLocalization.string("capsule.success", language: model.language)
         default: nil
@@ -387,13 +389,11 @@ private struct CapsuleView: View {
     }
 }
 
+// Must be attached INSIDE the ScrollView content so the probe lands in the
+// documentView subtree and `enclosingScrollView` can reach the backing
+// NSScrollView; as a ScrollView-level background it becomes a sibling and can
+// never find it.
 private struct ScrollerHider: NSViewRepresentable {
-    // SwiftUI ScrollView backs onto NSScrollView. The hider is attached as a
-    // background of the scroll content, so it sits BELOW the NSScrollView in the
-    // view tree (inside NSClipView/documentView). Walking superviews therefore
-    // never reaches the NSScrollView. Instead descend into the subtree to find
-    // the enclosing NSScrollView and keep its vertical scroller disabled across
-    // SwiftUI-driven layout passes.
     func makeNSView(context: Context) -> NSView {
         let probe = ScrollerProbe()
         DispatchQueue.main.async { [weak probe] in
@@ -420,35 +420,9 @@ private struct ScrollerHider: NSViewRepresentable {
         }
 
         func apply() {
-            guard let scrollView = findEnclosingScrollView() else { return }
+            guard let scrollView = enclosingScrollView else { return }
             scrollView.hasVerticalScroller = false
             scrollView.autohidesScrollers = true
-            scrollView.verticalScroller = nil
-        }
-
-        private func findEnclosingScrollView() -> NSScrollView? {
-            // The probe is inside the documentView subtree of the NSScrollView,
-            // so search ancestors for an NSClipView whose superview is the
-            // NSScrollView, and also search descendants as a fallback.
-            var current: NSView? = self
-            while let v = current {
-                if let clip = v as? NSClipView, let scrollView = clip.superview as? NSScrollView {
-                    return scrollView
-                }
-                if let scrollView = v as? NSScrollView {
-                    return scrollView
-                }
-                current = v.superview
-            }
-            return searchDescendants(self)
-        }
-
-        private func searchDescendants(_ root: NSView) -> NSScrollView? {
-            if let scrollView = root as? NSScrollView { return scrollView }
-            for sub in root.subviews {
-                if let found = searchDescendants(sub) { return found }
-            }
-            return nil
         }
     }
 }
@@ -470,9 +444,9 @@ private struct RollingTranscriptView: View {
                         .id(bottomID)
                 }
                 .frame(maxWidth: .infinity, minHeight: 34, alignment: .topLeading)
+                .background(ScrollerHider())
             }
             .scrollIndicators(.hidden)
-            .background(ScrollerHider())
             .allowsHitTesting(false)
             .onAppear {
                 proxy.scrollTo(bottomID, anchor: .bottom)

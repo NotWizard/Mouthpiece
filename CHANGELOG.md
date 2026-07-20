@@ -10,10 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Added a one-time `latest-mac.yml` generation step to the release workflow that points legacy Mouthpiece 1.4.x (Electron) users at the native 2.0.0 `arm64` mac.zip so they can auto-update past the Sparkle transition; only this release ships the file, subsequent versions ride the Sparkle appcast.
+- Added a distinct capsule `processing` phase between transcription and insertion so the capsule shows a localized "Refining…" message while the LLM cleanup or translation request is in flight, instead of leaving a frozen raw transcript on screen.
 
 ### Fixed
 
-- Rewrote the capsule `ScrollerHider` to descend into the view subtree and keep the enclosing `NSScrollView` vertical scroller disabled across SwiftUI layout passes, instead of walking superviews (which never reached the scroll view), so the scrollbar that reappeared on multi-line transcripts is now actually hidden.
+- Moved the capsule `ScrollerHider` probe inside the `ScrollView` content subtree and looked the backing `NSScrollView` up through `NSView.enclosingScrollView`; as a `ScrollView`-level background the probe was a sibling of the scroll view, so neither the superview walk nor the descendant search could ever reach it and the vertical scrollbar stayed visible on multi-line transcripts.
+- Made the Accessibility insertion timeout real: the previous `withTaskGroup` race could not abandon a blocked AX call (structured concurrency waits for every child on scope exit), so a hung target application stalled the inserting phase indefinitely. AX calls now race on unstructured GCD threads with a double-resume guard, the focused-element read timeout is tightened to 1.5 seconds, and a genuine timeout deterministically falls through to the Command+V paste path.
+- Degraded realtime finalize failures to the latest partial transcript: when `provider.finish()` times out or errors but usable transcript text already exists, the session continues with that text through refinement and insertion instead of failing outright for realtime-only providers (Bailian, Volcengine); sessions with no received text still fail as before.
 - Intercepted the macOS dock-reopen Apple event in `AppDelegate.applicationOpenUntitledFile` so re-activating the app brings the existing control-panel window forward instead of letting SwiftUI rebuild the `NSHostingView`, which dereferenced a corrupted `@MainActor` executor and crashed with `EXC_BAD_ACCESS` at `0xaaaaaaaaaaaaaad0` roughly two minutes after launch.
 - Moved blocking Accessibility API calls in `TextInsertionService` off the main thread with a 3-second timeout so an unresponsive target application can no longer freeze the dictation capsule or prevent ESC/hotkey cancellation during text insertion.
 - Hid the vertical scrollbar that appeared in the capsule transcript area by disabling the scroller on the underlying `NSScrollView`.
