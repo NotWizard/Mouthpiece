@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Intercepted the macOS dock-reopen Apple event in `AppDelegate.applicationOpenUntitledFile` so re-activating the app brings the existing control-panel window forward instead of letting SwiftUI rebuild the `NSHostingView`, which dereferenced a corrupted `@MainActor` executor and crashed with `EXC_BAD_ACCESS` at `0xaaaaaaaaaaaaaad0` roughly two minutes after launch.
 - Moved blocking Accessibility API calls in `TextInsertionService` off the main thread with a 3-second timeout so an unresponsive target application can no longer freeze the dictation capsule or prevent ESC/hotkey cancellation during text insertion.
 - Hid the vertical scrollbar that appeared in the capsule transcript area by disabling the scroller on the underlying `NSScrollView`.
 

@@ -30,6 +30,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         false
     }
 
+    /// Intercept the dock-reopen (kAEOpenApplication) Apple event.
+    /// Returning true (handled) prevents SwiftUI's AppWindowsController.showInitialWindows
+    /// from rebuilding an NSHostingView for the WindowGroup, which on this app dereferences a
+    /// corrupted/poisoned @MainActor executor (EXC_BAD_ACCESS at 0xaaaaaaaaaaaaaad0) during
+    /// NSHostingView.viewDidMoveToWindow -> LazyView.body.getter -> swift_task_isCurrentExecutorWithFlagsImpl.
+    /// Instead, re-show the existing control-panel window (or the Settings window) without
+    /// tearing down and recreating the hosting view.
+    func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
+        NSApp.activate(ignoringOtherApps: true)
+        if let window = NSApp.windows.first(where: { $0.canBecomeMain && $0.isVisible }) {
+            window.makeKeyAndOrderFront(nil)
+            return true
+        }
+        if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
+            window.makeKeyAndOrderFront(nil)
+            return true
+        }
+        return false
+    }
+
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard !terminationInFlight, let shutdownHandler = Self.shutdownHandler else {
             return terminationInFlight ? .terminateLater : .terminateNow
