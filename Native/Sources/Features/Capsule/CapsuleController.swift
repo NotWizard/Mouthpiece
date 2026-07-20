@@ -388,24 +388,69 @@ private struct CapsuleView: View {
 }
 
 private struct ScrollerHider: NSViewRepresentable {
+    // SwiftUI ScrollView backs onto NSScrollView. The hider is attached as a
+    // background of the scroll content, so it sits BELOW the NSScrollView in the
+    // view tree (inside NSClipView/documentView). Walking superviews therefore
+    // never reaches the NSScrollView. Instead descend into the subtree to find
+    // the enclosing NSScrollView and keep its vertical scroller disabled across
+    // SwiftUI-driven layout passes.
     func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        DispatchQueue.main.async { [weak view] in
-            guard let view else { return }
-            var current: NSView? = view
+        let probe = ScrollerProbe()
+        DispatchQueue.main.async { [weak probe] in
+            probe?.apply()
+        }
+        return probe
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async { [weak nsView] in
+            (nsView as? ScrollerProbe)?.apply()
+        }
+    }
+
+    private final class ScrollerProbe: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            apply()
+        }
+
+        override func viewWillDraw() {
+            super.viewWillDraw()
+            apply()
+        }
+
+        func apply() {
+            guard let scrollView = findEnclosingScrollView() else { return }
+            scrollView.hasVerticalScroller = false
+            scrollView.autohidesScrollers = true
+            scrollView.verticalScroller = nil
+        }
+
+        private func findEnclosingScrollView() -> NSScrollView? {
+            // The probe is inside the documentView subtree of the NSScrollView,
+            // so search ancestors for an NSClipView whose superview is the
+            // NSScrollView, and also search descendants as a fallback.
+            var current: NSView? = self
             while let v = current {
+                if let clip = v as? NSClipView, let scrollView = clip.superview as? NSScrollView {
+                    return scrollView
+                }
                 if let scrollView = v as? NSScrollView {
-                    scrollView.hasVerticalScroller = false
-                    scrollView.autohidesScrollers = true
-                    break
+                    return scrollView
                 }
                 current = v.superview
             }
+            return searchDescendants(self)
         }
-        return view
-    }
 
-    func updateNSView(_ nsView: NSView, context: Context) {}
+        private func searchDescendants(_ root: NSView) -> NSScrollView? {
+            if let scrollView = root as? NSScrollView { return scrollView }
+            for sub in root.subviews {
+                if let found = searchDescendants(sub) { return found }
+            }
+            return nil
+        }
+    }
 }
 
 private struct RollingTranscriptView: View {
