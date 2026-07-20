@@ -287,6 +287,15 @@ final class DictationAndProviderTests: XCTestCase {
         ))
     }
 
+    func testSwallowRequiresEnabledArmedAndMatched() {
+        // Escape swallowing must be gated by arming; otherwise the persistent
+        // active tap consumes every bare ESC system-wide even when idle.
+        XCTAssertTrue(HotkeyService.shouldSwallow(swallowEnabled: true, armed: true, matched: true))
+        XCTAssertFalse(HotkeyService.shouldSwallow(swallowEnabled: true, armed: false, matched: true))
+        XCTAssertFalse(HotkeyService.shouldSwallow(swallowEnabled: false, armed: true, matched: true))
+        XCTAssertFalse(HotkeyService.shouldSwallow(swallowEnabled: true, armed: true, matched: false))
+    }
+
     func testTranscriptJoinerKeepsChineseCompactAndSoftensTurnBoundary() {
         XCTAssertEqual(TranscriptJoiner.join("你好", "世界", language: "zh-CN"), "你好世界")
         XCTAssertEqual(TranscriptJoiner.softenBoundary("第一句。"), "第一句，")

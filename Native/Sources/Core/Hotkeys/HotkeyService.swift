@@ -136,6 +136,7 @@ final class HotkeyService {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private nonisolated(unsafe) var descriptor = HotkeyDescriptor.parse("RightCommand")
+    private nonisolated(unsafe) var swallowArmed = true
     private var pressed = false
     var onPress: (() -> Void)?
     var onRelease: (() -> Void)?
@@ -144,6 +145,10 @@ final class HotkeyService {
 
     init(swallowMatchedEvents: Bool = false) {
         self.swallowMatchedEvents = swallowMatchedEvents
+    }
+
+    func setSwallowArmed(_ armed: Bool) {
+        swallowArmed = armed
     }
 
     func start(key: String) throws {
@@ -196,14 +201,21 @@ final class HotkeyService {
         let service = Unmanaged<HotkeyService>.fromOpaque(userInfo).takeUnretainedValue()
         let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
         let flags = event.flags
-        let shouldSwallow = service.swallowMatchedEvents
-            && service.matches(type: type, keyCode: keyCode, flags: flags)
+        let shouldSwallow = HotkeyService.shouldSwallow(
+            swallowEnabled: service.swallowMatchedEvents,
+            armed: service.swallowArmed,
+            matched: service.matches(type: type, keyCode: keyCode, flags: flags)
+        )
         if HotkeyService.shouldDispatch(type: type, keyCode: keyCode, descriptor: service.descriptor) {
             Task { @MainActor in
                 service.handle(type: type, keyCode: keyCode, flags: flags)
             }
         }
         return shouldSwallow ? nil : Unmanaged.passUnretained(event)
+    }
+
+    nonisolated static func shouldSwallow(swallowEnabled: Bool, armed: Bool, matched: Bool) -> Bool {
+        swallowEnabled && armed && matched
     }
 
     nonisolated static func shouldDispatch(

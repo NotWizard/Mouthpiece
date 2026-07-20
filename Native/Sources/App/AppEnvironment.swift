@@ -381,11 +381,13 @@ final class AppEnvironment: ObservableObject {
                 capsule: capsule
             ) { [weak self] snapshot in
                 self?.dictation = snapshot
+                self?.escapeHotkey.setSwallowArmed(snapshot.phase.isActive)
             }
             self.coordinator = coordinator
             hotkey.onPress = { [weak self] in self?.handleHotkeyPress() }
             hotkey.onRelease = { [weak self] in self?.handleHotkeyRelease() }
             escapeHotkey.onPress = { [weak self] in self?.handleEscape(53) }
+            escapeHotkey.setSwallowArmed(false)
             translationHotkey.onPress = { [weak self] in self?.handleTranslationHotkeyPress() }
             updateHotkeyRegistrations()
             applySystemSettings()
