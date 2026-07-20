@@ -387,6 +387,27 @@ private struct CapsuleView: View {
     }
 }
 
+private struct ScrollerHider: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { [weak view] in
+            guard let view else { return }
+            var current: NSView? = view
+            while let v = current {
+                if let scrollView = v as? NSScrollView {
+                    scrollView.hasVerticalScroller = false
+                    scrollView.autohidesScrollers = true
+                    break
+                }
+                current = v.superview
+            }
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}
+
 private struct RollingTranscriptView: View {
     let text: String
     private let bottomID = "capsule-transcript-bottom"
@@ -406,6 +427,7 @@ private struct RollingTranscriptView: View {
                 .frame(maxWidth: .infinity, minHeight: 34, alignment: .topLeading)
             }
             .scrollIndicators(.hidden)
+            .background(ScrollerHider())
             .allowsHitTesting(false)
             .onAppear {
                 proxy.scrollTo(bottomID, anchor: .bottom)

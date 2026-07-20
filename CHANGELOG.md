@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Hid the vertical scrollbar that appeared in the capsule transcript area by disabling the scroller on the underlying `NSScrollView`.
+
 ## [2.0.0] - 2026-07-19
 
 ### Changed
