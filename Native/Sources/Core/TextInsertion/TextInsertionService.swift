@@ -145,12 +145,12 @@ final class TextInsertionService {
             throw TextInsertionError.accessibilityPermissionDenied
         }
 
-        var directError = setSelectedText(text, on: target.focusedElement)
+        var directError = await Self.setSelectedText(text, on: target.focusedElement)
         if directError == .success { return }
         if directError == .apiDisabled { throw TextInsertionError.accessibilityPermissionDenied }
 
-        var focusedResult = currentFocusedElement(processIdentifier: target.processIdentifier)
-        directError = setSelectedText(text, on: focusedResult.element)
+        var focusedResult = await Self.currentFocusedElement(processIdentifier: target.processIdentifier)
+        directError = await Self.setSelectedText(text, on: focusedResult.element)
         if directError == .success { return }
         if directError == .apiDisabled || focusedResult.error == .apiDisabled {
             throw TextInsertionError.accessibilityPermissionDenied
@@ -164,8 +164,8 @@ final class TextInsertionService {
                 }
                 try await Task.sleep(for: .milliseconds(30))
             }
-            focusedResult = currentFocusedElement(processIdentifier: target.processIdentifier)
-            directError = setSelectedText(text, on: focusedResult.element)
+            focusedResult = await Self.currentFocusedElement(processIdentifier: target.processIdentifier)
+            directError = await Self.setSelectedText(text, on: focusedResult.element)
             if directError == .success { return }
             if directError == .apiDisabled || focusedResult.error == .apiDisabled {
                 throw TextInsertionError.accessibilityPermissionDenied
@@ -182,29 +182,90 @@ final class TextInsertionService {
         }
     }
 
-    private func currentFocusedElement(processIdentifier: pid_t) -> (element: AXUIElement?, error: AXError) {
-        let appElement = AXUIElementCreateApplication(processIdentifier)
-        var focusedValue: CFTypeRef?
-        let error = AXUIElementCopyAttributeValue(
-            appElement,
-            kAXFocusedUIElementAttribute as CFString,
-            &focusedValue
-        )
-        return (Self.accessibilityElement(from: focusedValue), error)
+    private struct AXElementBox: @unchecked Sendable {
+        let element: AXUIElement
     }
 
-    private func setSelectedText(_ text: String, on element: AXUIElement?) -> AXError {
+    private struct FocusedResult: @unchecked Sendable {
+        let element: AXUIElement?
+        let error: AXError
+    }
+
+    private nonisolated static func currentFocusedElement(
+        processIdentifier: pid_t
+    ) async -> (element: AXUIElement?, error: AXError) {
+        let appElement = AXElementBox(element: AXUIElementCreateApplication(processIdentifier))
+        return await withTaskGroup(of: FocusedResult?.self) { group in
+            group.addTask {
+                var focusedValue: CFTypeRef?
+                let err = AXUIElementCopyAttributeValue(
+                    appElement.element,
+                    kAXFocusedUIElementAttribute as CFString,
+                    &focusedValue
+                )
+                return FocusedResult(
+                    element: Self.accessibilityElement(from: focusedValue),
+                    error: err
+                )
+            }
+            group.addTask {
+                try? await Task.sleep(for: .seconds(3))
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            if let result = first {
+                return (result.element, result.error)
+            }
+            return (nil, .cannotComplete)
+        }
+    }
+
+    private nonisolated static func setSelectedText(
+        _ text: String,
+        on element: AXUIElement?
+    ) async -> AXError {
         guard let element else { return .noValue }
-        return AXUIElementSetAttributeValue(
-            element,
-            kAXSelectedTextAttribute as CFString,
-            text as CFTypeRef
-        )
+        let box = AXElementBox(element: element)
+        return await withTaskGroup(of: AXError?.self) { group in
+            group.addTask {
+                AXUIElementSetAttributeValue(
+                    box.element,
+                    kAXSelectedTextAttribute as CFString,
+                    text as CFTypeRef
+                )
+            }
+            group.addTask {
+                try? await Task.sleep(for: .seconds(3))
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first ?? .cannotComplete
+        }
     }
 
     nonisolated static func accessibilityElement(from value: CFTypeRef?) -> AXUIElement? {
         guard let value, CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
         return unsafeDowncast(value, to: AXUIElement.self)
+    }
+
+    private nonisolated static func postPasteEvents() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            DispatchQueue.global(qos: .userInitiated).async {
+                guard let source = CGEventSource(stateID: .hidSystemState),
+                      let down = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true),
+                      let up = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false) else {
+                    continuation.resume()
+                    return
+                }
+                down.flags = .maskCommand
+                up.flags = .maskCommand
+                down.post(tap: .cghidEventTap)
+                up.post(tap: .cghidEventTap)
+                continuation.resume()
+            }
+        }
     }
 
     private func paste(_ text: String, into target: TextInsertionTarget) async throws {
@@ -222,15 +283,7 @@ final class TextInsertionService {
             )
         }
 
-        guard let source = CGEventSource(stateID: .hidSystemState),
-              let down = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true),
-              let up = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false) else {
-            throw TextInsertionError.insertionFailed(.failure)
-        }
-        down.flags = .maskCommand
-        up.flags = .maskCommand
-        down.post(tap: .cghidEventTap)
-        up.post(tap: .cghidEventTap)
+        await Self.postPasteEvents()
 
         try await Task.sleep(for: pasteDelay(for: target))
     }
