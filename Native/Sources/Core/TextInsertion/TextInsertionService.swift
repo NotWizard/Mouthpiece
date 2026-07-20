@@ -76,8 +76,15 @@ final class TextInsertionService {
     func captureTarget() -> TextInsertionTarget? {
         let frontmost = NSWorkspace.shared.frontmostApplication
         if isExternalApplication(frontmost) { rememberExternalApplication(frontmost) }
-        let candidate = isExternalApplication(frontmost) ? frontmost : lastExternalApplication
-        guard let app = candidate, isExternalApplication(app) else {
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        // Mouthpiece frontmost means a real window of ours is key (control panel,
+        // prompt-studio test): dictate into our own focused field instead of
+        // leaking the transcript into the previously active app.
+        let candidate = isExternalApplication(frontmost)
+            ? frontmost
+            : (frontmost?.processIdentifier == ownPID ? frontmost : lastExternalApplication)
+        guard let app = candidate,
+              isExternalApplication(app) || app.processIdentifier == ownPID else {
             return nil
         }
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
