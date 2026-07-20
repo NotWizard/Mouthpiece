@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Added a one-time `latest-mac.yml` generation step to the release workflow that points legacy Mouthpiece 1.4.x (Electron) users at the native 2.0.0 `arm64` mac.zip so they can auto-update past the Sparkle transition; only this release ships the file, subsequent versions ride the Sparkle appcast.
+
 ### Fixed
 
 - Intercepted the macOS dock-reopen Apple event in `AppDelegate.applicationOpenUntitledFile` so re-activating the app brings the existing control-panel window forward instead of letting SwiftUI rebuild the `NSHostingView`, which dereferenced a corrupted `@MainActor` executor and crashed with `EXC_BAD_ACCESS` at `0xaaaaaaaaaaaaaad0` roughly two minutes after launch.

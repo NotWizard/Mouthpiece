@@ -150,6 +150,38 @@ jobs:
             cp "$INPUT/appcast.xml" "release-assets/appcast-$ARCH.xml"
           done
 
+      - name: Generate legacy electron-updater feed (one-time bridge to 2.0.0)
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          # Old Mouthpiece 1.4.x (Electron) apps check for updates via electron-updater,
+          # which fetches latest-mac.yml. The native 2.0.0 release uses Sparkle instead,
+          # so this file is absent and old users hit a 404. Generate it once, pointing the
+          # auto-update path at the native arm64 mac.zip (old Electron builds were arm64
+          # only), so 1.4.x users auto-update to 2.0.0 and thereafter ride the Sparkle feed.
+          ZIP="release-assets/Mouthpiece-$VERSION-arm64-mac.zip"
+          DMG="release-assets/Mouthpiece-$VERSION-arm64.dmg"
+          test -f "$ZIP" && test -f "$DMG"
+          ZIP_SHA=$(shasum -a 512 "$ZIP" | awk '{print $1}')
+          ZIP_SIZE=$(stat -f%z "$ZIP")
+          DMG_SHA=$(shasum -a 512 "$DMG" | awk '{print $1}')
+          DMG_SIZE=$(stat -f%z "$DMG")
+          DATE=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+          cat > "release-assets/latest-mac.yml" <<YAML
+          version: $VERSION
+          files:
+            - url: Mouthpiece-$VERSION-arm64-mac.zip
+              sha512: $ZIP_SHA
+              size: $ZIP_SIZE
+            - url: Mouthpiece-$VERSION-arm64.dmg
+              sha512: $DMG_SHA
+              size: $DMG_SIZE
+          path: Mouthpiece-$VERSION-arm64-mac.zip
+          sha512: $ZIP_SHA
+          releaseDate: '$DATE'
+          YAML
+
       - name: Validate artifacts and release notes
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
@@ -164,6 +196,9 @@ jobs:
             grep -q '15.0' "release-assets/appcast-$ARCH.xml"
           done
           test -f "docs/releases/v$VERSION.md"
+          test -s "release-assets/latest-mac.yml"
+          grep -q "version: $VERSION" "release-assets/latest-mac.yml"
+          grep -q "path: Mouthpiece-$VERSION-arm64-mac.zip" "release-assets/latest-mac.yml"
 
       - name: Publish GitHub Release
         env:
