@@ -26,6 +26,7 @@ actor DictationCoordinator {
     private var activeSettings = AppSettings()
     private var speechGate = SpeechActivityGate()
     private var maximumDurationTask: Task<Void, Never>?
+    private var reasoningTask: Task<String, Error>?
 
     init(
         audio: AudioCaptureService,
@@ -77,6 +78,8 @@ actor DictationCoordinator {
     func shutdown() async {
         maximumDurationTask?.cancel()
         maximumDurationTask = nil
+        reasoningTask?.cancel()
+        reasoningTask = nil
         await audio.stop()
         await mediaPlayback.resumeIfPaused()
         await bailianProvider.cancel()
@@ -258,14 +261,17 @@ actor DictationCoordinator {
                 await publish()
             }
             let finalText: String
+            let reasoningService = reasoning
+            let reasoningSettings = activeSettings
+            let reasoningTarget = target
+            let task = Task { try await reasoningService.process(normalizedRawText, settings: reasoningSettings, target: reasoningTarget) }
+            reasoningTask = task
             do {
-                finalText = try await reasoning.process(
-                    normalizedRawText,
-                    settings: activeSettings,
-                    target: target
-                )
+                finalText = try await task.value
+                reasoningTask = nil
                 guard isCurrent(sessionID, phase: .finalizing) || isCurrent(sessionID, phase: .processing) else { return }
             } catch {
+                reasoningTask = nil
                 guard isCurrent(sessionID, phase: .finalizing) || isCurrent(sessionID, phase: .processing) else { return }
                 finalText = normalizedRawText
                 await logger.write(
@@ -307,6 +313,8 @@ actor DictationCoordinator {
         guard let sessionID = machine.snapshot.sessionID, machine.snapshot.phase.isActive else { return }
         maximumDurationTask?.cancel()
         maximumDurationTask = nil
+        reasoningTask?.cancel()
+        reasoningTask = nil
         await audio.stop()
         await mediaPlayback.resumeIfPaused()
         if providerSessionID == sessionID { await provider?.cancel() }
@@ -523,6 +531,8 @@ actor DictationCoordinator {
         guard machine.snapshot.sessionID == sessionID, machine.snapshot.phase.isActive else { return }
         maximumDurationTask?.cancel()
         maximumDurationTask = nil
+        reasoningTask?.cancel()
+        reasoningTask = nil
         await audio.stop()
         await mediaPlayback.resumeIfPaused()
         if providerSessionID == sessionID { await provider?.cancel() }
@@ -547,6 +557,8 @@ actor DictationCoordinator {
         guard machine.snapshot.sessionID == sessionID else { return }
         maximumDurationTask?.cancel()
         maximumDurationTask = nil
+        reasoningTask?.cancel()
+        reasoningTask = nil
         provider = nil
         providerSessionID = nil
         target = nil

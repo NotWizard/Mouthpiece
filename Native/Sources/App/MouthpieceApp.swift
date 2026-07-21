@@ -1,12 +1,18 @@
 import SwiftUI
 
+@MainActor
+enum ControlPanelWindowAccess {
+    static let id = "control-panel"
+    static var open: OpenWindowAction?
+}
+
 @main
 struct MouthpieceApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var environment = AppEnvironment()
 
     var body: some Scene {
-        WindowGroup("Mouthpiece", id: "control-panel") {
+        Window("Mouthpiece", id: ControlPanelWindowAccess.id) {
             ControlPanelView()
                 .environmentObject(environment)
                 .environment(\.locale, locale)
@@ -21,19 +27,6 @@ struct MouthpieceApp: App {
         .defaultSize(width: 1040, height: 700)
         .windowResizability(.contentMinSize)
         .windowToolbarStyle(.unifiedCompact)
-
-        Settings {
-            ControlPanelView()
-                .environmentObject(environment)
-                .environment(\.locale, locale)
-                .preferredColorScheme(colorScheme)
-                .frame(
-                    minWidth: environment.settings.onboardingCompleted
-                        ? ControlPanelWindowMetrics.minimumContentSize.width : 760,
-                    minHeight: environment.settings.onboardingCompleted
-                        ? ControlPanelWindowMetrics.minimumContentSize.height : 560
-                )
-        }
     }
 
     private var locale: Locale {

@@ -168,8 +168,13 @@ actor ReasoningService {
             "messages": [["role": "user", "content": prompt]],
             "temperature": 0.1,
         ]
-        if (provider == "bailian" && settings.bailianReasoningEnableThinking)
-            || (provider == "custom" && settings.customReasoningEnableThinking) {
+        if provider == "bailian" {
+            // Hybrid thinking models (qwen3.x) default to thinking ON, which makes a
+            // non-streaming cleanup spend most tokens reasoning and take many
+            // seconds; send the flag explicitly so it stays fast unless the user
+            // opted into thinking.
+            body["enable_thinking"] = settings.bailianReasoningEnableThinking
+        } else if provider == "custom", settings.customReasoningEnableThinking {
             body["enable_thinking"] = true
         }
         var request = try jsonRequest(url: url, body: body)
@@ -255,7 +260,7 @@ actor ReasoningService {
     private func jsonRequest(url: URL, body: [String: Any]) throws -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.timeoutInterval = 120
+        request.timeoutInterval = 30
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         return request

@@ -15,6 +15,7 @@ trap 'rm -rf "$WORK"' EXIT
 
 WHISPER_VERSION=v1.8.3
 SHERPA_VERSION=1.12.23
+MEDIAREMOTE_ADAPTER_SHA=3ac3d4bdf862c7b5399b4fba4df5689f5c38609a
 
 copy_libraries() {
   local source=$1
@@ -53,7 +54,8 @@ mkdir -p "$OUTPUT/whisper" "$OUTPUT/parakeet"
 find "$OUTPUT" -mindepth 2 -type f ! -name .gitkeep -delete
 
 echo "Building whisper.cpp $WHISPER_VERSION for $XCODE_ARCH"
-curl -fsSL "https://github.com/ggml-org/whisper.cpp/archive/refs/tags/$WHISPER_VERSION.tar.gz" \
+curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 \
+  "https://github.com/ggml-org/whisper.cpp/archive/refs/tags/$WHISPER_VERSION.tar.gz" \
   -o "$WORK/whisper.tar.gz"
 tar -xzf "$WORK/whisper.tar.gz" -C "$WORK"
 WHISPER_SOURCE=$(find "$WORK" -maxdepth 1 -type d -name 'whisper.cpp-*' -print -quit)
@@ -73,13 +75,31 @@ copy_libraries "$WORK/whisper-build" "$OUTPUT/whisper"
 
 echo "Downloading sherpa-onnx $SHERPA_VERSION"
 SHERPA_ARCHIVE="sherpa-onnx-v$SHERPA_VERSION-osx-universal2-shared.tar.bz2"
-curl -fsSL "https://github.com/k2-fsa/sherpa-onnx/releases/download/v$SHERPA_VERSION/$SHERPA_ARCHIVE" \
+curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 \
+  "https://github.com/k2-fsa/sherpa-onnx/releases/download/v$SHERPA_VERSION/$SHERPA_ARCHIVE" \
   -o "$WORK/sherpa.tar.bz2"
 mkdir "$WORK/sherpa"
 tar -xjf "$WORK/sherpa.tar.bz2" -C "$WORK/sherpa"
 SHERPA_SERVER=$(find "$WORK/sherpa" -type f -name sherpa-onnx-offline-websocket-server -print -quit)
 cp "$SHERPA_SERVER" "$OUTPUT/parakeet/sherpa-onnx-ws-darwin-${ARCH/x86_64/x64}"
 copy_libraries "$WORK/sherpa" "$OUTPUT/parakeet"
+
+echo "Building mediaremote-adapter $MEDIAREMOTE_ADAPTER_SHA"
+curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 \
+  "https://github.com/ungive/mediaremote-adapter/archive/$MEDIAREMOTE_ADAPTER_SHA.tar.gz" \
+  -o "$WORK/mra.tar.gz"
+tar -xzf "$WORK/mra.tar.gz" -C "$WORK"
+MRA_SOURCE=$(find "$WORK" -maxdepth 1 -type d -name 'mediaremote-adapter-*' -print -quit)
+cmake -S "$MRA_SOURCE" -B "$WORK/mra-build" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_OSX_ARCHITECTURES="$XCODE_ARCH"
+cmake --build "$WORK/mra-build" --config Release --target MediaRemoteAdapter
+MRA_FRAMEWORK=$(find "$WORK/mra-build" -type d -name 'MediaRemoteAdapter.framework' -print -quit)
+test -n "$MRA_FRAMEWORK" || { echo "MediaRemoteAdapter.framework was not built" >&2; exit 1; }
+mkdir -p "$OUTPUT/mediaremote"
+cp -R "$MRA_FRAMEWORK" "$OUTPUT/mediaremote/"
+cp "$MRA_SOURCE/bin/mediaremote-adapter.pl" "$OUTPUT/mediaremote/mediaremote-adapter.pl"
+cp "$MRA_SOURCE/LICENSE" "$OUTPUT/mediaremote/LICENSE"
 
 find "$OUTPUT" -type f ! -name .gitkeep -exec chmod 755 {} \;
 verify_runtime_binary "$OUTPUT/whisper/whisper-server-darwin-${ARCH/x86_64/x64}"

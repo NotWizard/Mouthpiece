@@ -152,45 +152,52 @@ final class TextInsertionService {
             throw TextInsertionError.accessibilityPermissionDenied
         }
 
-        var directError = await Self.setSelectedText(text, on: target.focusedElement)
-        if directError == .success { return }
-        if directError == .apiDisabled { throw TextInsertionError.accessibilityPermissionDenied }
+        switch await Self.insertViaAccessibility(text, on: target.focusedElement) {
+        case .inserted: return
+        case .denied: throw TextInsertionError.accessibilityPermissionDenied
+        case .notInserted: break
+        }
 
         var focusedResult = await Self.currentFocusedElement(processIdentifier: target.processIdentifier)
-        directError = await Self.setSelectedText(text, on: focusedResult.element)
-        if directError == .success { return }
-        if directError == .apiDisabled || focusedResult.error == .apiDisabled {
+        switch await Self.insertViaAccessibility(text, on: focusedResult.element) {
+        case .inserted: return
+        case .denied: throw TextInsertionError.accessibilityPermissionDenied
+        case .notInserted: break
+        }
+        if focusedResult.error == .apiDisabled {
             throw TextInsertionError.accessibilityPermissionDenied
         }
 
-        if !application.isActive {
+        if NSWorkspace.shared.frontmostApplication?.processIdentifier != target.processIdentifier {
             application.activate(options: [.activateIgnoringOtherApps])
-            for _ in 0..<10 {
+            for _ in 0..<20 {
                 if NSWorkspace.shared.frontmostApplication?.processIdentifier == target.processIdentifier {
                     break
                 }
                 try await Task.sleep(for: .milliseconds(30))
             }
             focusedResult = await Self.currentFocusedElement(processIdentifier: target.processIdentifier)
-            directError = await Self.setSelectedText(text, on: focusedResult.element)
-            if directError == .success { return }
-            if directError == .apiDisabled || focusedResult.error == .apiDisabled {
-                throw TextInsertionError.accessibilityPermissionDenied
+            switch await Self.insertViaAccessibility(text, on: focusedResult.element) {
+            case .inserted: return
+            case .denied: throw TextInsertionError.accessibilityPermissionDenied
+            case .notInserted: break
             }
         }
         guard NSWorkspace.shared.frontmostApplication?.processIdentifier == target.processIdentifier else {
             throw TextInsertionError.targetBusy(target.applicationName)
         }
 
-        do {
-            try await paste(text, into: target)
-        } catch where directError == .cannotComplete || focusedResult.error == .cannotComplete {
-            throw TextInsertionError.targetBusy(target.applicationName)
-        }
+        try await paste(text, into: target)
     }
 
     private struct AXElementBox: @unchecked Sendable {
         let element: AXUIElement
+    }
+
+    private enum AXInsertOutcome: Sendable {
+        case inserted
+        case denied
+        case notInserted
     }
 
     private final class ResumeGate: @unchecked Sendable {
@@ -231,19 +238,46 @@ final class TextInsertionService {
         return (result.element, result.error)
     }
 
-    private nonisolated static func setSelectedText(
+    private nonisolated static func insertViaAccessibility(
         _ text: String,
         on element: AXUIElement?
-    ) async -> AXError {
-        guard let element else { return .noValue }
+    ) async -> AXInsertOutcome {
+        guard let element else { return .notInserted }
         let box = AXElementBox(element: element)
-        return await raceWithTimeout(.seconds(3)) {
-            AXUIElementSetAttributeValue(
+        let outcome = await raceWithTimeout(.seconds(3)) { () -> AXInsertOutcome in
+            var roleValue: CFTypeRef?
+            let roleError = AXUIElementCopyAttributeValue(
+                box.element,
+                kAXRoleAttribute as CFString,
+                &roleValue
+            )
+            if roleError == .apiDisabled { return .denied }
+            let editableRoles: Set<String> = [kAXTextFieldRole, kAXTextAreaRole, kAXComboBoxRole]
+            guard let role = roleValue as? String, editableRoles.contains(role) else {
+                // GPU terminals (Ghostty/kitty/Alacritty) expose AXGroup/AXUnknown and
+                // never truly accept an AX text set, so skip to the paste fallback.
+                return .notInserted
+            }
+            var beforeValue: CFTypeRef?
+            AXUIElementCopyAttributeValue(box.element, kAXValueAttribute as CFString, &beforeValue)
+            let before = beforeValue as? String
+            let setError = AXUIElementSetAttributeValue(
                 box.element,
                 kAXSelectedTextAttribute as CFString,
                 text as CFTypeRef
             )
-        } ?? .cannotComplete
+            if setError == .apiDisabled { return .denied }
+            if setError != .success { return .notInserted }
+            // Some fields (VS Code, Google Docs, terminals) report .success but do not
+            // change; verify the value actually moved before trusting the write.
+            var afterValue: CFTypeRef?
+            AXUIElementCopyAttributeValue(box.element, kAXValueAttribute as CFString, &afterValue)
+            if let before, let after = afterValue as? String, before == after {
+                return .notInserted
+            }
+            return .inserted
+        }
+        return outcome ?? .notInserted
     }
 
     // AX calls are blocking C APIs that ignore Task cancellation, so race them
@@ -295,7 +329,17 @@ final class TextInsertionService {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         let insertedChangeCount = pasteboard.changeCount
-        defer {
+
+        await Self.postPasteEvents()
+        try await Task.sleep(for: pasteDelay(for: target))
+
+        // Restore the original clipboard only after giving the target time to
+        // consume it. Some apps (Electron, browsers, busy apps) read the
+        // pasteboard asynchronously, so restoring inside a quick defer clobbered
+        // the text before they pasted it. The delayed restore no-ops if the user
+        // copied something new in the meantime.
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(900))
             Self.restore(
                 oldItems,
                 ifUnchanged: insertedChangeCount,
@@ -303,10 +347,6 @@ final class TextInsertionService {
                 pasteboard: pasteboard
             )
         }
-
-        await Self.postPasteEvents()
-
-        try await Task.sleep(for: pasteDelay(for: target))
     }
 
     static func snapshot(of pasteboard: NSPasteboard) -> [[NSPasteboard.PasteboardType: Data]] {

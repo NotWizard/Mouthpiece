@@ -8,13 +8,22 @@ final class CapsuleWaveformModel: ObservableObject {
     private var levelHistory = CapsuleLevelHistory()
 
     func update(_ level: Float) {
-        levelHistory.append(level)
+        levelHistory.append(max(level, Self.idleBreathingLevel()))
         levels = levelHistory.samples
     }
 
     func reset() {
         levelHistory.reset()
         levels = levelHistory.samples
+    }
+
+    // A gentle, mic-independent pulse shown when only background noise is present,
+    // so the capsule reads as "listening" without reacting to ambient sound.
+    private static func idleBreathingLevel() -> Float {
+        let period = 2.5
+        let phase = CACurrentMediaTime().truncatingRemainder(dividingBy: period) / period
+        let wave = 0.5 - 0.5 * cos(2 * Double.pi * phase)
+        return Float(0.03 + 0.05 * wave)
     }
 }
 

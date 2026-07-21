@@ -272,7 +272,12 @@ actor MediaPlaybackController {
 
     private let getPlaybackState: GetPlaybackState?
     private let sendCommand: SendCommand?
+    private let adapterPerl = "/usr/bin/perl"
+    private let adapterScript: String?
+    private let adapterFramework: String?
     private var pausedByMouthpiece = false
+
+    private var adapterAvailable: Bool { adapterScript != nil && adapterFramework != nil }
 
     init() {
         let framework = dlopen(
@@ -289,31 +294,116 @@ actor MediaPlaybackController {
             from: framework,
             as: SendCommand.self
         )
+        let resources = Bundle.main.resourceURL
+        let scriptPath = resources?
+            .appendingPathComponent("Binaries/mediaremote/mediaremote-adapter.pl").path
+        let frameworkPath = resources?
+            .appendingPathComponent("Binaries/mediaremote/MediaRemoteAdapter.framework").path
+        adapterScript = scriptPath.flatMap { FileManager.default.fileExists(atPath: $0) ? $0 : nil }
+        adapterFramework = frameworkPath.flatMap { FileManager.default.fileExists(atPath: $0) ? $0 : nil }
     }
 
     func pauseIfPlaying() async -> Bool {
-        guard !pausedByMouthpiece, await isPlaying() == true else { return false }
-        guard send(Self.pauseCommand) || Self.postPlayPauseMediaKey() else { return false }
+        guard !pausedByMouthpiece else { return false }
+        if adapterAvailable {
+            guard await adapterIsPlaying() == true else { return false }
+            guard await adapterSend(Self.pauseCommand) else { return false }
+            pausedByMouthpiece = true
+            return true
+        }
+        guard await isPlaying() == true else { return false }
+        await setPlayback(playing: false)
         pausedByMouthpiece = true
         return true
     }
 
     func resumeIfPaused() async {
         guard pausedByMouthpiece else { return }
-        if send(Self.playCommand) {
-            pausedByMouthpiece = false
+        pausedByMouthpiece = false
+        if adapterAvailable {
+            // Only resume if it is still paused, so we never start media the user
+            // stopped themselves while dictating.
+            if await adapterIsPlaying() == false {
+                _ = await adapterSend(Self.playCommand)
+            }
             return
         }
-
-        // A media key is a toggle, so only use it when the session is still paused.
-        switch await isPlaying() {
-        case true:
-            pausedByMouthpiece = false
-        case false where Self.postPlayPauseMediaKey():
-            pausedByMouthpiece = false
-        default:
-            break
+        if await isPlaying() == false {
+            await setPlayback(playing: true)
         }
+    }
+
+    private func adapterIsPlaying() async -> Bool? {
+        guard let adapterScript, let adapterFramework else { return nil }
+        guard let output = await Self.runAdapter(
+            perl: adapterPerl,
+            script: adapterScript,
+            framework: adapterFramework,
+            arguments: ["get"],
+            timeout: 2.5
+        ), let data = output.data(using: .utf8) else { return nil }
+        // The adapter prints a JSON object with an always-present `playing` flag.
+        guard let object = try? JSONSerialization.jsonObject(with: data),
+              let payload = object as? [String: Any] else { return nil }
+        return payload["playing"] as? Bool
+    }
+
+    private func adapterSend(_ command: Int32) async -> Bool {
+        guard let adapterScript, let adapterFramework else { return false }
+        return await Self.runAdapter(
+            perl: adapterPerl,
+            script: adapterScript,
+            framework: adapterFramework,
+            arguments: ["send", String(command)],
+            timeout: 2.5
+        ) != nil
+    }
+
+    private nonisolated static func runAdapter(
+        perl: String,
+        script: String,
+        framework: String,
+        arguments: [String],
+        timeout: TimeInterval
+    ) async -> String? {
+        await withCheckedContinuation { (continuation: CheckedContinuation<String?, Never>) in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: perl)
+                process.arguments = [script, framework] + arguments
+                let stdout = Pipe()
+                process.standardOutput = stdout
+                process.standardError = Pipe()
+                let timeoutItem = DispatchWorkItem {
+                    if process.isRunning { process.terminate() }
+                }
+                DispatchQueue.global().asyncAfter(deadline: .now() + timeout, execute: timeoutItem)
+                do {
+                    try process.run()
+                } catch {
+                    timeoutItem.cancel()
+                    continuation.resume(returning: nil)
+                    return
+                }
+                let data = stdout.fileHandleForReading.readDataToEndOfFile()
+                process.waitUntilExit()
+                timeoutItem.cancel()
+                guard process.terminationStatus == 0 else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                continuation.resume(returning: String(data: data, encoding: .utf8) ?? "")
+            }
+        }
+    }
+
+    // MRMediaRemoteSendCommand reports success but is a silent no-op on macOS
+    // 15.4+, so verify the state actually changed and fall back to the system
+    // play/pause media key (which routes to the now-playing app) when it did not.
+    private func setPlayback(playing shouldPlay: Bool) async {
+        _ = send(shouldPlay ? Self.playCommand : Self.pauseCommand)
+        if await isPlaying() == shouldPlay { return }
+        _ = Self.postPlayPauseMediaKey()
     }
 
     private func isPlaying() async -> Bool? {

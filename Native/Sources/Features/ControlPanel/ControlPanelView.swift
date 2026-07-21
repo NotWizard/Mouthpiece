@@ -46,6 +46,7 @@ enum ControlPanelSection: String, CaseIterable, Identifiable {
 
 struct ControlPanelView: View {
     @EnvironmentObject private var environment: AppEnvironment
+    @Environment(\.openWindow) private var openWindow
     @AppStorage("controlPanel.selectedSection") private var storedSelection = ControlPanelSection.usage.rawValue
 
     var body: some View {
@@ -71,6 +72,7 @@ struct ControlPanelView: View {
             }
         }
         .background(Color(nsColor: .windowBackgroundColor))
+        .onAppear { ControlPanelWindowAccess.open = openWindow }
         .alert(
             AppLocalization.string("common.error", language: environment.settings.uiLanguage),
             isPresented: Binding(

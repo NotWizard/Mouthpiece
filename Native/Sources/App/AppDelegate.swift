@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -38,16 +39,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Instead, re-show the existing control-panel window (or the Settings window) without
     /// tearing down and recreating the hosting view.
     func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
-        NSApp.activate(ignoringOtherApps: true)
-        if let window = NSApp.windows.first(where: { $0.canBecomeMain && $0.isVisible }) {
-            window.makeKeyAndOrderFront(nil)
-            return true
-        }
-        if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
-            window.makeKeyAndOrderFront(nil)
-            return true
-        }
-        return false
+        showControlPanel()
+        return true
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -125,8 +118,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openControlPanel() {
+        showControlPanel()
+    }
+
+    private func showControlPanel() {
         NSApp.activate(ignoringOtherApps: true)
-        if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
+        if let open = ControlPanelWindowAccess.open {
+            open(id: ControlPanelWindowAccess.id)
+            return
+        }
+        // Fallback if the openWindow action was never captured yet.
+        if let window = NSApp.windows.first(where: { $0.canBecomeMain && $0.isVisible })
+            ?? NSApp.windows.first(where: { $0.canBecomeMain }) {
             window.makeKeyAndOrderFront(nil)
         }
     }

@@ -15,6 +15,11 @@ struct SpeechActivityGate: Sendable {
     private static let minimumSpeechMilliseconds = 220
     private static let hangoverMilliseconds = 320
     private static let preRollMilliseconds = 300
+    // Capsule waveform: absolute loudness window and ballistics (20ms frames).
+    private static let visualFloorDBFS = -50.0
+    private static let visualTopDBFS = -6.0
+    private static let visualAttackAlpha: Float = 0.39
+    private static let visualReleaseAlpha: Float = 0.087
 
     private let sampleRate: Int
     private var stage = Stage.idle
@@ -91,13 +96,20 @@ struct SpeechActivityGate: Sendable {
             let alpha = activeForNoise ? 0.015 : 0.08
             noiseFloor += (max(Self.minimumNoiseFloor, rms) - noiseFloor) * alpha
         }
-        let visualSNR = 20 * log10(
-            max(Self.minimumNoiseFloor, rms) / max(Self.minimumNoiseFloor, noiseFloor)
-        )
-        let relativeLevel = min(max((visualSNR - 3) / 15, 0), 1)
-        let absoluteStrength = min(max(rms / Self.minimumSpeechRMS, 0), 1)
-        let visualTarget = Float(relativeLevel * absoluteStrength)
-        let visualAlpha: Float = visualTarget > visualLevel ? 0.42 : 0.16
+        // Capsule waveform level: gate on speech activity so ambient noise stays
+        // flat, then map absolute loudness (dBFS) onto a fixed [-50, -6] window,
+        // independent of the adaptive floor. Fast attack / slow release keeps it
+        // responsive rising and smooth ("breathing") falling.
+        let gateOpen = aboveOpen || stage == .speaking || stage == .hangover
+        let visualTarget: Float
+        if gateOpen {
+            let dbfs = 20 * log10(max(rms, 1e-7))
+            let normalized = (dbfs - Self.visualFloorDBFS) / (Self.visualTopDBFS - Self.visualFloorDBFS)
+            visualTarget = Float(min(max(normalized, 0), 1))
+        } else {
+            visualTarget = 0
+        }
+        let visualAlpha = visualTarget > visualLevel ? Self.visualAttackAlpha : Self.visualReleaseAlpha
         visualLevel += (visualTarget - visualLevel) * visualAlpha
         speechDetectedEver = speechDetectedEver || speechDetected
         return Result(
