@@ -41,7 +41,7 @@ final class AudioTests: XCTestCase {
         frameReceived.assertForOverFulfill = false
         let capture = AudioCaptureService()
 
-        try capture.start(
+        try await capture.start(
             selectedDeviceUID: nil,
             onFrame: { _ in frameReceived.fulfill() },
             onLevel: { _ in }

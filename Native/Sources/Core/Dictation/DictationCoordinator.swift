@@ -26,6 +26,7 @@ actor DictationCoordinator {
     private var activeSettings = AppSettings()
     private var speechGate = SpeechActivityGate()
     private var maximumDurationTask: Task<Void, Never>?
+    private var preparingWatchdogTask: Task<Void, Never>?
     private var reasoningTask: Task<String, Error>?
 
     init(
@@ -78,6 +79,8 @@ actor DictationCoordinator {
     func shutdown() async {
         maximumDurationTask?.cancel()
         maximumDurationTask = nil
+        preparingWatchdogTask?.cancel()
+        preparingWatchdogTask = nil
         reasoningTask?.cancel()
         reasoningTask = nil
         await audio.stop()
@@ -102,6 +105,7 @@ actor DictationCoordinator {
         let sessionID = UUID()
         do {
             try machine.begin(sessionID: sessionID, isTranslation: settings.translationEnabled)
+            armPreparingWatchdog(for: sessionID)
             activeSettings = settings
             speechGate = SpeechActivityGate()
             if settings.pauseOtherMediaDuringDictation {
@@ -175,6 +179,8 @@ actor DictationCoordinator {
                 }
             }
             try machine.transition(to: .recording, sessionID: sessionID)
+            preparingWatchdogTask?.cancel()
+            preparingWatchdogTask = nil
             armMaximumDuration(for: sessionID)
             await logger.write(.debug, "Dictation phase changed", metadata: ["phase": "recording"], sessionID: sessionID)
             await publish()
@@ -313,6 +319,8 @@ actor DictationCoordinator {
         guard let sessionID = machine.snapshot.sessionID, machine.snapshot.phase.isActive else { return }
         maximumDurationTask?.cancel()
         maximumDurationTask = nil
+        preparingWatchdogTask?.cancel()
+        preparingWatchdogTask = nil
         reasoningTask?.cancel()
         reasoningTask = nil
         await audio.stop()
@@ -531,6 +539,8 @@ actor DictationCoordinator {
         guard machine.snapshot.sessionID == sessionID, machine.snapshot.phase.isActive else { return }
         maximumDurationTask?.cancel()
         maximumDurationTask = nil
+        preparingWatchdogTask?.cancel()
+        preparingWatchdogTask = nil
         reasoningTask?.cancel()
         reasoningTask = nil
         await audio.stop()
@@ -557,6 +567,8 @@ actor DictationCoordinator {
         guard machine.snapshot.sessionID == sessionID else { return }
         maximumDurationTask?.cancel()
         maximumDurationTask = nil
+        preparingWatchdogTask?.cancel()
+        preparingWatchdogTask = nil
         reasoningTask?.cancel()
         reasoningTask = nil
         provider = nil
@@ -579,6 +591,20 @@ actor DictationCoordinator {
             guard !Task.isCancelled, let self else { return }
             await self.stopForMaximumDuration(sessionID)
         }
+    }
+
+    private func armPreparingWatchdog(for sessionID: UUID) {
+        preparingWatchdogTask?.cancel()
+        preparingWatchdogTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(15))
+            guard !Task.isCancelled, let self else { return }
+            await self.failPreparingTimeout(sessionID)
+        }
+    }
+
+    private func failPreparingTimeout(_ sessionID: UUID) async {
+        guard isCurrent(sessionID, phase: .preparing) else { return }
+        await fail(DictationSessionError.preparingTimedOut, sessionID: sessionID)
     }
 
     private func stopForMaximumDuration(_ sessionID: UUID) async {

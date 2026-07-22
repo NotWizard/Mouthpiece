@@ -436,6 +436,7 @@ actor BailianVocabularyService {
     private func request(apiKey: String, input: [String: Any]) async throws -> [String: Any] {
         var request = URLRequest(url: Self.endpoint)
         request.httpMethod = "POST"
+        request.timeoutInterval = 10
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: [

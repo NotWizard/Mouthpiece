@@ -93,7 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         menu.addItem(
             withTitle: AppLocalization.string("menu.quit", language: language),
-            action: #selector(quit),
+            action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         )
         statusItem.menu = menu
@@ -132,9 +132,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ?? NSApp.windows.first(where: { $0.canBecomeMain }) {
             window.makeKeyAndOrderFront(nil)
         }
-    }
-
-    @objc private func quit() {
-        NSApp.terminate(nil)
     }
 }

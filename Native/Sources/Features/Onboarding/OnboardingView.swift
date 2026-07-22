@@ -117,19 +117,23 @@ private final class OnboardingVerificationController: ObservableObject {
             isTranslation: false
         )
         capsule.show(snapshot)
-        do {
-            try audio.start(
-                selectedDeviceUID: selectedDeviceUID,
-                onFrame: { _ in },
-                onLevel: { [weak self] level in
-                    Task { @MainActor in self?.updateLevel(level, sessionID: id) }
-                }
-            )
-            state = .recording
-        } catch {
-            sessionID = nil
-            capsule.hide()
-            state = .failed(error.localizedDescription)
+        Task { @MainActor [weak self] in
+            do {
+                try await self?.audio.start(
+                    selectedDeviceUID: self?.selectedDeviceUID,
+                    onFrame: { _ in },
+                    onLevel: { [weak self] level in
+                        Task { @MainActor in self?.updateLevel(level, sessionID: id) }
+                    }
+                )
+                guard let self, self.sessionID == id else { return }
+                self.state = .recording
+            } catch {
+                guard let self, self.sessionID == id else { return }
+                self.sessionID = nil
+                self.capsule.hide()
+                self.state = .failed(error.localizedDescription)
+            }
         }
     }
 

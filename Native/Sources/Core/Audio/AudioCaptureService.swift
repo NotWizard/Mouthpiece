@@ -57,7 +57,7 @@ final class AudioCaptureService {
         selectedDeviceUID: String?,
         onFrame: @escaping @Sendable (Data) -> Void,
         onLevel: @escaping @Sendable (Float) -> Void
-    ) throws {
+    ) async throws {
         guard !isRunning else { return }
         guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
             throw AudioCaptureError.permissionDenied
@@ -87,15 +87,37 @@ final class AudioCaptureService {
             block: Self.makeTapHandler(for: box)
         )
         tapInstalled = true
-        engine.prepare()
         do {
-            try engine.start()
+            // A wedged HAL (e.g. after sleep/wake) can block engine.start for minutes;
+            // run it off the main thread so the UI stays responsive and the session
+            // watchdog can fail the dictation attempt instead of freezing the app.
+            try await Self.startEngine(EngineBox(engine: engine))
         } catch {
             resetEngine()
             converterBox = nil
             throw error
         }
         isRunning = true
+    }
+
+    private struct EngineBox: @unchecked Sendable {
+        let engine: AVAudioEngine
+    }
+
+    private static let engineQueue = DispatchQueue(label: "com.mouthpiece.audio-engine", qos: .userInitiated)
+
+    private static func startEngine(_ box: EngineBox) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            engineQueue.async {
+                box.engine.prepare()
+                do {
+                    try box.engine.start()
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
     }
 
     // CoreAudio invokes taps on its realtime queue, outside MainActor isolation.
@@ -132,12 +154,14 @@ final class AudioCaptureService {
     }
 
     private func resetEngine() {
-        if tapInstalled {
-            engine.inputNode.removeTap(onBus: 0)
-            tapInstalled = false
-        }
-        engine.stop()
+        let wasTapped = tapInstalled
+        tapInstalled = false
         isRunning = false
+        let box = EngineBox(engine: engine)
+        Self.engineQueue.async {
+            if wasTapped { box.engine.inputNode.removeTap(onBus: 0) }
+            box.engine.stop()
+        }
     }
 
     private static func inputDevices() -> [AudioInputDevice] {
