@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-07-22
+
 ### Fixed
 
 - Fixed occasional freezes when starting dictation (typically the first attempt after overnight sleep/wake): a dictation session stuck in the `preparing` phase now fails with a visible "Starting dictation timed out" error after 15 seconds instead of hanging indefinitely. Contributing stalls were also bounded — `AVAudioEngine` start/stop now run on a background serial queue so a wedged CoreAudio HAL can no longer block the main thread (which froze the whole UI for up to minutes), and the optional Bailian vocabulary request timeout was cut from the 60-second default to 10 seconds so a stalled network cannot delay realtime connection.
