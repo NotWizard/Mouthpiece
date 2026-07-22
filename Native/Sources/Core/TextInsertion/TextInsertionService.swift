@@ -73,7 +73,7 @@ final class TextInsertionService {
         NSPasteboard.general.setString(text, forType: .string)
     }
 
-    func captureTarget() -> TextInsertionTarget? {
+    func captureTarget() async -> TextInsertionTarget? {
         let frontmost = NSWorkspace.shared.frontmostApplication
         if isExternalApplication(frontmost) { rememberExternalApplication(frontmost) }
         let ownPID = ProcessInfo.processInfo.processIdentifier
@@ -87,23 +87,16 @@ final class TextInsertionService {
               isExternalApplication(app) || app.processIdentifier == ownPID else {
             return nil
         }
-        let appElement = AXUIElementCreateApplication(app.processIdentifier)
-        var focusedValue: CFTypeRef?
-        let focusedElement: AXUIElement?
-        if AXUIElementCopyAttributeValue(
-            appElement,
-            kAXFocusedUIElementAttribute as CFString,
-            &focusedValue
-        ) == .success, let focusedValue {
-            focusedElement = Self.accessibilityElement(from: focusedValue)
-        } else {
-            focusedElement = nil
-        }
+        // Never block the main thread on AX messaging: a hung target app makes
+        // the synchronous call spin HIServices exception machinery on this
+        // thread, which poisons the Swift concurrency executor state and leads
+        // to delayed EXC_BAD_ACCESS crashes in unrelated @MainActor code.
+        let focused = await Self.currentFocusedElement(processIdentifier: app.processIdentifier)
         return TextInsertionTarget(
             processIdentifier: app.processIdentifier,
             bundleIdentifier: app.bundleIdentifier,
             applicationName: app.localizedName ?? app.bundleIdentifier ?? "Unknown App",
-            focusedElement: focusedElement
+            focusedElement: focused.element
         )
     }
 

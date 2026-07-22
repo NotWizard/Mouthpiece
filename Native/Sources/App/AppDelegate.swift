@@ -12,6 +12,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var terminationInFlight = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // A swallowed ObjC exception unwinding through Swift concurrency frames
+        // corrupts the main thread's executor state and crashes later in
+        // unrelated @MainActor code; fail fast at the true source instead.
+        UserDefaults.standard.register(defaults: ["NSApplicationCrashOnExceptions": true])
         settingsObserver = NotificationCenter.default.addObserver(
             forName: .mouthpieceRuntimeSettingsChanged,
             object: nil,
