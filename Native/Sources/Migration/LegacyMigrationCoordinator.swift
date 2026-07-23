@@ -129,10 +129,19 @@ final class LegacyMigrationCoordinator {
     }
 
     private func legacySourceDirectory() -> URL? {
+        // The legacy Electron app shared our Application Support directory,
+        // but a bare transcriptions.db there is the native app's OWN history
+        // database; only Electron-specific artifacts mark legacy state in our
+        // own home, otherwise a missing marker re-triggers a bogus migration.
+        let own = AppPaths.applicationSupportDirectory
+        if [".env", "Local Storage/leveldb/CURRENT"].contains(where: {
+            fileManager.fileExists(atPath: own.appendingPathComponent($0).path)
+        }) {
+            return own
+        }
         let applicationSupport = fileManager.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Application Support", isDirectory: true)
         let candidates = [
-            AppPaths.applicationSupportDirectory,
             applicationSupport.appendingPathComponent("OpenWhispr", isDirectory: true),
             applicationSupport.appendingPathComponent("OpenWhispr-development", isDirectory: true),
             applicationSupport.appendingPathComponent("VoiceInk", isDirectory: true),
