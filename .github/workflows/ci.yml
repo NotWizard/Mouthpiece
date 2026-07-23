@@ -33,12 +33,14 @@ jobs:
       - name: Run native tests
         run: |
           xcodebuild -project Mouthpiece.xcodeproj -scheme Mouthpiece \
-            -configuration Debug -derivedDataPath .build/xcode test
+            -configuration Debug -derivedDataPath .build/xcode test \
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Verify scripts
         run: |
           bash -n scripts/*.sh
-          scripts/validate-release-version.sh 2.0.0
+          scripts/validate-release-version.sh \
+            "$(awk '/MARKETING_VERSION:/ { print $2; exit }' project.yml)"
 
   intel:
     runs-on: macos-26-intel
