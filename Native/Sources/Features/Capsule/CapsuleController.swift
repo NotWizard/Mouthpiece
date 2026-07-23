@@ -96,10 +96,12 @@ enum CapsuleContentKind: Equatable {
 
     static func resolve(_ snapshot: DictationSnapshot) -> Self {
         if snapshot.phase == .failed { return .error }
+        // .processing returns before the transcript check on purpose: the
+        // capsule shows "Refining…" even when a partial transcript exists.
         if snapshot.phase == .processing { return .status }
         if !snapshot.partialText.isEmpty { return .transcript }
         switch snapshot.phase {
-        case .stopping, .finalizing, .processing, .inserting, .completed: return .status
+        case .stopping, .finalizing, .inserting, .completed: return .status
         default: return .identity
         }
     }
