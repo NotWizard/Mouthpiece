@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.4] - 2026-07-23
+
+### Fixed
+
+- Fixed a guaranteed crash (`SIGTRAP` in `Data.subdata(in:)`) moments after starting dictation with the Bailian realtime provider, introduced in 2.0.3's send-backlog chunking change: the flush used zero-based indices (`subdata(in: 0..<n)`, `insert(at: 0)`) on the pending-audio buffer, but `Data.removeFirst` leaves `startIndex` non-zero, so the second flush tripped a range precondition. Chunk detaching now goes through an index-safe helper (`Data(prefix)`/`Data(dropFirst)` rebuild fresh zero-based values) with a regression test that drives multiple flush rounds over a shifted buffer.
+
 ## [2.0.3] - 2026-07-23
 
 ### Fixed

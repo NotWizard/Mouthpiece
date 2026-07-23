@@ -421,6 +421,35 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(BailianMessageParser.errorMessage(payloads[2]), "bad frame")
     }
 
+    func testBailianChunkDetachSurvivesNonZeroStartIndexAcrossFlushes() {
+        let chunkBytes = 3200
+        var buffer = Data()
+        var sent = Data()
+        // Repeated append+detach rounds drive Data.startIndex away from 0;
+        // the v2.0.3 zero-based subdata here trapped on the second flush.
+        for round in 0..<5 {
+            buffer.append(Data(repeating: UInt8(round), count: 3300))
+            let outgoing = BailianRealtimeProvider.detachSendableChunks(
+                from: &buffer, chunkBytes: chunkBytes
+            )
+            XCTAssertEqual(outgoing.count % chunkBytes, 0)
+            sent.append(outgoing)
+        }
+        XCTAssertEqual(sent.count + buffer.count, 5 * 3300)
+        var expected = Data()
+        for round in 0..<5 { expected.append(Data(repeating: UInt8(round), count: 3300)) }
+        XCTAssertEqual(sent + buffer, expected)
+
+        // A buffer trimmed with removeFirst (backlog overflow path) must also flush safely.
+        var trimmed = Data(repeating: 7, count: chunkBytes * 2 + 32)
+        trimmed.removeFirst(32)
+        let outgoing = BailianRealtimeProvider.detachSendableChunks(
+            from: &trimmed, chunkBytes: chunkBytes
+        )
+        XCTAssertEqual(outgoing.count, chunkBytes * 2)
+        XCTAssertTrue(trimmed.isEmpty)
+    }
+
     func testBailianFinishTaskIncludesRequiredInputPayload() throws {
         let message = BailianRealtimeProvider.finishTaskPayload(taskID: "task-1")
         let header = try XCTUnwrap(message["header"] as? [String: Any])

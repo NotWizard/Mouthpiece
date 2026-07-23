@@ -93,22 +93,30 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         pendingAudio.append(pcm16)
         guard pendingAudio.count >= networkChunkBytes else { return }
         // Detach whole chunks before awaiting so a reentrant call sees a
-        // consistent buffer; prefix+removeFirst per chunk also shifted the
-        // whole remaining buffer every iteration after a network stall.
-        let sendableCount = (pendingAudio.count / networkChunkBytes) * networkChunkBytes
-        let outgoing = pendingAudio.subdata(in: 0..<sendableCount)
-        pendingAudio.removeFirst(sendableCount)
+        // consistent buffer.
+        let outgoing = Self.detachSendableChunks(from: &pendingAudio, chunkBytes: networkChunkBytes)
         var offset = 0
         while offset < outgoing.count {
             let chunk = outgoing.subdata(in: offset..<(offset + networkChunkBytes))
             do {
                 try await socket.send(.data(chunk))
             } catch {
-                pendingAudio.insert(contentsOf: outgoing[offset...], at: 0)
+                pendingAudio = outgoing.subdata(in: offset..<outgoing.count) + pendingAudio
                 throw error
             }
             offset += networkChunkBytes
         }
+    }
+
+    // Data(prefix)/Data(dropFirst) rebuild fresh zero-based Data: after
+    // removeFirst, Data.startIndex is no longer 0, so zero-based
+    // subdata/insert would trap on the next flush.
+    static func detachSendableChunks(from buffer: inout Data, chunkBytes: Int) -> Data {
+        let sendableCount = (buffer.count / chunkBytes) * chunkBytes
+        guard sendableCount > 0 else { return Data() }
+        let outgoing = Data(buffer.prefix(sendableCount))
+        buffer = Data(buffer.dropFirst(sendableCount))
+        return outgoing
     }
 
     func finish() async throws -> String {
