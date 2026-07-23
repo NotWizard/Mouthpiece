@@ -36,13 +36,17 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
             URLQueryItem(name: "sample_rate", value: String(configuration.sampleRate)),
             URLQueryItem(name: "encoding", value: "pcm_s16le"),
             URLQueryItem(name: "format_turns", value: "true"),
-            URLQueryItem(name: "token", value: configuration.apiKey),
         ]
         if configuration.language != nil {
             query.append(URLQueryItem(name: "speech_model", value: "universal-streaming-multilingual"))
         }
         components.queryItems = query
-        let socket = session.webSocketTask(with: components.url!)
+        // The key goes in the Authorization header (no Bearer prefix, per the
+        // v3 streaming docs); a token query parameter would leak it into proxy
+        // and system connection logs.
+        var request = URLRequest(url: components.url!)
+        request.setValue(configuration.apiKey, forHTTPHeaderField: "Authorization")
+        let socket = session.webSocketTask(with: request)
         self.socket = socket
         socket.resume()
         receiveTask = Task { [weak self] in

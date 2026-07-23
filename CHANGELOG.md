@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Pinned SHA256 checksums for all three external artifacts fetched by `scripts/download-native-binaries.sh` (whisper.cpp source, sherpa-onnx release archive, mediaremote-adapter source); the build now aborts on any checksum mismatch instead of compiling unverified downloads into the shipped app, closing a supply-chain attack path via compromised upstream releases or a man-in-the-middle on the download.
 - Pinned the SHA256 checksum of the Sparkle 2.9.4 archive downloaded in the release workflow's appcast step; a tampered `generate_appcast` binary could otherwise sign a malicious appcast with the project's own EdDSA key and push a rogue auto-update to every user.
+- Moved the AssemblyAI streaming API key from the WebSocket URL's `token` query parameter into the `Authorization` header (per the official v3 streaming docs); a key in the URL could leak into corporate proxy logs, debugging proxies, and system connection logs.
 
 ## [2.0.2] - 2026-07-22
 
