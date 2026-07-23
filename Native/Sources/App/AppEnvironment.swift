@@ -421,7 +421,7 @@ final class AppEnvironment: ObservableObject {
     }
 
     private func applySystemSettings() {
-        NSApp.setActivationPolicy(settings.showInDock ? .regular : .accessory)
+        applyActivationPolicy(settings.showInDock ? .regular : .accessory)
         capsule.setLanguage(settings.uiLanguage)
         NotificationCenter.default.post(
             name: .mouthpieceRuntimeSettingsChanged,
@@ -445,6 +445,21 @@ final class AppEnvironment: ObservableObject {
             }
         } catch {
             startupError = error.localizedDescription
+        }
+    }
+
+    private func applyActivationPolicy(_ policy: NSApplication.ActivationPolicy) {
+        guard NSApp.activationPolicy() != policy else { return }
+        // Switching to .accessory deactivates the app, dropping the control
+        // panel behind the previously frontmost app; restore activation when
+        // the app was active before the switch.
+        let wasActive = NSApp.isActive
+        NSApp.setActivationPolicy(policy)
+        guard wasActive else { return }
+        NSApp.activate(ignoringOtherApps: true)
+        if let window = NSApp.keyWindow ?? NSApp.mainWindow
+            ?? NSApp.windows.first(where: { $0.isVisible && $0.canBecomeMain }) {
+            window.makeKeyAndOrderFront(nil)
         }
     }
 
