@@ -75,8 +75,15 @@ actor LocalModelInstallationService {
         fileManager: FileManager = .default
     ) -> Bool {
         guard let attributes = try? fileManager.attributesOfItem(atPath: url.path),
-              let size = attributes[.size] as? NSNumber else { return false }
-        return size.int64Value >= expectedSizeBytes * 8 / 10
+              let size = attributes[.size] as? NSNumber,
+              size.int64Value >= expectedSizeBytes * 95 / 100 else { return false }
+        // ggml magic 0x67676d6c (little-endian "lmgg" on disk): a truncated
+        // download or an HTML error page saved by the CDN passes a size-only
+        // check and then crashes whisper.cpp at model load.
+        guard let handle = FileHandle(forReadingAtPath: url.path) else { return false }
+        defer { try? handle.close() }
+        guard let header = try? handle.read(upToCount: 4), header.count == 4 else { return false }
+        return header == Data([0x6C, 0x6D, 0x67, 0x67])
     }
 
     nonisolated static func parakeetModelIsComplete(
@@ -170,8 +177,11 @@ actor LocalModelInstallationService {
         try fileManager.createDirectory(at: AppPaths.whisperModelsDirectory, withIntermediateDirectories: true)
         let (temporary, response) = try await download(remote)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
-              try fileManager.attributesOfItem(atPath: temporary.path)[.size] as? Int64 ?? 0
-                >= descriptor.expectedSizeBytes * 8 / 10 else {
+              Self.whisperModelIsComplete(
+                  temporary,
+                  expectedSizeBytes: descriptor.expectedSizeBytes,
+                  fileManager: fileManager
+              ) else {
             throw ModelInstallationError.invalidDownload
         }
         let destination = whisperURL(descriptor)

@@ -69,9 +69,12 @@ final class DictationAndProviderTests: XCTestCase {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
 
         let whisper = root.appendingPathComponent("ggml-test.bin")
-        try Data(repeating: 0, count: 7).write(to: whisper)
+        let ggmlMagic = Data([0x6C, 0x6D, 0x67, 0x67])
+        try (ggmlMagic + Data(repeating: 0, count: 4)).write(to: whisper)
         XCTAssertFalse(LocalModelInstallationService.whisperModelIsComplete(whisper, expectedSizeBytes: 10))
-        try Data(repeating: 0, count: 8).write(to: whisper)
+        try Data(repeating: 0, count: 10).write(to: whisper)
+        XCTAssertFalse(LocalModelInstallationService.whisperModelIsComplete(whisper, expectedSizeBytes: 10))
+        try (ggmlMagic + Data(repeating: 0, count: 6)).write(to: whisper)
         XCTAssertTrue(LocalModelInstallationService.whisperModelIsComplete(whisper, expectedSizeBytes: 10))
 
         for filename in ["tokens.txt", "encoder.int8.onnx", "decoder.int8.onnx", "joiner.int8.onnx"] {
