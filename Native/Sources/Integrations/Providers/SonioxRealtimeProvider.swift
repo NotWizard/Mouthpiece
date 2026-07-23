@@ -8,6 +8,7 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
     private var stableTokens: [SonioxToken] = []
     private var stableKeys = Set<String>()
     private var liveText = ""
+    private var lastFinalText = ""
     private var finalized = false
     private var configured = false
     private var pendingAudio: [Data] = []
@@ -28,6 +29,7 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
         stableTokens.removeAll()
         stableKeys.removeAll()
         liveText = ""
+        lastFinalText = ""
         finalized = false
         configured = false
         let generation = self.generation
@@ -131,7 +133,10 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
                 let active = joined(unstable)
                 liveText = [stable, active].filter { !$0.isEmpty }.joined(separator: " ")
                 if !liveText.isEmpty { eventHandler?(.partial(stable: stable, active: active)) }
-                if !stable.isEmpty { eventHandler?(.final(stable)) }
+                if !stable.isEmpty, stable != lastFinalText {
+                    lastFinalText = stable
+                    eventHandler?(.final(stable))
+                }
                 if finalized { eventHandler?(.sessionFinished(stable)) }
             }
         } catch {

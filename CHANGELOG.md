@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - When a modifier-only hotkey (for example Right Command) is set to swallow its events, the release edge is now swallowed too: previously only the press was consumed, so the frontmost app received an unpaired modifier-up that could trigger menu-bar highlights or shortcut hints.
 - The capsule now repositions itself after the Mac wakes from sleep: the wake observer was registered on the wrong notification center (`NotificationCenter.default` instead of the workspace's), so it never fired and a monitor-layout change during sleep could leave the capsule stranded off-screen. Both capsule observers are also removed on tear-down now, fixing a small observer leak.
 - Downloaded Whisper models are validated more strictly before being accepted: the previous check only required 80% of the expected file size, so a truncated download or an HTML error page saved by a CDN could be installed and crash the local transcription engine at load. The check now requires 95% of the expected size plus the ggml file signature (verified against the real published models).
+- Soniox live transcription no longer re-emits the entire confirmed transcript on every server message: the confirmed text only grows, but each incoming message re-sent it as a fresh final update, causing needless UI refreshes during continuous speech. Final updates are now sent only when the confirmed text actually changes.
 
 ### Changed
 
