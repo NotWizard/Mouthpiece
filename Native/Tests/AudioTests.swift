@@ -43,7 +43,7 @@ final class AudioTests: XCTestCase {
 
         try await capture.start(
             selectedDeviceUID: nil,
-            onFrame: { _ in frameReceived.fulfill() },
+            onFrame: { _, _ in frameReceived.fulfill() },
             onLevel: { _ in }
         )
         await fulfillment(of: [frameReceived], timeout: 3)

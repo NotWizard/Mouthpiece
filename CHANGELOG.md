@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Audio frames now flow through a single per-session consumer stream instead of spawning one concurrency task per 20-millisecond frame (about 50 per second, ~90,000 over a half-hour session), reducing scheduler and memory pressure during long dictations.
 - Long recordings use far less memory while being transcribed: the raw capture buffer (about 2 MB per recorded minute) is released as soon as the trimmed copy is made, and the WAV payload buffer is pre-sized, so a 30-minute batch transcription no longer holds three full copies (~170 MB peak) of the audio at once.
+- Each 20-millisecond microphone frame now has its loudness (RMS) computed once instead of twice: the audio converter already measures it for the waveform level, and the speech-activity gate now reuses that value instead of re-scanning every sample.
 
 ### Security
 

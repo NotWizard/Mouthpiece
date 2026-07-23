@@ -56,7 +56,7 @@ final class AudioCaptureService {
 
     func start(
         selectedDeviceUID: String?,
-        onFrame: @escaping @Sendable (Data) -> Void,
+        onFrame: @escaping @Sendable (Data, Double) -> Void,
         onLevel: @escaping @Sendable (Float) -> Void
     ) async throws {
         guard !isRunning, !isStarting else { return }
@@ -90,7 +90,7 @@ final class AudioCaptureService {
     private static func startEngineSession(
         _ box: EngineBox,
         selectedDeviceUID: String?,
-        onFrame: @escaping @Sendable (Data) -> Void,
+        onFrame: @escaping @Sendable (Data, Double) -> Void,
         onLevel: @escaping @Sendable (Float) -> Void
     ) async throws -> AudioConverterBox {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<AudioConverterBox, Error>) in
@@ -274,7 +274,7 @@ private final class AudioConverterBox: @unchecked Sendable {
     private static let frameBytes = AudioCaptureService.outputSampleRate * 2 / 50
     private let converter: AVAudioConverter
     private let outputFormat: AVAudioFormat
-    private let onFrame: @Sendable (Data) -> Void
+    private let onFrame: @Sendable (Data, Double) -> Void
     private let onLevel: @Sendable (Float) -> Void
     private let queue = DispatchQueue(label: "com.mouthpiece.audio-conversion", qos: .userInitiated)
     private let lock = NSLock()
@@ -287,7 +287,7 @@ private final class AudioConverterBox: @unchecked Sendable {
 
     init(
         inputFormat: AVAudioFormat,
-        onFrame: @escaping @Sendable (Data) -> Void,
+        onFrame: @escaping @Sendable (Data, Double) -> Void,
         onLevel: @escaping @Sendable (Float) -> Void
     ) throws {
         guard let outputFormat = AVAudioFormat(
@@ -392,7 +392,6 @@ private final class AudioConverterBox: @unchecked Sendable {
     }
 
     private func emit(_ data: Data) {
-        onFrame(data)
         var sum = 0.0
         var count = 0
         data.withUnsafeBytes { bytes in
@@ -404,6 +403,7 @@ private final class AudioConverterBox: @unchecked Sendable {
             }
         }
         let rms = count == 0 ? 0 : sqrt(sum / Double(count))
+        onFrame(data, rms)
         smoothedLevel = AudioCaptureService.normalizedLevel(rms: rms, previous: smoothedLevel)
         onLevel(smoothedLevel)
     }

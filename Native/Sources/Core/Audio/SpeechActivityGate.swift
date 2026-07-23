@@ -38,11 +38,11 @@ struct SpeechActivityGate: Sendable {
         self.sampleRate = sampleRate
     }
 
-    mutating func consume(_ pcm16: Data) -> Result {
+    mutating func consume(_ pcm16: Data, rms precomputedRMS: Double? = nil) -> Result {
         let frameStart = totalBytes
         totalBytes += pcm16.count
         let frameMilliseconds = max(1, pcm16.count * 1_000 / max(1, sampleRate * 2))
-        let rms = Self.rms(pcm16)
+        let rms = precomputedRMS ?? Self.rms(pcm16)
         peakRMS = max(peakRMS, rms)
         let snr = 20 * log10(max(Self.minimumNoiseFloor, rms) / max(Self.minimumNoiseFloor, noiseFloor))
         let aboveOpen = rms >= Self.minimumSpeechRMS && snr >= Self.openSNR

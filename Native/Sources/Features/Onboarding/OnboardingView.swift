@@ -121,7 +121,7 @@ private final class OnboardingVerificationController: ObservableObject {
             do {
                 try await self?.audio.start(
                     selectedDeviceUID: self?.selectedDeviceUID,
-                    onFrame: { _ in },
+                    onFrame: { _, _ in },
                     onLevel: { [weak self] level in
                         Task { @MainActor in self?.updateLevel(level, sessionID: id) }
                     }

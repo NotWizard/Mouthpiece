@@ -136,18 +136,18 @@ actor DictationCoordinator {
             // One consumer task per session instead of one unstructured Task
             // per 20ms frame (50/s, ~90k per half-hour session). The stream
             // finishes when audio tear-down releases the onFrame closure.
-            let (frames, frameContinuation) = AsyncStream<Data>.makeStream(
+            let (frames, frameContinuation) = AsyncStream<(Data, Double)>.makeStream(
                 bufferingPolicy: .unbounded
             )
             frameTask?.cancel()
             frameTask = Task { [weak self] in
-                for await frame in frames {
-                    await self?.consume(frame: frame, sessionID: sessionID)
+                for await (frame, rms) in frames {
+                    await self?.consume(frame: frame, rms: rms, sessionID: sessionID)
                 }
             }
             try await audio.start(
                 selectedDeviceUID: settings.selectedMicrophoneUID,
-                onFrame: { frame in frameContinuation.yield(frame) },
+                onFrame: { frame, rms in frameContinuation.yield((frame, rms)) },
                 onLevel: { _ in }
             )
             guard isCurrent(sessionID, phase: .preparing) else {
@@ -355,10 +355,10 @@ actor DictationCoordinator {
 
     func snapshot() -> DictationSnapshot { machine.snapshot }
 
-    private func consume(frame: Data, sessionID: UUID) async {
+    private func consume(frame: Data, rms: Double, sessionID: UUID) async {
         guard machine.snapshot.sessionID == sessionID, machine.snapshot.phase.isActive else { return }
         pcm.append(frame)
-        let activity = speechGate.consume(frame)
+        let activity = speechGate.consume(frame, rms: rms)
         await consume(level: activity.visualLevel, sessionID: sessionID)
         guard providerSessionID == sessionID, let provider else { return }
         do {
