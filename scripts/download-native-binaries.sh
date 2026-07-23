@@ -67,6 +67,7 @@ find "$OUTPUT" -mindepth 2 -type f ! -name .gitkeep -delete
 
 echo "Building whisper.cpp $WHISPER_VERSION for $XCODE_ARCH"
 curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 \
+  --connect-timeout 30 --max-time 600 \
   "https://github.com/ggml-org/whisper.cpp/archive/refs/tags/$WHISPER_VERSION.tar.gz" \
   -o "$WORK/whisper.tar.gz"
 verify_checksum "$WORK/whisper.tar.gz" "$WHISPER_SHA256"
@@ -82,13 +83,14 @@ cmake -S "$WHISPER_SOURCE" -B "$WORK/whisper-build" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_OSX_ARCHITECTURES="$XCODE_ARCH"
 cmake --build "$WORK/whisper-build" --config Release --target whisper-server --parallel
-WHISPER_SERVER=$(find "$WORK/whisper-build" -type f -name whisper-server -perm +111 -print -quit)
+WHISPER_SERVER=$(find "$WORK/whisper-build" -type f -name whisper-server -perm /111 -print -quit)
 cp "$WHISPER_SERVER" "$OUTPUT/whisper/whisper-server-darwin-${ARCH/x86_64/x64}"
 copy_libraries "$WORK/whisper-build" "$OUTPUT/whisper"
 
 echo "Downloading sherpa-onnx $SHERPA_VERSION"
 SHERPA_ARCHIVE="sherpa-onnx-v$SHERPA_VERSION-osx-universal2-shared.tar.bz2"
 curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 \
+  --connect-timeout 30 --max-time 600 \
   "https://github.com/k2-fsa/sherpa-onnx/releases/download/v$SHERPA_VERSION/$SHERPA_ARCHIVE" \
   -o "$WORK/sherpa.tar.bz2"
 verify_checksum "$WORK/sherpa.tar.bz2" "$SHERPA_SHA256"
@@ -100,6 +102,7 @@ copy_libraries "$WORK/sherpa" "$OUTPUT/parakeet"
 
 echo "Building mediaremote-adapter $MEDIAREMOTE_ADAPTER_SHA"
 curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 \
+  --connect-timeout 30 --max-time 600 \
   "https://github.com/ungive/mediaremote-adapter/archive/$MEDIAREMOTE_ADAPTER_SHA.tar.gz" \
   -o "$WORK/mra.tar.gz"
 verify_checksum "$WORK/mra.tar.gz" "$MEDIAREMOTE_ADAPTER_SHA256"
@@ -116,7 +119,7 @@ cp -R "$MRA_FRAMEWORK" "$OUTPUT/mediaremote/"
 cp "$MRA_SOURCE/bin/mediaremote-adapter.pl" "$OUTPUT/mediaremote/mediaremote-adapter.pl"
 cp "$MRA_SOURCE/LICENSE" "$OUTPUT/mediaremote/LICENSE"
 
-find "$OUTPUT" -type f ! -name .gitkeep -exec chmod 755 {} \;
+find "$OUTPUT" -type f \( -name '*.dylib' -o -name 'whisper-server-*' -o -name 'sherpa-onnx-ws-*' -o -name '*.pl' -o -name 'MediaRemoteAdapter' \) -exec chmod 755 {} \;
 verify_runtime_binary "$OUTPUT/whisper/whisper-server-darwin-${ARCH/x86_64/x64}"
 verify_runtime_binary "$OUTPUT/parakeet/sherpa-onnx-ws-darwin-${ARCH/x86_64/x64}"
 verify_runtime_directory "$OUTPUT/whisper"

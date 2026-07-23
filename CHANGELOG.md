@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The capsule waveform now draws all bars as one combined path per frame instead of allocating and filling ~36 separate paths, trimming per-frame drawing overhead on high-refresh displays.
 - The history page filters its records once per view update instead of twice, halving the search work performed whenever the app state refreshes while history is on screen.
 - Removed an unreachable branch from the capsule content resolver (the processing phase is handled by an intentional early return so "Refining…" wins over a partial transcript); no behavior change.
+- Hardened the native-runtime download script: every download now has connect/transfer timeouts (a stalled CDN connection previously hung the build for hours), the deprecated `find -perm +111` syntax was replaced with the portable form, and the executable bit is now applied only to actual binaries, dylibs, and scripts instead of every packaged file (including licenses).
 
 ### Security
 
