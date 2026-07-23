@@ -36,6 +36,7 @@ actor LocalModelRuntime {
         let port: Int
         let model: String
         let apiKey: String?
+        var logURL: URL?
     }
 
     private let session: URLSession
@@ -292,15 +293,36 @@ actor LocalModelRuntime {
         process.arguments = arguments
         process.currentDirectoryURL = FileManager.default.temporaryDirectory
         process.environment = environment
-        let null = FileHandle(forWritingAtPath: "/dev/null")
-        process.standardOutput = null
-        process.standardError = null
+        // Discarding output made startup failures undiagnosable ("timed out"
+        // with no clue); keep the last launch's log per model instead.
+        var logURL: URL?
+        let logDirectory = AppPaths.logsDirectory
+        let candidate = logDirectory.appendingPathComponent("local-model-\(model).log")
+        try? FileManager.default.createDirectory(at: logDirectory, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: candidate.path, contents: nil)
+        if let handle = FileHandle(forWritingAtPath: candidate.path) {
+            process.standardOutput = handle
+            process.standardError = handle
+            logURL = candidate
+        } else {
+            let null = FileHandle(forWritingAtPath: "/dev/null")
+            process.standardOutput = null
+            process.standardError = null
+        }
         do {
             try process.run()
         } catch {
             throw LocalModelRuntimeError.launchFailed(error.localizedDescription)
         }
-        return RunningServer(process: process, port: port, model: model, apiKey: apiKey)
+        return RunningServer(process: process, port: port, model: model, apiKey: apiKey, logURL: logURL)
+    }
+
+    private nonisolated static func startupDiagnostics(_ server: RunningServer) -> String {
+        guard let logURL = server.logURL,
+              let data = try? Data(contentsOf: logURL), !data.isEmpty else { return "" }
+        let tail = String(decoding: data.suffix(600), as: UTF8.self)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return tail.isEmpty ? "" : " — \(tail)"
     }
 
     private func waitForHTTP(
@@ -313,7 +335,9 @@ actor LocalModelRuntime {
         let deadline = clock.now.advanced(by: timeout)
         while clock.now < deadline {
             guard server.process.isRunning else {
-                throw LocalModelRuntimeError.launchFailed("process exited during startup")
+                throw LocalModelRuntimeError.launchFailed(
+                    "process exited during startup" + Self.startupDiagnostics(server)
+                )
             }
             for path in paths {
                 var request = URLRequest(url: URL(string: "http://127.0.0.1:\(server.port)\(path)")!)
@@ -328,7 +352,7 @@ actor LocalModelRuntime {
             try await Task.sleep(for: .milliseconds(150))
         }
         stop(server.process)
-        throw LocalModelRuntimeError.startupTimedOut(server.model)
+        throw LocalModelRuntimeError.startupTimedOut(server.model + Self.startupDiagnostics(server))
     }
 
     private func waitForPort(server: RunningServer, timeout: Duration) async throws {
@@ -336,13 +360,15 @@ actor LocalModelRuntime {
         let deadline = clock.now.advanced(by: timeout)
         while clock.now < deadline {
             guard server.process.isRunning else {
-                throw LocalModelRuntimeError.launchFailed("process exited during startup")
+                throw LocalModelRuntimeError.launchFailed(
+                    "process exited during startup" + Self.startupDiagnostics(server)
+                )
             }
             if !Self.isPortAvailable(server.port) { return }
             try await Task.sleep(for: .milliseconds(100))
         }
         stop(server.process)
-        throw LocalModelRuntimeError.startupTimedOut(server.model)
+        throw LocalModelRuntimeError.startupTimedOut(server.model + Self.startupDiagnostics(server))
     }
 
     private func multipartTranscribe(
