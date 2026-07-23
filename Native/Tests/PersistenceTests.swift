@@ -40,10 +40,14 @@ final class PersistenceTests: XCTestCase {
             # comment
             export OPENAI_API_KEY="sk-test=value"
             BAILIAN_API_KEY=sk-bailian # inline comment
+            GEMINI_API_KEY="sk-gemini" # trailing comment after quotes
+            GROQ_API_KEY="sk-with#hash" # hash inside quotes stays
             INVALID KEY=value
             """)
         XCTAssertEqual(values["OPENAI_API_KEY"], "sk-test=value")
         XCTAssertEqual(values["BAILIAN_API_KEY"], "sk-bailian")
+        XCTAssertEqual(values["GEMINI_API_KEY"], "sk-gemini")
+        XCTAssertEqual(values["GROQ_API_KEY"], "sk-with#hash")
         XCTAssertNil(values["INVALID KEY"])
     }
 

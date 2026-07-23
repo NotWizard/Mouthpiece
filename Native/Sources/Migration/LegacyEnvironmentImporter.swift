@@ -48,12 +48,12 @@ struct LegacyEnvironmentImporter: Sendable {
             }
             var value = assignment[assignment.index(after: separator)...]
                 .trimmingCharacters(in: .whitespaces)
-            if value.count >= 2,
-               let first = value.first,
-               let last = value.last,
-               (first == "\"" && last == "\"") || (first == "'" && last == "'") {
-                value.removeFirst()
-                value.removeLast()
+            if let quote = value.first, quote == "\"" || quote == "'",
+               let close = value.dropFirst().firstIndex(of: quote) {
+                // Keep only the quoted body; anything after the closing quote
+                // (e.g. an inline comment) previously defeated the first/last
+                // quote check and leaked literal quotes into stored API keys.
+                value = String(value[value.index(after: value.startIndex)..<close])
             } else if let comment = value.firstIndex(of: "#") {
                 value = value[..<comment].trimmingCharacters(in: .whitespaces)
             }
