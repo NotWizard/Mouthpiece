@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed dictation getting stuck at "Finalizing" forever when the realtime transcription connection is half-dead (TCP alive but the server no longer responds): `provider.finish()` had no timeout, so a hung WebSocket send wedged the whole dictation coordinator and blocked every later start/cancel. Finalization is now raced against an 8-second deadline through an abandonable task; on timeout the session falls back to the latest partial transcript or batch transcription, exactly like any other finalize failure.
 - Closed a use-after-free crash window in the hotkey event tap: the CGEvent tap callback holds an unretained pointer to the `HotkeyService` instance and the main run loop retains the tap source, so releasing a service without calling `stop()` (for example while swapping hotkey configurations) left a live callback pointing at freed memory. The service now tears the tap and run-loop source down in `deinit`.
 
+### Security
+
+- Pinned SHA256 checksums for all three external artifacts fetched by `scripts/download-native-binaries.sh` (whisper.cpp source, sherpa-onnx release archive, mediaremote-adapter source); the build now aborts on any checksum mismatch instead of compiling unverified downloads into the shipped app, closing a supply-chain attack path via compromised upstream releases or a man-in-the-middle on the download.
+
 ## [2.0.2] - 2026-07-22
 
 ### Fixed
