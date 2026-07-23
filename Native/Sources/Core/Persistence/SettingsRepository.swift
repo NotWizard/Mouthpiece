@@ -160,10 +160,17 @@ final class SettingsRepository {
     }
 
     func restoreMigrationBackup(_ data: Data?) {
-        if let data, var restored = Self.decodeWithDefaults(data) {
-            restored.normalize()
+        if let data {
+            // Always keep the backup bytes, even when they no longer decode:
+            // deleting them here would break the "unreadable data is kept for
+            // recovery" promise made at startup.
             defaults.set(data, forKey: Self.storageKey)
-            cached = restored
+            if var restored = Self.decodeWithDefaults(data) {
+                restored.normalize()
+                cached = restored
+            } else {
+                cached = AppSettings()
+            }
         } else {
             defaults.removeObject(forKey: Self.storageKey)
             cached = AppSettings()
