@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stopping dictation during the preparing phase now cancels the 15-second preparing watchdog like every other exit path; previously the watchdog stayed armed and could fire in the middle of an in-flight stop, diverting the session into the failure path instead of the normal stop flow.
 - The failure handler now marks the session failed before tearing down audio, media playback, and the realtime connection; previously another queued action (a user stop or the maximum-duration cut-off) could take over the session between those tear-down steps and the final state check, after side effects that could not be rolled back had already run.
 
+### Changed
+
+- Audio frames now flow through a single per-session consumer stream instead of spawning one concurrency task per 20-millisecond frame (about 50 per second, ~90,000 over a half-hour session), reducing scheduler and memory pressure during long dictations.
+
 ### Security
 
 - Pinned SHA256 checksums for all three external artifacts fetched by `scripts/download-native-binaries.sh` (whisper.cpp source, sherpa-onnx release archive, mediaremote-adapter source); the build now aborts on any checksum mismatch instead of compiling unverified downloads into the shipped app, closing a supply-chain attack path via compromised upstream releases or a man-in-the-middle on the download.

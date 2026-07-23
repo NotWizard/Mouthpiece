@@ -27,6 +27,7 @@ actor DictationCoordinator {
     private var speechGate = SpeechActivityGate()
     private var maximumDurationTask: Task<Void, Never>?
     private var preparingWatchdogTask: Task<Void, Never>?
+    private var frameTask: Task<Void, Never>?
     private var reasoningTask: Task<String, Error>?
 
     init(
@@ -81,6 +82,8 @@ actor DictationCoordinator {
         maximumDurationTask = nil
         preparingWatchdogTask?.cancel()
         preparingWatchdogTask = nil
+        frameTask?.cancel()
+        frameTask = nil
         reasoningTask?.cancel()
         reasoningTask = nil
         await audio.stop()
@@ -130,11 +133,21 @@ actor DictationCoordinator {
 
             guard await audio.requestPermission() else { throw AudioCaptureError.permissionDenied }
             guard isCurrent(sessionID, phase: .preparing) else { return }
+            // One consumer task per session instead of one unstructured Task
+            // per 20ms frame (50/s, ~90k per half-hour session). The stream
+            // finishes when audio tear-down releases the onFrame closure.
+            let (frames, frameContinuation) = AsyncStream<Data>.makeStream(
+                bufferingPolicy: .unbounded
+            )
+            frameTask?.cancel()
+            frameTask = Task { [weak self] in
+                for await frame in frames {
+                    await self?.consume(frame: frame, sessionID: sessionID)
+                }
+            }
             try await audio.start(
                 selectedDeviceUID: settings.selectedMicrophoneUID,
-                onFrame: { [weak self] frame in
-                    Task { await self?.consume(frame: frame, sessionID: sessionID) }
-                },
+                onFrame: { frame in frameContinuation.yield(frame) },
                 onLevel: { _ in }
             )
             guard isCurrent(sessionID, phase: .preparing) else {
@@ -573,6 +586,8 @@ actor DictationCoordinator {
         maximumDurationTask = nil
         preparingWatchdogTask?.cancel()
         preparingWatchdogTask = nil
+        frameTask?.cancel()
+        frameTask = nil
         reasoningTask?.cancel()
         reasoningTask = nil
         provider = nil
