@@ -133,8 +133,8 @@ enum TranslationHotkey {
 @MainActor
 final class HotkeyService {
     private nonisolated let swallowMatchedEvents: Bool
-    private var eventTap: CFMachPort?
-    private var runLoopSource: CFRunLoopSource?
+    private nonisolated(unsafe) var eventTap: CFMachPort?
+    private nonisolated(unsafe) var runLoopSource: CFRunLoopSource?
     private nonisolated(unsafe) var descriptor = HotkeyDescriptor.parse("RightCommand")
     private nonisolated(unsafe) var swallowArmed = true
     private var pressed = false
@@ -145,6 +145,17 @@ final class HotkeyService {
 
     init(swallowMatchedEvents: Bool = false) {
         self.swallowMatchedEvents = swallowMatchedEvents
+    }
+
+    // The tap callback holds an unretained pointer to self and the main run
+    // loop retains the source, so the callback would outlive an un-stopped
+    // service and dereference freed memory. deinit cannot call the isolated
+    // stop(), so it tears the tap down inline.
+    deinit {
+        if let runLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+        }
+        if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: false) }
     }
 
     func setSwallowArmed(_ armed: Bool) {
