@@ -83,7 +83,7 @@ cmake -S "$WHISPER_SOURCE" -B "$WORK/whisper-build" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_OSX_ARCHITECTURES="$XCODE_ARCH"
 cmake --build "$WORK/whisper-build" --config Release --target whisper-server --parallel
-WHISPER_SERVER=$(find "$WORK/whisper-build" -type f -name whisper-server -perm /111 -print -quit)
+WHISPER_SERVER=$(find "$WORK/whisper-build" -type f -name whisper-server -perm -111 -print -quit)
 cp "$WHISPER_SERVER" "$OUTPUT/whisper/whisper-server-darwin-${ARCH/x86_64/x64}"
 copy_libraries "$WORK/whisper-build" "$OUTPUT/whisper"
 
