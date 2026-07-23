@@ -10,6 +10,7 @@ struct HistoryView: View {
     @State private var showingClearConfirmation = false
 
     var body: some View {
+        let records = filteredRecords
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .bottom) {
                 SettingsPageHeader(title: "history.title", subtitle: "history.subtitle")
@@ -32,13 +33,13 @@ struct HistoryView: View {
 
             Divider()
 
-            if filteredRecords.isEmpty {
+            if records.isEmpty {
                 HistoryEmptyView(hasSearch: !query.isEmpty || dateFilter != .all)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(filteredRecords) { item in
+                        ForEach(records) { item in
                             HistoryCard(
                                 item: item,
                                 onCopyProcessed: { copy(item.text) },
