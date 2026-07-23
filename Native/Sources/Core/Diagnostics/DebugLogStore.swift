@@ -95,6 +95,8 @@ actor DebugLogStore {
             return left > right
         }
         for (index, file) in sorted.enumerated() {
+            // Never delete the file our persistent handle is writing to.
+            if file == fileURL { continue }
             let modified = (try? file.resourceValues(forKeys: keys).contentModificationDate) ?? .distantPast
             if now.timeIntervalSince(modified) > retention || index >= maximumFiles {
                 try? fileManager.removeItem(at: file)
