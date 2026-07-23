@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stopping dictation during the preparing phase now cancels the 15-second preparing watchdog like every other exit path; previously the watchdog stayed armed and could fire in the middle of an in-flight stop, diverting the session into the failure path instead of the normal stop flow.
 - The failure handler now marks the session failed before tearing down audio, media playback, and the realtime connection; previously another queued action (a user stop or the maximum-duration cut-off) could take over the session between those tear-down steps and the final state check, after side effects that could not be rolled back had already run.
 - Cancelling a dictation session in the brief window right after the synthetic paste no longer leaves the transcript stuck on the clipboard: the delayed clipboard restore was only scheduled after a cancellable pacing sleep, so a cancellation skipped it entirely. The restore is now registered before that sleep and always runs.
+- Repeated text insertions into a hung application can no longer exhaust the app's background thread pool: every timed-out Accessibility call abandons one blocked worker thread, and there was no cap, so a persistently unresponsive target could drain all ~64 GCD threads and stall unrelated background work. Abandoned threads are now counted, and once eight are outstanding new Accessibility attempts are skipped in favor of the Cmd+V paste path until the stuck calls return.
 
 ### Changed
 

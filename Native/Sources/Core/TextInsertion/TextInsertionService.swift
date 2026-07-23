@@ -277,18 +277,55 @@ final class TextInsertionService {
     // on unstructured GCD threads and abandon the loser. A withTaskGroup child
     // blocked inside AX would keep the scope (and the caller) waiting on a hung
     // target app, which made the previous 3-second timeout unenforceable.
+    private final class AbandonedBudget: @unchecked Sendable {
+        static let shared = AbandonedBudget()
+        private let lock = NSLock()
+        private var outstanding = 0
+
+        var hasCapacity: Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            // ponytail: fixed cap of 8 abandoned AX threads; raise or make
+            // per-target if a legitimate workload ever hits it.
+            return outstanding < 8
+        }
+
+        func markAbandoned() {
+            lock.lock()
+            defer { lock.unlock() }
+            outstanding += 1
+        }
+
+        func markReturned() {
+            lock.lock()
+            defer { lock.unlock() }
+            outstanding -= 1
+        }
+    }
+
     private nonisolated static func raceWithTimeout<T: Sendable>(
         _ timeout: DispatchTimeInterval,
         operation: @escaping @Sendable () -> T
     ) async -> T? {
+        // Each timeout leaves one GCD thread blocked inside the hung AX call;
+        // stop attempting new ones before the pool (~64 threads) drains and
+        // let callers fall through to the Cmd+V paste path instead.
+        guard AbandonedBudget.shared.hasCapacity else { return nil }
         let gate = ResumeGate()
         return await withCheckedContinuation { (continuation: CheckedContinuation<T?, Never>) in
             DispatchQueue.global(qos: .userInitiated).async {
                 let result = operation()
-                if gate.claim() { continuation.resume(returning: result) }
+                if gate.claim() {
+                    continuation.resume(returning: result)
+                } else {
+                    AbandonedBudget.shared.markReturned()
+                }
             }
             DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + timeout) {
-                if gate.claim() { continuation.resume(returning: nil) }
+                if gate.claim() {
+                    AbandonedBudget.shared.markAbandoned()
+                    continuation.resume(returning: nil)
+                }
             }
         }
     }
