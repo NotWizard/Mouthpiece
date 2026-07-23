@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cancelling a dictation session in the brief window right after the synthetic paste no longer leaves the transcript stuck on the clipboard: the delayed clipboard restore was only scheduled after a cancellable pacing sleep, so a cancellation skipped it entirely. The restore is now registered before that sleep and always runs.
 - Repeated text insertions into a hung application can no longer exhaust the app's background thread pool: every timed-out Accessibility call abandons one blocked worker thread, and there was no cap, so a persistently unresponsive target could drain all ~64 GCD threads and stall unrelated background work. Abandoned threads are now counted, and once eight are outstanding new Accessibility attempts are skipped in favor of the Cmd+V paste path until the stuck calls return.
 - When a modifier-only hotkey (for example Right Command) is set to swallow its events, the release edge is now swallowed too: previously only the press was consumed, so the frontmost app received an unpaired modifier-up that could trigger menu-bar highlights or shortcut hints.
+- The capsule now repositions itself after the Mac wakes from sleep: the wake observer was registered on the wrong notification center (`NotificationCenter.default` instead of the workspace's), so it never fired and a monitor-layout change during sleep could leave the capsule stranded off-screen. Both capsule observers are also removed on tear-down now, fixing a small observer leak.
 
 ### Changed
 

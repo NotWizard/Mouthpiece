@@ -109,7 +109,7 @@ enum CapsuleContentKind: Equatable {
 final class CapsuleController {
     let model = CapsuleViewModel()
     private let panel: NSPanel
-    private var observers: [NSObjectProtocol] = []
+    private nonisolated(unsafe) var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private var targetProcessIdentifier: pid_t?
 
     init() {
@@ -140,20 +140,27 @@ final class CapsuleController {
         panel.contentView = hostingView
 
         let center = NotificationCenter.default
-        observers.append(center.addObserver(
+        observers.append((center, center.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in self?.repositionIfVisible() }
-        })
-        observers.append(center.addObserver(
+        }))
+        // Wake notifications post to the workspace's own center;
+        // NotificationCenter.default never delivered this one.
+        let workspaceCenter = NSWorkspace.shared.notificationCenter
+        observers.append((workspaceCenter, workspaceCenter.addObserver(
             forName: NSWorkspace.didWakeNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in self?.repositionIfVisible() }
-        })
+        }))
+    }
+
+    deinit {
+        for (center, token) in observers { center.removeObserver(token) }
     }
 
     func show(_ snapshot: DictationSnapshot) {
