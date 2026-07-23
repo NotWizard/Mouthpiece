@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stopped corrupted saved settings from silently wiping the user's configuration: when the stored settings blob failed to decode (OS upgrade, disk corruption), the app quietly fell back to factory defaults with no trace. It now logs the failure, keeps the unreadable data in place for recovery, and shows a startup alert telling the user that defaults were loaded.
 - Turning off debug logging now really turns off all logging: session metadata (phase changes, target app names, error details) was still written to the macOS unified log — readable via Console.app — even with the toggle disabled, because the enabled check ran only after the system-log calls. The check now runs first, so nothing is logged anywhere while the toggle is off.
 - Fixed combination hotkeys (for example `Command+K`) getting stuck in the pressed state when the modifier key is released before the main key: the modifier's release event carries its own key code and never reached the hotkey handler, so hold-to-dictate kept recording until the main key was also released. Modifier releases now end the press immediately.
+- Stopping dictation during the preparing phase now cancels the 15-second preparing watchdog like every other exit path; previously the watchdog stayed armed and could fire in the middle of an in-flight stop, diverting the session into the failure path instead of the normal stop flow.
 
 ### Security
 

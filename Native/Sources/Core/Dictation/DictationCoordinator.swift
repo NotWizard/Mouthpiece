@@ -197,6 +197,8 @@ actor DictationCoordinator {
         do {
             maximumDurationTask?.cancel()
             maximumDurationTask = nil
+            preparingWatchdogTask?.cancel()
+            preparingWatchdogTask = nil
             try machine.transition(to: .stopping, sessionID: sessionID)
             await publish()
             await audio.stop()
