@@ -221,7 +221,7 @@ actor DictationCoordinator {
             var rawText = machine.snapshot.partialText
             if let provider, providerSessionID == sessionID {
                 do {
-                    let realtimeText = try await provider.finish()
+                    let realtimeText = try await Self.finishWithTimeout(provider)
                     guard isCurrent(sessionID, phase: .finalizing) else { return }
                     if !realtimeText.isEmpty { rawText = realtimeText }
                 } catch {
@@ -605,6 +605,47 @@ actor DictationCoordinator {
     private func failPreparingTimeout(_ sessionID: UUID) async {
         guard isCurrent(sessionID, phase: .preparing) else { return }
         await fail(DictationSessionError.preparingTimedOut, sessionID: sessionID)
+    }
+
+    private final class ClaimGate: @unchecked Sendable {
+        private var claimed = false
+        private let lock = NSLock()
+
+        func claim() -> Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            if claimed { return false }
+            claimed = true
+            return true
+        }
+    }
+
+    // finish() can hang forever when the socket is half-dead (send never
+    // completes and ignores cancellation), which would wedge this actor and
+    // freeze the capsule in finalizing. Race it against a deadline and abandon
+    // the loser; a timeout falls into the existing partial/batch fallback.
+    nonisolated static func finishWithTimeout(
+        _ provider: any RealtimeTranscriptionProvider,
+        timeout: Duration = .seconds(8)
+    ) async throws -> String {
+        let gate = ClaimGate()
+        return try await withCheckedThrowingContinuation { continuation in
+            let finishTask = Task {
+                do {
+                    let text = try await provider.finish()
+                    if gate.claim() { continuation.resume(returning: text) }
+                } catch {
+                    if gate.claim() { continuation.resume(throwing: error) }
+                }
+            }
+            Task {
+                try? await Task.sleep(for: timeout)
+                if gate.claim() {
+                    finishTask.cancel()
+                    continuation.resume(throwing: DictationSessionError.finalizeTimedOut)
+                }
+            }
+        }
     }
 
     private func stopForMaximumDuration(_ sessionID: UUID) async {

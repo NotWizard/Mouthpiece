@@ -3,6 +3,26 @@ import XCTest
 @testable import Mouthpiece
 
 final class DictationAndProviderTests: XCTestCase {
+    func testFinishWithTimeoutAbandonsAHungProvider() async {
+        let started = ContinuousClock.now
+        do {
+            _ = try await DictationCoordinator.finishWithTimeout(
+                HangingFinishProvider(), timeout: .milliseconds(200)
+            )
+            XCTFail("Expected finalizeTimedOut")
+        } catch {
+            XCTAssertEqual(error as? DictationSessionError, .finalizeTimedOut)
+        }
+        XCTAssertLessThan(ContinuousClock.now - started, .seconds(5))
+    }
+
+    func testFinishWithTimeoutReturnsTheProviderText() async throws {
+        let text = try await DictationCoordinator.finishWithTimeout(
+            HangingFinishProvider(result: "hello"), timeout: .seconds(2)
+        )
+        XCTAssertEqual(text, "hello")
+    }
+
     func testQwenCacheRequiresACompleteSnapshot() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("Mouthpiece-Qwen-\(UUID().uuidString)", isDirectory: true)
@@ -607,6 +627,24 @@ private actor DownloadProbe {
 
     func markStarted() { started = true }
     func hasStarted() -> Bool { started }
+}
+
+private struct HangingFinishProvider: RealtimeTranscriptionProvider {
+    var result: String?
+
+    func warmup(configuration: RealtimeTranscriptionConfiguration) async throws {}
+    func connect(
+        configuration: RealtimeTranscriptionConfiguration,
+        onEvent: @escaping @Sendable (RealtimeTranscriptionEvent) -> Void
+    ) async throws {}
+    func send(pcm16: Data) async throws {}
+    func cancel() async {}
+
+    func finish() async throws -> String {
+        if let result { return result }
+        // Suspend forever and ignore cancellation, like a half-dead socket send.
+        return await withCheckedContinuation { _ in }
+    }
 }
 
 private final class ProviderStubURLProtocol: URLProtocol, @unchecked Sendable {

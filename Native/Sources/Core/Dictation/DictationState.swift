@@ -47,12 +47,14 @@ enum DictationSessionError: LocalizedError, Equatable {
     case noSpeech
     case maximumDurationReached
     case preparingTimedOut
+    case finalizeTimedOut
 
     var errorDescription: String? {
         switch self {
         case .noSpeech: "No speech was detected."
         case .maximumDurationReached: "The maximum recording duration was reached."
         case .preparingTimedOut: "Starting dictation timed out. Check the microphone and network, then try again."
+        case .finalizeTimedOut: "Finalizing the transcript timed out. Check the network and try again."
         }
     }
 }
