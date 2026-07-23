@@ -423,7 +423,7 @@ final class ProcessCommand: @unchecked Sendable {
                     if process.isRunning { process.terminate() }
                     throw ModelInstallationError.commandFailed("Command timed out.")
                 }
-                let result = try await group.next()!
+                guard let result = try await group.next() else { throw CancellationError() }
                 group.cancelAll()
                 return result
             }

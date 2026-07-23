@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened the native-runtime download script: every download now has connect/transfer timeouts (a stalled CDN connection previously hung the build for hours), the deprecated `find -perm +111` syntax was replaced with the portable form, and the executable bit is now applied only to actual binaries, dylibs, and scripts instead of every packaged file (including licenses).
 - Debug logging keeps its log file open across entries instead of opening and closing it for every line, removing needless file-system churn during busy dictation sessions.
 - The release smoke test now polls the launched app over a five-second window instead of a single fixed three-second check, so a slow CI runner no longer produces false failures and an early crash is reported with the launch log attached.
+- Removed a force unwrap in the model-installation command runner; an exotic cancellation ordering now surfaces as a cancellation error instead of a potential crash.
 
 ### Security
 
