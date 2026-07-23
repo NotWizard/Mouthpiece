@@ -152,7 +152,9 @@ actor LocalModelRuntime {
             message.appendLittleEndian(Int32(floatSamples.count))
             message.append(floatSamples)
             try await task.send(.data(message))
-            let response = try await task.receive()
+            // A wedged sherpa-onnx process (memory pressure, corrupt model)
+            // otherwise leaves this receive waiting forever.
+            let response = try await task.receive(timeout: .seconds(60))
             let text: String
             switch response {
             case .string(let value): text = value

@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed continuous-integration checks failing on every version bump: the CI script-verification step validated a hardcoded `2.0.0` against `project.yml`, so main went red as soon as the version moved past it. The check now derives the version from `project.yml` itself. The CI test job also gained `CODE_SIGNING_ALLOWED=NO` (matching the Intel job), and the release workflow passes the manually-dispatched version through an environment variable instead of inlining it into the shell script, removing a command-injection surface.
 - A stalled local-model download now fails within two hours instead of hanging for up to seven days: the shared URL session's default resource timeout effectively never fired for multi-gigabyte Whisper/Parakeet downloads, leaving the install button stuck on a dead connection.
 - Local transcription server failures are now diagnosable: the whisper/sherpa/Qwen server processes had their output discarded, so a crash at startup only ever reported "startup timed out" with no reason. Each server's output is now kept in a per-model log file under the app's logs folder, and startup errors include the last lines of that log.
+- Parakeet local transcription no longer freezes forever when the local recognition server wedges (memory pressure, corrupt model): its WebSocket wait now uses the same 60-second abandonable timeout as the cloud providers and surfaces an error instead.
 
 ### Changed
 
