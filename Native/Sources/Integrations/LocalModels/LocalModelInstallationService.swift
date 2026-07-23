@@ -32,8 +32,15 @@ actor LocalModelInstallationService {
     private let download: @Sendable (URL) async throws -> (URL, URLResponse)
     private var operationInProgress = false
 
-    init(fileManager: FileManager = .default, session: URLSession = .shared) {
+    init(fileManager: FileManager = .default, session: URLSession? = nil) {
         self.fileManager = fileManager
+        let session = session ?? {
+            let configuration = URLSessionConfiguration.default
+            // URLSession.shared allows 7 days per resource; a stalled 3 GB
+            // model download should fail and become retryable the same day.
+            configuration.timeoutIntervalForResource = 2 * 60 * 60
+            return URLSession(configuration: configuration)
+        }()
         download = { try await session.download(from: $0) }
     }
 
