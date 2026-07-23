@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed an unreachable branch from the capsule content resolver (the processing phase is handled by an intentional early return so "Refining…" wins over a partial transcript); no behavior change.
 - Hardened the native-runtime download script: every download now has connect/transfer timeouts (a stalled CDN connection previously hung the build for hours), the deprecated `find -perm +111` syntax was replaced with the portable form, and the executable bit is now applied only to actual binaries, dylibs, and scripts instead of every packaged file (including licenses).
 - Debug logging keeps its log file open across entries instead of opening and closing it for every line, removing needless file-system churn during busy dictation sessions.
+- The release smoke test now polls the launched app over a five-second window instead of a single fixed three-second check, so a slow CI runner no longer produces false failures and an early crash is reported with the launch log attached.
 
 ### Security
 

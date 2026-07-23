@@ -41,8 +41,16 @@ MOUTHPIECE_SKIP_LEGACY_MIGRATION=1 \
 MOUTHPIECE_DISABLE_UPDATES=1 \
 "$EXECUTABLE" > "$DATA_ROOT/launch.log" 2>&1 &
 PID=$!
-sleep 3
-kill -0 "$PID"
+# Poll instead of a fixed sleep: a busy runner can take >3s to launch, and a
+# crash right after the old sleep window went undetected.
+for _ in $(seq 1 10); do
+  sleep 0.5
+  if ! kill -0 "$PID" 2>/dev/null; then
+    echo "App exited during the smoke test; launch log follows:" >&2
+    cat "$DATA_ROOT/launch.log" >&2 || true
+    exit 1
+  fi
+done
 kill "$PID"
 wait "$PID" 2>/dev/null || true
 
