@@ -47,6 +47,8 @@ targets:
         PRODUCT_NAME: Mouthpiece
         INFOPLIST_FILE: Native/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Native/Resources/Mouthpiece.entitlements
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: Mouthpiece Code Signing
     scheme:
       testTargets:
         - MouthpieceTests
