@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 enum BailianRealtimeError: LocalizedError, Equatable {
     case missingAPIKey
@@ -90,10 +91,23 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
             return
         }
         pendingAudio.append(pcm16)
-        while pendingAudio.count >= networkChunkBytes {
-            let chunk = Data(pendingAudio.prefix(networkChunkBytes))
-            pendingAudio.removeFirst(networkChunkBytes)
-            try await socket.send(.data(chunk))
+        guard pendingAudio.count >= networkChunkBytes else { return }
+        // Detach whole chunks before awaiting so a reentrant call sees a
+        // consistent buffer; prefix+removeFirst per chunk also shifted the
+        // whole remaining buffer every iteration after a network stall.
+        let sendableCount = (pendingAudio.count / networkChunkBytes) * networkChunkBytes
+        let outgoing = pendingAudio.subdata(in: 0..<sendableCount)
+        pendingAudio.removeFirst(sendableCount)
+        var offset = 0
+        while offset < outgoing.count {
+            let chunk = outgoing.subdata(in: offset..<(offset + networkChunkBytes))
+            do {
+                try await socket.send(.data(chunk))
+            } catch {
+                pendingAudio.insert(contentsOf: outgoing[offset...], at: 0)
+                throw error
+            }
+            offset += networkChunkBytes
         }
     }
 
@@ -141,10 +155,18 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         socket.resume()
 
         do {
-            let vocabularyID = try? await vocabularyService.vocabularyID(
-                apiKey: configuration.apiKey,
-                terms: configuration.preferredTerms
-            )
+            let vocabularyID: String?
+            do {
+                vocabularyID = try await vocabularyService.vocabularyID(
+                    apiKey: configuration.apiKey,
+                    terms: configuration.preferredTerms
+                )
+            } catch {
+                // The session still works without hot words; just stop hiding why.
+                Logger(subsystem: "com.mouthpiece.app", category: "bailian")
+                    .warning("Vocabulary sync failed: \(error.localizedDescription, privacy: .public)")
+                vocabularyID = nil
+            }
             try ensureCurrent(socket: socket, generation: expectedGeneration)
             try await sendJSON(runTask(configuration, vocabularyID: vocabularyID), over: socket)
 
@@ -334,6 +356,8 @@ actor BailianVocabularyService {
     private let session: URLSession
     private var cachedTerms: [String] = []
     private var cachedVocabularyID: String?
+    private var cachedAt: Date?
+    private static let cacheLifetime: TimeInterval = 30 * 60
 
     init(session: URLSession = .shared) {
         self.session = session
@@ -342,7 +366,10 @@ actor BailianVocabularyService {
     func vocabularyID(apiKey: String, terms: [String]) async throws -> String? {
         let terms = Self.normalizedTerms(terms)
         guard !terms.isEmpty else { return nil }
-        if terms == cachedTerms, let cachedVocabularyID {
+        // TTL guards against a server-side deleted/expired vocabulary being
+        // reused forever with hot words silently ignored.
+        if terms == cachedTerms, let cachedVocabularyID,
+           let cachedAt, Date().timeIntervalSince(cachedAt) < Self.cacheLifetime {
             return cachedVocabularyID
         }
 
@@ -378,6 +405,7 @@ actor BailianVocabularyService {
         }
         cachedTerms = terms
         cachedVocabularyID = resolvedID
+        cachedAt = Date()
         return resolvedID
     }
 

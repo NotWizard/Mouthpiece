@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A stalled local-model download now fails within two hours instead of hanging for up to seven days: the shared URL session's default resource timeout effectively never fired for multi-gigabyte Whisper/Parakeet downloads, leaving the install button stuck on a dead connection.
 - Local transcription server failures are now diagnosable: the whisper/sherpa/Qwen server processes had their output discarded, so a crash at startup only ever reported "startup timed out" with no reason. Each server's output is now kept in a per-model log file under the app's logs folder, and startup errors include the last lines of that log.
 - Parakeet local transcription no longer freezes forever when the local recognition server wedges (memory pressure, corrupt model): its WebSocket wait now uses the same 60-second abandonable timeout as the cloud providers and surfaces an error instead.
+- Bailian hot-word sync issues are no longer invisible: a failed vocabulary sync is now logged with its reason (the session still proceeds without hot words), and the vocabulary cache expires after 30 minutes so a vocabulary deleted on the server side stops being reused indefinitely. Sending buffered audio after a network stall also no longer reshuffles the whole backlog for every chunk.
 
 ### Changed
 
