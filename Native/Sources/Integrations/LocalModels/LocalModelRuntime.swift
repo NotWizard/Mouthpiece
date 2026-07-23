@@ -1,3 +1,4 @@
+import Accelerate
 import Darwin
 import Foundation
 
@@ -493,27 +494,29 @@ actor LocalModelRuntime {
     }
 
     private nonisolated static func float32Samples(fromPCM16 pcm: Data) -> Data {
-        var output = Data(capacity: pcm.count * 2)
+        let count = pcm.count / MemoryLayout<Int16>.size
+        guard count > 0 else { return Data() }
+        var floats = [Float](repeating: 0, count: count)
         pcm.withUnsafeBytes { raw in
             let samples = raw.bindMemory(to: Int16.self)
-            for sample in samples {
-                output.appendLittleEndian(Float32(Int16(littleEndian: sample)) / 32768)
-            }
+            vDSP_vflt16(samples.baseAddress!, 1, &floats, 1, vDSP_Length(count))
         }
-        return output
+        var scale = Float(1.0 / 32768.0)
+        vDSP_vsmul(floats, 1, &scale, &floats, 1, vDSP_Length(count))
+        return floats.withUnsafeBufferPointer { Data(buffer: $0) }
     }
 
     private nonisolated static func rms(ofPCM16 pcm: Data) -> Double {
-        var sum = 0.0
-        var count = 0
+        let count = pcm.count / MemoryLayout<Int16>.size
+        guard count > 0 else { return 0 }
+        var floats = [Float](repeating: 0, count: count)
         pcm.withUnsafeBytes { raw in
-            for sample in raw.bindMemory(to: Int16.self) {
-                let normalized = Double(Int16(littleEndian: sample)) / 32768
-                sum += normalized * normalized
-                count += 1
-            }
+            let samples = raw.bindMemory(to: Int16.self)
+            vDSP_vflt16(samples.baseAddress!, 1, &floats, 1, vDSP_Length(count))
         }
-        return count == 0 ? 0 : sqrt(sum / Double(count))
+        var meanSquare: Float = 0
+        vDSP_measqv(floats, 1, &meanSquare, vDSP_Length(count))
+        return sqrt(Double(meanSquare)) / 32768.0
     }
 
     private nonisolated static func transcript(from data: Data) -> String {
