@@ -198,36 +198,42 @@ enum VolcengineFrameCodec {
 
     static func parseResponse(_ data: Data) throws -> VolcengineServerMessage {
         guard data.count >= 8 else { throw VolcengineRealtimeError.invalidFrame }
-        let bytes = [UInt8](data)
-        let headerSize = Int(bytes[0] & 0x0F) * 4
-        let messageType = bytes[1] >> 4
-        let flags = bytes[1] & 0x0F
-        let compression = bytes[2] & 0x0F
-        guard headerSize >= 4, data.count >= headerSize + 4 else { throw VolcengineRealtimeError.invalidFrame }
-        guard compression == 0 else { throw VolcengineRealtimeError.unsupportedCompression }
+        // Parse in place: copying the whole frame into [UInt8] doubled the
+        // allocation for every server message.
+        return try data.withUnsafeBytes { raw -> VolcengineServerMessage in
+            let bytes = raw.bindMemory(to: UInt8.self)
+            let headerSize = Int(bytes[0] & 0x0F) * 4
+            let messageType = bytes[1] >> 4
+            let flags = bytes[1] & 0x0F
+            let compression = bytes[2] & 0x0F
+            guard headerSize >= 4, bytes.count >= headerSize + 4 else {
+                throw VolcengineRealtimeError.invalidFrame
+            }
+            guard compression == 0 else { throw VolcengineRealtimeError.unsupportedCompression }
 
-        var offset = headerSize
-        if messageType == 0x0F {
-            guard data.count >= offset + 8 else { throw VolcengineRealtimeError.invalidFrame }
-            let code = readUInt32(bytes, at: offset)
-            offset += 4
+            var offset = headerSize
+            if messageType == 0x0F {
+                guard bytes.count >= offset + 8 else { throw VolcengineRealtimeError.invalidFrame }
+                let code = readUInt32(bytes, at: offset)
+                offset += 4
+                let payload = try payload(bytes, offset: offset)
+                let message = String(data: payload, encoding: .utf8) ?? "Unknown server error"
+                return VolcengineServerMessage(errorMessage: "\(code): \(message)", isLast: true)
+            }
+            guard messageType == 0x09 else { throw VolcengineRealtimeError.invalidFrame }
+            if flags & 0x01 != 0 {
+                guard bytes.count >= offset + 8 else { throw VolcengineRealtimeError.invalidFrame }
+                offset += 4
+            }
             let payload = try payload(bytes, offset: offset)
-            let message = String(data: payload, encoding: .utf8) ?? "Unknown server error"
-            return VolcengineServerMessage(errorMessage: "\(code): \(message)", isLast: true)
+            let envelope = try JSONDecoder().decode(VolcengineResponseEnvelope.self, from: payload)
+            let errorMessage = envelope.code.map { $0 == 0 ? nil : envelope.message ?? "Server error \($0)" } ?? nil
+            return VolcengineServerMessage(
+                result: envelope.payloadMessage?.result,
+                errorMessage: errorMessage,
+                isLast: envelope.isLastPackage == true || flags & 0x02 != 0
+            )
         }
-        guard messageType == 0x09 else { throw VolcengineRealtimeError.invalidFrame }
-        if flags & 0x01 != 0 {
-            guard data.count >= offset + 8 else { throw VolcengineRealtimeError.invalidFrame }
-            offset += 4
-        }
-        let payload = try payload(bytes, offset: offset)
-        let envelope = try JSONDecoder().decode(VolcengineResponseEnvelope.self, from: payload)
-        let errorMessage = envelope.code.map { $0 == 0 ? nil : envelope.message ?? "Server error \($0)" } ?? nil
-        return VolcengineServerMessage(
-            result: envelope.payloadMessage?.result,
-            errorMessage: errorMessage,
-            isLast: envelope.isLastPackage == true || flags & 0x02 != 0
-        )
     }
 
     private static func frame(header: [UInt8], payload: Data) -> Data {
@@ -238,16 +244,17 @@ enum VolcengineFrameCodec {
         return data
     }
 
-    private static func payload(_ bytes: [UInt8], offset: Int) throws -> Data {
+    private static func payload(_ bytes: UnsafeBufferPointer<UInt8>, offset: Int) throws -> Data {
         guard bytes.count >= offset + 4 else { throw VolcengineRealtimeError.invalidFrame }
         let size = Int(readUInt32(bytes, at: offset))
         let start = offset + 4
         guard size >= 0, bytes.count >= start + size else { throw VolcengineRealtimeError.invalidFrame }
-        return Data(bytes[start..<(start + size)])
+        guard let base = bytes.baseAddress else { throw VolcengineRealtimeError.invalidFrame }
+        return Data(bytes: base + start, count: size)
     }
 
-    private static func readUInt32(_ bytes: [UInt8], at offset: Int) -> UInt32 {
-        bytes[offset..<(offset + 4)].reduce(0) { ($0 << 8) | UInt32($1) }
+    private static func readUInt32(_ bytes: UnsafeBufferPointer<UInt8>, at offset: Int) -> UInt32 {
+        (0..<4).reduce(UInt32(0)) { ($0 << 8) | UInt32(bytes[offset + $1]) }
     }
 }
 
