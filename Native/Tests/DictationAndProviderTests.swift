@@ -320,6 +320,21 @@ final class DictationAndProviderTests: XCTestCase {
             flags: [.maskCommand, .maskShift],
             descriptor: modifierOnly
         ))
+        // The release edge (flags no longer contain the modifier) must match
+        // too, so swallowing covers both edges instead of leaking an unpaired
+        // modifier-up to the frontmost app.
+        XCTAssertTrue(HotkeyService.matchesShortcutEvent(
+            type: .flagsChanged,
+            keyCode: modifierOnly.keyCode,
+            flags: [],
+            descriptor: modifierOnly
+        ))
+        XCTAssertFalse(HotkeyService.matchesShortcutEvent(
+            type: .keyDown,
+            keyCode: modifierOnly.keyCode,
+            flags: .maskCommand,
+            descriptor: modifierOnly
+        ))
     }
 
     func testComboHotkeyReleasesWhenModifierDropsFirst() {

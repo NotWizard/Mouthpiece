@@ -261,7 +261,10 @@ final class HotkeyService {
     ) -> Bool {
         guard keyCode == descriptor.keyCode else { return false }
         if descriptor.modifierOnly {
-            return type == .flagsChanged && flags.intersection(descriptor.modifiers) == descriptor.modifiers
+            // Match press AND release: the release event's flags no longer
+            // contain the modifier, and leaking an unpaired modifier-up to the
+            // frontmost app can trigger menu highlights or shortcut hints.
+            return type == .flagsChanged
         }
         let relevantFlags: CGEventFlags = [
             .maskCommand,
