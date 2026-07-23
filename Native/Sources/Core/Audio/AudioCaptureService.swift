@@ -62,41 +62,19 @@ final class AudioCaptureService {
         guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
             throw AudioCaptureError.permissionDenied
         }
-        let input = engine.inputNode
-        if let selectedDeviceUID, !selectedDeviceUID.isEmpty {
-            do {
-                try Self.selectInputDevice(uid: selectedDeviceUID, on: input)
-            } catch {
-                throw AudioCaptureError.selectedInputUnavailable
-            }
-        }
-        let inputFormat = input.outputFormat(forBus: 0)
-        guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
-            throw AudioCaptureError.unavailableInput
-        }
-        let box = try AudioConverterBox(
-            inputFormat: inputFormat,
+        // All engine access happens on engineQueue so it serializes with the
+        // removeTap/stop block from resetEngine; touching inputNode here on the
+        // main actor raced a still-running teardown and could double-install
+        // the tap. A wedged HAL (e.g. after sleep/wake) can also block
+        // engine.start for minutes; off the main thread the UI stays
+        // responsive and the preparing watchdog fails the attempt instead.
+        converterBox = try await Self.startEngineSession(
+            EngineBox(engine: engine),
+            selectedDeviceUID: selectedDeviceUID,
             onFrame: onFrame,
             onLevel: onLevel
         )
-        converterBox = box
-        input.installTap(
-            onBus: 0,
-            bufferSize: 960,
-            format: inputFormat,
-            block: Self.makeTapHandler(for: box)
-        )
         tapInstalled = true
-        do {
-            // A wedged HAL (e.g. after sleep/wake) can block engine.start for minutes;
-            // run it off the main thread so the UI stays responsive and the session
-            // watchdog can fail the dictation attempt instead of freezing the app.
-            try await Self.startEngine(EngineBox(engine: engine))
-        } catch {
-            resetEngine()
-            converterBox = nil
-            throw error
-        }
         isRunning = true
     }
 
@@ -106,13 +84,47 @@ final class AudioCaptureService {
 
     private static let engineQueue = DispatchQueue(label: "com.mouthpiece.audio-engine", qos: .userInitiated)
 
-    private static func startEngine(_ box: EngineBox) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+    private static func startEngineSession(
+        _ box: EngineBox,
+        selectedDeviceUID: String?,
+        onFrame: @escaping @Sendable (Data) -> Void,
+        onLevel: @escaping @Sendable (Float) -> Void
+    ) async throws -> AudioConverterBox {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<AudioConverterBox, Error>) in
             engineQueue.async {
-                box.engine.prepare()
                 do {
-                    try box.engine.start()
-                    continuation.resume()
+                    let input = box.engine.inputNode
+                    if let selectedDeviceUID, !selectedDeviceUID.isEmpty {
+                        do {
+                            try selectInputDevice(uid: selectedDeviceUID, on: input)
+                        } catch {
+                            throw AudioCaptureError.selectedInputUnavailable
+                        }
+                    }
+                    let inputFormat = input.outputFormat(forBus: 0)
+                    guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
+                        throw AudioCaptureError.unavailableInput
+                    }
+                    let converter = try AudioConverterBox(
+                        inputFormat: inputFormat,
+                        onFrame: onFrame,
+                        onLevel: onLevel
+                    )
+                    input.installTap(
+                        onBus: 0,
+                        bufferSize: 960,
+                        format: inputFormat,
+                        block: makeTapHandler(for: converter)
+                    )
+                    box.engine.prepare()
+                    do {
+                        try box.engine.start()
+                    } catch {
+                        input.removeTap(onBus: 0)
+                        box.engine.stop()
+                        throw error
+                    }
+                    continuation.resume(returning: converter)
                 } catch {
                     continuation.resume(throwing: error)
                 }
