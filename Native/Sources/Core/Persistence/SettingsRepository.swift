@@ -1,18 +1,38 @@
 import Foundation
+import os
+
+enum SettingsRepositoryError: LocalizedError {
+    case corruptedStore
+
+    var errorDescription: String? {
+        "Saved settings could not be read, so defaults were loaded. "
+            + "Please review your preferences; the unreadable data was kept in place."
+    }
+}
 
 @MainActor
 final class SettingsRepository {
     private static let storageKey = "native.settings.v1"
     private let defaults: UserDefaults
     private var cached: AppSettings
+    private(set) var loadFailed = false
 
     init(defaults: UserDefaults? = nil) {
         let defaults = defaults ?? Self.defaultStore()
         self.defaults = defaults
-        if let data = defaults.data(forKey: Self.storageKey),
-           var decoded = Self.decodeWithDefaults(data) {
-            decoded.normalize()
-            cached = decoded
+        if let data = defaults.data(forKey: Self.storageKey) {
+            if var decoded = Self.decodeWithDefaults(data) {
+                decoded.normalize()
+                cached = decoded
+            } else {
+                // Never silently discard the user's configuration: fall back
+                // to defaults for this run but keep the unreadable blob so it
+                // can be inspected or recovered, and let the UI warn the user.
+                Logger(subsystem: "com.mouthpiece.app", category: "settings")
+                    .error("Stored settings failed to decode (\(data.count) bytes); using defaults")
+                loadFailed = true
+                cached = AppSettings()
+            }
         } else {
             cached = AppSettings()
         }

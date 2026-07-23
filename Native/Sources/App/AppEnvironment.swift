@@ -47,6 +47,9 @@ final class AppEnvironment: ObservableObject {
     private var localModelOperationTask: Task<Void, Never>?
 
     init(bootstrap: Bool = true) {
+        if settingsRepository.loadFailed {
+            startupError = SettingsRepositoryError.corruptedStore.localizedDescription
+        }
         toggleDictationObserver = NotificationCenter.default.addObserver(
             forName: .mouthpieceToggleDictation,
             object: nil,

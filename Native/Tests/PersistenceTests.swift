@@ -52,6 +52,20 @@ final class PersistenceTests: XCTestCase {
     }
 
     @MainActor
+    func testCorruptSettingsSurfaceLoadFailureAndKeepTheBlob() throws {
+        let suite = "MouthpieceTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let garbage = Data("not json".utf8)
+        defaults.set(garbage, forKey: "native.settings.v1")
+
+        let repository = SettingsRepository(defaults: defaults)
+        XCTAssertTrue(repository.loadFailed)
+        XCTAssertEqual(repository.load().dictationKey, AppSettings().dictationKey)
+        XCTAssertEqual(defaults.data(forKey: "native.settings.v1"), garbage)
+    }
+
+    @MainActor
     func testSettingsRoundTripAndNormalization() throws {
         let suite = "MouthpieceTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
