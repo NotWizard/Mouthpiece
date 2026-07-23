@@ -349,15 +349,17 @@ final class TextInsertionService {
         let insertedChangeCount = pasteboard.changeCount
 
         await Self.postPasteEvents()
-        try await Task.sleep(for: pasteDelay(for: target))
 
         // Restore the original clipboard only after giving the target time to
         // consume it. Some apps (Electron, browsers, busy apps) read the
         // pasteboard asynchronously, so restoring inside a quick defer clobbered
         // the text before they pasted it. The delayed restore no-ops if the user
-        // copied something new in the meantime.
+        // copied something new in the meantime. Register it BEFORE the
+        // cancellable pacing sleep below: the paste events are already posted,
+        // so a cancelled session must still restore the user's clipboard.
+        let delay = pasteDelay(for: target)
         let task = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(900))
+            try? await Task.sleep(for: delay + .milliseconds(900))
             guard !Task.isCancelled else { return }
             Self.restore(
                 oldItems,
@@ -373,6 +375,7 @@ final class TextInsertionService {
             text: text,
             task: task
         )
+        try await Task.sleep(for: delay)
     }
 
     static func snapshot(of pasteboard: NSPasteboard) -> [[NSPasteboard.PasteboardType: Data]] {
