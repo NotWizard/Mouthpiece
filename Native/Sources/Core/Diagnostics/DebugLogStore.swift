@@ -15,6 +15,7 @@ actor DebugLogStore {
     private let retention: TimeInterval
     private let maximumFiles: Int
     private var fileURL: URL?
+    private var fileHandle: FileHandle?
     private var lastPruneDate: Date?
     private var enabled: Bool
 
@@ -34,7 +35,11 @@ actor DebugLogStore {
 
     func setEnabled(_ value: Bool) {
         enabled = value
-        if !value { fileURL = nil }
+        if !value {
+            try? fileHandle?.close()
+            fileHandle = nil
+            fileURL = nil
+        }
     }
 
     func write(
@@ -69,20 +74,8 @@ actor DebugLogStore {
             encoder.dateEncodingStrategy = .iso8601
             var data = try encoder.encode(payload)
             data.append(0x0A)
-            guard let fileURL else { return }
-            if !fileManager.fileExists(atPath: fileURL.path) {
-                fileManager.createFile(atPath: fileURL.path, contents: nil)
-            }
-            let handle = try FileHandle(forWritingTo: fileURL)
-            defer {
-                do {
-                    try handle.close()
-                } catch {
-                    logger.error("Failed to close debug log: \(error.localizedDescription, privacy: .public)")
-                }
-            }
-            try handle.seekToEnd()
-            try handle.write(contentsOf: data)
+            guard let fileHandle else { return }
+            try fileHandle.write(contentsOf: data)
         } catch {
             logger.error("Failed to write debug log: \(error.localizedDescription, privacy: .public)")
         }
@@ -118,7 +111,12 @@ actor DebugLogStore {
         if fileURL == nil {
             let formatter = ISO8601DateFormatter()
             let name = formatter.string(from: now).replacingOccurrences(of: ":", with: "-")
-            fileURL = directory.appendingPathComponent("debug-\(name).log")
+            let url = directory.appendingPathComponent("debug-\(name).log")
+            fileManager.createFile(atPath: url.path, contents: nil)
+            let handle = try FileHandle(forWritingTo: url)
+            try handle.seekToEnd()
+            fileURL = url
+            fileHandle = handle
         }
     }
 }
