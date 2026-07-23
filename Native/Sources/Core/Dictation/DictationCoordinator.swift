@@ -545,15 +545,17 @@ actor DictationCoordinator {
         preparingWatchdogTask = nil
         reasoningTask?.cancel()
         reasoningTask = nil
-        await audio.stop()
-        await mediaPlayback.resumeIfPaused()
-        if providerSessionID == sessionID { await provider?.cancel() }
-        guard machine.snapshot.sessionID == sessionID, machine.snapshot.phase.isActive else { return }
+        // Lock the state machine first: the awaits below allow other queued
+        // actor calls (stop, max-duration) to interleave, and once audio/media
+        // were already torn down there is no way to hand the session back.
         do {
             try machine.fail(error.localizedDescription, sessionID: sessionID)
         } catch {
             return
         }
+        await audio.stop()
+        await mediaPlayback.resumeIfPaused()
+        if providerSessionID == sessionID { await provider?.cancel() }
         await logger.write(
             .error,
             "Dictation session failed",
