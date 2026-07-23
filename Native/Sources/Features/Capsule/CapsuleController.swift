@@ -573,6 +573,7 @@ private final class CapsuleWaveformView: NSView {
 
         effectiveAppearance.performAsCurrentDrawingAppearance {
             NSColor.labelColor.withAlphaComponent(0.72).setFill()
+            let path = NSBezierPath()
             for (index, level) in displayedLevels.enumerated() {
                 let height = CapsuleWaveformLayout.barHeight(for: Float(level))
                 let rect = NSRect(
@@ -581,12 +582,13 @@ private final class CapsuleWaveformView: NSView {
                     width: barWidth,
                     height: height
                 )
-                NSBezierPath(
+                path.append(NSBezierPath(
                     roundedRect: rect,
                     xRadius: min(barWidth, height) / 2,
                     yRadius: min(barWidth, height) / 2
-                ).fill()
+                ))
             }
+            path.fill()
         }
     }
 }

@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Each 20-millisecond microphone frame now has its loudness (RMS) computed once instead of twice: the audio converter already measures it for the waveform level, and the speech-activity gate now reuses that value instead of re-scanning every sample.
 - Volcengine realtime messages are now parsed in place instead of copying every incoming frame into a fresh byte array, removing a per-message full-payload allocation during continuous speech.
 - Local-model audio preprocessing (16-bit to float conversion and loudness measurement for Parakeet/Qwen chunks) now uses the system's vectorized signal-processing routines instead of per-sample Swift loops, cutting the conversion cost of each 15-second chunk substantially.
+- The capsule waveform now draws all bars as one combined path per frame instead of allocating and filling ~36 separate paths, trimming per-frame drawing overhead on high-refresh displays.
 
 ### Security
 
