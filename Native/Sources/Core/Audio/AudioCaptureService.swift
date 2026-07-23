@@ -43,6 +43,7 @@ final class AudioCaptureService {
     private let engine = AVAudioEngine()
     private var converterBox: AudioConverterBox?
     private var tapInstalled = false
+    private var isStarting = false
     private(set) var isRunning = false
 
     func requestPermission() async -> Bool {
@@ -58,10 +59,12 @@ final class AudioCaptureService {
         onFrame: @escaping @Sendable (Data) -> Void,
         onLevel: @escaping @Sendable (Float) -> Void
     ) async throws {
-        guard !isRunning else { return }
+        guard !isRunning, !isStarting else { return }
         guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
             throw AudioCaptureError.permissionDenied
         }
+        isStarting = true
+        defer { isStarting = false }
         // All engine access happens on engineQueue so it serializes with the
         // removeTap/stop block from resetEngine; touching inputNode here on the
         // main actor raced a still-running teardown and could double-install
