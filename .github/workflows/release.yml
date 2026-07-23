@@ -80,7 +80,6 @@ jobs:
           test -n "$CERTIFICATE_BASE64" || { echo "Missing MAC_SELFSIGN_CERT_BASE64" >&2; exit 1; }
           test -n "$CERTIFICATE_PASSWORD" || { echo "Missing MAC_SELFSIGN_CERT_PASSWORD" >&2; exit 1; }
           CERTIFICATE_PATH="$RUNNER_TEMP/mouthpiece-signing.p12"
-          PUBLIC_CERT_PATH="$RUNNER_TEMP/mouthpiece-signing.pem"
           KEYCHAIN_PATH="$RUNNER_TEMP/mouthpiece-signing.keychain-db"
           printf '%s' "$CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
           security create-keychain -p runner "$KEYCHAIN_PATH"
@@ -89,11 +88,10 @@ jobs:
           security import "$CERTIFICATE_PATH" -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k runner "$KEYCHAIN_PATH"
           security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d ' "')
-          openssl pkcs12 -in "$CERTIFICATE_PATH" -clcerts -nokeys \
-            -passin "pass:$CERTIFICATE_PASSWORD" 2>/dev/null \
-            | openssl x509 -outform PEM > "$PUBLIC_CERT_PATH"
-          sudo security add-trusted-cert -d -r trustRoot -p codeSign \
-            -k /Library/Keychains/System.keychain "$PUBLIC_CERT_PATH"
+          # No System.keychain trust injection: signing only needs the identity
+          # in the temp keychain, codesign --verify does not check trust, and
+          # verify-native-artifact.sh explicitly tolerates the untrusted spctl
+          # outcome. Trusting the cert system-wide polluted the shared runner.
 
       - name: Build, sign, and package ${{ matrix.arch }}
         env:
@@ -113,9 +111,7 @@ jobs:
         if: always()
         run: |
           security delete-keychain "$RUNNER_TEMP/mouthpiece-signing.keychain-db" 2>/dev/null || true
-          sudo security delete-certificate -c "Mouthpiece Code Signing" \
-            /Library/Keychains/System.keychain 2>/dev/null || true
-          rm -f "$RUNNER_TEMP/mouthpiece-signing.p12" "$RUNNER_TEMP/mouthpiece-signing.pem"
+          rm -f "$RUNNER_TEMP/mouthpiece-signing.p12"
 
   publish:
     needs: [prepare, build]
