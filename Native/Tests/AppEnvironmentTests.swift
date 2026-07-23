@@ -127,6 +127,38 @@ final class AppEnvironmentTests: XCTestCase {
         XCTAssertTrue(pasteboard.pasteboardItems?.isEmpty ?? true)
     }
 
+    func testBackToBackPastesInheritTheOriginalClipboardSnapshot() {
+        let pasteboard = NSPasteboard.withUniqueName()
+        pasteboard.clearContents()
+        pasteboard.setString("user clipboard", forType: .string)
+        let originalSnapshot = TextInsertionService.snapshot(of: pasteboard)
+
+        // First dictation wrote its transcript; the restore has not run yet.
+        pasteboard.clearContents()
+        pasteboard.setString("dictation one", forType: .string)
+        let inherited = TextInsertionService.snapshotForNewPaste(
+            pendingItems: originalSnapshot,
+            pendingChangeCount: pasteboard.changeCount,
+            pendingText: "dictation one",
+            pasteboard: pasteboard
+        )
+        XCTAssertEqual(inherited, originalSnapshot)
+
+        // The user copied something new in between: snapshot the live board.
+        pasteboard.clearContents()
+        pasteboard.setString("fresh user copy", forType: .string)
+        let fresh = TextInsertionService.snapshotForNewPaste(
+            pendingItems: originalSnapshot,
+            pendingChangeCount: pasteboard.changeCount - 1,
+            pendingText: "dictation one",
+            pasteboard: pasteboard
+        )
+        XCTAssertEqual(
+            fresh.first?[.string].flatMap { String(data: $0, encoding: .utf8) },
+            "fresh user copy"
+        )
+    }
+
     func testControlPanelNavigationRestoresKnownSectionAndFallsBackToUsage() {
         XCTAssertEqual(ControlPanelSection.resolve("history"), .history)
         XCTAssertEqual(ControlPanelSection.resolve("unknown"), .usage)

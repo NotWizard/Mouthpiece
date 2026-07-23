@@ -316,9 +316,34 @@ final class TextInsertionService {
         }
     }
 
+    private struct PendingRestore {
+        let items: [[NSPasteboard.PasteboardType: Data]]
+        let changeCount: Int
+        let text: String
+        let task: Task<Void, Never>
+    }
+
+    private var pendingRestore: PendingRestore?
+
     private func paste(_ text: String, into target: TextInsertionTarget) async throws {
         let pasteboard = NSPasteboard.general
-        let oldItems = Self.snapshot(of: pasteboard)
+        let oldItems: [[NSPasteboard.PasteboardType: Data]]
+        if let pending = pendingRestore {
+            // A second dictation within the restore delay would otherwise
+            // snapshot our own previous transcript and later "restore" it over
+            // the user's real clipboard. Take over the original snapshot the
+            // cancelled restore was still holding.
+            pending.task.cancel()
+            pendingRestore = nil
+            oldItems = Self.snapshotForNewPaste(
+                pendingItems: pending.items,
+                pendingChangeCount: pending.changeCount,
+                pendingText: pending.text,
+                pasteboard: pasteboard
+            )
+        } else {
+            oldItems = Self.snapshot(of: pasteboard)
+        }
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         let insertedChangeCount = pasteboard.changeCount
@@ -331,15 +356,23 @@ final class TextInsertionService {
         // pasteboard asynchronously, so restoring inside a quick defer clobbered
         // the text before they pasted it. The delayed restore no-ops if the user
         // copied something new in the meantime.
-        Task { @MainActor in
+        let task = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(900))
+            guard !Task.isCancelled else { return }
             Self.restore(
                 oldItems,
                 ifUnchanged: insertedChangeCount,
                 expectedText: text,
                 pasteboard: pasteboard
             )
+            self?.pendingRestore = nil
         }
+        pendingRestore = PendingRestore(
+            items: oldItems,
+            changeCount: insertedChangeCount,
+            text: text,
+            task: task
+        )
     }
 
     static func snapshot(of pasteboard: NSPasteboard) -> [[NSPasteboard.PasteboardType: Data]] {
@@ -350,6 +383,22 @@ final class TextInsertionService {
             }
             return values.isEmpty ? nil : values
         } ?? []
+    }
+
+    // If the pasteboard still holds our previous dictation text, the user's
+    // real clipboard is the snapshot the cancelled restore was holding; if the
+    // user copied something new since, snapshot the live pasteboard instead.
+    static func snapshotForNewPaste(
+        pendingItems: [[NSPasteboard.PasteboardType: Data]],
+        pendingChangeCount: Int,
+        pendingText: String,
+        pasteboard: NSPasteboard
+    ) -> [[NSPasteboard.PasteboardType: Data]] {
+        if pasteboard.changeCount == pendingChangeCount,
+           pasteboard.string(forType: .string) == pendingText {
+            return pendingItems
+        }
+        return snapshot(of: pasteboard)
     }
 
     static func restore(
