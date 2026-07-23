@@ -221,12 +221,17 @@ actor DictationCoordinator {
             await publish()
 
             let recordedPCM = speechGate.trimmed(pcm)
+            let capturedByteCount = pcm.count
+            // Free the raw capture buffer now (about 2 MB per recorded minute);
+            // keeping it alive alongside the trimmed copy and the WAV payload
+            // tripled peak memory on long sessions.
+            pcm.removeAll(keepingCapacity: false)
             await logger.write(
                 .debug,
                 "Audio capture completed",
                 metadata: [
-                    "bytes": String(pcm.count),
-                    "durationMilliseconds": String(pcm.count * 1_000 / (AudioCaptureService.outputSampleRate * 2)),
+                    "bytes": String(capturedByteCount),
+                    "durationMilliseconds": String(capturedByteCount * 1_000 / (AudioCaptureService.outputSampleRate * 2)),
                     "peakRMS": String(format: "%.6f", speechGate.peakRMS),
                     "speechDetected": String(speechGate.speechDetectedEver),
                 ],
@@ -262,7 +267,7 @@ actor DictationCoordinator {
             }
             guard isCurrent(sessionID, phase: .finalizing) else { return }
             if rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                guard !pcm.isEmpty else { throw AudioCaptureError.noAudioFrames }
+                guard capturedByteCount > 0 else { throw AudioCaptureError.noAudioFrames }
                 guard !isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider) else {
                     throw DictationSessionError.noSpeech
                 }

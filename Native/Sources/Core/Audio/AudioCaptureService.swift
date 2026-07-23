@@ -443,7 +443,7 @@ private final class ConverterInputSource: @unchecked Sendable {
 
 enum WAVEncoder {
     static func pcm16Mono(_ pcm: Data, sampleRate: Int = 16_000) -> Data {
-        var output = Data()
+        var output = Data(capacity: 44 + pcm.count)
         output.appendASCII("RIFF")
         output.appendUInt32LE(UInt32(36 + pcm.count))
         output.appendASCII("WAVEfmt ")
