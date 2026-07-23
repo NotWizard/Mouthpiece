@@ -73,8 +73,7 @@ final class AppEnvironment: ObservableObject {
     func saveSettings(_ next: AppSettings) {
         do {
             let previous = settings
-            try settingsRepository.save(next)
-            settings = settingsRepository.load()
+            settings = try settingsRepository.update { $0 = next }
             let changes = RuntimeSettingsChanges(previous: previous, current: settings)
             if changes.debugLogging {
                 synchronizeDebugLogging(settings.debugLoggingEnabled)

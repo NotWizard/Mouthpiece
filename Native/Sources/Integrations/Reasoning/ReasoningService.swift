@@ -269,9 +269,25 @@ actor ReasoningService {
     private func responseData(for request: URLRequest) async throws -> Data {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw ReasoningServiceError.providerResponse(String(decoding: data, as: UTF8.self))
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw ReasoningServiceError.providerResponse(Self.providerErrorMessage(data, statusCode: status))
         }
         return data
+    }
+
+    // Raw error bodies can contain internal request IDs or whole HTML error
+    // pages; show the provider's human-readable message when one exists.
+    static func providerErrorMessage(_ body: Data, statusCode: Int) -> String {
+        if let object = try? JSONSerialization.jsonObject(with: body) as? [String: Any] {
+            if let error = object["error"] as? [String: Any], let message = error["message"] as? String {
+                return message
+            }
+            if let message = object["message"] as? String { return message }
+            if let error = object["error"] as? String { return error }
+        }
+        let text = String(decoding: body, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        if !text.isEmpty, !text.hasPrefix("<"), text.count <= 300 { return text }
+        return "HTTP \(statusCode)"
     }
 
     private func defaultModel(for provider: String) -> String {

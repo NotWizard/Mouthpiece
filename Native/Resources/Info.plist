@@ -44,7 +44,8 @@
   <key>NSPrincipalClass</key>
   <string>NSApplication</string>
   <key>SUFeedURL</key>
-  <string>https://github.com/NotWizard/Mouthpiece/releases/latest/download/appcast.xml</string>
+  <!-- Fallback only: ArchitectureUpdateFeedDelegate overrides this per architecture at runtime. -->
+  <string>https://github.com/NotWizard/Mouthpiece/releases/latest/download/appcast-arm64.xml</string>
   <key>SUPublicEDKey</key>
   <string>$(SPARKLE_PUBLIC_ED_KEY)</string>
 </dict>

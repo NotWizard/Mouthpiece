@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Local transcription server failures are now diagnosable: the whisper/sherpa/Qwen server processes had their output discarded, so a crash at startup only ever reported "startup timed out" with no reason. Each server's output is now kept in a per-model log file under the app's logs folder, and startup errors include the last lines of that log.
 - Parakeet local transcription no longer freezes forever when the local recognition server wedges (memory pressure, corrupt model): its WebSocket wait now uses the same 60-second abandonable timeout as the cloud providers and surfaces an error instead.
 - Bailian hot-word sync issues are no longer invisible: a failed vocabulary sync is now logged with its reason (the session still proceeds without hot words), and the vocabulary cache expires after 30 minutes so a vocabulary deleted on the server side stops being reused indefinitely. Sending buffered audio after a network stall also no longer reshuffles the whole backlog for every chunk.
+- Text-processing errors now show the provider's human-readable message (for example "Invalid API key") instead of dumping the raw response body — which could be a full HTML error page or include internal request identifiers — into the alert.
 
 ### Changed
 
@@ -48,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The release smoke test now polls the launched app over a five-second window instead of a single fixed three-second check, so a slow CI runner no longer produces false failures and an early crash is reported with the launch log attached.
 - Removed a force unwrap in the model-installation command runner; an exotic cancellation ordering now surfaces as a cancellation error instead of a potential crash.
 - The accessibility-permission guide now stops its background permission polling after ten minutes and hides itself, instead of checking every 200 milliseconds indefinitely if the guide is left open without granting.
+- Assorted hygiene: automatic updates being disabled by a missing signing key is now logged instead of silent; the Sparkle feed fallback in the app manifest points at a feed that actually exists (the runtime still picks the right architecture); the diagnostics page shows a dash instead of a stale hardcoded version when the bundle version is unavailable; saving settings no longer performs a redundant reload; and the release pipeline fails fast when release notes are missing their title line.
 
 ### Security
 

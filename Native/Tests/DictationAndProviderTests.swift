@@ -360,6 +360,23 @@ final class DictationAndProviderTests: XCTestCase {
         ))
     }
 
+    func testProviderErrorMessageExtractsReadableText() {
+        XCTAssertEqual(
+            ReasoningService.providerErrorMessage(
+                Data(#"{"error":{"message":"Invalid API key","code":401}}"#.utf8), statusCode: 401
+            ),
+            "Invalid API key"
+        )
+        XCTAssertEqual(
+            ReasoningService.providerErrorMessage(Data(#"{"message":"quota exceeded"}"#.utf8), statusCode: 429),
+            "quota exceeded"
+        )
+        XCTAssertEqual(
+            ReasoningService.providerErrorMessage(Data("<html><body>502</body></html>".utf8), statusCode: 502),
+            "HTTP 502"
+        )
+    }
+
     func testSwallowRequiresEnabledArmedAndMatched() {
         // Escape swallowing must be gated by arming; otherwise the persistent
         // active tap consumes every bare ESC system-wide even when idle.

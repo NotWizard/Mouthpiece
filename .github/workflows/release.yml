@@ -210,6 +210,7 @@ jobs:
         run: |
           NOTES="docs/releases/v$VERSION.md"
           TITLE=$(sed -n '1s/^# //p' "$NOTES")
+          test -n "$TITLE" || { echo "Release notes must start with '# Title' in $NOTES" >&2; exit 1; }
           tail -n +2 "$NOTES" > "$RUNNER_TEMP/release-body.md"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --title "$TITLE" --notes-file "$RUNNER_TEMP/release-body.md" --latest

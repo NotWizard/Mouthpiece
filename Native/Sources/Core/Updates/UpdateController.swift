@@ -1,8 +1,10 @@
 import Foundation
+import OSLog
 import Sparkle
 
+@MainActor
 final class ArchitectureUpdateFeedDelegate: NSObject, SPUUpdaterDelegate {
-    static var feedURLString: String {
+    nonisolated static var feedURLString: String {
         #if arch(arm64)
         let architecture = "arm64"
         #else
@@ -11,7 +13,7 @@ final class ArchitectureUpdateFeedDelegate: NSObject, SPUUpdaterDelegate {
         return "https://github.com/NotWizard/Mouthpiece/releases/latest/download/appcast-\(architecture).xml"
     }
 
-    func feedURLString(for updater: SPUUpdater) -> String? {
+    nonisolated func feedURLString(for updater: SPUUpdater) -> String? {
         Self.feedURLString
     }
 }
@@ -29,6 +31,8 @@ final class UpdateController {
         }
         let publicKey = bundle.object(forInfoDictionaryKey: "SUPublicEDKey") as? String ?? ""
         if publicKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            Logger(subsystem: "com.mouthpiece.app", category: "updates")
+                .warning("SUPublicEDKey is missing or empty; automatic updates are disabled")
             feedDelegate = nil
             controller = nil
         } else {
