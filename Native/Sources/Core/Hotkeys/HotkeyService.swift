@@ -237,6 +237,20 @@ final class HotkeyService {
         type == .tapDisabledByTimeout
             || type == .tapDisabledByUserInput
             || keyCode == descriptor.keyCode
+            || (!descriptor.modifierOnly && type == .flagsChanged)
+    }
+
+    // Combo hotkeys (e.g. Command+K): releasing the modifier before the main
+    // key produces a flagsChanged event with the modifier's own keyCode, which
+    // previously never reached handle(), leaving pressed stuck at true.
+    nonisolated static func comboModifiersReleased(
+        type: CGEventType,
+        flags: CGEventFlags,
+        descriptor: HotkeyDescriptor
+    ) -> Bool {
+        !descriptor.modifierOnly
+            && type == .flagsChanged
+            && flags.intersection(descriptor.modifiers) != descriptor.modifiers
     }
 
     nonisolated static func matchesShortcutEvent(
@@ -265,7 +279,12 @@ final class HotkeyService {
             if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: true) }
             return
         }
-        guard keyCode == descriptor.keyCode else { return }
+        guard keyCode == descriptor.keyCode else {
+            if Self.comboModifiersReleased(type: type, flags: flags, descriptor: descriptor) {
+                setPressed(false)
+            }
+            return
+        }
         if descriptor.modifierOnly {
             let isNowPressed = flags.intersection(descriptor.modifiers) == descriptor.modifiers
             setPressed(isNowPressed)

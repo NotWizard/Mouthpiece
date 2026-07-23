@@ -322,6 +322,26 @@ final class DictationAndProviderTests: XCTestCase {
         ))
     }
 
+    func testComboHotkeyReleasesWhenModifierDropsFirst() {
+        let combo = HotkeyDescriptor.parse("Command+K")
+        // The modifier's own flagsChanged event must reach the handler.
+        XCTAssertTrue(HotkeyService.shouldDispatch(type: .flagsChanged, keyCode: 55, descriptor: combo))
+        XCTAssertTrue(HotkeyService.comboModifiersReleased(
+            type: .flagsChanged, flags: [], descriptor: combo
+        ))
+        XCTAssertFalse(HotkeyService.comboModifiersReleased(
+            type: .flagsChanged, flags: .maskCommand, descriptor: combo
+        ))
+        XCTAssertFalse(HotkeyService.comboModifiersReleased(
+            type: .keyUp, flags: [], descriptor: combo
+        ))
+        // Modifier-only hotkeys keep their existing press/release handling.
+        let modifierOnly = HotkeyDescriptor.parse("RightCommand")
+        XCTAssertFalse(HotkeyService.comboModifiersReleased(
+            type: .flagsChanged, flags: [], descriptor: modifierOnly
+        ))
+    }
+
     func testSwallowRequiresEnabledArmedAndMatched() {
         // Escape swallowing must be gated by arming; otherwise the persistent
         // active tap consumes every bare ESC system-wide even when idle.
