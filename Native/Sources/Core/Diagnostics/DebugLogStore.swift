@@ -44,6 +44,10 @@ actor DebugLogStore {
         sessionID: UUID? = nil,
         now: Date = Date()
     ) {
+        // With debug logging off nothing may be logged at all — the OSLog
+        // lines below land in the system unified log (readable via
+        // Console.app), which users reasonably expect the toggle to silence.
+        guard enabled else { return }
         let cleanMessage = LogRedactor.redact(message)
         switch level {
         case .debug: logger.debug("\(cleanMessage, privacy: .public)")
@@ -51,7 +55,6 @@ actor DebugLogStore {
         case .warning: logger.warning("\(cleanMessage, privacy: .public)")
         case .error: logger.error("\(cleanMessage, privacy: .public)")
         }
-        guard enabled else { return }
         do {
             try prepareIfNeeded(now: now)
             let cleanMetadata = metadata.mapValues(LogRedactor.redact)
