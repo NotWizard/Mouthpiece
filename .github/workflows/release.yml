@@ -137,6 +137,10 @@ jobs:
           mkdir -p "$RUNNER_TEMP/sparkle"
           curl -fsSL "https://github.com/sparkle-project/Sparkle/releases/download/2.9.4/Sparkle-2.9.4.tar.xz" \
             -o "$RUNNER_TEMP/sparkle.tar.xz"
+          SPARKLE_SHA256=ce89daf967db1e1893ed3ebd67575ed82d3902563e3191ca92aaec9164fbdef9
+          echo "$SPARKLE_SHA256  $RUNNER_TEMP/sparkle.tar.xz" | shasum -a 256 -c - || {
+            echo "Sparkle archive checksum mismatch" >&2; exit 1;
+          }
           tar -xJf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle"
           for ARCH in arm64 x64; do
             INPUT="$RUNNER_TEMP/appcast-input-$ARCH"
