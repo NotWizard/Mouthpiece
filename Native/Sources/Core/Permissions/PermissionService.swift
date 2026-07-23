@@ -102,7 +102,9 @@ private final class AccessibilityPermissionGuideController {
         }
 
         monitorTask = Task { [weak self] in
-            while !Task.isCancelled {
+            // Bounded: an abandoned guide otherwise polls every 200ms forever.
+            let deadline = ContinuousClock.now + .seconds(10 * 60)
+            while !Task.isCancelled, ContinuousClock.now < deadline {
                 try? await Task.sleep(for: .milliseconds(200))
                 guard !Task.isCancelled else { return }
                 if self?.updatePositionFromSystemSettings() == true,
@@ -115,6 +117,7 @@ private final class AccessibilityPermissionGuideController {
                     return
                 }
             }
+            self?.hide()
         }
     }
 

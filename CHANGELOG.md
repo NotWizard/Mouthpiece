@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Debug logging keeps its log file open across entries instead of opening and closing it for every line, removing needless file-system churn during busy dictation sessions.
 - The release smoke test now polls the launched app over a five-second window instead of a single fixed three-second check, so a slow CI runner no longer produces false failures and an early crash is reported with the launch log attached.
 - Removed a force unwrap in the model-installation command runner; an exotic cancellation ordering now surfaces as a cancellation error instead of a potential crash.
+- The accessibility-permission guide now stops its background permission polling after ten minutes and hides itself, instead of checking every 200 milliseconds indefinitely if the guide is left open without granting.
 
 ### Security
 
