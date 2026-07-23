@@ -149,7 +149,7 @@ jobs:
               --download-url-prefix "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/" \
               --link "https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG" \
               "$INPUT"
-            cp "$INPUT/appcast.xml" "release-assets/appcast-$ARCH.xml"
+            cp "$INPUT"/appcast*.xml "release-assets/appcast-$ARCH.xml"
           done
 
       - name: Generate legacy electron-updater feed (one-time bridge to 2.0.0)
