@@ -103,7 +103,7 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
     private func receiveLoop(_ socket: URLSessionWebSocketTask, generation: Int) async {
         do {
             while isCurrent(socket: socket, generation: generation), !Task.isCancelled {
-                let message = try await socket.receive()
+                let message = try await socket.receive(timeout: .seconds(60))
                 guard isCurrent(socket: socket, generation: generation), !Task.isCancelled else { return }
                 let data: Data
                 switch message {

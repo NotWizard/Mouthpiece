@@ -44,6 +44,52 @@ protocol RealtimeTranscriptionProvider: Sendable {
     func cancel() async
 }
 
+enum RealtimeSocketError: LocalizedError {
+    case receiveTimedOut
+
+    var errorDescription: String? {
+        "The realtime transcription server stopped responding."
+    }
+}
+
+extension URLSessionWebSocketTask {
+    // A half-dead connection leaves receive() waiting forever with no error,
+    // and receive() may ignore Task cancellation, so race it against a
+    // deadline and abandon the loser; the abandoned receive settles once the
+    // caller closes the socket.
+    func receive(timeout: Duration) async throws -> Message {
+        final class Gate: @unchecked Sendable {
+            private var claimed = false
+            private let lock = NSLock()
+
+            func claim() -> Bool {
+                lock.lock()
+                defer { lock.unlock() }
+                if claimed { return false }
+                claimed = true
+                return true
+            }
+        }
+        let gate = Gate()
+        return try await withCheckedThrowingContinuation { continuation in
+            Task {
+                do {
+                    let message = try await self.receive()
+                    if gate.claim() { continuation.resume(returning: message) }
+                } catch {
+                    if gate.claim() { continuation.resume(throwing: error) }
+                }
+            }
+            Task {
+                try? await Task.sleep(for: timeout)
+                if gate.claim() {
+                    continuation.resume(throwing: RealtimeSocketError.receiveTimedOut)
+                }
+            }
+        }
+    }
+}
+
 struct BatchTranscriptionConfiguration: Sendable {
     var provider: String
     var endpoint: URL

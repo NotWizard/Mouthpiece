@@ -150,7 +150,7 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
 
             let deadline = ContinuousClock.now + .seconds(30)
             while ContinuousClock.now < deadline {
-                let message = try await receive(socket: socket, timeout: .seconds(30))
+                let message = try await socket.receive(timeout: .seconds(30))
                 try ensureCurrent(socket: socket, generation: expectedGeneration)
                 guard let payload = BailianMessageParser.payload(from: message) else { continue }
                 switch BailianMessageParser.event(in: payload) {
@@ -183,7 +183,7 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         guard let socket else { return }
         do {
             while !Task.isCancelled, expectedGeneration == generation {
-                let message = try await socket.receive()
+                let message = try await socket.receive(timeout: .seconds(60))
                 guard isCurrent(socket: socket, generation: expectedGeneration), !Task.isCancelled else {
                     return
                 }
@@ -284,22 +284,6 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
             throw BailianRealtimeError.protocolError("Unable to encode Bailian request")
         }
         try await socket.send(.string(text))
-    }
-
-    private func receive(
-        socket: URLSessionWebSocketTask,
-        timeout: Duration
-    ) async throws -> URLSessionWebSocketTask.Message {
-        try await withThrowingTaskGroup(of: URLSessionWebSocketTask.Message.self) { group in
-            group.addTask { try await socket.receive() }
-            group.addTask {
-                try await Task.sleep(for: timeout)
-                throw BailianRealtimeError.timedOut
-            }
-            guard let first = try await group.next() else { throw BailianRealtimeError.timedOut }
-            group.cancelAll()
-            return first
-        }
     }
 
     private func closeSocket() async {

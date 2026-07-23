@@ -23,6 +23,21 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(text, "hello")
     }
 
+    func testWebSocketReceiveTimesOutWhenNoMessageArrives() async {
+        // A suspended task never completes receive(), standing in for a
+        // half-dead connection that stays silent forever.
+        let socket = URLSession.shared.webSocketTask(with: URL(string: "wss://example.invalid/ws")!)
+        let started = ContinuousClock.now
+        do {
+            _ = try await socket.receive(timeout: .milliseconds(200))
+            XCTFail("Expected receiveTimedOut")
+        } catch {
+            XCTAssertTrue(error is RealtimeSocketError)
+        }
+        XCTAssertLessThan(ContinuousClock.now - started, .seconds(5))
+        socket.cancel(with: .goingAway, reason: nil)
+    }
+
     func testQwenCacheRequiresACompleteSnapshot() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("Mouthpiece-Qwen-\(UUID().uuidString)", isDirectory: true)
