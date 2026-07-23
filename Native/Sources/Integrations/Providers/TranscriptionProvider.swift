@@ -72,18 +72,24 @@ extension URLSessionWebSocketTask {
         }
         let gate = Gate()
         return try await withCheckedThrowingContinuation { continuation in
-            Task {
-                do {
-                    let message = try await self.receive()
-                    if gate.claim() { continuation.resume(returning: message) }
-                } catch {
-                    if gate.claim() { continuation.resume(throwing: error) }
-                }
-            }
-            Task {
+            let timer = Task {
                 try? await Task.sleep(for: timeout)
                 if gate.claim() {
                     continuation.resume(throwing: RealtimeSocketError.receiveTimedOut)
+                }
+            }
+            Task {
+                do {
+                    let message = try await self.receive()
+                    if gate.claim() {
+                        timer.cancel()
+                        continuation.resume(returning: message)
+                    }
+                } catch {
+                    if gate.claim() {
+                        timer.cancel()
+                        continuation.resume(throwing: error)
+                    }
                 }
             }
         }
