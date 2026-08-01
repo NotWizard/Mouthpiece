@@ -71,9 +71,15 @@ actor DictationCoordinator {
         let configuration = realtimeConfiguration(settings: settings, apiKey: key)
         do {
             try await bailianProvider.warmup(configuration: configuration)
-            await logger.write(.debug, "Bailian realtime connection warmed")
+            await logger.write(
+                .debug,
+                "Bailian realtime connection warmed",
+                metadata: bailianMetadata(configuration)
+            )
         } catch {
-            await logger.write(.warning, "Bailian warmup failed", metadata: ["error": error.localizedDescription])
+            var metadata = bailianMetadata(configuration)
+            metadata["error"] = error.localizedDescription
+            await logger.write(.warning, "Bailian warmup failed", metadata: metadata)
         }
     }
 
@@ -170,6 +176,14 @@ actor DictationCoordinator {
                 do {
                     try await realtime.provider.connect(configuration: configuration) { [weak self] event in
                         Task { await self?.handle(event: event, sessionID: sessionID) }
+                    }
+                    if settings.cloudTranscriptionProvider == "bailian" {
+                        await logger.write(
+                            .debug,
+                            "Bailian realtime task started",
+                            metadata: bailianMetadata(configuration),
+                            sessionID: sessionID
+                        )
                     }
                     guard isCurrent(sessionID, phase: .preparing) else {
                         await realtime.provider.cancel()
@@ -508,7 +522,7 @@ actor DictationCoordinator {
     ) -> (provider: any RealtimeTranscriptionProvider, account: CredentialAccount, defaultModel: String)? {
         switch settings.cloudTranscriptionProvider {
         case "bailian":
-            (bailianProvider, .bailian, BailianRealtimeProvider.model)
+            (bailianProvider, .bailian, BailianRealtimeProvider.defaultModel)
         case "volcengine":
             (volcengineProvider, .volcengine, VolcengineRealtimeProvider.model)
         case "deepgram" where settings.deepgramStreamingEnabled:
@@ -525,7 +539,7 @@ actor DictationCoordinator {
     private func realtimeConfiguration(
         settings: AppSettings,
         apiKey: String,
-        defaultModel: String = BailianRealtimeProvider.model
+        defaultModel: String = BailianRealtimeProvider.defaultModel
     ) -> RealtimeTranscriptionConfiguration {
         RealtimeTranscriptionConfiguration(
             apiKey: apiKey,
@@ -542,13 +556,32 @@ actor DictationCoordinator {
     private func realtimeModel(provider: String, configured: String, fallback: String) -> String {
         let value = configured.trimmingCharacters(in: .whitespacesAndNewlines)
         switch provider {
-        case "bailian": return BailianRealtimeProvider.model
+        case "bailian": return BailianASRModel(rawValue: value)?.rawValue ?? fallback
         case "volcengine": return VolcengineRealtimeProvider.model
         case "deepgram": return value.hasPrefix("nova-") ? value : fallback
         case "soniox": return value.hasPrefix("stt-rt-") ? value : fallback
         case "assemblyai": return value.hasPrefix("universal-streaming") ? value : fallback
         default: return value.isEmpty ? fallback : value
         }
+    }
+
+    private func bailianMetadata(
+        _ configuration: RealtimeTranscriptionConfiguration
+    ) -> [String: String] {
+        let strategy: String
+        if configuration.preferredTerms.isEmpty {
+            strategy = "none"
+        } else {
+            strategy = configuration.model == BailianASRModel.funASR.rawValue
+                ? "precompiled"
+                : "inline"
+        }
+        return [
+            "provider": "bailian",
+            "model": configuration.model,
+            "hotwordStrategy": strategy,
+            "hotwordCount": String(configuration.preferredTerms.count),
+        ]
     }
 
     private func isRealtimeOnlyProvider(_ provider: String) -> Bool {

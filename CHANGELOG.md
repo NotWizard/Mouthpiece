@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.5] - 2026-08-01
+
+### Added
+
+- Added `qwen-audio-3.0-asr-flash-streaming` as the default Alibaba Bailian realtime transcription model while retaining selectable `fun-asr-realtime` support. Qwen uses inline dictionary hotwords; Fun-ASR continues using the existing managed Bailian vocabulary.
+
+### Documentation
+
+- Added a complete implementation plan for supporting both Qwen Audio 3.0 ASR Flash Streaming and Fun-ASR Realtime within the Alibaba Bailian provider, covering model selection, migration, hotwords, WebSocket lifecycle, tests, and acceptance criteria.
+
 ## [2.0.4] - 2026-07-23
 
 ### Fixed

@@ -116,7 +116,10 @@
 "speech.installModel" = "安装模型";
 "speech.removeModel" = "删除模型";
 "speech.realtime" = "实时转录";
-"speech.bailianFunASROnly" = "阿里云百炼听写仅支持 fun-asr-realtime 实时模型。";
+"speech.bailianModel.qwenAudio3" = "Qwen Audio 3.0 ASR Flash 流式版";
+"speech.bailianModel.funASR" = "Fun-ASR 实时版";
+"speech.bailianModel.qwenAudio3.help" = "推荐使用。通过 Qwen Audio 3.0 流式识别，并在请求中直接带入词典。";
+"speech.bailianModel.funASR.help" = "使用 Fun-ASR 实时识别，并沿用百炼热词表。";
 "speech.volcengineModel" = "豆包流式语音识别 2.0";
 "speech.volcengineOnly" = "仅支持豆包流式语音识别 2.0 按时长版。";
 "speech.apiKey" = "API 密钥";

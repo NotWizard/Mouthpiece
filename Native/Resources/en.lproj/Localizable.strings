@@ -116,7 +116,10 @@
 "speech.installModel" = "Install model";
 "speech.removeModel" = "Remove model";
 "speech.realtime" = "Realtime transcription";
-"speech.bailianFunASROnly" = "Alibaba Cloud Bailian transcription uses the fun-asr-realtime model exclusively.";
+"speech.bailianModel.qwenAudio3" = "Qwen Audio 3.0 ASR Flash Streaming";
+"speech.bailianModel.funASR" = "Fun-ASR Realtime";
+"speech.bailianModel.qwenAudio3.help" = "Recommended. Uses Qwen Audio 3.0 streaming recognition with inline dictionary terms.";
+"speech.bailianModel.funASR.help" = "Uses Fun-ASR realtime recognition with the existing Bailian hot-word vocabulary.";
 "speech.volcengineModel" = "Doubao Streaming ASR 2.0";
 "speech.volcengineOnly" = "Only the duration-billed Doubao Streaming ASR 2.0 service is supported.";
 "speech.apiKey" = "API key";

@@ -10,7 +10,7 @@ struct RealtimeTranscriptionConfiguration: Equatable, Sendable {
 
     init(
         apiKey: String,
-        model: String = "fun-asr-realtime",
+        model: String = BailianRealtimeProvider.defaultModel,
         sampleRate: Int = 16_000,
         language: String? = nil,
         silenceDurationMilliseconds: Int = 400,

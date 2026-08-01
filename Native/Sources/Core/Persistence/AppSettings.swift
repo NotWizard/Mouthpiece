@@ -89,6 +89,7 @@ struct AppSettings: Codable, Equatable, Sendable {
     var preferredLanguage = "auto"
     var cloudTranscriptionProvider = "openai"
     var cloudTranscriptionModel = "gpt-4o-mini-transcribe"
+    var bailianTranscriptionModel = BailianRealtimeProvider.defaultModel
     var cloudTranscriptionBaseURL = "https://api.openai.com/v1"
     var assemblyAIStreaming = true
     var deepgramStreamingEnabled = false
@@ -126,9 +127,16 @@ struct AppSettings: Codable, Equatable, Sendable {
             reasoningBaseURL = "https://api.openai.com/v1"
         }
         if cloudTranscriptionProvider == "bailian" {
-            cloudTranscriptionModel = BailianRealtimeProvider.model
+            let current = BailianASRModel(rawValue: cloudTranscriptionModel)
+            let remembered = BailianASRModel(rawValue: bailianTranscriptionModel)
+            let model = current ?? remembered ?? .defaultModel
+            cloudTranscriptionModel = model.rawValue
+            bailianTranscriptionModel = model.rawValue
         } else if cloudTranscriptionProvider == "volcengine" {
             cloudTranscriptionModel = VolcengineRealtimeProvider.model
+        }
+        if BailianASRModel(rawValue: bailianTranscriptionModel) == nil {
+            bailianTranscriptionModel = BailianASRModel.defaultModel.rawValue
         }
         cloudTranscriptionBaseURL = Self.normalizedURL(
             cloudTranscriptionBaseURL,

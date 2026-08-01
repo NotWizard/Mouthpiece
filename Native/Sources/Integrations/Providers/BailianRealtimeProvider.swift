@@ -1,11 +1,33 @@
 import Foundation
 import OSLog
 
+enum BailianASRModel: String, CaseIterable, Sendable {
+    case qwenAudio3 = "qwen-audio-3.0-asr-flash-streaming"
+    case funASR = "fun-asr-realtime"
+
+    static let defaultModel: Self = .qwenAudio3
+
+    var titleKey: String {
+        switch self {
+        case .qwenAudio3: "speech.bailianModel.qwenAudio3"
+        case .funASR: "speech.bailianModel.funASR"
+        }
+    }
+
+    var helpKey: String {
+        switch self {
+        case .qwenAudio3: "speech.bailianModel.qwenAudio3.help"
+        case .funASR: "speech.bailianModel.funASR.help"
+        }
+    }
+}
+
 enum BailianRealtimeError: LocalizedError, Equatable {
     case missingAPIKey
     case timedOut
     case connectionLost(String)
     case protocolError(String)
+    case unsupportedModel(String)
 
     var errorDescription: String? {
         switch self {
@@ -13,13 +35,14 @@ enum BailianRealtimeError: LocalizedError, Equatable {
         case .timedOut: "Alibaba Bailian realtime connection timed out."
         case .connectionLost(let reason): "Connection lost (\(reason))."
         case .protocolError(let message): message
+        case .unsupportedModel(let model): "Unsupported Alibaba Bailian realtime model: \(model)."
         }
     }
 }
 
 actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
     static let endpoint = URL(string: "wss://dashscope.aliyuncs.com/api-ws/v1/inference/")!
-    static let model = "fun-asr-realtime"
+    static let defaultModel = BailianASRModel.defaultModel.rawValue
 
     private let session: URLSession
     private let vocabularyService: BailianVocabularyService
@@ -121,7 +144,7 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
 
     func finish() async throws -> String {
         guard let socket, taskStarted, socket.state == .running else {
-            throw BailianRealtimeError.connectionLost("Fun-ASR task is not active")
+            throw BailianRealtimeError.connectionLost("Bailian realtime task is not active")
         }
         let expectedGeneration = generation
         if !pendingAudio.isEmpty {
@@ -148,6 +171,9 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
     }
 
     private func createTask(_ configuration: RealtimeTranscriptionConfiguration) async throws {
+        guard let model = BailianASRModel(rawValue: configuration.model) else {
+            throw BailianRealtimeError.unsupportedModel(configuration.model)
+        }
         var request = URLRequest(url: Self.endpoint)
         request.timeoutInterval = 30
         request.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
@@ -163,20 +189,29 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         socket.resume()
 
         do {
-            let vocabularyID: String?
-            do {
-                vocabularyID = try await vocabularyService.vocabularyID(
-                    apiKey: configuration.apiKey,
-                    terms: configuration.preferredTerms
-                )
-            } catch {
-                // The session still works without hot words; just stop hiding why.
-                Logger(subsystem: "com.mouthpiece.app", category: "bailian")
-                    .warning("Vocabulary sync failed: \(error.localizedDescription, privacy: .public)")
-                vocabularyID = nil
+            var vocabularyID: String?
+            if model == .funASR {
+                do {
+                    vocabularyID = try await vocabularyService.vocabularyID(
+                        apiKey: configuration.apiKey,
+                        terms: configuration.preferredTerms
+                    )
+                } catch {
+                    // The session still works without hot words; just stop hiding why.
+                    Logger(subsystem: "com.mouthpiece.app", category: "bailian")
+                        .warning("Vocabulary sync failed: \(error.localizedDescription, privacy: .public)")
+                }
             }
             try ensureCurrent(socket: socket, generation: expectedGeneration)
-            try await sendJSON(runTask(configuration, vocabularyID: vocabularyID), over: socket)
+            try await sendJSON(
+                Self.runTaskPayload(
+                    taskID: taskID,
+                    configuration: configuration,
+                    model: model,
+                    vocabularyID: vocabularyID
+                ),
+                over: socket
+            )
 
             let deadline = ContinuousClock.now + .seconds(30)
             while ContinuousClock.now < deadline {
@@ -256,8 +291,10 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         }
     }
 
-    private func runTask(
-        _ configuration: RealtimeTranscriptionConfiguration,
+    static func runTaskPayload(
+        taskID: String,
+        configuration: RealtimeTranscriptionConfiguration,
+        model: BailianASRModel,
         vocabularyID: String?
     ) -> [String: Any] {
         var parameters: [String: Any] = [
@@ -265,14 +302,13 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
             "sample_rate": configuration.sampleRate,
             "max_sentence_silence": configuration.silenceDurationMilliseconds,
         ]
-        if let vocabularyID, !vocabularyID.isEmpty {
+        if model == .funASR, let vocabularyID, !vocabularyID.isEmpty {
             parameters["vocabulary_id"] = vocabularyID
-        }
-        var input: [String: Any] = [:]
-        if !configuration.preferredTerms.isEmpty {
-            input["context"] = [[
-                "text": configuration.preferredTerms.joined(separator: "，"),
-            ]]
+        } else if model == .qwenAudio3 {
+            let vocabulary = BailianVocabularyService.inlineVocabulary(configuration.preferredTerms)
+            if !vocabulary.isEmpty {
+                parameters["vocabulary"] = vocabulary
+            }
         }
         return [
             "header": [
@@ -284,9 +320,9 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
                 "task_group": "audio",
                 "task": "asr",
                 "function": "recognition",
-                "model": Self.model,
+                "model": model.rawValue,
                 "parameters": parameters,
-                "input": input,
+                "input": [String: Any](),
             ],
         ]
     }
@@ -362,6 +398,7 @@ actor BailianVocabularyService {
     private static let prefix = "mouthpiece"
 
     private let session: URLSession
+    private var cachedAPIKey = ""
     private var cachedTerms: [String] = []
     private var cachedVocabularyID: String?
     private var cachedAt: Date?
@@ -376,7 +413,7 @@ actor BailianVocabularyService {
         guard !terms.isEmpty else { return nil }
         // TTL guards against a server-side deleted/expired vocabulary being
         // reused forever with hot words silently ignored.
-        if terms == cachedTerms, let cachedVocabularyID,
+        if apiKey == cachedAPIKey, terms == cachedTerms, let cachedVocabularyID,
            let cachedAt, Date().timeIntervalSince(cachedAt) < Self.cacheLifetime {
             return cachedVocabularyID
         }
@@ -396,7 +433,7 @@ actor BailianVocabularyService {
                 apiKey: apiKey,
                 input: [
                     "action": "create_vocabulary",
-                    "target_model": BailianRealtimeProvider.model,
+                    "target_model": BailianASRModel.funASR.rawValue,
                     "prefix": Self.prefix,
                     "vocabulary": Self.vocabularyEntries(terms),
                 ]
@@ -412,6 +449,7 @@ actor BailianVocabularyService {
             try await waitUntilReady(apiKey: apiKey, vocabularyID: resolvedID)
         }
         cachedTerms = terms
+        cachedAPIKey = apiKey
         cachedVocabularyID = resolvedID
         cachedAt = Date()
         return resolvedID
@@ -482,7 +520,11 @@ actor BailianVocabularyService {
         terms.map { ["text": $0, "weight": 4] }
     }
 
-    private static func normalizedTerms(_ terms: [String]) -> [String] {
+    static func inlineVocabulary(_ terms: [String]) -> [String: Int] {
+        Dictionary(uniqueKeysWithValues: normalizedTerms(terms, limit: 2_000).map { ($0, 4) })
+    }
+
+    private static func normalizedTerms(_ terms: [String], limit: Int = 500) -> [String] {
         var seen = Set<String>()
         return terms.compactMap { value in
             let term = value.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -492,7 +534,7 @@ actor BailianVocabularyService {
             guard seen.insert(term.lowercased()).inserted else { return nil }
             return term
         }
-        .prefix(500)
+        .prefix(limit)
         .map { $0 }
     }
 }
@@ -559,9 +601,9 @@ enum BailianMessageParser {
         if let header = payload["header"] as? [String: Any] {
             return header["error_message"] as? String
                 ?? header["error_code"] as? String
-                ?? "Alibaba Bailian Fun-ASR error"
+                ?? "Alibaba Bailian realtime ASR error"
         }
-        return payload["message"] as? String ?? "Alibaba Bailian Fun-ASR error"
+        return payload["message"] as? String ?? "Alibaba Bailian realtime ASR error"
     }
 }
 

@@ -93,6 +93,10 @@ final class SettingsRepository {
             ?? next.cloudTranscriptionProvider
         next.cloudTranscriptionModel = values["cloudTranscriptionModel"]
             ?? next.cloudTranscriptionModel
+        if next.cloudTranscriptionProvider == "bailian",
+           BailianASRModel(rawValue: next.cloudTranscriptionModel) != nil {
+            next.bailianTranscriptionModel = next.cloudTranscriptionModel
+        }
         next.cloudTranscriptionBaseURL = values["cloudTranscriptionBaseUrl"]
             ?? values["OPENAI_API_BASE"]
             ?? next.cloudTranscriptionBaseURL

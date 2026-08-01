@@ -306,18 +306,19 @@ final class AppEnvironmentTests: XCTestCase {
         XCTAssertEqual(TranslationHotkey.suffix(from: "Command+."), ".")
     }
 
-    func testProviderSelectionPinsBailianToFunASRAndPreservesOtherCustomModels() {
+    func testProviderSelectionDefaultsBailianToQwenAndRestoresRememberedModel() {
         XCTAssertEqual(
             CloudTranscriptionSupport.model(
                 afterSelecting: "bailian",
                 current: "gpt-4o-mini-transcribe"
             ),
-            "fun-asr-realtime"
+            "qwen-audio-3.0-asr-flash-streaming"
         )
         XCTAssertEqual(
             CloudTranscriptionSupport.model(
                 afterSelecting: "bailian",
-                current: "my-fine-tuned-asr"
+                current: "my-fine-tuned-asr",
+                rememberedBailianModel: "fun-asr-realtime"
             ),
             "fun-asr-realtime"
         )
@@ -337,14 +338,23 @@ final class AppEnvironmentTests: XCTestCase {
         XCTAssertEqual(CloudTranscriptionSupport.credential(for: "custom"), .customTranscription)
     }
 
-    func testSettingsNormalizationMigratesBailianToFunASR() {
+    func testSettingsNormalizationPreservesSupportedBailianModelsAndMigratesUnknownOnes() {
         var settings = AppSettings()
         settings.cloudTranscriptionProvider = "bailian"
-        settings.cloudTranscriptionModel = "qwen3-asr-flash"
+        settings.cloudTranscriptionModel = "fun-asr-realtime"
 
         settings.normalize()
 
         XCTAssertEqual(settings.cloudTranscriptionModel, "fun-asr-realtime")
+        XCTAssertEqual(settings.bailianTranscriptionModel, "fun-asr-realtime")
+
+        settings.cloudTranscriptionModel = "qwen3-asr-flash"
+        settings.bailianTranscriptionModel = "unsupported-model"
+
+        settings.normalize()
+
+        XCTAssertEqual(settings.cloudTranscriptionModel, "qwen-audio-3.0-asr-flash-streaming")
+        XCTAssertEqual(settings.bailianTranscriptionModel, "qwen-audio-3.0-asr-flash-streaming")
     }
 
     func testReasoningProviderDefaultsDoNotOverwriteCustomConfiguration() {

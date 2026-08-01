@@ -462,6 +462,42 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertTrue(input.isEmpty)
     }
 
+    func testBailianRunTaskUsesModelSpecificHotwords() throws {
+        let configuration = RealtimeTranscriptionConfiguration(
+            apiKey: "test",
+            preferredTerms: ["Mouthpiece", "嘴替"]
+        )
+        let qwenMessage = BailianRealtimeProvider.runTaskPayload(
+            taskID: "qwen-task",
+            configuration: configuration,
+            model: .qwenAudio3,
+            vocabularyID: "must-not-be-used"
+        )
+        let qwenPayload = try XCTUnwrap(qwenMessage["payload"] as? [String: Any])
+        let qwenParameters = try XCTUnwrap(qwenPayload["parameters"] as? [String: Any])
+        let inlineVocabulary = try XCTUnwrap(qwenParameters["vocabulary"] as? [String: Int])
+
+        XCTAssertEqual(qwenPayload["model"] as? String, BailianASRModel.qwenAudio3.rawValue)
+        XCTAssertEqual(qwenParameters["format"] as? String, "pcm")
+        XCTAssertEqual(qwenParameters["sample_rate"] as? Int, 16_000)
+        XCTAssertEqual(inlineVocabulary["Mouthpiece"], 4)
+        XCTAssertEqual(inlineVocabulary["嘴替"], 4)
+        XCTAssertNil(qwenParameters["vocabulary_id"])
+
+        let funMessage = BailianRealtimeProvider.runTaskPayload(
+            taskID: "fun-task",
+            configuration: configuration,
+            model: .funASR,
+            vocabularyID: "vocab-1"
+        )
+        let funPayload = try XCTUnwrap(funMessage["payload"] as? [String: Any])
+        let funParameters = try XCTUnwrap(funPayload["parameters"] as? [String: Any])
+
+        XCTAssertEqual(funPayload["model"] as? String, BailianASRModel.funASR.rawValue)
+        XCTAssertEqual(funParameters["vocabulary_id"] as? String, "vocab-1")
+        XCTAssertNil(funParameters["vocabulary"])
+    }
+
     func testReasoningPromptIncludesDictionaryTranslationAndCustomInstructions() {
         var settings = AppSettings()
         settings.translationEnabled = true

@@ -88,10 +88,15 @@ struct CloudProviderSelector: View {
 
     private func select(_ provider: String) {
         var settings = environment.settings
+        if settings.cloudTranscriptionProvider == "bailian",
+           BailianASRModel(rawValue: settings.cloudTranscriptionModel) != nil {
+            settings.bailianTranscriptionModel = settings.cloudTranscriptionModel
+        }
         settings.cloudTranscriptionProvider = provider
         settings.cloudTranscriptionModel = CloudTranscriptionSupport.model(
             afterSelecting: provider,
-            current: settings.cloudTranscriptionModel
+            current: settings.cloudTranscriptionModel,
+            rememberedBailianModel: settings.bailianTranscriptionModel
         )
         if provider != "custom" {
             settings.cloudTranscriptionBaseURL = CloudTranscriptionSupport.defaultBaseURL(for: provider)
@@ -123,12 +128,16 @@ struct CloudTranscriptionRows: View {
         ) {
             if environment.settings.cloudTranscriptionProvider == "bailian" {
                 HStack(spacing: 8) {
-                    Text(BailianRealtimeProvider.model)
-                        .foregroundStyle(.secondary)
+                    Picker("", selection: bailianModelBinding) {
+                        ForEach(BailianASRModel.allCases, id: \.rawValue) { model in
+                            Text(LocalizedStringKey(model.titleKey)).tag(model.rawValue)
+                        }
+                    }
+                    .labelsHidden()
                     Image(systemName: "info.circle")
                         .foregroundStyle(.tertiary)
-                        .help("speech.bailianFunASROnly")
-                        .accessibilityLabel("speech.bailianFunASROnly")
+                        .help(LocalizedStringKey(selectedBailianModel.helpKey))
+                        .accessibilityLabel(LocalizedStringKey(selectedBailianModel.helpKey))
                 }
                 .frame(width: SettingsControlMetrics.configurationFieldWidth, alignment: .trailing)
             } else if environment.settings.cloudTranscriptionProvider == "volcengine" {
@@ -171,6 +180,23 @@ struct CloudTranscriptionRows: View {
 
     private var modelShowsDivider: Bool {
         supportsRealtime || environment.settings.cloudTranscriptionProvider == "custom"
+    }
+
+    private var selectedBailianModel: BailianASRModel {
+        BailianASRModel(rawValue: environment.settings.cloudTranscriptionModel) ?? .defaultModel
+    }
+
+    private var bailianModelBinding: Binding<String> {
+        Binding(
+            get: { selectedBailianModel.rawValue },
+            set: { value in
+                guard BailianASRModel(rawValue: value) != nil else { return }
+                var settings = environment.settings
+                settings.cloudTranscriptionModel = value
+                settings.bailianTranscriptionModel = value
+                environment.saveSettings(settings)
+            }
+        )
     }
 
     @ViewBuilder
@@ -338,7 +364,7 @@ enum CloudTranscriptionSupport {
 
     static func defaultModel(for provider: String) -> String? {
         [
-            "bailian": BailianRealtimeProvider.model,
+            "bailian": BailianRealtimeProvider.defaultModel,
             "volcengine": VolcengineRealtimeProvider.model,
             "openai": "gpt-4o-mini-transcribe",
             "deepgram": "nova-3",
@@ -349,11 +375,20 @@ enum CloudTranscriptionSupport {
         ][provider]
     }
 
-    static func model(afterSelecting provider: String, current: String) -> String {
-        if provider == "bailian" { return BailianRealtimeProvider.model }
+    static func model(
+        afterSelecting provider: String,
+        current: String,
+        rememberedBailianModel: String? = nil
+    ) -> String {
+        if provider == "bailian" {
+            return BailianASRModel(rawValue: current)?.rawValue
+                ?? rememberedBailianModel.flatMap(BailianASRModel.init(rawValue:))?.rawValue
+                ?? BailianRealtimeProvider.defaultModel
+        }
         if provider == "volcengine" { return VolcengineRealtimeProvider.model }
         guard let fallback = defaultModel(for: provider) else { return current }
         let knownDefaults = Set(providers.compactMap { defaultModel(for: $0.id) })
+            .union(BailianASRModel.allCases.map(\.rawValue))
         let clean = current.trimmingCharacters(in: .whitespacesAndNewlines)
         return clean.isEmpty || knownDefaults.contains(clean) ? fallback : current
     }

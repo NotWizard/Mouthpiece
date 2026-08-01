@@ -75,6 +75,8 @@ final class PersistenceTests: XCTestCase {
         settings.dictationKey = "Hyper+K"
         settings.translationHotkeySuffix = "not-a-key"
         settings.cloudTranscriptionBaseURL = "not a url"
+        settings.cloudTranscriptionProvider = "bailian"
+        settings.cloudTranscriptionModel = BailianASRModel.funASR.rawValue
         settings.pauseOtherMediaDuringDictation = true
         settings.automaticallyPasteTranscription = false
         settings.keepTranscriptionInClipboard = true
@@ -86,6 +88,8 @@ final class PersistenceTests: XCTestCase {
         XCTAssertEqual(loaded.dictationKey, "RightCommand")
         XCTAssertEqual(loaded.translationHotkeySuffix, TranslationHotkey.defaultSuffix)
         XCTAssertEqual(loaded.cloudTranscriptionBaseURL, "https://api.openai.com/v1")
+        XCTAssertEqual(loaded.cloudTranscriptionModel, BailianASRModel.funASR.rawValue)
+        XCTAssertEqual(loaded.bailianTranscriptionModel, BailianASRModel.funASR.rawValue)
         XCTAssertTrue(loaded.pauseOtherMediaDuringDictation)
         XCTAssertFalse(loaded.automaticallyPasteTranscription)
         XCTAssertTrue(loaded.keepTranscriptionInClipboard)
