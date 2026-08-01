@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added a complete implementation plan for supporting both Qwen Audio 3.0 ASR Flash Streaming and Fun-ASR Realtime within the Alibaba Bailian provider, covering model selection, migration, hotwords, WebSocket lifecycle, tests, and acceptance criteria.
 
+### Fixed
+
+- Fixed the model information tooltip not appearing reliably when hovering the small hint icon in the Alibaba Bailian and Volcengine transcription settings by giving the icon a stable pointer target.
+
 ## [2.0.4] - 2026-07-23
 
 ### Fixed

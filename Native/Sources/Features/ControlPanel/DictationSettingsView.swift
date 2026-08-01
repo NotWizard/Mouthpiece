@@ -134,20 +134,15 @@ struct CloudTranscriptionRows: View {
                         }
                     }
                     .labelsHidden()
-                    Image(systemName: "info.circle")
-                        .foregroundStyle(.tertiary)
-                        .help(LocalizedStringKey(selectedBailianModel.helpKey))
-                        .accessibilityLabel(LocalizedStringKey(selectedBailianModel.helpKey))
+                    .frame(width: SettingsControlMetrics.configurationFieldWidth - 32)
+                    ModelHelpIcon(LocalizedStringKey(selectedBailianModel.helpKey))
                 }
                 .frame(width: SettingsControlMetrics.configurationFieldWidth, alignment: .trailing)
             } else if environment.settings.cloudTranscriptionProvider == "volcengine" {
                 HStack(spacing: 8) {
                     Text("speech.volcengineModel")
                         .foregroundStyle(.secondary)
-                    Image(systemName: "info.circle")
-                        .foregroundStyle(.tertiary)
-                        .help("speech.volcengineOnly")
-                        .accessibilityLabel("speech.volcengineOnly")
+                    ModelHelpIcon("speech.volcengineOnly")
                 }
                 .frame(width: SettingsControlMetrics.configurationFieldWidth, alignment: .trailing)
             } else {
@@ -227,7 +222,31 @@ struct CloudTranscriptionRows: View {
             EmptyView()
         }
     }
+}
 
+private struct ModelHelpIcon: View {
+    let message: LocalizedStringKey
+    @State private var showsHelp = false
+
+    init(_ message: LocalizedStringKey) {
+        self.message = message
+    }
+
+    var body: some View {
+        Image(systemName: "info.circle")
+            .foregroundStyle(.tertiary)
+            .frame(width: 24, height: 24)
+            .contentShape(Rectangle())
+            .onHover { showsHelp = $0 }
+            .popover(isPresented: $showsHelp, arrowEdge: .top) {
+                Text(message)
+                    .font(.caption)
+                    .frame(maxWidth: 260, alignment: .leading)
+                    .padding(10)
+            }
+            .help(message)
+            .accessibilityLabel(message)
+    }
 }
 
 struct LocalTranscriptionRows: View {
