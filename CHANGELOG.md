@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.6] - 2026-08-03
+
+### Fixed
+
+- Fixed the app silently vanishing when starting dictation right after the input device changed (AirPods connect/disconnect, headset plug/unplug): `AVAudioEngine`'s `installTapOnBus`/`start` raise Objective-C `NSException`s (for example a stale cached format that no longer matches the hardware) that Swift `do/catch` cannot intercept, and the `NSApplicationCrashOnExceptions` fail-fast registered in 2.0.2 turned them into instant process death with no visible error — three identical crash reports (v2.0.4/v2.0.5, all in `AVAudioEngineImpl::InstallTapOnNode` on the audio-engine queue) confirmed the pattern. Both calls now run through a small Objective-C `@try/@catch` shim that converts the exception into a normal "Starting the microphone failed" dictation error, and a defensive `removeTap` before installing rules out double-install as well; the session fails visibly and the app survives for an immediate retry.
+
 ## [2.0.5] - 2026-08-01
 
 ### Added

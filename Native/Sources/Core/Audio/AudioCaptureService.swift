@@ -16,6 +16,7 @@ enum AudioCaptureError: LocalizedError {
     case noAudioFrames
     case converterCreationFailed
     case converterFailed(String)
+    case engineException(String)
 
     var errorDescription: String? {
         switch self {
@@ -25,6 +26,7 @@ enum AudioCaptureError: LocalizedError {
         case .noAudioFrames: "The microphone did not provide any audio. Check the selected input device."
         case .converterCreationFailed: "Unable to create the microphone audio converter."
         case .converterFailed(let message): "Audio conversion failed: \(message)"
+        case .engineException(let message): "Starting the microphone failed: \(message)"
         }
     }
 }
@@ -113,19 +115,36 @@ final class AudioCaptureService {
                         onFrame: onFrame,
                         onLevel: onLevel
                     )
-                    input.installTap(
-                        onBus: 0,
-                        bufferSize: 960,
-                        format: inputFormat,
-                        block: makeTapHandler(for: converter)
-                    )
+                    // AVFAudio raises ObjC exceptions here (for example when
+                    // the cached format no longer matches the hardware after
+                    // an input-device switch); Swift do/catch cannot intercept
+                    // them, so route both calls through ObjCExceptionGuard.
+                    input.removeTap(onBus: 0)
+                    if let exception = ObjCExceptionGuard.run({
+                        input.installTap(
+                            onBus: 0,
+                            bufferSize: 960,
+                            format: inputFormat,
+                            block: makeTapHandler(for: converter)
+                        )
+                    }) {
+                        throw AudioCaptureError.engineException(exception.localizedDescription)
+                    }
                     box.engine.prepare()
-                    do {
-                        try box.engine.start()
-                    } catch {
+                    var startFailure: Error?
+                    let startException = ObjCExceptionGuard.run {
+                        do {
+                            try box.engine.start()
+                        } catch {
+                            startFailure = error
+                        }
+                    }
+                    if let failure = startException.map({
+                        AudioCaptureError.engineException($0.localizedDescription)
+                    }) ?? startFailure {
                         input.removeTap(onBus: 0)
                         box.engine.stop()
-                        throw error
+                        throw failure
                     }
                     continuation.resume(returning: converter)
                 } catch {

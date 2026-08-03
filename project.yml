@@ -18,8 +18,8 @@ settings:
     SWIFT_STRICT_CONCURRENCY: complete
     CLANG_ENABLE_MODULES: YES
     ENABLE_HARDENED_RUNTIME: YES
-    MARKETING_VERSION: 2.0.5
-    CURRENT_PROJECT_VERSION: 20005
+    MARKETING_VERSION: 2.0.6
+    CURRENT_PROJECT_VERSION: 20006
     SPARKLE_PUBLIC_ED_KEY: "xRChY2RKm/B9cIqShYuSXEzg9pOkg+FC2eV1StcYNsk="
 targets:
   Mouthpiece:
@@ -49,6 +49,7 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Native/Resources/Mouthpiece.entitlements
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: Mouthpiece Code Signing
+        SWIFT_OBJC_BRIDGING_HEADER: Native/Sources/Mouthpiece-Bridging-Header.h
     scheme:
       testTargets:
         - MouthpieceTests

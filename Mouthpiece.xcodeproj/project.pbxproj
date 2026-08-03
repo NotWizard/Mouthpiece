@@ -20,6 +20,7 @@
 		38C6EAC44D32457CEBAAE9AE /* VolcengineRealtimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4A1007A71A94BEFBAC33308 /* VolcengineRealtimeProvider.swift */; };
 		393DA3F6B2481CBC599F9828 /* HistoryRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4296C56083431AF4D8B75F2 /* HistoryRepository.swift */; };
 		44384E8791662B41641112B2 /* HotkeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FE9307D1D6F3C430EB81C47 /* HotkeyService.swift */; };
+		4A474C3D5F03FAF0872D0C06 /* ObjCExceptionCatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = A70B7ABB4FAE5FC3F96EF40C /* ObjCExceptionCatcher.m */; };
 		4D2EFEB2F4185781B7272688 /* ControlPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1827FCF96D30560F007B93C /* ControlPanelView.swift */; };
 		4F7E2751C9085D48308B2CA9 /* DictationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB1FA0A318163DC8EBA246D /* DictationState.swift */; };
 		4FB05E7D0CDE2589D8A3FABD /* MouthpieceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 202A5C104CA1D33343D7EB28 /* MouthpieceApp.swift */; };
@@ -53,6 +54,7 @@
 		BB52C51AEF1B38A7CB931508 /* ProcessingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0944AA15411498349BC4E82 /* ProcessingSettingsView.swift */; };
 		BBFB3EA1322BA1862CAD2129 /* DebugLogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B68D767A89514C2F25309937 /* DebugLogStore.swift */; };
 		BCAEFBCB10A388C050E04573 /* mouthpiece-menubar-mark.svg in Resources */ = {isa = PBXBuildFile; fileRef = 871C50B88CEA598EF7F41391 /* mouthpiece-menubar-mark.svg */; };
+		BFD43B45905647659F23EFF0 /* ObjCExceptionGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79667A472C6D2AB2632C64FB /* ObjCExceptionGuard.swift */; };
 		C087CA335286E7D79EEC7FB9 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 6D51BE0C469FD773D295D0B9 /* Sparkle */; };
 		C0E3D6E50DB92F5E4DA894E6 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FB4E666C85506C60072109F /* libsqlite3.tbd */; };
 		C75391A3121C91FAAD7FCE67 /* TextInsertionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B46BD5418BD14A71E9B04135 /* TextInsertionService.swift */; };
@@ -92,6 +94,7 @@
 		0D8F1E0A6DE6822CA211F82E /* MouthpieceTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MouthpieceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0FE9307D1D6F3C430EB81C47 /* HotkeyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyService.swift; sourceTree = "<group>"; };
 		14926ADCBF6F56514838B90D /* ReasoningService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReasoningService.swift; sourceTree = "<group>"; };
+		160F69459C813DBE7F5A9A64 /* Mouthpiece-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Mouthpiece-Bridging-Header.h"; sourceTree = "<group>"; };
 		17A16804AD18BF019565AA5C /* UsageSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageSettingsView.swift; sourceTree = "<group>"; };
 		19F2A6E2EE5C6307AD1B0397 /* SpeechActivityGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechActivityGate.swift; sourceTree = "<group>"; };
 		202A5C104CA1D33343D7EB28 /* MouthpieceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouthpieceApp.swift; sourceTree = "<group>"; };
@@ -116,8 +119,10 @@
 		6F6EAB50116A2E22E1BEF9E2 /* UpdateController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateController.swift; sourceTree = "<group>"; };
 		7041F0F70A5B0304F21B6BB6 /* PrivacyDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyDiagnosticsView.swift; sourceTree = "<group>"; };
 		70DD31A828E2E56F4EB1B602 /* ControlPanelComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPanelComponents.swift; sourceTree = "<group>"; };
+		79667A472C6D2AB2632C64FB /* ObjCExceptionGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjCExceptionGuard.swift; sourceTree = "<group>"; };
 		7E3585937DFD74537CD06375 /* AudioCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCaptureService.swift; sourceTree = "<group>"; };
 		7F25BDD2906CBC56D91B779A /* LegacyMigrationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyMigrationCoordinator.swift; sourceTree = "<group>"; };
+		7F767B388D685E79A58214F5 /* ObjCExceptionCatcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCExceptionCatcher.h; sourceTree = "<group>"; };
 		82D4C3234DFE8927E6B80953 /* AppLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocalization.swift; sourceTree = "<group>"; };
 		82FC2F38172C9F6D2401A7C4 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		871C50B88CEA598EF7F41391 /* mouthpiece-menubar-mark.svg */ = {isa = PBXFileReference; path = "mouthpiece-menubar-mark.svg"; sourceTree = "<group>"; };
@@ -126,6 +131,7 @@
 		9F0AA63B360B006DB2405323 /* provider-anthropic.svg */ = {isa = PBXFileReference; path = "provider-anthropic.svg"; sourceTree = "<group>"; };
 		A32ED6154EF45C286E3C807C /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		A4A1007A71A94BEFBAC33308 /* VolcengineRealtimeProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolcengineRealtimeProvider.swift; sourceTree = "<group>"; };
+		A70B7ABB4FAE5FC3F96EF40C /* ObjCExceptionCatcher.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjCExceptionCatcher.m; sourceTree = "<group>"; };
 		AD15DDB4974E8338A9223CBC /* TranscriptionProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionProvider.swift; sourceTree = "<group>"; };
 		AFB1FA0A318163DC8EBA246D /* DictationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationState.swift; sourceTree = "<group>"; };
 		B1501A6F849E3703BD3FAB3F /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.strings"; sourceTree = "<group>"; };
@@ -322,6 +328,9 @@
 		BD6F67ABDB34CAAC3DCFF8A1 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				7F767B388D685E79A58214F5 /* ObjCExceptionCatcher.h */,
+				A70B7ABB4FAE5FC3F96EF40C /* ObjCExceptionCatcher.m */,
+				79667A472C6D2AB2632C64FB /* ObjCExceptionGuard.swift */,
 				4ED2AB5831EFE467BA125409 /* Audio */,
 				C345E2FF42A2F9958BBDAE28 /* Diagnostics */,
 				C94D44E82550E2DC14CD73B2 /* Dictation */,
@@ -402,6 +411,7 @@
 		D99326AF43AAFC25B90A418F /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				160F69459C813DBE7F5A9A64 /* Mouthpiece-Bridging-Header.h */,
 				F25D8BC0CD8E1B1836519883 /* App */,
 				BD6F67ABDB34CAAC3DCFF8A1 /* Core */,
 				5C4D4BDFE1065B8B70CC8E08 /* Features */,
@@ -599,6 +609,8 @@
 				6A09D19A72BF6FFF93D4650F /* LocalModelInstallationService.swift in Sources */,
 				877514FAFBC099F0338389C6 /* LocalModelRuntime.swift in Sources */,
 				4FB05E7D0CDE2589D8A3FABD /* MouthpieceApp.swift in Sources */,
+				4A474C3D5F03FAF0872D0C06 /* ObjCExceptionCatcher.m in Sources */,
+				BFD43B45905647659F23EFF0 /* ObjCExceptionGuard.swift in Sources */,
 				6BA70C1AFC7F5F3C50096045 /* OnboardingView.swift in Sources */,
 				71B51A2960D7F6CF036B2DC3 /* PermissionService.swift in Sources */,
 				5CE5B3948AE7DBFC00EAB40F /* PrivacyDiagnosticsView.swift in Sources */,
@@ -656,6 +668,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.mouthpiece.app;
 				PRODUCT_NAME = Mouthpiece;
 				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "Native/Sources/Mouthpiece-Bridging-Header.h";
 			};
 			name = Release;
 		};
@@ -693,7 +706,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 20005;
+				CURRENT_PROJECT_VERSION = 20006;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -707,7 +720,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 2.0.5;
+				MARKETING_VERSION = 2.0.6;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -753,6 +766,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.mouthpiece.app;
 				PRODUCT_NAME = Mouthpiece;
 				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "Native/Sources/Mouthpiece-Bridging-Header.h";
 			};
 			name = Debug;
 		};
@@ -790,7 +804,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 20005;
+				CURRENT_PROJECT_VERSION = 20006;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -810,7 +824,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 2.0.5;
+				MARKETING_VERSION = 2.0.6;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

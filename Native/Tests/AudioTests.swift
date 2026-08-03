@@ -131,6 +131,25 @@ final class AudioTests: XCTestCase {
         XCTAssertLessThan(elapsed, .seconds(2))
     }
 
+    func testObjCExceptionGuardCatchesRaisedException() {
+        let error = ObjCExceptionGuard.run {
+            NSException(
+                name: .invalidArgumentException,
+                reason: "required condition is false: format.sampleRate == hwFormat.sampleRate",
+                userInfo: nil
+            ).raise()
+        }
+
+        XCTAssertEqual(
+            error?.localizedDescription,
+            "required condition is false: format.sampleRate == hwFormat.sampleRate"
+        )
+    }
+
+    func testObjCExceptionGuardReturnsNilWithoutException() {
+        XCTAssertNil(ObjCExceptionGuard.run {})
+    }
+
     private func pcmFrame(amplitude: Int16, milliseconds: Int) -> Data {
         let sampleCount = 16_000 * milliseconds / 1_000
         var samples = [Int16](repeating: amplitude, count: sampleCount)
