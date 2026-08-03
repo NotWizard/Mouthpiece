@@ -71,6 +71,18 @@ Mouthpiece 2.0 起仅提供 macOS 版本，不再维护 Windows、Linux 或 macO
 > [!NOTE]
 > Mouthpiece 使用稳定的自签名 macOS 身份，目前没有 Apple notarization。手动下载 DMG 后，macOS 可能要求你右键点击应用并选择“打开”，或前往“系统设置 → 隐私与安全性”确认运行。
 
+### 使用 Homebrew 安装
+
+也可以通过 Homebrew 直接安装：
+
+```bash
+brew install --cask NotWizard/mouthpiece/mouthpiece
+```
+
+### 自动更新
+
+安装后无需手动升级：新版本会通过应用内置的自动更新（Sparkle）提示并完成升级。上述手动放行仅首次安装时需要。
+
 ## 快速开始
 
 1. 安装并打开 Mouthpiece。

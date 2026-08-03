@@ -71,6 +71,18 @@ Starting with Mouthpiece 2.0, only macOS is supported. Windows, Linux, and macOS
 > [!NOTE]
 > Mouthpiece uses a stable self-signed macOS identity and is not currently notarized by Apple. After installing from a DMG, macOS may require you to right-click the app and choose Open, or approve it in System Settings under Privacy & Security.
 
+### Install with Homebrew
+
+You can also install directly with Homebrew:
+
+```bash
+brew install --cask NotWizard/mouthpiece/mouthpiece
+```
+
+### Automatic updates
+
+Once installed, there is no need to update manually: new versions are offered and installed through the app's built-in updater (Sparkle). The manual approval above is only needed on first install.
+
 ## Quick Start
 
 1. Install and open Mouthpiece.

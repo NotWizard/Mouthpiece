@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- README (Chinese and English) now documents the Homebrew cask install (`brew install --cask NotWizard/mouthpiece/mouthpiece`) and the built-in Sparkle automatic updates; both shipped with the release pipeline but were missing from the installation docs.
+
 ## [2.0.6] - 2026-08-03
 
 ### Fixed
