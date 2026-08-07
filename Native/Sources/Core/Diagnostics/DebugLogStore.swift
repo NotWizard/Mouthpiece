@@ -135,6 +135,13 @@ enum LogRedactor {
     private static let patterns: [(String, String)] = [
         (#"(?i)Bearer\s+[A-Za-z0-9._~+\-/]+=*"#, "Bearer [REDACTED]"),
         (#"\bsk-[A-Za-z0-9_-]{8,}\b"#, "[REDACTED_API_KEY]"),
+        // Vendor-prefixed keys (Gemini AIza…, Groq gsk_…) have distinctive
+        // prefixes plus a long tail, so plain prose is not matched.
+        (#"\bAIza[0-9A-Za-z_\-]{20,}"#, "[REDACTED_API_KEY]"),
+        (#"\bgsk_[A-Za-z0-9]{20,}"#, "[REDACTED_API_KEY]"),
+        // URL query credentials: keep the parameter name, drop only the value,
+        // and stop at the next & so sibling parameters survive.
+        (#"([?&](?:key|api_key|token)=)[^&\s"']+"#, "$1[REDACTED]"),
         (#"(?i)(api[_-]?key|token|authorization)([\"'\s:=]+)[^\s,}\"]+"#, "$1$2[REDACTED]"),
         (#"/Users/[^/\s]+"#, "~/Users/[REDACTED]"),
     ]

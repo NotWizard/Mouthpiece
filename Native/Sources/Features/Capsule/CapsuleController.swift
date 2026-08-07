@@ -32,18 +32,37 @@ final class CapsuleViewModel: ObservableObject {
     @Published private(set) var snapshot: DictationSnapshot = .idle
     @Published private(set) var targetApplicationName = "Current App"
     @Published private(set) var targetApplicationIcon: NSImage?
+    @Published private(set) var transientStatus: String?
     @Published var language = UILanguage.system
 
     let waveform = CapsuleWaveformModel()
+    private var transientStatusTask: Task<Void, Never>?
 
     func apply(_ snapshot: DictationSnapshot) {
         if snapshot.sessionID != self.snapshot.sessionID {
             waveform.reset()
+            clearTransientStatus()
         }
         self.snapshot = snapshot
         if snapshot.phase != .recording && snapshot.phase != .preparing {
             waveform.reset()
         }
+    }
+
+    func flashStatus(_ text: String, duration: Duration = .seconds(1.6)) {
+        transientStatusTask?.cancel()
+        transientStatus = text
+        transientStatusTask = Task { [weak self] in
+            try? await Task.sleep(for: duration)
+            guard !Task.isCancelled else { return }
+            self?.transientStatus = nil
+        }
+    }
+
+    private func clearTransientStatus() {
+        transientStatusTask?.cancel()
+        transientStatusTask = nil
+        transientStatus = nil
     }
 
     func updateAudioLevel(_ level: Float, sessionID: UUID) {
@@ -190,6 +209,10 @@ final class CapsuleController {
         model.language = language
     }
 
+    func flashStatus(localizedKey key: String) {
+        model.flashStatus(AppLocalization.string(key, language: model.language))
+    }
+
     func setTarget(processIdentifier: pid_t?, applicationName: String?) {
         targetProcessIdentifier = processIdentifier
         model.setTarget(processIdentifier: processIdentifier, applicationName: applicationName)
@@ -303,7 +326,10 @@ private struct CapsuleView: View {
     }
 
     private var contentKind: CapsuleContentKind {
-        CapsuleContentKind.resolve(model.snapshot)
+        // Transient notices borrow the status slot; a real error still wins.
+        let resolved = CapsuleContentKind.resolve(model.snapshot)
+        if resolved != .error, model.transientStatus != nil { return .status }
+        return resolved
     }
 
     @ViewBuilder
@@ -380,7 +406,8 @@ private struct CapsuleView: View {
     }
 
     private var statusText: String? {
-        switch model.snapshot.phase {
+        if let transientStatus = model.transientStatus { return transientStatus }
+        return switch model.snapshot.phase {
         case .preparing: AppLocalization.string("capsule.preparing", language: model.language)
         case .recording: nil
         case .stopping, .finalizing: AppLocalization.string("capsule.transcribing", language: model.language)

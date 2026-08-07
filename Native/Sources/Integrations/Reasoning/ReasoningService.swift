@@ -211,15 +211,16 @@ actor ReasoningService {
     private func requestGemini(prompt: String, settings: AppSettings) async throws -> String {
         let apiKey = try await credential(.gemini, provider: "gemini")
         let model = settings.reasoningModel.isEmpty ? "gemini-2.0-flash" : settings.reasoningModel
-        guard var components = URLComponents(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent") else {
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent") else {
             throw ReasoningServiceError.invalidEndpoint
         }
-        components.queryItems = [URLQueryItem(name: "key", value: apiKey)]
-        guard let url = components.url else { throw ReasoningServiceError.invalidEndpoint }
-        let request = try jsonRequest(url: url, body: [
+        var request = try jsonRequest(url: url, body: [
             "contents": [["parts": [["text": prompt]]]],
             "generationConfig": ["temperature": 0.1],
         ])
+        // The key travels in a header instead of ?key= so it never lands in
+        // URL-based logs (proxies, crash reports, diagnostics).
+        request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
         let data = try await responseData(for: request)
         return try Self.geminiText(from: data)
     }

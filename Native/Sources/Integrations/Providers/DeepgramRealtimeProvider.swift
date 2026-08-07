@@ -9,6 +9,8 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
     private var pendingBytes = 0
     private var finalSegments: [String] = []
     private var finished = false
+    private var terminalError: String?
+    private var language: String?
     private var generation = 0
 
     init(session: URLSession = .shared) { self.session = session }
@@ -23,10 +25,14 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
         onEvent: @escaping @Sendable (RealtimeTranscriptionEvent) -> Void
     ) async throws {
         await cancel()
-        guard !configuration.apiKey.isEmpty else { throw BailianRealtimeError.missingAPIKey }
+        guard !configuration.apiKey.isEmpty else {
+            throw RealtimeProviderError.missingAPIKey(provider: "Deepgram")
+        }
         eventHandler = onEvent
         finalSegments.removeAll()
         finished = false
+        terminalError = nil
+        language = configuration.language
         let generation = self.generation
         var components = URLComponents(string: "wss://api.deepgram.com/v1/listen")!
         var query = [
@@ -66,18 +72,22 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
     }
 
     func finish() async throws -> String {
-        guard let socket else { return finalSegments.joined(separator: " ") }
+        guard let socket else { return joinedTranscript() }
         let generation = self.generation
         try await socket.send(.string(#"{"type":"Finalize"}"#))
         try ensureCurrent(socket: socket, generation: generation)
         try await socket.send(.string(#"{"type":"CloseStream"}"#))
         try ensureCurrent(socket: socket, generation: generation)
         let deadline = ContinuousClock.now + .seconds(5)
-        while !finished && ContinuousClock.now < deadline {
+        while !finished && terminalError == nil && ContinuousClock.now < deadline {
             try await Task.sleep(for: .milliseconds(40))
             try ensureCurrent(socket: socket, generation: generation)
         }
-        let result = finalSegments.joined(separator: " ")
+        if let terminalError {
+            await cancel()
+            throw BailianRealtimeError.protocolError(terminalError)
+        }
+        let result = joinedTranscript()
         await cancel()
         return result
     }
@@ -107,23 +117,33 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
                           !transcript.isEmpty else { continue }
                     if payload["is_final"] as? Bool == true || payload["from_finalize"] as? Bool == true {
                         finalSegments.append(transcript.trimmingCharacters(in: .whitespacesAndNewlines))
-                        eventHandler?(.final(finalSegments.joined(separator: " ")))
+                        eventHandler?(.final(joinedTranscript()))
                     } else {
-                        eventHandler?(.partial(stable: finalSegments.joined(separator: " "), active: transcript))
+                        eventHandler?(.partial(stable: joinedTranscript(), active: transcript))
                     }
                 case "SpeechStarted": eventHandler?(.speechStarted)
-                case "Error": eventHandler?(.error(payload["description"] as? String ?? "Deepgram error"))
+                case "Error":
+                    let message = payload["description"] as? String ?? "Deepgram error"
+                    terminalError = message
+                    eventHandler?(.error(message))
                 default: break
                 }
             }
         } catch {
             if isCurrent(socket: socket, generation: generation), !Task.isCancelled {
+                terminalError = error.localizedDescription
                 eventHandler?(.error(error.localizedDescription))
             }
         }
         if isCurrent(socket: socket, generation: generation), !Task.isCancelled {
             finished = true
         }
+    }
+
+    // Deepgram sends segments without joining hints; TranscriptJoiner drops
+    // the space between CJK segments instead of gluing "你好 世界".
+    private func joinedTranscript() -> String {
+        finalSegments.reduce("") { TranscriptJoiner.join($0, $1, language: language) }
     }
 
     private func appendPending(_ data: Data) {

@@ -52,6 +52,20 @@ enum RealtimeSocketError: LocalizedError {
     }
 }
 
+// Non-Bailian realtime providers used to borrow BailianRealtimeError, which
+// showed "Alibaba Bailian" in errors coming from Deepgram or AssemblyAI.
+enum RealtimeProviderError: LocalizedError, Equatable {
+    case missingAPIKey(provider: String)
+    case timedOut(provider: String)
+
+    var errorDescription: String? {
+        switch self {
+        case .missingAPIKey(let provider): "\(provider) API key is required."
+        case .timedOut(let provider): "\(provider) realtime connection timed out."
+        }
+    }
+}
+
 extension URLSessionWebSocketTask {
     // A half-dead connection leaves receive() waiting forever with no error,
     // and receive() may ignore Task cancellation, so race it against a

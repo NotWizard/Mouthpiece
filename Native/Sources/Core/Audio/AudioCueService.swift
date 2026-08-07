@@ -112,17 +112,26 @@ final class AudioCueService {
 
     private var player: AVAudioPlayer?
 
+    // Synthesized once on first use: re-rendering every sample on the main
+    // actor for each play burned CPU right at recording start/stop.
+    private static let cachedCues: [String: (start: Data, stop: Data)] = Dictionary(
+        uniqueKeysWithValues: presets.map {
+            ($0.id, (AudioCueSynthesizer.wav($0.startCue), AudioCueSynthesizer.wav($0.stopCue)))
+        }
+    )
+
     func playStart(preset id: String) {
-        play(Self.preset(id).startCue)
+        play(Self.cachedCues[Self.preset(id).id]?.start)
     }
 
     func playStop(preset id: String) {
-        play(Self.preset(id).stopCue)
+        play(Self.cachedCues[Self.preset(id).id]?.stop)
     }
 
-    private func play(_ cue: [AudioCueEvent]) {
+    private func play(_ wav: Data?) {
+        guard let wav else { return }
         player?.stop()
-        player = try? AVAudioPlayer(data: AudioCueSynthesizer.wav(cue))
+        player = try? AVAudioPlayer(data: wav)
         player?.prepareToPlay()
         player?.play()
     }

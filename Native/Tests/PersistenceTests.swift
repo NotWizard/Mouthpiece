@@ -99,6 +99,39 @@ final class PersistenceTests: XCTestCase {
     }
 
     @MainActor
+    func testNormalizationDisablesTranslationWhenCleanupIsOff() throws {
+        // Translation output is produced by the cleanup pipeline; a legacy
+        // blob may still carry the stale "translation on, cleanup off" combo.
+        var settings = AppSettings()
+        settings.translationEnabled = true
+        settings.useReasoningModel = false
+        settings.normalize()
+        XCTAssertFalse(settings.translationEnabled)
+
+        settings.useReasoningModel = true
+        settings.translationEnabled = true
+        settings.normalize()
+        XCTAssertTrue(settings.translationEnabled)
+
+        let suite = "MouthpieceTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        var stored = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(AppSettings())) as? [String: Any]
+        )
+        stored["translationEnabled"] = true
+        stored["useReasoningModel"] = false
+        defaults.set(
+            try JSONSerialization.data(withJSONObject: stored),
+            forKey: "native.settings.v1"
+        )
+
+        let loaded = SettingsRepository(defaults: defaults).load()
+        XCTAssertFalse(loaded.useReasoningModel)
+        XCTAssertFalse(loaded.translationEnabled)
+    }
+
+    @MainActor
     func testTerminologyNormalizationHandlesDuplicateTrimmedKeys() throws {
         let suite = "MouthpieceTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -267,6 +300,35 @@ final class PersistenceTests: XCTestCase {
         XCTAssertFalse(output.contains("abc.def"))
         XCTAssertFalse(output.contains("sk-123456789"))
         XCTAssertFalse(output.contains("alice"))
+    }
+
+    func testRedactorMasksVendorKeysAndURLQueryCredentials() {
+        let gemini = LogRedactor.redact("request AIzaSyD9tSrke72PouQMnMXa7eZSW0jkFMBWY failed")
+        XCTAssertFalse(gemini.contains("AIzaSyD9tSrke72PouQMnMXa7eZSW0jkFMBWY"))
+        XCTAssertTrue(gemini.contains("[REDACTED_API_KEY]"))
+
+        let groq = LogRedactor.redact("groq gsk_abcDEF0123456789abcDEF0123 rejected")
+        XCTAssertFalse(groq.contains("gsk_abcDEF0123456789abcDEF0123"))
+        XCTAssertTrue(groq.contains("[REDACTED_API_KEY]"))
+
+        // Query credentials lose only the value: the parameter name stays and
+        // sibling parameters survive up to the next &.
+        let url = LogRedactor.redact("GET https://example.com/v1?key=secret123&model=gpt")
+        XCTAssertFalse(url.contains("secret123"))
+        XCTAssertTrue(url.contains("?key=[REDACTED]"))
+        XCTAssertTrue(url.contains("&model=gpt"))
+
+        let apiKey = LogRedactor.redact("wss://example.com/listen?api_key=abc123")
+        XCTAssertFalse(apiKey.contains("abc123"))
+        XCTAssertTrue(apiKey.contains("?api_key="))
+
+        let token = LogRedactor.redact("https://example.com/cb?token=xyz789")
+        XCTAssertFalse(token.contains("xyz789"))
+        XCTAssertTrue(token.contains("?token="))
+
+        // Plain prose and short vendor-like prefixes must not be touched.
+        let prose = "Ask AIzaBot about gsk_short via ?monkey=banana"
+        XCTAssertEqual(LogRedactor.redact(prose), prose)
     }
 
     func testDebugLogsOlderThanSevenDaysAreRemoved() async throws {

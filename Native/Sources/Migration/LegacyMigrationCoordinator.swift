@@ -180,7 +180,26 @@ final class LegacyMigrationCoordinator {
             guard fileManager.fileExists(atPath: sourceItem.path) else { continue }
             try fileManager.copyItem(at: sourceItem, to: directory.appendingPathComponent(name))
         }
+        try redactEnvironmentBackup(in: directory)
         return directory
+    }
+
+    // The backup directory outlives the migration; keeping plaintext API keys
+    // there would duplicate credentials on disk after they moved to the
+    // Keychain. Only the backup copy is scrubbed — imports read the source.
+    private func redactEnvironmentBackup(in directory: URL) throws {
+        let url = directory.appendingPathComponent(".env")
+        guard fileManager.fileExists(atPath: url.path) else { return }
+        let contents = try String(contentsOf: url, encoding: .utf8)
+        let redacted = contents
+            .components(separatedBy: .newlines)
+            .map { line -> String in
+                guard !line.trimmingCharacters(in: .whitespaces).hasPrefix("#"),
+                      let separator = line.firstIndex(of: "=") else { return line }
+                return String(line[..<separator]) + "=<redacted>"
+            }
+            .joined(separator: "\n")
+        try redacted.write(to: url, atomically: true, encoding: .utf8)
     }
 
     private func copyLegacyDatabaseIfNeeded(from source: URL?) throws -> Bool {
@@ -236,9 +255,8 @@ final class LegacyMigrationCoordinator {
         if report.copiedLegacyDatabase, !fileManager.fileExists(atPath: AppPaths.databaseURL.path) {
             return false
         }
-        if let backupPath = report.backupPath, !fileManager.fileExists(atPath: backupPath) {
-            return false
-        }
+        // Deliberately no backupPath existence check: deleting the backup is a
+        // legitimate user action and must not re-trigger the migration.
         return true
     }
 

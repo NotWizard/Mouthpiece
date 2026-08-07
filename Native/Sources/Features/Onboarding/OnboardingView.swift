@@ -75,6 +75,9 @@ private final class OnboardingVerificationController: ObservableObject {
         do {
             try hotkey.start(key: key)
             try escape.start(key: "Escape")
+            // 仿主流程：仅在采集期间吞键，闲置时放行全局按键。
+            hotkey.setSwallowArmed(false)
+            escape.setSwallowArmed(false)
             state = .ready
         } catch {
             hotkey.stop()
@@ -97,15 +100,22 @@ private final class OnboardingVerificationController: ObservableObject {
     }
 
     private func toggleCapture() {
-        if state == .recording {
+        switch state {
+        case .recording:
             stopCapture()
-        } else if state == .ready || state == .success {
+        case .ready, .success, .failed:
+            // .failed 允许直接重试，避免一次失败后卡死引导流程。
             startCapture()
+        case .idle:
+            break
         }
     }
 
     private func startCapture() {
         hideTask?.cancel()
+        // 采集期间吞掉热键/Escape，结束或失败后立即恢复放行。
+        hotkey.setSwallowArmed(true)
+        escape.setSwallowArmed(true)
         let id = UUID()
         sessionID = id
         let snapshot = DictationSnapshot(
@@ -131,6 +141,8 @@ private final class OnboardingVerificationController: ObservableObject {
             } catch {
                 guard let self, self.sessionID == id else { return }
                 self.sessionID = nil
+                self.hotkey.setSwallowArmed(false)
+                self.escape.setSwallowArmed(false)
                 self.capsule.hide()
                 self.state = .failed(error.localizedDescription)
             }
@@ -145,6 +157,8 @@ private final class OnboardingVerificationController: ObservableObject {
     private func stopCapture() {
         guard state == .recording, let id = sessionID else { return }
         sessionID = nil
+        hotkey.setSwallowArmed(false)
+        escape.setSwallowArmed(false)
         state = .success
         Task {
             await audio.stop()
@@ -461,6 +475,11 @@ struct OnboardingView: View {
 
             Spacer()
 
+            if step == .tryIt, verification.state != .success {
+                // 录音验证失败或环境受限时不把用户困在引导里。
+                Button("onboarding.skipStep") { finishOnboarding() }
+            }
+
             Button(primaryActionTitle) { advance() }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
@@ -561,10 +580,14 @@ struct OnboardingView: View {
             step = .tryIt
         case .tryIt:
             guard verification.state == .success else { return }
-            storedSection = ControlPanelSection.dictation.rawValue
-            verification.deactivate()
-            environment.completeOnboarding()
+            finishOnboarding()
         }
+    }
+
+    private func finishOnboarding() {
+        storedSection = ControlPanelSection.dictation.rawValue
+        verification.deactivate()
+        environment.completeOnboarding()
     }
 
     private func isComplete(_ item: OnboardingStep) -> Bool {

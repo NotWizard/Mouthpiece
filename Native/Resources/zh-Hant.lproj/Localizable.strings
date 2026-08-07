@@ -260,7 +260,11 @@
 "capsule.listening" = "正在聆聽";
 "capsule.transcribing" = "正在轉錄…";
 "capsule.polishing" = "正在潤色…";
+"capsule.polishingFallback" = "整理失敗，已使用原始轉寫";
 "capsule.inserting" = "正在插入文字…";
 "capsule.success" = "準備就緒";
 "capsule.failed" = "聽寫失敗";
 "capsule.currentApplication" = "目前的應用程式";
+"processing.translationRequiresCleanup" = "翻譯依賴文字整理，開啟翻譯會同時啟用文字整理。";
+"hotkey.capture.requiresModifier" = "請使用帶修飾鍵的組合（如 ⌘⇧D）或功能鍵。";
+"onboarding.skipStep" = "跳過此步";

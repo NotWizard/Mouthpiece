@@ -251,6 +251,23 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(machine.snapshot.phase, .cancelled)
     }
 
+    func testStateMachineAllowsCancellationWhilePreparing() throws {
+        // stop() during .preparing with no captured audio walks the cancel
+        // path instead of surfacing a noAudioFrames failure; the machine must
+        // accept preparing -> cancelled and an immediate restart.
+        var machine = DictationStateMachine()
+        let sessionID = UUID()
+        try machine.begin(sessionID: sessionID)
+        XCTAssertEqual(machine.snapshot.phase, .preparing)
+
+        try machine.transition(to: .cancelled, sessionID: sessionID)
+
+        XCTAssertEqual(machine.snapshot.phase, .cancelled)
+        XCTAssertEqual(machine.snapshot.audioLevel, 0)
+        try machine.begin(sessionID: UUID())
+        XCTAssertEqual(machine.snapshot.phase, .preparing)
+    }
+
     func testHotkeyParserSupportsTranslationChord() {
         XCTAssertEqual(
             HotkeyDescriptor.parse("RightShift"),
@@ -272,6 +289,26 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertTrue(HotkeyDescriptor.isValid("RightCommand"))
         XCTAssertFalse(HotkeyDescriptor.isValid("Hyper+K"))
         XCTAssertFalse(HotkeyDescriptor.isValid("Command++K"))
+    }
+
+    func testHotkeyParserSupportsExtendedFunctionKeys() {
+        let expected: [(String, UInt16)] = [
+            ("F13", 105), ("F14", 107), ("F15", 113), ("F16", 106),
+            ("F17", 64), ("F18", 79), ("F19", 80),
+        ]
+        for (name, keyCode) in expected {
+            XCTAssertEqual(
+                HotkeyDescriptor.parse(name),
+                HotkeyDescriptor(keyCode: keyCode, modifiers: [], modifierOnly: false),
+                name
+            )
+            XCTAssertTrue(HotkeyDescriptor.isValid(name), name)
+        }
+        XCTAssertEqual(
+            HotkeyDescriptor.parse("Command+F19"),
+            HotkeyDescriptor(keyCode: 80, modifiers: .maskCommand, modifierOnly: false)
+        )
+        XCTAssertFalse(HotkeyDescriptor.isValid("F20"))
     }
 
     func testHotkeyEventDispatchSkipsUnrelatedKeyEvents() {
@@ -358,6 +395,59 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertFalse(HotkeyService.comboModifiersReleased(
             type: .flagsChanged, flags: [], descriptor: modifierOnly
         ))
+    }
+
+    func testRealtimeProviderErrorsNameTheFailingProvider() {
+        // Deepgram/AssemblyAI used to borrow BailianRealtimeError and surface
+        // "Alibaba Bailian" in their failure messages.
+        XCTAssertEqual(
+            RealtimeProviderError.missingAPIKey(provider: "Deepgram").errorDescription,
+            "Deepgram API key is required."
+        )
+        XCTAssertEqual(
+            RealtimeProviderError.timedOut(provider: "AssemblyAI").errorDescription,
+            "AssemblyAI realtime connection timed out."
+        )
+        let errors: [RealtimeProviderError] = [
+            .missingAPIKey(provider: "Deepgram"),
+            .timedOut(provider: "AssemblyAI"),
+        ]
+        for error in errors {
+            XCTAssertFalse(error.localizedDescription.contains("Bailian"))
+            XCTAssertFalse(error.localizedDescription.contains("Alibaba"))
+        }
+    }
+
+    @MainActor
+    func testCapsuleTransientStatusFlashesReplacesAndClears() async throws {
+        let model = CapsuleViewModel()
+        model.flashStatus("fallback notice", duration: .milliseconds(60))
+        XCTAssertEqual(model.transientStatus, "fallback notice")
+
+        // Replacing the flash must cancel the earlier auto-clear task.
+        model.flashStatus("second notice", duration: .seconds(10))
+        XCTAssertEqual(model.transientStatus, "second notice")
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertEqual(model.transientStatus, "second notice")
+
+        // A new session snapshot clears any lingering transient status.
+        model.apply(DictationSnapshot(
+            sessionID: UUID(),
+            phase: .preparing,
+            partialText: "",
+            audioLevel: 0,
+            errorMessage: nil,
+            isTranslation: false
+        ))
+        XCTAssertNil(model.transientStatus)
+
+        // The flash clears itself after its duration elapses.
+        model.flashStatus("short notice", duration: .milliseconds(40))
+        for _ in 0..<100 {
+            if model.transientStatus == nil { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertNil(model.transientStatus)
     }
 
     func testProviderErrorMessageExtractsReadableText() {

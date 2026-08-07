@@ -391,6 +391,8 @@ final class AppEnvironment: ObservableObject {
             escapeHotkey.onPress = { [weak self] in self?.handleEscape(53) }
             escapeHotkey.setSwallowArmed(false)
             translationHotkey.onPress = { [weak self] in self?.handleTranslationHotkeyPress() }
+            // 翻译热键只应在主听写键按住期间吞键，闲置时放行全局组合键。
+            translationHotkey.setSwallowArmed(false)
             updateHotkeyRegistrations()
             applySystemSettings()
             refreshLocalModelStatus()
@@ -476,6 +478,8 @@ final class AppEnvironment: ObservableObject {
 
     private func handleHotkeyPress() {
         hotkeyPressedAt = .now
+        // 主键按下期间才允许翻译后缀组合被吞掉，见 updateTranslationHotkey。
+        translationHotkey.setSwallowArmed(true)
         guard effectiveTranslationHotkey != nil, settings.translationEnabled else {
             performMainHotkeyPress()
             return
@@ -508,6 +512,8 @@ final class AppEnvironment: ObservableObject {
     }
 
     private func handleHotkeyRelease() {
+        // 主键松开后恢复放行翻译组合键，避免闲置时吞掉全局 Cmd+, 等按键。
+        translationHotkey.setSwallowArmed(false)
         let shouldCompletePendingPress = mainHotkeyActivationPending
         cancelPendingMainHotkey(resetPressTime: false)
         if shouldCompletePendingPress {
@@ -582,6 +588,8 @@ final class AppEnvironment: ObservableObject {
         }
         do {
             try translationHotkey.update(key: key)
+            // 新建的 tap 默认吞键；仅当主听写键正按住时才保持吞键。
+            translationHotkey.setSwallowArmed(hotkeyPressedAt != nil)
         } catch {
             translationHotkey.stop()
             startupError = error.localizedDescription

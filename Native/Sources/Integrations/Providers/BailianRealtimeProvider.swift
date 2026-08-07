@@ -54,6 +54,7 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
     private var taskID = ""
     private var taskStarted = false
     private var taskFinished = false
+    private var taskFailedMessage: String?
     private var warmCreatedAt: Date?
     private var pendingAudio = Data()
     private var committedText = ""
@@ -155,9 +156,13 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         try ensureCurrent(socket: socket, generation: expectedGeneration)
 
         let deadline = ContinuousClock.now + .seconds(5)
-        while !taskFinished && ContinuousClock.now < deadline {
+        while !taskFinished && taskFailedMessage == nil && ContinuousClock.now < deadline {
             try await Task.sleep(for: .milliseconds(40))
             try ensureCurrent(socket: socket, generation: expectedGeneration)
+        }
+        if let taskFailedMessage {
+            await closeSocket()
+            throw BailianRealtimeError.protocolError(taskFailedMessage)
         }
         guard taskFinished else { throw BailianRealtimeError.timedOut }
         let text = resolvedText
@@ -186,6 +191,7 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         taskID = Self.makeTaskID()
         taskStarted = false
         taskFinished = false
+        taskFailedMessage = nil
         socket.resume()
 
         do {
@@ -285,6 +291,7 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
             taskFinished = true
             eventHandler?(.sessionFinished(resolvedText))
         case "task-failed":
+            taskFailedMessage = BailianMessageParser.errorMessage(payload)
             eventHandler?(.error(BailianMessageParser.errorMessage(payload)))
         default:
             break
@@ -380,6 +387,7 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         activeText = ""
         completedSentenceBegins.removeAll()
         taskFinished = false
+        taskFailedMessage = nil
     }
 
     private var resolvedText: String {

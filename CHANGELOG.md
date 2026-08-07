@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- R0 quick-win batch from the 2026-08-07 improvement audit (docs/audits/2026-08-07-improvement-plan.md), all cross-reviewed:
+  - Hotkeys: the translation suffix hotkey no longer swallows global shortcuts (for example every app's `Cmd+,`) while dictation is idle — it is armed only while the main dictation key is held (B1); refreshing hotkey registrations on app activation/wake no longer resets a held push-to-talk key, so releasing it reliably stops recording, and changing the key mid-press now emits the missing release first (B3); the hotkey recorder rejects bare character keys (typing "a" anywhere could start dictation) while still allowing modifier combos, pure-modifier keys, and F1–F19 — F13–F19 parsing was added (D2).
+  - Dictation flow: stopping while still preparing (fast double toggle) cancels silently instead of flashing a "no audio" error (B7); silent sessions fail fast with "no speech" instead of uploading the whole recording for batch transcription and risking Whisper hallucinations (B8); cancelled/failed sessions release the capture buffer (up to ~57 MB after long recordings) instead of keeping its capacity (B9); media pause no longer delays microphone startup — it runs in parallel and is awaited before resume (A5); when cleanup/translation fails, the capsule briefly shows "Refining failed, using the raw transcript" instead of silently inserting the raw text (D5).
+  - Onboarding: the try-it page swallows Esc/dictation keys only while actually recording, a failed attempt can be retried in place, and a "Skip this step" button unblocks users without a working microphone (D3, D4).
+  - Providers: Deepgram/AssemblyAI missing-key and timeout errors now name the right provider instead of "Alibaba Bailian" (C3); server-reported errors end finalization immediately with the real message instead of idling 5 s into a fake timeout (Deepgram/AssemblyAI/Bailian, C7); Chinese transcripts from Deepgram/AssemblyAI no longer get spaces between CJK segments (C10); start/stop cue WAVs are synthesized once and cached instead of per playback on the main actor (A8).
+
+### Changed
+
+- Translation now requires text processing: enabling translation turns the cleanup model on, disabling cleanup turns translation off, and stored settings with the stale "translation on, cleanup off" combination are normalized on load; the settings page explains the dependency in all three languages (audit D1, revised per product decision — no separate credential entry for translation).
+- README (zh/en) and the code-signing runbook now describe the real first-launch path on macOS 15+ ("System Settings → Privacy & Security → Open Anyway"); the right-click-Open workaround no longer exists for unnotarized apps (E3 docs).
+- Release hygiene: the version validator caps minor/patch at 99 so build numbers stay monotonic (E9), the Homebrew cask declares `auto_updates true` so `brew upgrade` stops reinstalling over Sparkle updates (E10), and the signing-certificate fingerprints live only in the signing/verification scripts instead of being duplicated in the release workflow (E11).
+
+### Security
+
+- All GitHub Actions in CI and release workflows are pinned to commit SHAs (tags kept as comments) so a hijacked action tag cannot exfiltrate the Sparkle private key or signing material; Homebrew formula pinning was evaluated and skipped as impractical (E1).
+- Gemini requests send the API key in the `x-goog-api-key` header instead of the URL query string, keeping it out of proxy and system logs (C4).
+- The debug-log redactor also masks Gemini (`AIza…`) and Groq (`gsk_…`) keys and credential-bearing URL query parameters (F4).
+- The legacy-migration backup no longer keeps a plaintext `.env` copy of all API keys — values are redacted after a successful backup — and deleting the backup folder no longer re-triggers migration (F2).
+- Sensitive-app protection now also covers clipboard retention and history storage, not just automatic paste insertion (F3).
+
 ## [2.0.7] - 2026-08-07
 
 ### Fixed

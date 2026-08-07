@@ -146,6 +146,11 @@ struct AppSettings: Codable, Equatable, Sendable {
             reasoningBaseURL,
             fallback: "https://api.openai.com/v1"
         )
+        // 翻译结果由文字整理管线产出；历史配置可能残留“翻译开、文字整理关”
+        // 的失效组合，归一化为关闭翻译。
+        if translationEnabled, !useReasoningModel {
+            translationEnabled = false
+        }
         terminologyProfile.normalize()
     }
 

@@ -27,6 +27,7 @@ cask "mouthpiece" do
   desc "Native speech-to-text dictation app"
   homepage "https://github.com/$REPOSITORY"
 
+  auto_updates true
   depends_on macos: :sequoia
 
   livecheck do

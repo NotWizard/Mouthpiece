@@ -69,7 +69,7 @@ Mouthpiece 2.0 起仅提供 macOS 版本，不再维护 Windows、Linux 或 macO
 4. 首次打开时按照引导授予麦克风和辅助功能权限。
 
 > [!NOTE]
-> Mouthpiece 使用稳定的自签名 macOS 身份，目前没有 Apple notarization。手动下载 DMG 后，macOS 可能要求你右键点击应用并选择“打开”，或前往“系统设置 → 隐私与安全性”确认运行。
+> Mouthpiece 使用稳定的自签名 macOS 身份，目前没有 Apple notarization。手动下载 DMG 后，首次打开会被 macOS 拦截：请前往「系统设置 → 隐私与安全性」，在“安全性”区域点击“仍要打开”，再确认打开一次即可。（自 macOS 15 起，右键点按应用再选“打开”对未公证应用已不再生效。）
 
 ### 使用 Homebrew 安装
 

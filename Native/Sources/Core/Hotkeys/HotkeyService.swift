@@ -91,6 +91,8 @@ struct HotkeyDescriptor: Equatable, Sendable {
         "f1": 122, "f2": 120, "f3": 99, "f4": 118,
         "f5": 96, "f6": 97, "f7": 98, "f8": 100,
         "f9": 101, "f10": 109, "f11": 103, "f12": 111,
+        "f13": 105, "f14": 107, "f15": 113, "f16": 106,
+        "f17": 64, "f18": 79, "f19": 80,
     ]
 }
 
@@ -193,8 +195,14 @@ final class HotkeyService {
             try start(key: key)
             return
         }
-        descriptor = .parse(key)
-        pressed = false
+        let next = HotkeyDescriptor.parse(key)
+        // Same-key refreshes (permission re-checks on activate/wake) must not
+        // drop an in-flight press, or push-to-talk would miss the release.
+        guard next != descriptor else { return }
+        // The key changed mid-press: emit the release through the normal path
+        // first so an active push-to-talk session still stops.
+        setPressed(false)
+        descriptor = next
     }
 
     func stop() {

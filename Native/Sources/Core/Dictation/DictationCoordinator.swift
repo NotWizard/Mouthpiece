@@ -29,6 +29,7 @@ actor DictationCoordinator {
     private var preparingWatchdogTask: Task<Void, Never>?
     private var frameTask: Task<Void, Never>?
     private var reasoningTask: Task<String, Error>?
+    private var mediaPauseTask: Task<Void, Never>?
 
     init(
         audio: AudioCaptureService,
@@ -93,7 +94,7 @@ actor DictationCoordinator {
         reasoningTask?.cancel()
         reasoningTask = nil
         await audio.stop()
-        await mediaPlayback.resumeIfPaused()
+        await resumePausedMedia()
         await bailianProvider.cancel()
         await deepgramProvider.cancel()
         await sonioxProvider.cancel()
@@ -118,13 +119,19 @@ actor DictationCoordinator {
             activeSettings = settings
             speechGate = SpeechActivityGate()
             if settings.pauseOtherMediaDuringDictation {
-                let paused = await mediaPlayback.pauseIfPlaying()
-                if !paused {
-                    await logger.write(
-                        .debug,
-                        "No active media session was paused",
-                        sessionID: sessionID
-                    )
+                // The MediaRemote perl adapter can take seconds in the worst
+                // case; pause in parallel so it never delays audio start-up.
+                let mediaPlayback = mediaPlayback
+                let logger = logger
+                mediaPauseTask = Task {
+                    let paused = await mediaPlayback.pauseIfPlaying()
+                    if !paused {
+                        await logger.write(
+                            .debug,
+                            "No active media session was paused",
+                            sessionID: sessionID
+                        )
+                    }
                 }
             }
             await capsule.setLanguage(settings.uiLanguage)
@@ -221,6 +228,12 @@ actor DictationCoordinator {
     func stop() async {
         guard let sessionID = machine.snapshot.sessionID,
               machine.snapshot.phase == .recording || machine.snapshot.phase == .preparing else { return }
+        // A fast double-toggle stops before any audio arrives; surfacing
+        // noAudioFrames for 2.4s would punish the user for changing their mind.
+        if machine.snapshot.phase == .preparing, pcm.isEmpty {
+            await cancel()
+            return
+        }
         do {
             maximumDurationTask?.cancel()
             maximumDurationTask = nil
@@ -229,7 +242,7 @@ actor DictationCoordinator {
             try machine.transition(to: .stopping, sessionID: sessionID)
             await publish()
             await audio.stop()
-            await mediaPlayback.resumeIfPaused()
+            await resumePausedMedia()
             guard isCurrent(sessionID, phase: .stopping) else { return }
             try machine.transition(to: .finalizing, sessionID: sessionID)
             await publish()
@@ -285,6 +298,11 @@ actor DictationCoordinator {
                 guard !isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider) else {
                     throw DictationSessionError.noSpeech
                 }
+                // Uploading an all-silence capture wastes a round-trip and can
+                // hallucinate text; the gate already knows nothing was said.
+                guard speechGate.speechDetectedEver else {
+                    throw DictationSessionError.noSpeech
+                }
                 rawText = try await transcribeRecordedAudio(
                     pcm16: recordedPCM,
                     settings: activeSettings,
@@ -320,7 +338,18 @@ actor DictationCoordinator {
                     metadata: ["error": error.localizedDescription],
                     sessionID: sessionID
                 )
+                await capsule.flashStatus(localizedKey: "capsule.polishingFallback")
                 guard isCurrent(sessionID, phase: .finalizing) || isCurrent(sessionID, phase: .processing) else { return }
+            }
+
+            // insert() only guards the auto-paste branch; without this the
+            // transcript still lands in the clipboard and history while a
+            // password manager or bank app is frontmost.
+            if let target,
+               activeSettings.sensitiveAppProtectionEnabled,
+               activeSettings.sensitiveAppBlockInsertion,
+               TextInsertionService.isSensitive(target) {
+                throw TextInsertionError.blockedSensitiveApplication(target.applicationName)
             }
 
             let completionPhase: DictationPhase
@@ -358,7 +387,7 @@ actor DictationCoordinator {
         reasoningTask?.cancel()
         reasoningTask = nil
         await audio.stop()
-        await mediaPlayback.resumeIfPaused()
+        await resumePausedMedia()
         if providerSessionID == sessionID { await provider?.cancel() }
         do { try machine.transition(to: .cancelled, sessionID: sessionID) } catch { return }
         await logger.write(.info, "Dictation session cancelled", sessionID: sessionID)
@@ -588,6 +617,16 @@ actor DictationCoordinator {
         provider == "bailian" || provider == "volcengine"
     }
 
+    // Join the parallel pause first: resuming before pauseIfPlaying set its
+    // "paused by us" flag would no-op and leave the user's media stuck paused.
+    private func resumePausedMedia() async {
+        if let task = mediaPauseTask {
+            mediaPauseTask = nil
+            await task.value
+        }
+        await mediaPlayback.resumeIfPaused()
+    }
+
     private func fail(_ error: Error, sessionID: UUID) async {
         guard machine.snapshot.sessionID == sessionID, machine.snapshot.phase.isActive else { return }
         maximumDurationTask?.cancel()
@@ -605,7 +644,7 @@ actor DictationCoordinator {
             return
         }
         await audio.stop()
-        await mediaPlayback.resumeIfPaused()
+        await resumePausedMedia()
         if providerSessionID == sessionID { await provider?.cancel() }
         await logger.write(
             .error,
@@ -631,7 +670,7 @@ actor DictationCoordinator {
         provider = nil
         providerSessionID = nil
         target = nil
-        pcm.removeAll(keepingCapacity: true)
+        pcm.removeAll(keepingCapacity: false)
         machine.reset()
         await publish()
         await capsule.hide()

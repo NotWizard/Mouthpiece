@@ -69,7 +69,7 @@ Starting with Mouthpiece 2.0, only macOS is supported. Windows, Linux, and macOS
 4. Follow the onboarding flow to grant Microphone and Accessibility permissions.
 
 > [!NOTE]
-> Mouthpiece uses a stable self-signed macOS identity and is not currently notarized by Apple. After installing from a DMG, macOS may require you to right-click the app and choose Open, or approve it in System Settings under Privacy & Security.
+> Mouthpiece uses a stable self-signed macOS identity and is not currently notarized by Apple. After installing from a DMG, macOS blocks the first launch: open System Settings → Privacy & Security, click "Open Anyway" in the Security section, then confirm once more. (Since macOS 15, right-clicking the app and choosing Open no longer works for unnotarized apps.)
 
 ### Install with Homebrew
 

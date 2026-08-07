@@ -33,6 +33,21 @@ final class AudioTests: XCTestCase {
     }
 
     @MainActor
+    func testAudioCueSynthesisIsDeterministicSoCachedCuesMatchFreshRenders() {
+        // AudioCueService now renders each preset once into a static cache;
+        // that is only sound if a second render yields identical bytes,
+        // including the seeded-noise presets like "typewriter".
+        for preset in AudioCueService.presets {
+            let start = AudioCueSynthesizer.wav(preset.startCue)
+            let stop = AudioCueSynthesizer.wav(preset.stopCue)
+            XCTAssertEqual(start, AudioCueSynthesizer.wav(preset.startCue), preset.id)
+            XCTAssertEqual(stop, AudioCueSynthesizer.wav(preset.stopCue), preset.id)
+            XCTAssertGreaterThan(start.count, 44, preset.id)
+            XCTAssertGreaterThan(stop.count, 44, preset.id)
+        }
+    }
+
+    @MainActor
     func testAudioCaptureReceivesFrameOffMainActor() async throws {
         guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
             throw XCTSkip("Microphone permission is required for the realtime tap regression test")

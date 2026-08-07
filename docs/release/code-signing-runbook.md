@@ -22,6 +22,8 @@ identifier "com.mouthpiece.app" and certificate root = H"db4ffd2432826cb4da396d1
 
 以上证书、Bundle ID、应用名称和安装路径都不得在普通发布中改变。任何变化都会使 TCC 将新版本视为另一应用。
 
+机器读取的指纹以 `scripts/sign-native-app.sh` 与 `scripts/verify-native-artifact.sh` 的内置默认值为准，`release.yml` 不再硬编码；轮换证书时只需更新这两个脚本的默认值与本表。
+
 ## GitHub Secrets
 
 - `MAC_SELFSIGN_CERT_BASE64`
@@ -43,7 +45,7 @@ identifier "com.mouthpiece.app" and certificate root = H"db4ffd2432826cb4da396d1
 6. 在 `macos-15` 与 `macos-26` runner 运行 XCTest，再使用 EdDSA 生成 Sparkle appcast，发布 GitHub Release 与 Homebrew cask。
 7. 删除 runner 上的临时 Keychain 和证书文件。
 
-签名不是 notarization。自签名应用通过 Homebrew 安装时由 cask 移除 quarantine；手动下载仍可能需要用户在 Finder 中右键打开。
+签名不是 notarization。自签名应用通过 Homebrew 安装时由 cask 移除 quarantine；手动下载后首次打开会被拦截，用户需在「系统设置 → 隐私与安全性」中点击“仍要打开”（macOS 15 起右键“打开”对未公证应用不再生效）。
 
 ## 本地验证
 

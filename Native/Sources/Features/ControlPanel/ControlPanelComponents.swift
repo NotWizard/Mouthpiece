@@ -633,6 +633,7 @@ struct HotkeyCaptureSheet: View {
     @State private var capturedValue: String?
     @State private var monitor: Any?
     @State private var suspendedHotkeys = false
+    @State private var showsModifierHint = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -660,6 +661,12 @@ struct HotkeyCaptureSheet: View {
                         )
                     )
                     .font(.title3.monospaced().weight(.medium))
+                } else if showsModifierHint {
+                    Text("hotkey.capture.requiresModifier")
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
                 } else {
                     HStack(spacing: 8) {
                         ProgressView()
@@ -705,12 +712,24 @@ struct HotkeyCaptureSheet: View {
     private func startListening() {
         stopListening()
         capturedValue = nil
+        showsModifierHint = false
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { event in
             if HotkeyCapture.isCancelKeyCode(event.keyCode) {
                 dismiss()
                 return nil
             }
+            // 无修饰键的普通字符会吞掉日常输入，不能作为全局热键。
+            if HotkeyCapture.rejectsBareKeyDown(
+                type: event.type,
+                keyCode: event.keyCode,
+                flags: event.modifierFlags
+            ) {
+                NSSound.beep()
+                showsModifierHint = true
+                return nil
+            }
             guard let captured = HotkeyCapture.value(from: event) else { return nil }
+            showsModifierHint = false
             capturedValue = captured
             if HotkeyCapture.completesCapture(for: event.type) {
                 stopListening()
@@ -784,6 +803,23 @@ enum HotkeyCapture {
         return !lhs.isEmpty && lhs == rhs
     }
 
+    // F1-F19: the only keys allowed as global hotkeys without modifiers,
+    // because they never collide with regular typing.
+    private static let functionKeyCodes: Set<UInt16> = [
+        122, 120, 99, 118, 96, 97, 98, 100, 101, 109, 103, 111,
+        105, 107, 113, 106, 64, 79, 80,
+    ]
+
+    static func rejectsBareKeyDown(
+        type: NSEvent.EventType,
+        keyCode: UInt16,
+        flags: NSEvent.ModifierFlags
+    ) -> Bool {
+        guard type == .keyDown else { return false }
+        let modifiers = flags.intersection([.command, .option, .control, .shift])
+        return modifiers.isEmpty && !functionKeyCodes.contains(keyCode)
+    }
+
     static func isCancelKeyCode(_ keyCode: UInt16) -> Bool {
         keyCode == 53
     }
@@ -823,6 +859,13 @@ enum HotkeyCapture {
         case 109: "F10"
         case 103: "F11"
         case 111: "F12"
+        case 105: "F13"
+        case 107: "F14"
+        case 113: "F15"
+        case 106: "F16"
+        case 64: "F17"
+        case 79: "F18"
+        case 80: "F19"
         default:
             event.charactersIgnoringModifiers?.lowercased().first.map(String.init)
         }

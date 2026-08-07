@@ -10,6 +10,7 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
     private var terminated = false
     private var ready = false
     private var connectionError: String?
+    private var language: String?
     private var pendingAudio: [Data] = []
     private var pendingAudioBytes = 0
     private var generation = 0
@@ -30,6 +31,7 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
         terminated = false
         ready = false
         connectionError = nil
+        language = configuration.language
         let generation = self.generation
         var components = URLComponents(string: "wss://streaming.assemblyai.com/v3/ws")!
         var query = [
@@ -63,7 +65,7 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
         }
         guard ready else {
             await cancel()
-            throw BailianRealtimeError.timedOut
+            throw RealtimeProviderError.timedOut(provider: "AssemblyAI")
         }
     }
 
@@ -76,16 +78,20 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
     }
 
     func finish() async throws -> String {
-        guard let socket else { return turns.joined(separator: " ") }
+        guard let socket else { return joinedTranscript() }
         let generation = self.generation
         try await socket.send(.string(#"{"type":"Terminate"}"#))
         try ensureCurrent(socket: socket, generation: generation)
         let deadline = ContinuousClock.now + .seconds(5)
-        while !terminated && ContinuousClock.now < deadline {
+        while !terminated && connectionError == nil && ContinuousClock.now < deadline {
             try await Task.sleep(for: .milliseconds(40))
             try ensureCurrent(socket: socket, generation: generation)
         }
-        let text = turns.joined(separator: " ")
+        if let connectionError {
+            await cancel()
+            throw BailianRealtimeError.protocolError(connectionError)
+        }
+        let text = joinedTranscript()
         await cancel()
         return text
     }
@@ -130,13 +136,13 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
                             turns.append(transcript)
                             normalizedTurns.append(normalized)
                         }
-                        eventHandler?(.final(turns.joined(separator: " ")))
+                        eventHandler?(.final(joinedTranscript()))
                     } else {
-                        eventHandler?(.partial(stable: turns.joined(separator: " "), active: transcript))
+                        eventHandler?(.partial(stable: joinedTranscript(), active: transcript))
                     }
                 case "Termination":
                     terminated = true
-                    eventHandler?(.sessionFinished(turns.joined(separator: " ")))
+                    eventHandler?(.sessionFinished(joinedTranscript()))
                 case "Error":
                     let message = payload["error"] as? String ?? "AssemblyAI error"
                     connectionError = message
@@ -146,9 +152,16 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
             }
         } catch {
             if isCurrent(socket: socket, generation: generation), !Task.isCancelled {
+                connectionError = error.localizedDescription
                 eventHandler?(.error(error.localizedDescription))
             }
         }
+    }
+
+    // AssemblyAI turns carry no joining hints; TranscriptJoiner drops the
+    // space between CJK turns instead of gluing "你好 世界".
+    private func joinedTranscript() -> String {
+        turns.reduce("") { TranscriptJoiner.join($0, $1, language: language) }
     }
 
     private func normalize(_ value: String) -> String {

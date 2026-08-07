@@ -12,7 +12,7 @@ struct ProcessingSettingsView: View {
                     title: "processing.enableCleanup",
                     showsDivider: false
                 ) {
-                    Toggle("", isOn: settingBinding(environment, \.useReasoningModel))
+                    Toggle("", isOn: cleanupEnabledBinding)
                         .labelsHidden()
                         .toggleStyle(.switch)
                         .controlSize(.small)
@@ -45,6 +45,7 @@ struct ProcessingSettingsView: View {
                 SettingsRow(
                     icon: "translate",
                     title: "processing.enableTranslation",
+                    detail: "processing.translationRequiresCleanup",
                     showsDivider: environment.settings.translationEnabled
                 ) {
                     Toggle("", isOn: translationEnabledBinding)
@@ -170,12 +171,31 @@ struct ProcessingSettingsView: View {
         ) != nil
     }
 
+    private var cleanupEnabledBinding: Binding<Bool> {
+        Binding(
+            get: { environment.settings.useReasoningModel },
+            set: { enabled in
+                var settings = environment.settings
+                settings.useReasoningModel = enabled
+                // 翻译由文字整理管线产出，关闭文字整理时必须联动关闭翻译。
+                if !enabled, settings.translationEnabled {
+                    settings.translationEnabled = false
+                }
+                environment.saveSettings(settings)
+            }
+        )
+    }
+
     private var translationEnabledBinding: Binding<Bool> {
         Binding(
             get: { environment.settings.translationEnabled },
             set: { enabled in
                 var settings = environment.settings
                 settings.translationEnabled = enabled
+                // 翻译由文字整理管线产出，开启翻译时必须联动启用文字整理。
+                if enabled, !settings.useReasoningModel {
+                    settings.useReasoningModel = true
+                }
                 if enabled && settings.translationTargetLanguage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     settings.translationTargetLanguage = "English"
                 }

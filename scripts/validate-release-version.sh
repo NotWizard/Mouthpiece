@@ -4,8 +4,10 @@ set -euo pipefail
 VERSION=${1#v}
 PROJECT_VERSION=$(awk '/MARKETING_VERSION:/ { print $2; exit }' project.yml)
 
-if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "Invalid semantic version: $VERSION" >&2
+# minor/patch are capped at 99 because BUILD_NUMBER = major*10000 + minor*100 + patch
+# (scripts/build-native-release.sh); a third digit would collide with the next slot.
+if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]{1,2}\.[0-9]{1,2}$ ]]; then
+  echo "Invalid semantic version: $VERSION (minor and patch must be 0-99; BUILD_NUMBER packs them as major*10000 + minor*100 + patch)" >&2
   exit 1
 fi
 

@@ -241,6 +241,43 @@ final class AppEnvironmentTests: XCTestCase {
         )
     }
 
+    func testHotkeyCaptureRejectsBareKeysButAllowsFunctionKeysAndCombos() {
+        // Bare character keys would swallow everyday typing system-wide.
+        XCTAssertTrue(HotkeyCapture.rejectsBareKeyDown(type: .keyDown, keyCode: 0, flags: []))
+        XCTAssertTrue(HotkeyCapture.rejectsBareKeyDown(type: .keyDown, keyCode: 49, flags: []))
+        // Modified combos and F1-F19 never collide with regular typing.
+        XCTAssertFalse(HotkeyCapture.rejectsBareKeyDown(type: .keyDown, keyCode: 0, flags: [.command]))
+        XCTAssertFalse(HotkeyCapture.rejectsBareKeyDown(type: .keyDown, keyCode: 49, flags: [.shift]))
+        XCTAssertFalse(HotkeyCapture.rejectsBareKeyDown(type: .keyDown, keyCode: 111, flags: []))
+        XCTAssertFalse(HotkeyCapture.rejectsBareKeyDown(type: .keyDown, keyCode: 105, flags: []))
+        XCTAssertFalse(HotkeyCapture.rejectsBareKeyDown(type: .keyDown, keyCode: 80, flags: []))
+        // Modifier-only capture flows through flagsChanged untouched.
+        XCTAssertFalse(HotkeyCapture.rejectsBareKeyDown(type: .flagsChanged, keyCode: 54, flags: []))
+
+        // Captured F13/F19 events round-trip through the parser.
+        for (keyCode, name): (UInt16, String) in [(105, "F13"), (80, "F19")] {
+            guard let event = NSEvent.keyEvent(
+                with: .keyDown,
+                location: .zero,
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                characters: "",
+                charactersIgnoringModifiers: "",
+                isARepeat: false,
+                keyCode: keyCode
+            ) else {
+                return XCTFail("Could not synthesize key event for \(name)")
+            }
+            XCTAssertEqual(HotkeyCapture.value(from: event), name)
+            XCTAssertEqual(
+                HotkeyDescriptor.parse(name),
+                HotkeyDescriptor(keyCode: CGKeyCode(keyCode), modifiers: [], modifierOnly: false)
+            )
+        }
+    }
+
     func testSystemSettingsWindowLocatorIgnoresHiddenWindows() {
         func window(pid: pid_t, frame: CGRect, isOnscreen: Bool) -> [String: Any] {
             [
