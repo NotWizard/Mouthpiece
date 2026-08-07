@@ -23,10 +23,19 @@ actor KeychainStore {
         return "com.mouthpiece.app.credentials.automation.\(ProcessInfo.processInfo.processIdentifier)"
     }
 
+    // Test seam: the service name is fixed per process either way (the
+    // environment and pid never change mid-run), so capturing it at init is
+    // behaviorally identical while letting tests use an isolated service.
+    private let service: String
+
+    init(service: String = KeychainStore.service) {
+        self.service = service
+    }
+
     func read(_ account: CredentialAccount) throws -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.service,
+            kSecAttrService as String: service,
             kSecAttrAccount as String: account.rawValue,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
@@ -44,7 +53,7 @@ actor KeychainStore {
     func write(_ value: String, for account: CredentialAccount) throws {
         let base: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.service,
+            kSecAttrService as String: service,
             kSecAttrAccount as String: account.rawValue,
         ]
         let data = Data(value.utf8)
@@ -66,7 +75,7 @@ actor KeychainStore {
     func delete(_ account: CredentialAccount) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.service,
+            kSecAttrService as String: service,
             kSecAttrAccount as String: account.rawValue,
         ]
         let status = SecItemDelete(query as CFDictionary)

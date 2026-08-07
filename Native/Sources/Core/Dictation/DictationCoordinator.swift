@@ -16,6 +16,9 @@ actor DictationCoordinator {
     private let localRuntime: LocalModelRuntime
     private let reasoning: ReasoningService
     private let mediaPlayback = MediaPlaybackController()
+    // Test seam: swaps the selected realtime provider for a scripted stub in
+    // unit tests; nil (the default) keeps the production provider wiring.
+    private let realtimeProviderOverride: (any RealtimeTranscriptionProvider)?
     private let onSnapshot: @MainActor @Sendable (DictationSnapshot) -> Void
 
     private var machine = DictationStateMachine()
@@ -46,6 +49,7 @@ actor DictationCoordinator {
         volcengineProvider: VolcengineRealtimeProvider = VolcengineRealtimeProvider(),
         localRuntime: LocalModelRuntime = LocalModelRuntime(),
         reasoningService: ReasoningService? = nil,
+        realtimeProviderOverride: (any RealtimeTranscriptionProvider)? = nil,
         onSnapshot: @escaping @MainActor @Sendable (DictationSnapshot) -> Void
     ) {
         self.audio = audio
@@ -62,6 +66,7 @@ actor DictationCoordinator {
         self.volcengineProvider = volcengineProvider
         self.localRuntime = localRuntime
         self.reasoning = reasoningService ?? ReasoningService(keychain: keychain)
+        self.realtimeProviderOverride = realtimeProviderOverride
         self.onSnapshot = onSnapshot
     }
 
@@ -549,20 +554,26 @@ actor DictationCoordinator {
     private func realtimeProvider(
         for settings: AppSettings
     ) -> (provider: any RealtimeTranscriptionProvider, account: CredentialAccount, defaultModel: String)? {
+        let selected: (provider: any RealtimeTranscriptionProvider, account: CredentialAccount, defaultModel: String)?
         switch settings.cloudTranscriptionProvider {
         case "bailian":
-            (bailianProvider, .bailian, BailianRealtimeProvider.defaultModel)
+            selected = (bailianProvider, .bailian, BailianRealtimeProvider.defaultModel)
         case "volcengine":
-            (volcengineProvider, .volcengine, VolcengineRealtimeProvider.model)
+            selected = (volcengineProvider, .volcengine, VolcengineRealtimeProvider.model)
         case "deepgram" where settings.deepgramStreamingEnabled:
-            (deepgramProvider, .deepgram, "nova-3")
+            selected = (deepgramProvider, .deepgram, "nova-3")
         case "soniox" where settings.sonioxRealtimeEnabled:
-            (sonioxProvider, .soniox, "stt-rt-v4")
+            selected = (sonioxProvider, .soniox, "stt-rt-v4")
         case "assemblyai" where settings.assemblyAIStreaming:
-            (assemblyAIProvider, .assemblyAI, "universal-streaming-multilingual")
+            selected = (assemblyAIProvider, .assemblyAI, "universal-streaming-multilingual")
         default:
-            nil
+            selected = nil
         }
+        guard let selected else { return nil }
+        if let realtimeProviderOverride {
+            return (realtimeProviderOverride, selected.account, selected.defaultModel)
+        }
+        return selected
     }
 
     private func realtimeConfiguration(

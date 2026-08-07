@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- R1 engineering guardrails from the 2026-08-07 improvement audit, all cross-reviewed:
+  - Lint toolchain (E6): repo-level `.swiftlint.yml` (Native-only, thresholds tuned so existing code passes with zero errors) and `.swiftformat` (check-only safe-rule whitelist); CI gains a `lint` job running SwiftLint, `swiftformat --lint`, and shellcheck — all three pass locally with zero errors.
+  - CI hardening (E5): workflow-level `concurrency` with cancel-in-progress, per-job `timeout-minutes`, and SPM + Homebrew caches; newly added actions are SHA-pinned like the rest.
+  - Weekly upstream smoke job (E2): a scheduled/dispatchable `upstream-smoke` job builds `download-native-binaries.sh arm64` so a broken whisper.cpp/sherpa-onnx/mediaremote toolchain surfaces within a week instead of on release day; scheduled runs skip the regular test jobs.
+  - Test observability (E12): tests write an xcresult bundle that is uploaded on failure, and successful runs print a line-coverage summary.
+  - Core-path test coverage (E4①-⑤, +14 tests, suite now 109): DictationCoordinator orchestration with a scripted stub provider (connect-failure recovery, realtime completion into history, cancel suppressing late events); KeychainStore round-trip/overwrite/delete against an isolated service; AssemblyAI and Deepgram protocol fixture decoding including turn merging and finalize paths; TextInsertionService insert() decision flow (sensitive-app block, dead target, AX fallback, per-app paste delay); UpdateController feed selection per architecture, activation gating, and keyless no-op. Seven minimal test seams (default-preserving injection points and access-level changes) verified behavior-neutral by the independent reviewer.
+
 ### Fixed
 
 - R0 quick-win batch from the 2026-08-07 improvement audit (docs/audits/2026-08-07-improvement-plan.md), all cross-reviewed:

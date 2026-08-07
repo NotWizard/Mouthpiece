@@ -32,7 +32,9 @@ enum AudioCaptureError: LocalizedError {
 }
 
 @MainActor
-final class AudioCaptureService {
+// Not final: DictationCoordinator tests stub the microphone by subclassing
+// and overriding requestPermission/start/stop. No production subclass exists.
+class AudioCaptureService {
     nonisolated static let outputSampleRate = 16_000
 
     nonisolated static func normalizedLevel(rms: Double, previous: Float) -> Float {

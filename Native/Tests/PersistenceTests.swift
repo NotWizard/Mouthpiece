@@ -404,6 +404,37 @@ final class PersistenceTests: XCTestCase {
         XCTAssertEqual(filtered, ["uiLanguage": "zh-CN"])
     }
 
+    // E4(2): the round trip runs against a unique per-test service name, so it
+    // never touches the real "com.mouthpiece.app.credentials" service.
+    func testKeychainStoreRoundTripOverwriteAndDelete() async throws {
+        let store = KeychainStore(service: "com.mouthpiece.app.tests.\(UUID().uuidString)")
+        do {
+            try await store.write("secret-one", for: .openAI)
+        } catch KeychainError.unhandled(let status) {
+            throw XCTSkip("The keychain is unavailable in this environment (OSStatus \(status)).")
+        }
+        addTeardownBlock { try? await store.delete(.openAI) }
+
+        let stored = try await store.read(.openAI)
+        XCTAssertEqual(stored, "secret-one")
+
+        // A second write must take the SecItemUpdate path and replace the value.
+        try await store.write("secret-two", for: .openAI)
+        let updated = try await store.read(.openAI)
+        XCTAssertEqual(updated, "secret-two")
+
+        // Accounts that were never written read as nil and delete without throwing.
+        let missing = try await store.read(.groq)
+        XCTAssertNil(missing)
+        try await store.delete(.groq)
+
+        try await store.delete(.openAI)
+        let removed = try await store.read(.openAI)
+        XCTAssertNil(removed)
+        // Deleting an already-deleted item stays a silent no-op.
+        try await store.delete(.openAI)
+    }
+
     private func chromiumKey(_ key: String, origin: String = "_file://") -> Data {
         var data = Data(origin.utf8)
         data.append(0)

@@ -121,33 +121,29 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
                 @unknown default: continue
                 }
                 guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                      let type = payload["type"] as? String else { continue }
-                switch type {
-                case "Begin":
+                      let parsed = Self.parseMessage(payload) else { continue }
+                switch parsed {
+                case .begin:
                     ready = true
                     try await flushPendingAudio(socket, generation: generation)
-                case "Turn":
-                    guard let transcript = payload["transcript"] as? String, !transcript.isEmpty else { continue }
-                    if payload["end_of_turn"] as? Bool == true {
-                        let normalized = normalize(transcript)
-                        if normalizedTurns.last == normalized {
-                            if payload["turn_is_formatted"] as? Bool == true { turns[turns.count - 1] = transcript }
-                        } else {
-                            turns.append(transcript)
-                            normalizedTurns.append(normalized)
-                        }
+                case .turn(let transcript, let endOfTurn, let isFormatted):
+                    if endOfTurn {
+                        Self.mergeTurn(
+                            transcript,
+                            isFormatted: isFormatted,
+                            into: &turns,
+                            normalized: &normalizedTurns
+                        )
                         eventHandler?(.final(joinedTranscript()))
                     } else {
                         eventHandler?(.partial(stable: joinedTranscript(), active: transcript))
                     }
-                case "Termination":
+                case .termination:
                     terminated = true
                     eventHandler?(.sessionFinished(joinedTranscript()))
-                case "Error":
-                    let message = payload["error"] as? String ?? "AssemblyAI error"
+                case .error(let message):
                     connectionError = message
                     eventHandler?(.error(message))
-                default: break
                 }
             }
         } catch {
@@ -158,13 +154,54 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
         }
     }
 
+    enum ServerMessage: Equatable, Sendable {
+        case begin
+        case turn(transcript: String, endOfTurn: Bool, isFormatted: Bool)
+        case termination
+        case error(String)
+    }
+
+    // Static so fixture tests can decode real protocol samples without a socket.
+    nonisolated static func parseMessage(_ payload: [String: Any]) -> ServerMessage? {
+        switch payload["type"] as? String {
+        case "Begin": return .begin
+        case "Turn":
+            guard let transcript = payload["transcript"] as? String, !transcript.isEmpty else { return nil }
+            return .turn(
+                transcript: transcript,
+                endOfTurn: payload["end_of_turn"] as? Bool == true,
+                isFormatted: payload["turn_is_formatted"] as? Bool == true
+            )
+        case "Termination": return .termination
+        case "Error": return .error(payload["error"] as? String ?? "AssemblyAI error")
+        default: return nil
+        }
+    }
+
+    // The formatted re-delivery of a turn replaces the unformatted duplicate
+    // instead of appending it twice.
+    nonisolated static func mergeTurn(
+        _ transcript: String,
+        isFormatted: Bool,
+        into turns: inout [String],
+        normalized normalizedTurns: inout [String]
+    ) {
+        let normalizedTranscript = normalize(transcript)
+        if normalizedTurns.last == normalizedTranscript {
+            if isFormatted { turns[turns.count - 1] = transcript }
+        } else {
+            turns.append(transcript)
+            normalizedTurns.append(normalizedTranscript)
+        }
+    }
+
     // AssemblyAI turns carry no joining hints; TranscriptJoiner drops the
     // space between CJK turns instead of gluing "你好 世界".
     private func joinedTranscript() -> String {
         turns.reduce("") { TranscriptJoiner.join($0, $1, language: language) }
     }
 
-    private func normalize(_ value: String) -> String {
+    private nonisolated static func normalize(_ value: String) -> String {
         value.lowercased()
             .replacingOccurrences(of: #"[^\p{L}\p{N}\s]"#, with: " ", options: .regularExpression)
             .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)

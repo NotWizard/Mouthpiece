@@ -514,4 +514,138 @@ final class AppEnvironmentTests: XCTestCase {
         ]
         XCTAssertTrue(required.isSubset(of: keySets[0]))
     }
+
+    // E4(4): insert() decision paths that need no live AX session.
+    func testInsertBlocksSensitiveTargetsBeforeTouchingAccessibility() async {
+        let service = TextInsertionService()
+        var settings = AppSettings()
+        settings.sensitiveAppProtectionEnabled = true
+        settings.sensitiveAppBlockInsertion = true
+        // The test process itself is the target, so the process-exists guard
+        // passes and the sensitive-app check is the deciding branch.
+        let target = TextInsertionTarget(
+            processIdentifier: ProcessInfo.processInfo.processIdentifier,
+            bundleIdentifier: "com.example.bitwarden",
+            applicationName: "Bitwarden"
+        )
+
+        do {
+            try await service.insert("secret text", into: target, settings: settings)
+            XCTFail("Expected the sensitive-app guard to block insertion")
+        } catch TextInsertionError.blockedSensitiveApplication(let name) {
+            XCTAssertEqual(name, "Bitwarden")
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testInsertFailsWhenTheTargetProcessIsGone() async {
+        let service = TextInsertionService()
+        let target = TextInsertionTarget(
+            processIdentifier: pid_t(99_999_999),
+            bundleIdentifier: "com.example.gone",
+            applicationName: "Gone App"
+        )
+
+        do {
+            try await service.insert("text", into: target, settings: AppSettings())
+            XCTFail("Expected targetUnavailable for a dead process")
+        } catch TextInsertionError.targetUnavailable {
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testAccessibilityInsertionWithoutAFocusedElementFallsThrough() async {
+        // A missing focused element must reduce to .notInserted so insert()
+        // continues to the next strategy instead of failing or "succeeding".
+        let outcome = await TextInsertionService.insertViaAccessibility("text", on: nil)
+        guard case .notInserted = outcome else {
+            return XCTFail("Expected .notInserted for a missing element, got \(outcome)")
+        }
+    }
+
+    func testPasteDelayAdaptsToTheTargetApplication() {
+        let service = TextInsertionService()
+        func target(_ bundleIdentifier: String) -> TextInsertionTarget {
+            TextInsertionTarget(
+                processIdentifier: 1,
+                bundleIdentifier: bundleIdentifier,
+                applicationName: "App"
+            )
+        }
+
+        XCTAssertEqual(service.pasteDelay(for: target("com.apple.Terminal")), .milliseconds(90))
+        XCTAssertEqual(service.pasteDelay(for: target("com.googlecode.iterm2")), .milliseconds(90))
+        XCTAssertEqual(service.pasteDelay(for: target("com.microsoft.VSCode")), .milliseconds(220))
+        XCTAssertEqual(service.pasteDelay(for: target("com.google.Chrome")), .milliseconds(220))
+        XCTAssertEqual(service.pasteDelay(for: target("com.apple.TextEdit")), .milliseconds(180))
+    }
+
+    // E4(5): update feed and activation decisions.
+    func testUpdateFeedSelectsTheArchitectureSpecificAppcastFile() {
+        XCTAssertEqual(
+            ArchitectureUpdateFeedDelegate.feedURLString(architecture: "arm64"),
+            "https://github.com/NotWizard/Mouthpiece/releases/latest/download/appcast-arm64.xml"
+        )
+        XCTAssertEqual(
+            ArchitectureUpdateFeedDelegate.feedURLString(architecture: "x64"),
+            "https://github.com/NotWizard/Mouthpiece/releases/latest/download/appcast-x64.xml"
+        )
+        // The build-selected feed must be one of the two published feeds.
+        XCTAssertTrue([
+            ArchitectureUpdateFeedDelegate.feedURLString(architecture: "arm64"),
+            ArchitectureUpdateFeedDelegate.feedURLString(architecture: "x64"),
+        ].contains(ArchitectureUpdateFeedDelegate.feedURLString))
+    }
+
+    func testUpdateActivationRequiresAPublicKeyAndHonorsTheKillSwitch() {
+        XCTAssertEqual(
+            UpdateController.activation(
+                publicKey: "xRChY2RK",
+                environment: ["MOUTHPIECE_DISABLE_UPDATES": "1"]
+            ),
+            .disabledByEnvironment
+        )
+        XCTAssertEqual(
+            UpdateController.activation(publicKey: nil, environment: [:]),
+            .missingPublicKey
+        )
+        XCTAssertEqual(
+            UpdateController.activation(publicKey: "  \n", environment: [:]),
+            .missingPublicKey
+        )
+        XCTAssertEqual(
+            UpdateController.activation(publicKey: "xRChY2RK", environment: [:]),
+            .enabled
+        )
+        XCTAssertEqual(
+            UpdateController.activation(
+                publicKey: "xRChY2RK",
+                environment: ["MOUTHPIECE_DISABLE_UPDATES": "0"]
+            ),
+            .enabled
+        )
+    }
+
+    func testUpdateControllerStaysUnconfiguredWithoutAPublicKey() throws {
+        final class KeylessBundle: Bundle {
+            override func object(forInfoDictionaryKey key: String) -> Any? { nil }
+        }
+
+        // NSBundle caches instances per path (Bundle.main's path would return
+        // the cached real bundle), so use a fresh directory with no Info.plist.
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Mouthpiece-KeylessBundle-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+
+        let bundle = try XCTUnwrap(KeylessBundle(path: directory.path))
+        XCTAssertNil(bundle.object(forInfoDictionaryKey: "SUPublicEDKey"))
+        let controller = UpdateController(bundle: bundle)
+        XCTAssertFalse(controller.isConfigured)
+        XCTAssertFalse(controller.canCheckForUpdates)
+        // Must be a safe no-op instead of crashing on a nil updater.
+        controller.checkForUpdates()
+    }
 }

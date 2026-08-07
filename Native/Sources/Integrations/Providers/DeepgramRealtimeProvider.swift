@@ -108,25 +108,19 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
             while isCurrent(socket: socket, generation: generation), !Task.isCancelled {
                 let message = try await socket.receive(timeout: .seconds(60))
                 guard isCurrent(socket: socket, generation: generation), !Task.isCancelled else { return }
-                guard let payload = json(message), let type = payload["type"] as? String else { continue }
-                switch type {
-                case "Results":
-                    guard let channel = payload["channel"] as? [String: Any],
-                          let alternatives = channel["alternatives"] as? [[String: Any]],
-                          let transcript = alternatives.first?["transcript"] as? String,
-                          !transcript.isEmpty else { continue }
-                    if payload["is_final"] as? Bool == true || payload["from_finalize"] as? Bool == true {
+                guard let payload = json(message), let parsed = Self.parseMessage(payload) else { continue }
+                switch parsed {
+                case .transcript(let transcript, let isFinal):
+                    if isFinal {
                         finalSegments.append(transcript.trimmingCharacters(in: .whitespacesAndNewlines))
                         eventHandler?(.final(joinedTranscript()))
                     } else {
                         eventHandler?(.partial(stable: joinedTranscript(), active: transcript))
                     }
-                case "SpeechStarted": eventHandler?(.speechStarted)
-                case "Error":
-                    let message = payload["description"] as? String ?? "Deepgram error"
+                case .speechStarted: eventHandler?(.speechStarted)
+                case .error(let message):
                     terminalError = message
                     eventHandler?(.error(message))
-                default: break
                 }
             }
         } catch {
@@ -137,6 +131,30 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
         }
         if isCurrent(socket: socket, generation: generation), !Task.isCancelled {
             finished = true
+        }
+    }
+
+    enum ServerMessage: Equatable, Sendable {
+        case transcript(text: String, isFinal: Bool)
+        case speechStarted
+        case error(String)
+    }
+
+    // Static so fixture tests can decode real protocol samples without a socket.
+    nonisolated static func parseMessage(_ payload: [String: Any]) -> ServerMessage? {
+        switch payload["type"] as? String {
+        case "Results":
+            guard let channel = payload["channel"] as? [String: Any],
+                  let alternatives = channel["alternatives"] as? [[String: Any]],
+                  let transcript = alternatives.first?["transcript"] as? String,
+                  !transcript.isEmpty else { return nil }
+            return .transcript(
+                text: transcript,
+                isFinal: payload["is_final"] as? Bool == true || payload["from_finalize"] as? Bool == true
+            )
+        case "SpeechStarted": return .speechStarted
+        case "Error": return .error(payload["description"] as? String ?? "Deepgram error")
+        default: return nil
         }
     }
 

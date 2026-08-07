@@ -6,23 +6,46 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    # Weekly upstream smoke test (Monday 03:17 UTC), see `upstream-smoke` job.
+    - cron: "17 3 * * 1"
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
+    if: github.event_name != 'schedule'
     strategy:
       fail-fast: false
       matrix:
         runner: [macos-15, macos-26]
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Select Xcode 26.3 on macOS 15
         if: matrix.runner == 'macos-15'
         run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+
+      - name: Cache Homebrew downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: brew-${{ matrix.runner }}-xcodegen
+
+      - name: Cache SPM packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .build/spm-packages
+          key: spm-${{ matrix.runner }}-${{ hashFiles('Mouthpiece.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved', 'project.yml') }}
+          restore-keys: |
+            spm-${{ matrix.runner }}-
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -33,8 +56,29 @@ jobs:
       - name: Run native tests
         run: |
           xcodebuild -project Mouthpiece.xcodeproj -scheme Mouthpiece \
-            -configuration Debug -derivedDataPath .build/xcode test \
+            -configuration Debug -derivedDataPath .build/xcode \
+            -clonedSourcePackagesDirPath .build/spm-packages \
+            -resultBundlePath .build/test-results/Mouthpiece.xcresult \
+            -enableCodeCoverage YES test \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Report coverage summary
+        run: |
+          xcrun xccov view --report --json .build/test-results/Mouthpiece.xcresult > .build/coverage.json
+          python3 - <<'EOF'
+          import json
+          with open(".build/coverage.json") as f:
+              report = json.load(f)
+          print(f"Total line coverage: {report['lineCoverage'] * 100:.2f}%")
+          EOF
+
+      - name: Upload xcresult bundle
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: xcresult-${{ matrix.runner }}
+          path: .build/test-results/Mouthpiece.xcresult
+          if-no-files-found: ignore
 
       - name: Verify scripts
         run: |
@@ -43,18 +87,80 @@ jobs:
             "$(awk '/MARKETING_VERSION:/ { print $2; exit }' project.yml)"
 
   intel:
+    if: github.event_name != 'schedule'
     runs-on: macos-26-intel
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Cache Homebrew downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: brew-macos-26-intel-xcodegen
+
+      - name: Cache SPM packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .build/spm-packages
+          key: spm-macos-26-intel-${{ hashFiles('Mouthpiece.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved', 'project.yml') }}
+          restore-keys: |
+            spm-macos-26-intel-
+
       - name: Install XcodeGen
         run: brew install xcodegen
+
       - name: Generate Xcode project
         run: xcodegen generate
+
       - name: Test and compile Intel target
         run: |
           xcodebuild -project Mouthpiece.xcodeproj -scheme Mouthpiece \
-            -configuration Debug -derivedDataPath .build/xcode-intel test \
+            -configuration Debug -derivedDataPath .build/xcode-intel \
+            -clonedSourcePackagesDirPath .build/spm-packages test \
             ARCHS=x86_64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO
           xcodebuild -project Mouthpiece.xcodeproj -scheme Mouthpiece \
-            -configuration Release -destination 'generic/platform=macOS' build \
+            -configuration Release -destination 'generic/platform=macOS' \
+            -clonedSourcePackagesDirPath .build/spm-packages build \
             ARCHS=x86_64 ONLY_ACTIVE_ARCH=NO CODE_SIGNING_ALLOWED=NO
+
+  lint:
+    if: github.event_name != 'schedule'
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Cache Homebrew downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: brew-macos-26-lint
+
+      - name: Install lint tools
+        run: brew install swiftlint swiftformat shellcheck
+
+      - name: SwiftLint (zero errors; warnings tolerated)
+        run: swiftlint lint --reporter github-actions-logging
+
+      - name: SwiftFormat lint
+        run: swiftformat --lint Native
+
+      - name: ShellCheck
+        run: shellcheck -S warning scripts/*.sh
+
+  # E2: weekly smoke test that the upstream download + build pipeline for the
+  # bundled native binaries still works. Runs only on schedule/manual dispatch
+  # so it never slows down regular push/PR CI.
+  upstream-smoke:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Install build tools
+        run: brew install cmake
+
+      - name: Smoke-test upstream native binary pipeline
+        run: scripts/download-native-binaries.sh arm64

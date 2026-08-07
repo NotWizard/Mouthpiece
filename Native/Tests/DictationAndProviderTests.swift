@@ -588,6 +588,96 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertNil(funParameters["vocabulary"])
     }
 
+    func testAssemblyAIFixturesDecodeBeginTurnsTerminationAndError() throws {
+        let fixtures = [
+            #"{"type":"Begin","id":"3f1a2b64-0c11-4e8e-9a55-1c1f6a3f2d10","expires_at":1754550000}"#,
+            #"{"type":"Turn","turn_order":0,"turn_is_formatted":false,"end_of_turn":false,"transcript":"hello wor","end_of_turn_confidence":0.12,"words":[{"text":"hello","word_is_final":true},{"text":"wor","word_is_final":false}]}"#,
+            #"{"type":"Turn","turn_order":0,"turn_is_formatted":false,"end_of_turn":true,"transcript":"hello world","end_of_turn_confidence":0.94,"words":[]}"#,
+            #"{"type":"Turn","turn_order":0,"turn_is_formatted":true,"end_of_turn":true,"transcript":"Hello, world.","words":[]}"#,
+            #"{"type":"Termination","audio_duration_seconds":4,"session_duration_seconds":6}"#,
+            #"{"type":"Error","error":"Invalid API key"}"#,
+        ]
+        let messages = try fixtures.map { raw in
+            AssemblyAIRealtimeProvider.parseMessage(
+                try XCTUnwrap(JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any])
+            )
+        }
+
+        XCTAssertEqual(messages, [
+            .begin,
+            .turn(transcript: "hello wor", endOfTurn: false, isFormatted: false),
+            .turn(transcript: "hello world", endOfTurn: true, isFormatted: false),
+            .turn(transcript: "Hello, world.", endOfTurn: true, isFormatted: true),
+            .termination,
+            .error("Invalid API key"),
+        ])
+
+        // Empty transcripts and unknown message types are dropped, and an
+        // error without a message keeps a readable fallback.
+        XCTAssertNil(AssemblyAIRealtimeProvider.parseMessage(["type": "Turn", "transcript": ""]))
+        XCTAssertNil(AssemblyAIRealtimeProvider.parseMessage(["type": "UsageReport"]))
+        XCTAssertEqual(
+            AssemblyAIRealtimeProvider.parseMessage(["type": "Error"]),
+            .error("AssemblyAI error")
+        )
+    }
+
+    func testAssemblyAIFormattedTurnReplacesItsUnformattedDuplicate() {
+        var turns: [String] = []
+        var normalized: [String] = []
+
+        AssemblyAIRealtimeProvider.mergeTurn(
+            "hello world", isFormatted: false, into: &turns, normalized: &normalized
+        )
+        // The formatted re-delivery replaces the raw duplicate instead of
+        // doubling the sentence in the final transcript.
+        AssemblyAIRealtimeProvider.mergeTurn(
+            "Hello, world.", isFormatted: true, into: &turns, normalized: &normalized
+        )
+        XCTAssertEqual(turns, ["Hello, world."])
+
+        AssemblyAIRealtimeProvider.mergeTurn(
+            "second turn", isFormatted: false, into: &turns, normalized: &normalized
+        )
+        XCTAssertEqual(turns, ["Hello, world.", "second turn"])
+
+        // An identical unformatted repeat is not appended twice.
+        AssemblyAIRealtimeProvider.mergeTurn(
+            "second turn", isFormatted: false, into: &turns, normalized: &normalized
+        )
+        XCTAssertEqual(turns, ["Hello, world.", "second turn"])
+    }
+
+    func testDeepgramFixturesDecodeInterimFinalFinalizeAndError() throws {
+        func parse(_ raw: String) throws -> DeepgramRealtimeProvider.ServerMessage? {
+            DeepgramRealtimeProvider.parseMessage(
+                try XCTUnwrap(JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any])
+            )
+        }
+
+        let interimJSON = #"{"type":"Results","channel_index":[0,1],"duration":1.02,"start":0.0,"is_final":false,"speech_final":false,"channel":{"alternatives":[{"transcript":"hello wor","confidence":0.92,"words":[]}]}}"#
+        let finalJSON = #"{"type":"Results","channel_index":[0,1],"duration":1.98,"start":1.02,"is_final":true,"speech_final":true,"channel":{"alternatives":[{"transcript":"hello world","confidence":0.97,"words":[]}]}}"#
+        let finalizeJSON = #"{"type":"Results","is_final":false,"from_finalize":true,"channel":{"alternatives":[{"transcript":"tail words","confidence":0.9,"words":[]}]}}"#
+        let speechStartedJSON = #"{"type":"SpeechStarted","channel":[0],"timestamp":0.5}"#
+        let errorJSON = #"{"type":"Error","description":"Deepgram did not receive audio within the timeout window.","variant":"NET-0001"}"#
+
+        XCTAssertEqual(try parse(interimJSON), .transcript(text: "hello wor", isFinal: false))
+        XCTAssertEqual(try parse(finalJSON), .transcript(text: "hello world", isFinal: true))
+        // A Finalize-triggered flush counts as final even with is_final=false.
+        XCTAssertEqual(try parse(finalizeJSON), .transcript(text: "tail words", isFinal: true))
+        XCTAssertEqual(try parse(speechStartedJSON), .speechStarted)
+        XCTAssertEqual(
+            try parse(errorJSON),
+            .error("Deepgram did not receive audio within the timeout window.")
+        )
+
+        // Metadata frames and empty transcripts are dropped, and an error
+        // without a description keeps a readable fallback.
+        XCTAssertNil(try parse(#"{"type":"Metadata","request_id":"r-1"}"#))
+        XCTAssertNil(try parse(#"{"type":"Results","is_final":true,"channel":{"alternatives":[{"transcript":""}]}}"#))
+        XCTAssertEqual(try parse(#"{"type":"Error"}"#), .error("Deepgram error"))
+    }
+
     func testReasoningPromptIncludesDictionaryTranslationAndCustomInstructions() {
         var settings = AppSettings()
         settings.translationEnabled = true

@@ -1,0 +1,12 @@
+# SwiftFormat configuration for Mouthpiece (audit E6).
+# Check-only guardrail: every rule is disabled except a small allow-list of
+# safe checks that the existing codebase already satisfies, so
+# `swiftformat --lint Native` stays at exit 0 without reformatting history.
+# Grow the allow-list incrementally as files get cleaned up.
+
+--swiftversion 6.0
+
+--exclude .build,.build-cache,.worktrees,node_modules,resources,.qoder,docs,dist,artifacts,tmp,src,Native/Binaries,Native/Resources,Native/Packaging
+
+--disable all
+--enable duplicateImports,linebreaks,semicolons,consecutiveBlankLines,spaceInsideParens,spaceInsideBrackets,consecutiveSpaces

@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		07408B987BBE686D4A2867C8 /* AssemblyAIRealtimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2400733301B8C6B62BBBBADE /* AssemblyAIRealtimeProvider.swift */; };
 		0A440C120208A9FAA7026F3A /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D4C3234DFE8927E6B80953 /* AppLocalization.swift */; };
+		0AA230812A550B3677854703 /* DictationCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E25ADB4A2A92A60860ADDE97 /* DictationCoordinatorTests.swift */; };
 		0AC4A0D057AC1D5B184050EB /* provider-alibaba-cloud.svg in Resources */ = {isa = PBXBuildFile; fileRef = 4FF10FB8792E36433269C821 /* provider-alibaba-cloud.svg */; };
 		0CC9ECF7F562AD5316B0D744 /* DictationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E60374F56B1400EFAA2E6ABC /* DictationCoordinator.swift */; };
 		0EC4D9AE76C4613A63CCA0CF /* provider-gemini.svg in Resources */ = {isa = PBXBuildFile; fileRef = EBF9512E0313324EAB4D27AF /* provider-gemini.svg */; };
@@ -152,6 +153,7 @@
 		D992A8D85465C52531CBD002 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		DA603181932CF2478C9EC907 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		DEA3890075EF96CBF8C56D97 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		E25ADB4A2A92A60860ADDE97 /* DictationCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationCoordinatorTests.swift; sourceTree = "<group>"; };
 		E4296C56083431AF4D8B75F2 /* HistoryRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryRepository.swift; sourceTree = "<group>"; };
 		E60374F56B1400EFAA2E6ABC /* DictationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationCoordinator.swift; sourceTree = "<group>"; };
 		EBF9512E0313324EAB4D27AF /* provider-gemini.svg */ = {isa = PBXFileReference; path = "provider-gemini.svg"; sourceTree = "<group>"; };
@@ -189,6 +191,7 @@
 				09EB05050047AEA5E7AF2A0F /* AppEnvironmentTests.swift */,
 				B65963C52779B6662A3496C1 /* AudioTests.swift */,
 				40DCD77EEE51E5CD93773591 /* DictationAndProviderTests.swift */,
+				E25ADB4A2A92A60860ADDE97 /* DictationCoordinatorTests.swift */,
 				0C55850A84F69D2693F16674 /* PersistenceTests.swift */,
 			);
 			path = Tests;
@@ -572,6 +575,7 @@
 				321E53850470F38EB87BD3E4 /* AppEnvironmentTests.swift in Sources */,
 				FAB1E10BBED423630CD1E836 /* AudioTests.swift in Sources */,
 				E4BB190875CFB4CF76D4EE64 /* DictationAndProviderTests.swift in Sources */,
+				0AA230812A550B3677854703 /* DictationCoordinatorTests.swift in Sources */,
 				53BE6F512E01624BE516DBF6 /* PersistenceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

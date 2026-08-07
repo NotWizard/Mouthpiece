@@ -206,7 +206,8 @@ final class TextInsertionService {
         let element: AXUIElement
     }
 
-    private enum AXInsertOutcome: Sendable {
+    // Internal (not private) so tests can assert on the AX outcome reduction.
+    enum AXInsertOutcome: Sendable {
         case inserted
         case denied
         case notInserted
@@ -250,7 +251,7 @@ final class TextInsertionService {
         return (result.element, result.error)
     }
 
-    private nonisolated static func insertViaAccessibility(
+    nonisolated static func insertViaAccessibility(
         _ text: String,
         on element: AXUIElement?
     ) async -> AXInsertOutcome {
@@ -478,7 +479,8 @@ final class TextInsertionService {
         pasteboard.writeObjects(restored)
     }
 
-    private func pasteDelay(for target: TextInsertionTarget) -> Duration {
+    // Internal (not private) so tests can cover the pacing decision table.
+    func pasteDelay(for target: TextInsertionTarget) -> Duration {
         let bundle = target.bundleIdentifier?.lowercased() ?? ""
         if bundle.contains("terminal") || bundle.contains("iterm") { return .milliseconds(90) }
         if bundle.contains("electron") || bundle.contains("chrome") || bundle.contains("code") {
