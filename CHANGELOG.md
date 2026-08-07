@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed a crash when dictating into Mouthpiece's own windows (dictionary editor, prompt studio, history search): inserting into our own process went through the Accessibility SetValue path, and in-process AX requests execute AppKit's handler directly on the calling background thread — `NSTextView`/TSM then trip a main-queue dispatch assertion (SIGTRAP, observed Aug 5 on v2.0.6). Self-targeted insertions now skip Accessibility entirely (no focused-element read, no SetValue) and use the synthetic-paste path, which is delivered through the main event loop; external-app insertion is unchanged.
+
 ### Changed
 
 - README (Chinese and English) now documents the Homebrew cask install (`brew install --cask NotWizard/mouthpiece/mouthpiece`) and the built-in Sparkle automatic updates; both shipped with the release pipeline but were missing from the installation docs.

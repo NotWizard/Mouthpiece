@@ -87,6 +87,17 @@ final class TextInsertionService {
               isExternalApplication(app) || app.processIdentifier == ownPID else {
             return nil
         }
+        // In-process AX requests short-circuit and run AppKit's accessibility
+        // handlers on the calling (background) thread, which is unsafe; the
+        // self-target insertion uses the paste path and needs no element.
+        if app.processIdentifier == ownPID {
+            return TextInsertionTarget(
+                processIdentifier: app.processIdentifier,
+                bundleIdentifier: app.bundleIdentifier,
+                applicationName: app.localizedName ?? app.bundleIdentifier ?? "Unknown App",
+                focusedElement: nil
+            )
+        }
         // Never block the main thread on AX messaging: a hung target app makes
         // the synchronous call spin HIServices exception machinery on this
         // thread, which poisons the Swift concurrency executor state and leads
@@ -143,6 +154,14 @@ final class TextInsertionService {
         }
         guard AXIsProcessTrusted() else {
             throw TextInsertionError.accessibilityPermissionDenied
+        }
+
+        // In-process AX SetValue runs the AppKit handler (NSTextView/TSM
+        // mutation) on the calling background thread and trips the main-queue
+        // assertion; paste is delivered through the main event loop instead.
+        if target.processIdentifier == ProcessInfo.processInfo.processIdentifier {
+            try await paste(text, into: target)
+            return
         }
 
         switch await Self.insertViaAccessibility(text, on: target.focusedElement) {
