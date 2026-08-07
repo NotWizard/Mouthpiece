@@ -42,7 +42,7 @@ final class AudioCaptureService {
         return previous + (target - previous) * alpha
     }
 
-    private let engine = AVAudioEngine()
+    private var engine = AVAudioEngine()
     private var converterBox: AudioConverterBox?
     private var tapInstalled = false
     private var isStarting = false
@@ -67,6 +67,12 @@ final class AudioCaptureService {
         }
         isStarting = true
         defer { isStarting = false }
+        // A fresh engine per session reads the current input device's real
+        // format; a long-lived engine kept the previous device's cached format
+        // after a microphone switch, and installTap then failed with "format
+        // mismatch" on every retry until the app was relaunched.
+        let engine = AVAudioEngine()
+        self.engine = engine
         // All engine access happens on engineQueue so it serializes with the
         // removeTap/stop block from resetEngine; touching inputNode here on the
         // main actor raced a still-running teardown and could double-install
@@ -111,7 +117,6 @@ final class AudioCaptureService {
                         throw AudioCaptureError.unavailableInput
                     }
                     let converter = try AudioConverterBox(
-                        inputFormat: inputFormat,
                         onFrame: onFrame,
                         onLevel: onLevel
                     )
@@ -119,12 +124,17 @@ final class AudioCaptureService {
                     // the cached format no longer matches the hardware after
                     // an input-device switch); Swift do/catch cannot intercept
                     // them, so route both calls through ObjCExceptionGuard.
+                    // The tap format stays nil so it follows the node's live
+                    // format: a device switch between the format read and the
+                    // install (built-in 48 kHz vs Bluetooth HFP 16 kHz) can no
+                    // longer raise a format-mismatch exception; the converter
+                    // adapts to the buffers that actually arrive.
                     input.removeTap(onBus: 0)
                     if let exception = ObjCExceptionGuard.run({
                         input.installTap(
                             onBus: 0,
                             bufferSize: 960,
-                            format: inputFormat,
+                            format: nil,
                             block: makeTapHandler(for: converter)
                         )
                     }) {
@@ -291,7 +301,7 @@ final class AudioCaptureService {
 
 private final class AudioConverterBox: @unchecked Sendable {
     private static let frameBytes = AudioCaptureService.outputSampleRate * 2 / 50
-    private let converter: AVAudioConverter
+    private var converter: AVAudioConverter?
     private let outputFormat: AVAudioFormat
     private let onFrame: @Sendable (Data, Double) -> Void
     private let onLevel: @Sendable (Float) -> Void
@@ -299,13 +309,13 @@ private final class AudioConverterBox: @unchecked Sendable {
     private let lock = NSLock()
     private var queuedBuffers: [AVAudioPCMBuffer] = []
     private var availableBuffers: [AVAudioPCMBuffer] = []
+    private var poolFormat: AVAudioFormat?
     private var drainScheduled = false
     private var accepting = true
     private var pendingPCM = Data()
     private var smoothedLevel: Float = 0
 
     init(
-        inputFormat: AVAudioFormat,
         onFrame: @escaping @Sendable (Data, Double) -> Void,
         onLevel: @escaping @Sendable (Float) -> Void
     ) throws {
@@ -314,22 +324,32 @@ private final class AudioConverterBox: @unchecked Sendable {
             sampleRate: Double(AudioCaptureService.outputSampleRate),
             channels: 1,
             interleaved: true
-        ), let converter = AVAudioConverter(from: inputFormat, to: outputFormat) else {
+        ) else {
             throw AudioCaptureError.converterCreationFailed
         }
         self.outputFormat = outputFormat
-        self.converter = converter
         self.onFrame = onFrame
         self.onLevel = onLevel
-        let capacity = AVAudioFrameCount(max(4_096, Int(inputFormat.sampleRate / 10)))
-        availableBuffers = (0..<10).compactMap { _ in
-            AVAudioPCMBuffer(pcmFormat: inputFormat, frameCapacity: capacity)
-        }
     }
 
     func process(_ input: AVAudioPCMBuffer) {
+        let format = input.format
+        guard format.sampleRate > 0, format.channelCount > 0 else { return }
         lock.lock()
-        guard accepting, let reusable = availableBuffers.popLast() else {
+        guard accepting else {
+            lock.unlock()
+            return
+        }
+        // The tap is installed with a nil format, so a device switch changes
+        // the buffer format mid-session; rebuild the reusable pool to match.
+        if poolFormat != format {
+            let capacity = AVAudioFrameCount(max(4_096, Int(format.sampleRate / 10)))
+            availableBuffers = (0..<10).compactMap { _ in
+                AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity)
+            }
+            poolFormat = format
+        }
+        guard let reusable = availableBuffers.popLast() else {
             lock.unlock()
             return
         }
@@ -380,6 +400,10 @@ private final class AudioConverterBox: @unchecked Sendable {
     }
 
     private func convert(_ input: AVAudioPCMBuffer) {
+        if converter == nil || converter?.inputFormat != input.format {
+            converter = AVAudioConverter(from: input.format, to: outputFormat)
+        }
+        guard let converter else { return }
         let ratio = outputFormat.sampleRate / input.format.sampleRate
         let capacity = AVAudioFrameCount(ceil(Double(input.frameLength) * ratio)) + 32
         guard let output = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: capacity) else {

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed dictation being impossible to start after switching microphones ("Starting the microphone failed: Failed to create tap due to format mismatch") until the app was relaunched: the long-lived audio engine kept the previous device's cached input format, and the tap was installed with that stale format. Each session now creates a fresh `AVAudioEngine`, the tap is installed with a `nil` format so it always follows the node's live format (no format-mismatch exception exists anymore, even when the device changes between the format read and the install), and the audio converter plus its buffer pool are rebuilt on the fly from the format of the buffers that actually arrive — so even a mid-recording device switch (built-in 48 kHz ↔ Bluetooth HFP 16 kHz) keeps capturing seamlessly.
 - Fixed a crash when dictating into Mouthpiece's own windows (dictionary editor, prompt studio, history search): inserting into our own process went through the Accessibility SetValue path, and in-process AX requests execute AppKit's handler directly on the calling background thread — `NSTextView`/TSM then trip a main-queue dispatch assertion (SIGTRAP, observed Aug 5 on v2.0.6). Self-targeted insertions now skip Accessibility entirely (no focused-element read, no SetValue) and use the synthetic-paste path, which is delivered through the main event loop; external-app insertion is unchanged.
 
 ### Changed
