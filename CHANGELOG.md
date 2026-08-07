@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.7] - 2026-08-07
+
 ### Fixed
 
 - Fixed dictation being impossible to start after switching microphones ("Starting the microphone failed: Failed to create tap due to format mismatch") until the app was relaunched: the long-lived audio engine kept the previous device's cached input format, and the tap was installed with that stale format. Each session now creates a fresh `AVAudioEngine`, the tap is installed with a `nil` format so it always follows the node's live format (no format-mismatch exception exists anymore, even when the device changes between the format read and the install), and the audio converter plus its buffer pool are rebuilt on the fly from the format of the buffers that actually arrive — so even a mid-recording device switch (built-in 48 kHz ↔ Bluetooth HFP 16 kHz) keeps capturing seamlessly.
