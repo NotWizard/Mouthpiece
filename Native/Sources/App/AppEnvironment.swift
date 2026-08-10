@@ -564,7 +564,10 @@ final class AppEnvironment: ObservableObject {
             } catch {
                 return
             }
-            guard let self else { return }
+            // A suffix press can cancel this task after the sleep already
+            // resumed; without this check the main press still fires and
+            // races the translation restart for the session slot.
+            guard let self, !Task.isCancelled else { return }
             self.mainHotkeyActivationPending = false
             self.pendingMainHotkeyTask = nil
             self.performMainHotkeyPress()
@@ -611,8 +614,13 @@ final class AppEnvironment: ObservableObject {
 
     private func handleTranslationHotkeyPress() {
         guard settings.translationEnabled, effectiveTranslationHotkey != nil,
-              hotkeyPressedAt != nil,
               let coordinator else { return }
+        guard hotkeyPressedAt != nil else {
+            Task { [logger] in
+                await logger?.write(.debug, "Translation hotkey ignored: main key not held")
+            }
+            return
+        }
         cancelPendingMainHotkey(resetPressTime: false)
         if dictation.phase.isActive, activeActivation == .translation {
             stopDictation()

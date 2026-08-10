@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Translation hotkey reliability: `restartForTranslation` now retries (bounded, 3 attempts) when a queued main-hotkey start claims the session slot during its cancel/settle window, instead of silently no-oping and leaving an untranslated normal session running; the pending main-hotkey press checks for cancellation after its 140 ms suffix-wait so a translation suffix press can no longer race it. Session-start logs now carry a `translation` marker, ignored suffix presses and failed translation restarts are logged, making future misses diagnosable from the debug log.
+
 ## [2.0.8] - 2026-08-10
 
 ### Added

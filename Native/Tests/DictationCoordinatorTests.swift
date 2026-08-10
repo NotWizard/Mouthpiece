@@ -178,6 +178,43 @@ final class DictationCoordinatorTests: XCTestCase {
         await harness.coordinator.cancel()
     }
 
+    // The settle sleep inside restartForTranslation suspends the actor; a
+    // queued main-hotkey start used to claim the session slot in that window
+    // and turn the translation start into a silent no-op. The bounded retry
+    // must cancel the stolen session and still activate translation.
+    func testRestartForTranslationReclaimsSlotFromCompetingStart() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .succeed, finishText: "unused")
+        let harness = try await makeHarness(provider: provider)
+
+        await harness.coordinator.start(settings: makeSettings())
+        let mainSession = await harness.coordinator.snapshot()
+        XCTAssertEqual(mainSession.phase, .recording)
+
+        var translationSettings = makeSettings()
+        translationSettings.translationEnabled = true
+        async let restart = harness.coordinator.restartForTranslation(settings: translationSettings)
+
+        // Wait for the restart's cancel to land, then steal the freed slot
+        // with a competing normal start while the restart is settling.
+        var slotFreed = false
+        for _ in 0..<200 {
+            if await !harness.coordinator.snapshot().phase.isActive {
+                slotFreed = true
+                break
+            }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertTrue(slotFreed, "The restart must cancel the main session first")
+        await harness.coordinator.start(settings: makeSettings())
+
+        let activated = await restart
+        XCTAssertTrue(activated, "The translation restart must reclaim the slot from the competing start")
+        let snapshot = await harness.coordinator.snapshot()
+        XCTAssertEqual(snapshot.phase, .recording)
+        XCTAssertTrue(snapshot.isTranslation)
+        await harness.coordinator.cancel()
+    }
+
     // C1: a realtime-only provider error while recording must degrade the
     // connection instead of failing the session once a partial transcript
     // exists; stop() then completes with the retained partial.

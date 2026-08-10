@@ -150,7 +150,12 @@ actor DictationCoordinator {
                 applicationName: target?.applicationName
             )
             await publish(show: true)
-            await logger.write(.info, "Dictation session started", sessionID: sessionID)
+            await logger.write(
+                .info,
+                "Dictation session started",
+                metadata: settings.translationEnabled ? ["translation": "true"] : [:],
+                sessionID: sessionID
+            )
 
             guard await audio.requestPermission() else { throw AudioCaptureError.permissionDenied }
             guard isCurrent(sessionID, phase: .preparing) else { return }
@@ -429,14 +434,31 @@ actor DictationCoordinator {
     // is a translation session, so the caller only claims the translation
     // activation when it actually took effect.
     func restartForTranslation(settings: AppSettings) async -> Bool {
-        if machine.snapshot.phase.isActive {
-            await cancel()
-            // Preserve the brief settle delay the hotkey handler used between
-            // cancel and restart so the capsule hide/reset publishes cleanly.
-            try? await Task.sleep(for: .milliseconds(80))
+        // The settle sleep suspends the actor, so a queued main-hotkey start
+        // can claim the session slot before our start() runs and turn the
+        // translation restart into a silent no-op. Re-cancel whatever
+        // appeared, bounded so a genuinely failing start cannot loop forever.
+        for _ in 0..<3 {
+            if machine.snapshot.phase.isActive {
+                await cancel()
+                // Preserve the brief settle delay the hotkey handler used between
+                // cancel and restart so the capsule hide/reset publishes cleanly.
+                try? await Task.sleep(for: .milliseconds(80))
+                continue
+            }
+            await start(settings: settings)
+            break
         }
-        await start(settings: settings)
-        return machine.snapshot.phase.isActive && machine.snapshot.isTranslation
+        let started = machine.snapshot.phase.isActive && machine.snapshot.isTranslation
+        if !started {
+            await logger.write(
+                .warning,
+                "Translation restart did not take effect",
+                metadata: ["phase": String(describing: machine.snapshot.phase)],
+                sessionID: machine.snapshot.sessionID
+            )
+        }
+        return started
     }
 
     func snapshot() -> DictationSnapshot { machine.snapshot }
