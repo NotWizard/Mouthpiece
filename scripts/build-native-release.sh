@@ -63,7 +63,11 @@ sips -z 424 632 "$BG_SRC" --out "$BG_1X" >/dev/null
 tiffutil -cathidpicheck "$BG_1X" "$BG_SRC" -out "$MOUNT/.background/background.tiff"
 rm -f "$BG_1X"
 
-osascript <<OSA || true
+# Apply the Finder layout. No `|| true` fallback: an unstyled DMG must fail
+# the build instead of shipping. Finder is occasionally busy on CI runners,
+# so one retry is allowed before giving up.
+apply_dmg_layout() {
+  osascript <<OSA
 tell application "Finder"
   tell disk "$VOLNAME"
     open
@@ -84,9 +88,42 @@ tell application "Finder"
   end tell
 end tell
 OSA
+}
+
+fail_dmg_layout() {
+  echo "$1" >&2
+  hdiutil detach "$MOUNT" 2>/dev/null || true
+  exit 1
+}
+
+if ! apply_dmg_layout; then
+  echo "Finder DMG layout failed; retrying once" >&2
+  sleep 5
+  apply_dmg_layout || fail_dmg_layout "Finder DMG layout failed after retry"
+fi
+
+# Read the layout back from Finder: icon positions and the background picture
+# must match what was set above, so a half-applied layout cannot go out.
+if ! LAYOUT=$(osascript <<OSA
+tell application "Finder"
+  tell disk "$VOLNAME"
+    set appPosition to position of item "Mouthpiece.app" of container window
+    set linkPosition to position of item "Applications" of container window
+    set backgroundPath to (background picture of icon view options of container window) as text
+  end tell
+end tell
+return ((item 1 of appPosition) as text) & "," & ((item 2 of appPosition) as text) & " " & ((item 1 of linkPosition) as text) & "," & ((item 2 of linkPosition) as text) & " " & backgroundPath
+OSA
+); then
+  fail_dmg_layout "DMG layout readback failed"
+fi
+case "$LAYOUT" in
+  "161,210 472,210 "*".background:background.tiff") ;;
+  *) fail_dmg_layout "DMG layout readback mismatch: expected '161,210 472,210 *.background:background.tiff', got '$LAYOUT'" ;;
+esac
 
 sync
-test -f "$MOUNT/.DS_Store" || { echo "DMG layout was not applied (no .DS_Store)" >&2; hdiutil detach "$MOUNT" 2>/dev/null || true; exit 1; }
+test -s "$MOUNT/.DS_Store" || fail_dmg_layout "DMG layout was not applied (missing or empty .DS_Store)"
 hdiutil detach "$MOUNT" || hdiutil detach "$MOUNT" -force
 
 rm -f "$DMG"

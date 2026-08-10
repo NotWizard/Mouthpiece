@@ -31,6 +31,7 @@ actor DictationCoordinator {
     private var maximumDurationTask: Task<Void, Never>?
     private var preparingWatchdogTask: Task<Void, Never>?
     private var frameTask: Task<Void, Never>?
+    private var frameContinuation: AsyncStream<(Data, Double)>.Continuation?
     private var reasoningTask: Task<String, Error>?
     private var mediaPauseTask: Task<Void, Never>?
 
@@ -96,6 +97,8 @@ actor DictationCoordinator {
         preparingWatchdogTask = nil
         frameTask?.cancel()
         frameTask = nil
+        frameContinuation?.finish()
+        frameContinuation = nil
         reasoningTask?.cancel()
         reasoningTask = nil
         await audio.stop()
@@ -158,6 +161,8 @@ actor DictationCoordinator {
                 bufferingPolicy: .unbounded
             )
             frameTask?.cancel()
+            self.frameContinuation?.finish()
+            self.frameContinuation = frameContinuation
             frameTask = Task { [weak self] in
                 for await (frame, rms) in frames {
                     await self?.consume(frame: frame, rms: rms, sessionID: sessionID)
@@ -166,7 +171,13 @@ actor DictationCoordinator {
             try await audio.start(
                 selectedDeviceUID: settings.selectedMicrophoneUID,
                 onFrame: { frame, rms in frameContinuation.yield((frame, rms)) },
-                onLevel: { _ in }
+                onLevel: { _ in },
+                onSessionInterrupted: { [weak self] in
+                    Task { await self?.handleAudioSessionInterruption(sessionID: sessionID) }
+                },
+                onDiagnostics: { [weak self] droppedFrames in
+                    Task { await self?.reportDroppedFrames(droppedFrames, sessionID: sessionID) }
+                }
             )
             guard isCurrent(sessionID, phase: .preparing) else {
                 await audio.stop()
@@ -247,6 +258,14 @@ actor DictationCoordinator {
             try machine.transition(to: .stopping, sessionID: sessionID)
             await publish()
             await audio.stop()
+            // audio.stop() drained the converter (emitRemainder included), so
+            // every tail frame has been yielded by now. Finish the stream and
+            // wait for the consumer to append/send them before snapshotting
+            // the PCM; frames landing after the snapshot used to be lost.
+            frameContinuation?.finish()
+            frameContinuation = nil
+            await frameTask?.value
+            frameTask = nil
             await resumePausedMedia()
             guard isCurrent(sessionID, phase: .stopping) else { return }
             try machine.transition(to: .finalizing, sessionID: sessionID)
@@ -401,10 +420,38 @@ actor DictationCoordinator {
         await resetIfCurrent(sessionID)
     }
 
+    // B4: the translation hotkey used to decide cancel-vs-start from the
+    // @Published UI snapshot, which lags the actor; a suffix press racing the
+    // main hotkey skipped the cancel, start() no-oped against the already
+    // active main session, and the mis-set activation owner kept push-to-talk
+    // release from stopping it. Deciding on the actor against the machine's
+    // real state closes that window. Returns true when the now-active session
+    // is a translation session, so the caller only claims the translation
+    // activation when it actually took effect.
+    func restartForTranslation(settings: AppSettings) async -> Bool {
+        if machine.snapshot.phase.isActive {
+            await cancel()
+            // Preserve the brief settle delay the hotkey handler used between
+            // cancel and restart so the capsule hide/reset publishes cleanly.
+            try? await Task.sleep(for: .milliseconds(80))
+        }
+        await start(settings: settings)
+        return machine.snapshot.phase.isActive && machine.snapshot.isTranslation
+    }
+
     func snapshot() -> DictationSnapshot { machine.snapshot }
 
     private func consume(frame: Data, rms: Double, sessionID: UUID) async {
-        guard machine.snapshot.sessionID == sessionID, machine.snapshot.phase.isActive else { return }
+        guard machine.snapshot.sessionID == sessionID else { return }
+        // Frames are only meaningful while capture is live: preparing covers
+        // the audio.start-to-recording window and stopping covers the tail
+        // drain. isActive also spans finalizing/processing/inserting, where a
+        // late frame would land after the PCM snapshot and desync provider
+        // and history.
+        switch machine.snapshot.phase {
+        case .preparing, .recording, .stopping: break
+        default: return
+        }
         pcm.append(frame)
         let activity = speechGate.consume(frame, rms: rms)
         await consume(level: activity.visualLevel, sessionID: sessionID)
@@ -428,6 +475,30 @@ actor DictationCoordinator {
         }
     }
 
+    // A1: AVAudioEngineConfigurationChange fired for the session's engine —
+    // the input device disappeared or changed (Bluetooth drop, unplugged
+    // mic) and the engine stopped delivering frames. Owner-driven tear-downs
+    // remove the observer before touching the engine, so only a live capture
+    // (preparing/recording) reaches the fail path here.
+    private func handleAudioSessionInterruption(sessionID: UUID) async {
+        guard machine.snapshot.sessionID == sessionID else { return }
+        switch machine.snapshot.phase {
+        case .preparing, .recording:
+            await fail(AudioCaptureError.inputDeviceChanged, sessionID: sessionID)
+        default:
+            break
+        }
+    }
+
+    private func reportDroppedFrames(_ droppedFrames: Int, sessionID: UUID) async {
+        await logger.write(
+            .warning,
+            "Audio frames were dropped during capture",
+            metadata: ["droppedFrames": String(droppedFrames)],
+            sessionID: sessionID
+        )
+    }
+
     private func consume(level: Float, sessionID: UUID) async {
         guard (try? machine.updateAudioLevel(level, sessionID: sessionID)) != nil else { return }
         await capsule.updateAudioLevel(level, sessionID: sessionID)
@@ -445,9 +516,39 @@ actor DictationCoordinator {
         case .speechStarted:
             break
         case .error(let message):
-            await logger.write(.warning, "Realtime provider error", metadata: ["error": message], sessionID: sessionID)
-            if isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider) {
+            guard isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider) else {
+                await logger.write(.warning, "Realtime provider error", metadata: ["error": message], sessionID: sessionID)
+                return
+            }
+            let phase = machine.snapshot.phase
+            let hasPartial = !machine.snapshot.partialText
+                .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            let isWindingDown = phase == .stopping || phase == .finalizing
+                || phase == .processing || phase == .inserting
+            guard hasPartial || isWindingDown else {
+                // No text yet and still early in the session: nothing to
+                // salvage, so surface the failure immediately.
+                await logger.write(.warning, "Realtime provider error", metadata: ["error": message], sessionID: sessionID)
                 await fail(BailianRealtimeError.protocolError(message), sessionID: sessionID)
+                return
+            }
+            await logger.write(
+                .warning,
+                "Realtime provider error; degrading to the partial transcript fallback",
+                metadata: ["error": message, "phase": phase.rawValue],
+                sessionID: sessionID
+            )
+            // While capture is live, mark the connection as degraded: stop
+            // streaming frames into a broken task and let stop() use the
+            // retained partial. During wind-down keep the provider so the
+            // finishWithTimeout/partial fallback in stop() resolves the
+            // session on its own (finish has a hard timeout, so skipping
+            // fail here cannot wedge finalizing).
+            if phase == .preparing || phase == .recording,
+               providerSessionID == sessionID, let provider {
+                self.provider = nil
+                providerSessionID = nil
+                await provider.cancel()
             }
         }
     }
@@ -676,6 +777,8 @@ actor DictationCoordinator {
         preparingWatchdogTask = nil
         frameTask?.cancel()
         frameTask = nil
+        frameContinuation?.finish()
+        frameContinuation = nil
         reasoningTask?.cancel()
         reasoningTask = nil
         provider = nil

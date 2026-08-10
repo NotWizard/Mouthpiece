@@ -9,15 +9,14 @@ actor VolcengineRealtimeProvider: RealtimeTranscriptionProvider {
     private var socket: URLSessionWebSocketTask?
     private var receiveTask: Task<Void, Never>?
     private var eventHandler: (@Sendable (RealtimeTranscriptionEvent) -> Void)?
-    private var pendingAudio: [Data] = []
-    private var pendingBytes = 0
+    private var pendingAudio = RealtimePendingAudioBuffer()
     private var generation = 0
     private var configured = false
+    private var connectionConfirmed = false
     private var finalized = false
     private var liveText = ""
     private var stableText = ""
     private var terminalError: String?
-    private let maximumBufferedBytes = 3 * 16_000 * 2
 
     init(session: URLSession = .shared) { self.session = session }
 
@@ -32,6 +31,7 @@ actor VolcengineRealtimeProvider: RealtimeTranscriptionProvider {
 
         eventHandler = onEvent
         configured = false
+        connectionConfirmed = false
         finalized = false
         liveText = ""
         stableText = ""
@@ -56,6 +56,18 @@ actor VolcengineRealtimeProvider: RealtimeTranscriptionProvider {
             let frame = try VolcengineFrameCodec.fullRequest(configuration: configuration)
             try await socket.send(.data(frame))
             try ensureCurrent(socket: socket, generation: generation)
+            // Audit C6: the protocol acknowledges the full client request
+            // with a first response frame; wait for it so a bad key fails
+            // the connect step instead of surfacing mid-session.
+            let confirmed = try await RealtimeSocketSession.waitForCondition(
+                timeout: .seconds(15),
+                pollInterval: .milliseconds(25),
+                isSatisfied: { connectionConfirmed },
+                terminalError: { terminalError },
+                onTick: { try ensureCurrent(socket: socket, generation: generation) }
+            )
+            if let terminalError { throw VolcengineRealtimeError.protocolError(terminalError) }
+            guard confirmed else { throw RealtimeProviderError.timedOut(provider: "Volcengine") }
             configured = true
             try await flushPendingAudio(socket, generation: generation)
         } catch {
@@ -67,7 +79,7 @@ actor VolcengineRealtimeProvider: RealtimeTranscriptionProvider {
     func send(pcm16: Data) async throws {
         guard !pcm16.isEmpty else { return }
         guard configured, let socket, socket.state == .running else {
-            appendPending(pcm16)
+            pendingAudio.append(pcm16)
             return
         }
         try await socket.send(.data(VolcengineFrameCodec.audio(pcm16, isLast: false)))
@@ -79,11 +91,12 @@ actor VolcengineRealtimeProvider: RealtimeTranscriptionProvider {
         try await socket.send(.data(VolcengineFrameCodec.audio(Data(), isLast: true)))
         try ensureCurrent(socket: socket, generation: generation)
 
-        let deadline = ContinuousClock.now + .seconds(5)
-        while !finalized && terminalError == nil && ContinuousClock.now < deadline {
-            try await Task.sleep(for: .milliseconds(40))
-            try ensureCurrent(socket: socket, generation: generation)
-        }
+        _ = try await RealtimeSocketSession.waitForCondition(
+            timeout: .seconds(5),
+            isSatisfied: { finalized },
+            terminalError: { terminalError },
+            onTick: { try ensureCurrent(socket: socket, generation: generation) }
+        )
         if let terminalError { throw VolcengineRealtimeError.protocolError(terminalError) }
         let result = liveText
         await cancel()
@@ -98,8 +111,8 @@ actor VolcengineRealtimeProvider: RealtimeTranscriptionProvider {
         socket = nil
         eventHandler = nil
         configured = false
-        pendingAudio.removeAll()
-        pendingBytes = 0
+        connectionConfirmed = false
+        pendingAudio = RealtimePendingAudioBuffer()
     }
 
     private func receiveLoop(_ socket: URLSessionWebSocketTask, generation: Int) async {
@@ -109,6 +122,7 @@ actor VolcengineRealtimeProvider: RealtimeTranscriptionProvider {
                 guard isCurrent(socket: socket, generation: generation), !Task.isCancelled else { return }
                 guard case .data(let data) = message else { continue }
                 let response = try VolcengineFrameCodec.parseResponse(data)
+                connectionConfirmed = true
                 if let message = response.errorMessage {
                     terminalError = message
                     eventHandler?(.error(message))
@@ -130,26 +144,16 @@ actor VolcengineRealtimeProvider: RealtimeTranscriptionProvider {
                 }
             }
         } catch {
-            if isCurrent(socket: socket, generation: generation), !Task.isCancelled {
+            if isCurrent(socket: socket, generation: generation), !Task.isCancelled,
+               !RealtimeSocketSession.isBenignReceiveError(afterTerminalState: finalized) {
                 terminalError = error.localizedDescription
                 eventHandler?(.error(error.localizedDescription))
             }
         }
     }
 
-    private func appendPending(_ data: Data) {
-        pendingAudio.append(data)
-        pendingBytes += data.count
-        while pendingBytes > maximumBufferedBytes, !pendingAudio.isEmpty {
-            pendingBytes -= pendingAudio.removeFirst().count
-        }
-    }
-
     private func flushPendingAudio(_ socket: URLSessionWebSocketTask, generation: Int) async throws {
-        let frames = pendingAudio
-        pendingAudio.removeAll()
-        pendingBytes = 0
-        for frame in frames {
+        for frame in pendingAudio.detachAll() {
             try ensureCurrent(socket: socket, generation: generation)
             try await socket.send(.data(VolcengineFrameCodec.audio(frame, isLast: false)))
         }

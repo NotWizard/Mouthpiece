@@ -102,6 +102,12 @@ struct ControlPanelView: View {
             .padding(.top, 14)
             .padding(.bottom, 8)
 
+            if !environment.permissions.accessibility {
+                AccessibilityPermissionBanner()
+                    .padding(.horizontal, 10)
+                    .padding(.bottom, 6)
+            }
+
             ScrollView {
                 VStack(spacing: 3) {
                     ForEach(ControlPanelSection.allCases) { section in
@@ -229,6 +235,38 @@ private struct SidebarNavigationButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .opacity(configuration.isPressed ? 0.78 : 1)
+    }
+}
+
+// D12: 辅助功能权限缺失时的显著引导；按钮跳转系统设置的辅助功能面板。
+private struct AccessibilityPermissionBanner: View {
+    @EnvironmentObject private var environment: AppEnvironment
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Text("permissions.accessibilityBanner.title")
+                    .font(.caption.weight(.semibold))
+            }
+            Text("permissions.accessibilityBanner.message")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button("permissions.openSettings") {
+                environment.openAccessibilitySettings()
+            }
+            .controlSize(.small)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 0.5)
+        }
     }
 }
 

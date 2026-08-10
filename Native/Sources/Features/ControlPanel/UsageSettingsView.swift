@@ -5,6 +5,10 @@ struct UsageSettingsView: View {
 
     var body: some View {
         SettingsPage(title: "general.title", subtitle: "general.subtitle") {
+            if let failure = environment.lastSessionError {
+                LastSessionErrorCard(failure: failure)
+            }
+
             SettingsSection(title: "general.interface") {
                 SettingsRow(icon: "globe", title: "general.language") {
                     Picker("", selection: settingBinding(environment, \.uiLanguage)) {
@@ -163,5 +167,43 @@ struct UsageSettingsView: View {
                 environment.saveSettings(settings)
             }
         )
+    }
+}
+
+// D6: 会话失败信息在胶囊上只闪现片刻，这里提供可回看、可复制的"上次错误"卡片。
+private struct LastSessionErrorCard: View {
+    @EnvironmentObject private var environment: AppEnvironment
+
+    let failure: SessionFailure
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Text("dashboard.lastError.title")
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Text(failure.date.formatted(date: .abbreviated, time: .shortened))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button("dashboard.lastError.clear") {
+                    environment.clearLastSessionError()
+                }
+                .controlSize(.small)
+            }
+            Text(failure.message)
+                .font(.callout)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.09))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.orange.opacity(0.32), lineWidth: 0.5)
+        }
     }
 }

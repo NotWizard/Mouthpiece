@@ -94,6 +94,214 @@ final class DictationCoordinatorTests: XCTestCase {
         XCTAssertEqual(finalSnapshot.partialText, "")
     }
 
+    // B2: frames yielded into the stream right before stop() must all reach
+    // the provider before finish() is called; without the drain barrier
+    // (finish the stream + await the consumer) tail frames raced the PCM
+    // snapshot and could arrive after finalize or be lost entirely.
+    func testStopDeliversAllQueuedFramesToTheProviderBeforeFinish() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .succeed, finishText: "tail preserved")
+        let harness = try await makeHarness(provider: provider)
+
+        await harness.coordinator.start(settings: makeSettings())
+        let recording = await harness.coordinator.snapshot()
+        XCTAssertEqual(recording.phase, .recording)
+
+        // Prime the streaming path so the provider is known to receive frames.
+        harness.audio.emitFrame()
+        var frameForwarded = false
+        for _ in 0..<200 {
+            if await provider.sentFrameCount > 0 {
+                frameForwarded = true
+                break
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertTrue(frameForwarded, "Audio frames must be forwarded to the realtime provider")
+
+        // Enqueue three tail frames and stop immediately without yielding to
+        // the consumer task: the barrier must deliver them before finalizing.
+        harness.audio.emitFrame()
+        harness.audio.emitFrame()
+        harness.audio.emitFrame()
+        await harness.coordinator.stop()
+
+        let sentAtFinish = await provider.sentFrameCountAtFinish
+        XCTAssertEqual(sentAtFinish, 4, "All queued tail frames must be sent before finish() is called")
+        let sentTotal = await provider.sentFrameCount
+        XCTAssertEqual(sentTotal, 4, "No frame may arrive at the provider after finish()")
+        let records = try await harness.history.recent(limit: 5)
+        XCTAssertEqual(records.first?.text, "tail preserved")
+    }
+
+    // B4: the translation hotkey now decides cancel-vs-start on the actor.
+    // While a main session is recording, restartForTranslation must cancel it
+    // and activate a fresh translation session.
+    func testRestartForTranslationWhileRecordingCancelsAndActivatesTranslation() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .succeed, finishText: "unused")
+        let harness = try await makeHarness(provider: provider)
+
+        await harness.coordinator.start(settings: makeSettings())
+        let mainSession = await harness.coordinator.snapshot()
+        XCTAssertEqual(mainSession.phase, .recording)
+        XCTAssertFalse(mainSession.isTranslation)
+
+        var translationSettings = makeSettings()
+        translationSettings.translationEnabled = true
+        let activated = await harness.coordinator.restartForTranslation(settings: translationSettings)
+
+        XCTAssertTrue(activated, "restartForTranslation must report the translation session as active")
+        let restarted = await harness.coordinator.snapshot()
+        XCTAssertEqual(restarted.phase, .recording)
+        XCTAssertTrue(restarted.isTranslation)
+        XCTAssertNotEqual(restarted.sessionID, mainSession.sessionID, "A fresh session must replace the cancelled one")
+        let cancels = await provider.cancelCount
+        XCTAssertGreaterThanOrEqual(cancels, 1, "The active main session must be cancelled before the restart")
+        await harness.coordinator.cancel()
+    }
+
+    // B4: from idle the atomic restart must skip the cancel path and simply
+    // start a translation session.
+    func testRestartForTranslationFromIdleStartsDirectly() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .succeed, finishText: "unused")
+        let harness = try await makeHarness(provider: provider)
+
+        var translationSettings = makeSettings()
+        translationSettings.translationEnabled = true
+        let activated = await harness.coordinator.restartForTranslation(settings: translationSettings)
+
+        XCTAssertTrue(activated)
+        let snapshot = await harness.coordinator.snapshot()
+        XCTAssertEqual(snapshot.phase, .recording)
+        XCTAssertTrue(snapshot.isTranslation)
+        let cancels = await provider.cancelCount
+        XCTAssertEqual(cancels, 0, "No session was active, so nothing must be cancelled")
+        await harness.coordinator.cancel()
+    }
+
+    // C1: a realtime-only provider error while recording must degrade the
+    // connection instead of failing the session once a partial transcript
+    // exists; stop() then completes with the retained partial.
+    func testRealtimeErrorAfterPartialDegradesAndStopCompletesWithPartial() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .succeed, finishText: "must not be used")
+        let harness = try await makeHarness(provider: provider)
+
+        await harness.coordinator.start(settings: makeSettings())
+        let startedPhase = await harness.coordinator.snapshot().phase
+        XCTAssertEqual(startedPhase, .recording)
+
+        await provider.emit(.partial(stable: "hello ", active: "world"))
+        var partialSeen = false
+        for _ in 0..<200 {
+            if await harness.coordinator.snapshot().partialText == "hello world" {
+                partialSeen = true
+                break
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertTrue(partialSeen, "The partial transcript must land before the error is injected")
+
+        await provider.emit(.error("stream broke"))
+        var degraded = false
+        for _ in 0..<200 {
+            if await provider.cancelCount >= 1 {
+                degraded = true
+                break
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertTrue(degraded, "The broken provider task must be cancelled when degrading")
+        let phaseAfterError = await harness.coordinator.snapshot().phase
+        XCTAssertEqual(
+            phaseAfterError,
+            .recording,
+            "An error with a retained partial must not fail the live session"
+        )
+        XCTAssertFalse(harness.recorder.snapshots.contains { $0.phase == .failed })
+
+        await harness.coordinator.stop()
+
+        XCTAssertTrue(harness.recorder.snapshots.contains { $0.phase == .completed })
+        let finishCalls = await provider.finishCallCount
+        XCTAssertEqual(finishCalls, 0, "A degraded provider must not be asked to finish")
+        let records = try await harness.history.recent(limit: 5)
+        XCTAssertEqual(records.first?.text, "hello world")
+    }
+
+    // C1: with no partial transcript there is nothing to salvage, so an early
+    // realtime-only error must still fail the session immediately.
+    func testEarlyRealtimeErrorWithoutPartialFailsTheSession() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .succeed, finishText: "unused")
+        let harness = try await makeHarness(provider: provider)
+
+        await harness.coordinator.start(settings: makeSettings())
+        let earlyPhase = await harness.coordinator.snapshot().phase
+        XCTAssertEqual(earlyPhase, .recording)
+
+        await provider.emit(.error("early boom"))
+        var failure: DictationSnapshot?
+        for _ in 0..<200 {
+            if let failed = harness.recorder.snapshots.first(where: { $0.phase == .failed }) {
+                failure = failed
+                break
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertNotNil(failure, "An early error without any partial transcript must fail the session")
+        XCTAssertEqual(failure?.errorMessage, "early boom")
+    }
+
+    // C1: an error event that lands while stop() is already finalizing must
+    // not interrupt the wind-down; finish() resolves the session on its own.
+    func testRealtimeErrorDuringFinalizingDoesNotInterruptCompletion() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .succeed, finishText: "final text")
+        let harness = try await makeHarness(provider: provider)
+
+        await harness.coordinator.start(settings: makeSettings())
+        let liveRecordingPhase = await harness.coordinator.snapshot().phase
+        XCTAssertEqual(liveRecordingPhase, .recording)
+
+        await provider.blockFinish()
+        let coordinator = harness.coordinator
+        let stopTask = Task { await coordinator.stop() }
+        var finishing = false
+        for _ in 0..<200 {
+            if await provider.finishCallCount > 0 {
+                finishing = true
+                break
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertTrue(finishing, "stop() must reach the provider finish call while it is gated")
+
+        await provider.emit(.error("mid-finalize boom"))
+        // Give the queued error event time to reach the coordinator while the
+        // session is still parked in finalizing, then let finish() resolve.
+        try await Task.sleep(for: .milliseconds(150))
+        await provider.releaseFinish()
+        await stopTask.value
+
+        XCTAssertFalse(
+            harness.recorder.snapshots.contains { $0.phase == .failed },
+            "An error during wind-down must not fail the finalizing session"
+        )
+        XCTAssertTrue(harness.recorder.snapshots.contains { $0.phase == .completed })
+        let records = try await harness.history.recent(limit: 5)
+        XCTAssertEqual(records.first?.text, "final text")
+    }
+
+    // D8: the VoiceOver announcement mapping is a pure phase -> key table;
+    // phases outside the announced set must stay silent (nil).
+    func testCapsuleAnnouncementKeysCoverExactlyTheAnnouncedPhases() {
+        XCTAssertEqual(CapsuleController.announcementKey(for: .recording), "capsule.listening")
+        XCTAssertEqual(CapsuleController.announcementKey(for: .stopping), "capsule.transcribing")
+        XCTAssertEqual(CapsuleController.announcementKey(for: .finalizing), "capsule.transcribing")
+        XCTAssertEqual(CapsuleController.announcementKey(for: .completed), "capsule.success")
+        XCTAssertEqual(CapsuleController.announcementKey(for: .failed), "capsule.failed")
+        for silent in [DictationPhase.idle, .preparing, .processing, .inserting, .cancelled] {
+            XCTAssertNil(CapsuleController.announcementKey(for: silent), "\(silent) must not announce")
+        }
+    }
+
     // MARK: - Harness
 
     private struct Harness {
@@ -171,8 +379,14 @@ private final class StubAudioCapture: AudioCaptureService {
     override func start(
         selectedDeviceUID: String?,
         onFrame: @escaping @Sendable (Data, Double) -> Void,
-        onLevel: @escaping @Sendable (Float) -> Void
+        onLevel: @escaping @Sendable (Float) -> Void,
+        onSessionInterrupted: (@Sendable () -> Void)?,
+        onDiagnostics: (@Sendable (Int) -> Void)?
     ) async throws {
+        // The stub replaces only the hardware edge: it keeps the frame sink so
+        // tests can inject PCM frames. The interruption and diagnostics hooks
+        // are accepted (signature parity with the A1/A3 production API) but
+        // never fired, because no real device exists in unit tests.
         frameSink = onFrame
     }
 
@@ -196,6 +410,12 @@ private actor ScriptedRealtimeProvider: RealtimeTranscriptionProvider {
     private var onEvent: (@Sendable (RealtimeTranscriptionEvent) -> Void)?
     private(set) var sentFrameCount = 0
     private(set) var cancelCount = 0
+    private(set) var finishCallCount = 0
+    // Captured at the moment finish() is entered: proves whether every queued
+    // frame was drained to the provider before finalization (B2).
+    private(set) var sentFrameCountAtFinish: Int?
+    private var finishBlocked = false
+    private var finishGate: CheckedContinuation<Void, Never>?
 
     init(connect: ConnectBehavior, finishText: String = "") {
         connectBehavior = connect
@@ -204,6 +424,18 @@ private actor ScriptedRealtimeProvider: RealtimeTranscriptionProvider {
 
     func setConnectBehavior(_ behavior: ConnectBehavior) {
         connectBehavior = behavior
+    }
+
+    // Parks the next finish() call until releaseFinish(), so a test can hold
+    // the coordinator in finalizing and inject events into that window.
+    func blockFinish() {
+        finishBlocked = true
+    }
+
+    func releaseFinish() {
+        finishBlocked = false
+        finishGate?.resume()
+        finishGate = nil
     }
 
     func warmup(configuration: RealtimeTranscriptionConfiguration) async throws {}
@@ -224,7 +456,16 @@ private actor ScriptedRealtimeProvider: RealtimeTranscriptionProvider {
         sentFrameCount += 1
     }
 
-    func finish() async throws -> String { finishText }
+    func finish() async throws -> String {
+        finishCallCount += 1
+        sentFrameCountAtFinish = sentFrameCount
+        if finishBlocked {
+            await withCheckedContinuation { continuation in
+                finishGate = continuation
+            }
+        }
+        return finishText
+    }
 
     func cancel() async {
         cancelCount += 1

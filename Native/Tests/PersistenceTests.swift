@@ -435,6 +435,146 @@ final class PersistenceTests: XCTestCase {
         try await store.delete(.openAI)
     }
 
+    // D7/γδ: the LIKE escape must turn %, _ and \ into literal matches; the
+    // backslash doubles first so escaped wildcards are not re-escaped.
+    func testEscapeLikePatternEscapesWildcardsAndBackslash() {
+        XCTAssertEqual(HistoryRepository.escapeLikePattern("a%b_c\\d"), "a\\%b\\_c\\\\d")
+        XCTAssertEqual(HistoryRepository.escapeLikePattern("plain"), "plain")
+        XCTAssertEqual(HistoryRepository.escapeLikePattern("100%"), "100\\%")
+    }
+
+    // D7: %/_/\ in the query must match literally instead of acting as SQL
+    // wildcards, and ASCII matching stays case-insensitive.
+    func testHistorySearchMatchesWildcardsLiterallyAndCaseInsensitively() async throws {
+        let (repository, cleanup) = try makeHistoryRepository()
+        defer { cleanup() }
+        _ = try await repository.save(text: "Progress 100% done", rawText: nil)
+        _ = try await repository.save(text: "100 percent plain", rawText: nil)
+        _ = try await repository.save(text: "alpha_beta underscore", rawText: nil)
+        _ = try await repository.save(text: "alphaXbeta letter", rawText: nil)
+        _ = try await repository.save(text: "back\\slash row", rawText: nil)
+
+        let percent = try await repository.search(query: "100%")
+        XCTAssertEqual(percent.map(\.text), ["Progress 100% done"], "% must not act as a wildcard")
+
+        let underscore = try await repository.search(query: "alpha_beta")
+        XCTAssertEqual(underscore.map(\.text), ["alpha_beta underscore"], "_ must not act as a wildcard")
+
+        let backslash = try await repository.search(query: "back\\slash")
+        XCTAssertEqual(backslash.map(\.text), ["back\\slash row"], "\\ must match itself literally")
+
+        let caseInsensitive = try await repository.search(query: "pRoGrEsS")
+        XCTAssertEqual(caseInsensitive.map(\.text), ["Progress 100% done"])
+
+        // A raw-text-only hit must surface the record too.
+        _ = try await repository.save(text: "polished output", rawText: "raw_only% source")
+        let rawHit = try await repository.search(query: "raw_only%")
+        XCTAssertEqual(rawHit.map(\.text), ["polished output"])
+
+        // Blank queries fall back to recent() instead of matching nothing.
+        let blank = try await repository.search(query: "   ")
+        XCTAssertEqual(blank.count, 6)
+    }
+
+    // D7: offset paging over recent() and search() must be stable and free of
+    // duplicates/gaps, keyed on the timestamp DESC, id DESC ordering.
+    func testHistoryRecentAndSearchPaginateStablyWithOffset() async throws {
+        let (repository, cleanup) = try makeHistoryRepository()
+        defer { cleanup() }
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        for index in 1...5 {
+            try await repository.restore(TranscriptionRecord(
+                id: Int64(index),
+                text: "item \(index)",
+                rawText: nil,
+                timestamp: base.addingTimeInterval(TimeInterval(index) * 60)
+            ))
+        }
+
+        let pageOne = try await repository.recent(limit: 2, offset: 0)
+        let pageTwo = try await repository.recent(limit: 2, offset: 2)
+        let pageThree = try await repository.recent(limit: 2, offset: 4)
+        XCTAssertEqual(pageOne.map(\.id), [5, 4])
+        XCTAssertEqual(pageTwo.map(\.id), [3, 2])
+        XCTAssertEqual(pageThree.map(\.id), [1])
+
+        let searchPage = try await repository.search(query: "item", limit: 2, offset: 2)
+        XCTAssertEqual(searchPage.map(\.id), [3, 2])
+    }
+
+    // F1: rows older than the retention window are pruned; newer rows stay.
+    func testPruneRemovesRowsOlderThanRetentionWindow() async throws {
+        let (repository, cleanup) = try makeHistoryRepository()
+        defer { cleanup() }
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        let day: TimeInterval = 86_400
+        try await repository.restore(TranscriptionRecord(id: 1, text: "expired", rawText: nil, timestamp: base))
+        try await repository.restore(TranscriptionRecord(
+            id: 2, text: "inside window", rawText: nil, timestamp: base.addingTimeInterval(10 * day)
+        ))
+        try await repository.restore(TranscriptionRecord(
+            id: 3, text: "fresh", rawText: nil, timestamp: base.addingTimeInterval(91 * day)
+        ))
+
+        // now = base + 91d => cutoff = base + 1d: only the row at `base` expires.
+        let deleted = try await repository.prune(now: base.addingTimeInterval(91 * day))
+
+        XCTAssertEqual(deleted, 1)
+        let remaining = try await repository.recent(limit: 10)
+        XCTAssertEqual(remaining.map(\.id), [3, 2])
+    }
+
+    // F1: the row cap keeps the newest retentionMaxRows records, deleting the
+    // oldest; crossing the vacuum threshold must run VACUUM without breaking
+    // the connection.
+    func testPruneEnforcesRowCapDeletingOldestAndSurvivesVacuum() async throws {
+        let (repository, cleanup) = try makeHistoryRepository()
+        defer { cleanup() }
+        let rowCount = HistoryRepository.retentionMaxRows + 201
+        let now = Date()
+        // Timestamps stay inside the retention window so only the row cap fires.
+        let base = now.addingTimeInterval(-TimeInterval(rowCount) - 60)
+        for index in 1...rowCount {
+            try await repository.restore(TranscriptionRecord(
+                id: Int64(index),
+                text: "row \(index)",
+                rawText: nil,
+                timestamp: base.addingTimeInterval(TimeInterval(index))
+            ))
+        }
+
+        // 201 deletions >= the 200-row vacuum threshold, so VACUUM runs too.
+        let deleted = try await repository.prune(now: now)
+        XCTAssertEqual(deleted, 201, "The 201 oldest rows above the cap must be deleted")
+
+        var total = 0
+        var offset = 0
+        var oldestID = Int64.max
+        while true {
+            let page = try await repository.recent(limit: 1_000, offset: offset)
+            if page.isEmpty { break }
+            total += page.count
+            oldestID = min(oldestID, page.map(\.id).min() ?? Int64.max)
+            offset += 1_000
+        }
+        XCTAssertEqual(total, HistoryRepository.retentionMaxRows)
+        XCTAssertEqual(oldestID, 202, "Deletion must start from the oldest rows")
+
+        // The connection must stay usable after VACUUM.
+        let afterVacuum = try await repository.save(text: "after vacuum", rawText: nil)
+        XCTAssertEqual(afterVacuum.text, "after vacuum")
+    }
+
+    private func makeHistoryRepository() throws -> (HistoryRepository, () -> Void) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Mouthpiece-HistoryTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let repository = try HistoryRepository(
+            databaseURL: directory.appendingPathComponent("history.sqlite3")
+        )
+        return (repository, { try? FileManager.default.removeItem(at: directory) })
+    }
+
     private func chromiumKey(_ key: String, origin: String = "_file://") -> Data {
         var data = Data(origin.utf8)
         data.append(0)

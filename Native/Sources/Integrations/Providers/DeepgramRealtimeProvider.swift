@@ -5,9 +5,10 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
     private var socket: URLSessionWebSocketTask?
     private var receiveTask: Task<Void, Never>?
     private var eventHandler: (@Sendable (RealtimeTranscriptionEvent) -> Void)?
-    private var pendingAudio: [Data] = []
-    private var pendingBytes = 0
+    private var pendingAudio = RealtimePendingAudioBuffer()
     private var finalSegments: [String] = []
+    private var connectionConfirmed = false
+    private var closeRequested = false
     private var finished = false
     private var terminalError: String?
     private var language: String?
@@ -30,6 +31,8 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
         }
         eventHandler = onEvent
         finalSegments.removeAll()
+        connectionConfirmed = false
+        closeRequested = false
         finished = false
         terminalError = nil
         language = configuration.language
@@ -60,12 +63,41 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
         receiveTask = Task { [weak self] in
             await self?.receiveLoop(socket, generation: generation)
         }
+        // Audit C6: confirm the connection before reporting success so a bad
+        // key fails the connect step instead of surfacing as an opaque
+        // mid-session error. Deepgram sends no application-level ack before
+        // audio flows, so a WebSocket pong doubles as the server signal; a
+        // rejected upgrade makes receiveLoop record the error instead.
+        socket.sendPing { [weak self] error in
+            guard error == nil, let self else { return }
+            Task { await self.confirmConnection(socket: socket, generation: generation) }
+        }
+        let confirmed = try await RealtimeSocketSession.waitForCondition(
+            timeout: .seconds(15),
+            pollInterval: .milliseconds(25),
+            isSatisfied: { connectionConfirmed },
+            terminalError: { terminalError },
+            onTick: { try ensureCurrent(socket: socket, generation: generation) }
+        )
+        if let terminalError {
+            await cancel()
+            throw BailianRealtimeError.protocolError(terminalError)
+        }
+        guard confirmed else {
+            await cancel()
+            throw RealtimeProviderError.timedOut(provider: "Deepgram")
+        }
         try await flush(socket: socket, generation: generation)
+    }
+
+    private func confirmConnection(socket: URLSessionWebSocketTask, generation: Int) {
+        guard isCurrent(socket: socket, generation: generation) else { return }
+        connectionConfirmed = true
     }
 
     func send(pcm16: Data) async throws {
         guard let socket, socket.state == .running else {
-            appendPending(pcm16)
+            pendingAudio.append(pcm16)
             return
         }
         try await socket.send(.data(pcm16))
@@ -76,13 +108,17 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
         let generation = self.generation
         try await socket.send(.string(#"{"type":"Finalize"}"#))
         try ensureCurrent(socket: socket, generation: generation)
+        // Audit C1: after CloseStream the server closing the socket is the
+        // expected way for this session to end, not an error.
+        closeRequested = true
         try await socket.send(.string(#"{"type":"CloseStream"}"#))
         try ensureCurrent(socket: socket, generation: generation)
-        let deadline = ContinuousClock.now + .seconds(5)
-        while !finished && terminalError == nil && ContinuousClock.now < deadline {
-            try await Task.sleep(for: .milliseconds(40))
-            try ensureCurrent(socket: socket, generation: generation)
-        }
+        _ = try await RealtimeSocketSession.waitForCondition(
+            timeout: .seconds(5),
+            isSatisfied: { finished },
+            terminalError: { terminalError },
+            onTick: { try ensureCurrent(socket: socket, generation: generation) }
+        )
         if let terminalError {
             await cancel()
             throw BailianRealtimeError.protocolError(terminalError)
@@ -99,8 +135,9 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
         socket?.cancel(with: .goingAway, reason: nil)
         socket = nil
         eventHandler = nil
-        pendingAudio.removeAll()
-        pendingBytes = 0
+        connectionConfirmed = false
+        closeRequested = false
+        pendingAudio = RealtimePendingAudioBuffer()
     }
 
     private func receiveLoop(_ socket: URLSessionWebSocketTask, generation: Int) async {
@@ -108,6 +145,7 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
             while isCurrent(socket: socket, generation: generation), !Task.isCancelled {
                 let message = try await socket.receive(timeout: .seconds(60))
                 guard isCurrent(socket: socket, generation: generation), !Task.isCancelled else { return }
+                connectionConfirmed = true
                 guard let payload = json(message), let parsed = Self.parseMessage(payload) else { continue }
                 switch parsed {
                 case .transcript(let transcript, let isFinal):
@@ -124,7 +162,8 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
                 }
             }
         } catch {
-            if isCurrent(socket: socket, generation: generation), !Task.isCancelled {
+            if isCurrent(socket: socket, generation: generation), !Task.isCancelled,
+               !RealtimeSocketSession.isBenignReceiveError(afterTerminalState: closeRequested || finished) {
                 terminalError = error.localizedDescription
                 eventHandler?(.error(error.localizedDescription))
             }
@@ -164,17 +203,8 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
         finalSegments.reduce("") { TranscriptJoiner.join($0, $1, language: language) }
     }
 
-    private func appendPending(_ data: Data) {
-        pendingAudio.append(data)
-        pendingBytes += data.count
-        while pendingBytes > 96_000, !pendingAudio.isEmpty { pendingBytes -= pendingAudio.removeFirst().count }
-    }
-
     private func flush(socket: URLSessionWebSocketTask, generation: Int) async throws {
-        let frames = pendingAudio
-        pendingAudio.removeAll()
-        pendingBytes = 0
-        for frame in frames {
+        for frame in pendingAudio.detachAll() {
             try ensureCurrent(socket: socket, generation: generation)
             try await socket.send(.data(frame))
         }

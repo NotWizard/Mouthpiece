@@ -8,6 +8,8 @@ final class AppEnvironment: ObservableObject {
     @Published private(set) var settings = AppSettings()
     @Published private(set) var dictation = DictationSnapshot.idle
     @Published private(set) var transcriptions: [TranscriptionRecord] = []
+    @Published private(set) var hasMoreHistory = false
+    @Published private(set) var lastSessionError: SessionFailure?
     @Published private(set) var permissions = PermissionSnapshot(microphone: false, accessibility: false)
     @Published private(set) var microphones: [AudioInputDevice] = []
     @Published private(set) var dictionaryWords: [String] = []
@@ -45,6 +47,10 @@ final class AppEnvironment: ObservableObject {
     private var dictionarySaveTask: Task<Void, Never>?
     private var initializationTask: Task<Void, Never>?
     private var localModelOperationTask: Task<Void, Never>?
+    private static let historyPageSize = 200
+    private var historyQuery = ""
+    private var historyLoadRevision = 0
+    private var lastFailedSessionID: UUID?
 
     init(bootstrap: Bool = true) {
         if settingsRepository.loadFailed {
@@ -97,6 +103,35 @@ final class AppEnvironment: ObservableObject {
                 startupError = error.localizedDescription
             }
         }
+    }
+
+    func searchHistory(_ query: String) {
+        let clean = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard clean != historyQuery else { return }
+        historyQuery = clean
+        refreshHistory()
+    }
+
+    func loadMoreHistory() {
+        guard let history, hasMoreHistory else { return }
+        historyLoadRevision += 1
+        let revision = historyLoadRevision
+        let query = historyQuery
+        let offset = transcriptions.count
+        Task {
+            do {
+                let page = try await Self.fetchHistoryPage(history: history, query: query, offset: offset)
+                guard revision == historyLoadRevision else { return }
+                transcriptions += page
+                hasMoreHistory = page.count == Self.historyPageSize
+            } catch {
+                startupError = error.localizedDescription
+            }
+        }
+    }
+
+    func clearLastSessionError() {
+        lastSessionError = nil
     }
 
     func clearHistory() {
@@ -362,7 +397,15 @@ final class AppEnvironment: ObservableObject {
             self.logger = logger
             try await logger.prune()
             try ensureInitializationCanContinue()
-            transcriptions = try await history.recent(limit: 200)
+            // F1: 启动打开库后执行一次历史保留清理；失败仅记日志，不阻断初始化。
+            do {
+                let pruned = try await history.prune()
+                if pruned > 0 { await logger.write(.info, "History prune removed \(pruned) records") }
+            } catch {
+                await logger.write(.warning, "History prune failed: \(error.localizedDescription)")
+            }
+            try ensureInitializationCanContinue()
+            try await reloadHistory()
             try ensureInitializationCanContinue()
             let storedDictionary = try await history.dictionary()
             try ensureInitializationCanContinue()
@@ -384,6 +427,7 @@ final class AppEnvironment: ObservableObject {
             ) { [weak self] snapshot in
                 self?.dictation = snapshot
                 self?.escapeHotkey.setSwallowArmed(snapshot.phase.isActive)
+                self?.recordSessionFailure(snapshot)
             }
             self.coordinator = coordinator
             hotkey.onPress = { [weak self] in self?.handleHotkeyPress() }
@@ -411,7 +455,34 @@ final class AppEnvironment: ObservableObject {
 
     private func reloadHistory() async throws {
         guard let history else { return }
-        transcriptions = try await history.recent(limit: 200)
+        historyLoadRevision += 1
+        let revision = historyLoadRevision
+        let query = historyQuery
+        let page = try await Self.fetchHistoryPage(history: history, query: query, offset: 0)
+        guard revision == historyLoadRevision else { return }
+        transcriptions = page
+        hasMoreHistory = page.count == Self.historyPageSize
+    }
+
+    private static func fetchHistoryPage(
+        history: HistoryRepository,
+        query: String,
+        offset: Int
+    ) async throws -> [TranscriptionRecord] {
+        query.isEmpty
+            ? try await history.recent(limit: historyPageSize, offset: offset)
+            : try await history.search(query: query, limit: historyPageSize, offset: offset)
+    }
+
+    // D6: 胶囊上的错误只闪现 2.4 秒；这里把失败会话的错误留存下来供控制面板回看。
+    private func recordSessionFailure(_ snapshot: DictationSnapshot) {
+        guard snapshot.phase == .failed, snapshot.sessionID != lastFailedSessionID else { return }
+        lastFailedSessionID = snapshot.sessionID
+        lastSessionError = SessionFailure(
+            date: .now,
+            message: snapshot.errorMessage
+                ?? AppLocalization.string("capsule.failed", language: settings.uiLanguage)
+        )
     }
 
     private var selectedLocalModelID: String {
@@ -551,12 +622,17 @@ final class AppEnvironment: ObservableObject {
         if settings.audioCuesEnabled { audioCues.playStart(preset: settings.soundPreset) }
         var sessionSettings = settings
         sessionSettings.translationEnabled = true
-        Task {
-            if dictation.phase.isActive {
-                await coordinator.cancel()
-                try? await Task.sleep(for: .milliseconds(80))
-            }
-            await coordinator.start(settings: sessionSettings)
+        Task { [weak self] in
+            // The coordinator decides cancel-vs-start against its real state;
+            // the @Published snapshot read here lags the actor, and racing the
+            // main hotkey used to skip the cancel and leave the activation
+            // owner pointing at a session that never switched.
+            let started = await coordinator.restartForTranslation(settings: sessionSettings)
+            guard let self, !started else { return }
+            // The translation session did not take effect (start failed);
+            // hand the activation back so push-to-talk release still stops
+            // whatever is running.
+            self.activeActivation = .main
         }
     }
 
@@ -716,6 +792,11 @@ final class AppEnvironment: ObservableObject {
         refreshPermissions()
         capsule.repositionIfVisible()
     }
+}
+
+struct SessionFailure: Equatable, Sendable {
+    let date: Date
+    let message: String
 }
 
 private enum DictationActivation {

@@ -22,6 +22,7 @@
 		393DA3F6B2481CBC599F9828 /* HistoryRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4296C56083431AF4D8B75F2 /* HistoryRepository.swift */; };
 		44384E8791662B41641112B2 /* HotkeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FE9307D1D6F3C430EB81C47 /* HotkeyService.swift */; };
 		4A474C3D5F03FAF0872D0C06 /* ObjCExceptionCatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = A70B7ABB4FAE5FC3F96EF40C /* ObjCExceptionCatcher.m */; };
+		4AADC71C2AD99C4B02C73EDD /* RealtimeSocketSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCDAC59350B9390117359543 /* RealtimeSocketSession.swift */; };
 		4D2EFEB2F4185781B7272688 /* ControlPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1827FCF96D30560F007B93C /* ControlPanelView.swift */; };
 		4F7E2751C9085D48308B2CA9 /* DictationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB1FA0A318163DC8EBA246D /* DictationState.swift */; };
 		4FB05E7D0CDE2589D8A3FABD /* MouthpieceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 202A5C104CA1D33343D7EB28 /* MouthpieceApp.swift */; };
@@ -160,6 +161,7 @@
 		F33CE4BB76FFC238A6A35B30 /* provider-openai.svg */ = {isa = PBXFileReference; path = "provider-openai.svg"; sourceTree = "<group>"; };
 		F355B8755FE4FE25201F1ED0 /* LocalModelCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalModelCatalog.swift; sourceTree = "<group>"; };
 		F4C623CB05090C7BECBB185C /* Binaries */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Binaries; path = Native/Binaries; sourceTree = SOURCE_ROOT; };
+		FCDAC59350B9390117359543 /* RealtimeSocketSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealtimeSocketSession.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -296,6 +298,7 @@
 				BCEBC42060FEFC594B4704CD /* BailianRealtimeProvider.swift */,
 				61A78229C54CB604F1508042 /* BatchTranscriptionClient.swift */,
 				3447C40CD33646B1C77CFEAD /* DeepgramRealtimeProvider.swift */,
+				FCDAC59350B9390117359543 /* RealtimeSocketSession.swift */,
 				0C07998451259427FC5F9268 /* SonioxRealtimeProvider.swift */,
 				AD15DDB4974E8338A9223CBC /* TranscriptionProvider.swift */,
 				A4A1007A71A94BEFBAC33308 /* VolcengineRealtimeProvider.swift */,
@@ -619,6 +622,7 @@
 				71B51A2960D7F6CF036B2DC3 /* PermissionService.swift in Sources */,
 				5CE5B3948AE7DBFC00EAB40F /* PrivacyDiagnosticsView.swift in Sources */,
 				BB52C51AEF1B38A7CB931508 /* ProcessingSettingsView.swift in Sources */,
+				4AADC71C2AD99C4B02C73EDD /* RealtimeSocketSession.swift in Sources */,
 				650DB320394040311A3B290F /* ReasoningService.swift in Sources */,
 				9E9E292CD9916AB9F8B742ED /* SettingsRepository.swift in Sources */,
 				664AEC27457E03F9EAE8BD73 /* SonioxRealtimeProvider.swift in Sources */,

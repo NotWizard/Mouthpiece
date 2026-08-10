@@ -125,6 +125,14 @@ jobs:
           merge-multiple: true
 
       - name: Generate signed Sparkle appcast
+        # Rollback design: rather than migrating the feed to gh-pages (kept on
+        # releases/latest on purpose — no new hosting surface), every release
+        # ships an appcast that merges the previous release's items (fetched
+        # from releases/latest) and keeps the 5 newest versions. If a release
+        # is yanked, `latest` falls back to the prior release, whose
+        # multi-entry appcast still lets Sparkle compare versions and install
+        # the rollback. Old items keep their original EdDSA enclosure
+        # signatures, so the merge only splices XML nodes and never re-signs.
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
           VERSION: ${{ needs.prepare.outputs.version }}
@@ -139,7 +147,68 @@ jobs:
             echo "Sparkle archive checksum mismatch" >&2; exit 1;
           }
           tar -xJf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle"
+          merge_appcast() {
+            python3 - "$1" "$2" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          SPARKLE = "http://www.andymatuschak.org/xml-namespaces/sparkle"
+          ET.register_namespace("sparkle", SPARKLE)
+          ET.register_namespace("dc", "http://purl.org/dc/elements/1.1/")
+          MAX_ITEMS = 5
+
+          def build_version(item):
+              node = item.find("{%s}version" % SPARKLE)
+              if node is not None and node.text and node.text.strip():
+                  return node.text.strip()
+              enclosure = item.find("enclosure")
+              if enclosure is not None:
+                  return enclosure.get("{%s}version" % SPARKLE)
+              return None
+
+          def sort_key(version):
+              return [int(part) if part.isdigit() else -1 for part in version.split(".")]
+
+          current_path, previous_path = sys.argv[1], sys.argv[2]
+          tree = ET.parse(current_path)
+          channel = tree.getroot().find("channel")
+          current_items = channel.findall("item")
+          with open(previous_path, "rb") as handle:
+              if b"<!DOCTYPE" in handle.read():
+                  # Downloaded XML: refuse DTDs (entity-expansion hardening);
+                  # generate_appcast never emits one.
+                  print("Previous appcast contains a DTD; keeping current items only")
+                  sys.exit(0)
+          try:
+              previous_items = ET.parse(previous_path).getroot().findall("channel/item")
+          except ET.ParseError as error:
+              print("Previous appcast unparseable (%s); keeping current items only" % error)
+              sys.exit(0)
+
+          merged = {}
+          for item in current_items + previous_items:
+              version = build_version(item)
+              if version is None or version in merged:
+                  continue  # current release wins over a previous duplicate
+              merged[version] = item
+
+          kept = sorted(merged.items(), key=lambda pair: sort_key(pair[0]), reverse=True)[:MAX_ITEMS]
+          for item in current_items:
+              channel.remove(item)
+          for _, item in kept:
+              channel.append(item)
+          tree.write(current_path, encoding="utf-8", xml_declaration=True)
+          print("Merged %s: kept sparkle:version(s) %s" % (current_path, ", ".join(v for v, _ in kept)))
+          PY
+          }
           for ARCH in arm64 x64; do
+            PREVIOUS="$RUNNER_TEMP/previous-appcast-$ARCH.xml"
+            if ! curl -fsSL --max-time 60 \
+              "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/appcast-$ARCH.xml" \
+              -o "$PREVIOUS"; then
+              rm -f "$PREVIOUS"
+              echo "No previous appcast for $ARCH (first release or fetch failed); shipping current entry only"
+            fi
             INPUT="$RUNNER_TEMP/appcast-input-$ARCH"
             mkdir -p "$INPUT"
             cp "release-assets/Mouthpiece-$VERSION-$ARCH-mac.zip" "$INPUT/"
@@ -149,6 +218,9 @@ jobs:
               --link "https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG" \
               "$INPUT"
             cp "$INPUT"/appcast*.xml "release-assets/appcast-$ARCH.xml"
+            if [ -f "$PREVIOUS" ]; then
+              merge_appcast "release-assets/appcast-$ARCH.xml" "$PREVIOUS"
+            fi
           done
 
       - name: Generate legacy electron-updater feed (one-time bridge to 2.0.0)

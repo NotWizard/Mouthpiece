@@ -165,9 +165,71 @@ final class AudioTests: XCTestCase {
         XCTAssertNil(ObjCExceptionGuard.run {})
     }
 
+    // A2/A3: the tap is installed with a nil format, so a device switch
+    // changes the buffer format mid-session. The converter pool must rebuild
+    // for the new format and keep emitting 20 ms 16 kHz frames instead of
+    // dropping audio; a clean run must not invoke the dropped-frame
+    // diagnostics callback.
+    func testConverterPoolRebuildsOnMidSessionFormatChangeWithoutDroppingAudio() async throws {
+        let sink = ConverterFrameSink()
+        let box = try AudioConverterBox(
+            onFrame: { data, _ in sink.append(data) },
+            onLevel: { _ in },
+            onDiagnostics: { sink.recordDropped($0) }
+        )
+
+        box.process(try makeSineBuffer(sampleRate: 48_000, frames: 4_800))
+        box.process(try makeSineBuffer(sampleRate: 24_000, frames: 2_400))
+        await box.finish()
+
+        XCTAssertNil(sink.dropped, "No frame may be reported dropped in a clean two-format run")
+        let frames = sink.frames
+        XCTAssertFalse(frames.isEmpty)
+        for frame in frames.dropLast() {
+            XCTAssertEqual(frame.count, 640, "Full frames must stay 20 ms of 16 kHz PCM16")
+        }
+        // 100 ms at 48 kHz plus 100 ms at 24 kHz both resample to 16 kHz:
+        // ~6400 output bytes. Requiring > 5000 proves audio recorded after
+        // the format switch was converted too (one segment alone tops out at
+        // 3200 bytes); the tolerance absorbs resampler priming latency.
+        let totalBytes = frames.reduce(0) { $0 + $1.count }
+        XCTAssertGreaterThan(totalBytes, 5_000)
+        XCTAssertLessThanOrEqual(totalBytes, 7_040)
+    }
+
+    private func makeSineBuffer(sampleRate: Double, frames: AVAudioFrameCount) throws -> AVAudioPCMBuffer {
+        let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1))
+        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames))
+        buffer.frameLength = frames
+        let channel = try XCTUnwrap(buffer.floatChannelData?[0])
+        for index in 0..<Int(frames) {
+            channel[index] = sinf(Float(index) * 2 * .pi * 440 / Float(sampleRate)) * 0.25
+        }
+        return buffer
+    }
+
     private func pcmFrame(amplitude: Int16, milliseconds: Int) -> Data {
         let sampleCount = 16_000 * milliseconds / 1_000
         var samples = [Int16](repeating: amplitude, count: sampleCount)
         return samples.withUnsafeMutableBytes { Data($0) }
+    }
+}
+
+// Collects converter output across the conversion queue; finish() drains the
+// queue before returning, so reads after `await finish()` see the final state.
+private final class ConverterFrameSink: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storedFrames: [Data] = []
+    private var storedDropped: Int?
+
+    var frames: [Data] { lock.withLock { storedFrames } }
+    var dropped: Int? { lock.withLock { storedDropped } }
+
+    func append(_ frame: Data) {
+        lock.withLock { storedFrames.append(frame) }
+    }
+
+    func recordDropped(_ count: Int) {
+        lock.withLock { storedDropped = count }
     }
 }

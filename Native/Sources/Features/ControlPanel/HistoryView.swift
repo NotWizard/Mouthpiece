@@ -47,6 +47,13 @@ struct HistoryView: View {
                                 onDelete: { delete(item) }
                             )
                         }
+                        if environment.hasMoreHistory {
+                            Button("history.loadMore") {
+                                environment.loadMoreHistory()
+                            }
+                            .buttonStyle(.bordered)
+                            .padding(.top, 4)
+                        }
                     }
                     .padding(.horizontal, 28)
                     .padding(.vertical, 20)
@@ -56,6 +63,12 @@ struct HistoryView: View {
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .searchable(text: $query, placement: .toolbar, prompt: Text("history.search"))
+        .task(id: query) {
+            // D7: 简单 debounce 后将搜索词下推到 SQL 查询。
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            environment.searchHistory(query)
+        }
         .confirmationDialog(
             "history.clear.confirmTitle",
             isPresented: $showingClearConfirmation,
@@ -74,9 +87,8 @@ struct HistoryView: View {
     }
 
     private var filteredRecords: [TranscriptionRecord] {
-        environment.transcriptions.filter {
-            HistorySearch.matches($0, query: query, dateFilter: dateFilter)
-        }
+        // 文本匹配已下推到 SQL（environment.searchHistory）；此处仅保留日期过滤。
+        environment.transcriptions.filter { dateFilter.includes($0.timestamp) }
     }
 
     private func copy(_ text: String) {

@@ -17,6 +17,7 @@ enum AudioCaptureError: LocalizedError {
     case converterCreationFailed
     case converterFailed(String)
     case engineException(String)
+    case inputDeviceChanged
 
     var errorDescription: String? {
         switch self {
@@ -27,6 +28,7 @@ enum AudioCaptureError: LocalizedError {
         case .converterCreationFailed: "Unable to create the microphone audio converter."
         case .converterFailed(let message): "Audio conversion failed: \(message)"
         case .engineException(let message): "Starting the microphone failed: \(message)"
+        case .inputDeviceChanged: "The microphone connection was interrupted. Check the input device and try again."
         }
     }
 }
@@ -46,6 +48,7 @@ class AudioCaptureService {
 
     private var engine = AVAudioEngine()
     private var converterBox: AudioConverterBox?
+    private var configurationChangeObserver: (any NSObjectProtocol)?
     private var tapInstalled = false
     private var isStarting = false
     private(set) var isRunning = false
@@ -61,7 +64,9 @@ class AudioCaptureService {
     func start(
         selectedDeviceUID: String?,
         onFrame: @escaping @Sendable (Data, Double) -> Void,
-        onLevel: @escaping @Sendable (Float) -> Void
+        onLevel: @escaping @Sendable (Float) -> Void,
+        onSessionInterrupted: (@Sendable () -> Void)? = nil,
+        onDiagnostics: (@Sendable (Int) -> Void)? = nil
     ) async throws {
         guard !isRunning, !isStarting else { return }
         guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
@@ -85,8 +90,21 @@ class AudioCaptureService {
             EngineBox(engine: engine),
             selectedDeviceUID: selectedDeviceUID,
             onFrame: onFrame,
-            onLevel: onLevel
+            onLevel: onLevel,
+            onDiagnostics: onDiagnostics
         )
+        // When the active input disappears or changes mid-session (Bluetooth
+        // drop, unplugged microphone) the engine silently stops delivering
+        // taps; surface it so the session owner can fail with feedback. The
+        // observer is bound to this session's engine object because every
+        // session creates a fresh engine (see above).
+        if let onSessionInterrupted {
+            configurationChangeObserver = NotificationCenter.default.addObserver(
+                forName: .AVAudioEngineConfigurationChange,
+                object: engine,
+                queue: nil
+            ) { _ in onSessionInterrupted() }
+        }
         tapInstalled = true
         isRunning = true
     }
@@ -101,7 +119,8 @@ class AudioCaptureService {
         _ box: EngineBox,
         selectedDeviceUID: String?,
         onFrame: @escaping @Sendable (Data, Double) -> Void,
-        onLevel: @escaping @Sendable (Float) -> Void
+        onLevel: @escaping @Sendable (Float) -> Void,
+        onDiagnostics: (@Sendable (Int) -> Void)?
     ) async throws -> AudioConverterBox {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<AudioConverterBox, Error>) in
             engineQueue.async {
@@ -120,7 +139,8 @@ class AudioCaptureService {
                     }
                     let converter = try AudioConverterBox(
                         onFrame: onFrame,
-                        onLevel: onLevel
+                        onLevel: onLevel,
+                        onDiagnostics: onDiagnostics
                     )
                     // AVFAudio raises ObjC exceptions here (for example when
                     // the cached format no longer matches the hardware after
@@ -172,6 +192,13 @@ class AudioCaptureService {
     }
 
     func stop() async {
+        // Removing the observer first keeps an owner-initiated tear-down from
+        // being misreported as a device interruption, and prevents leaking one
+        // observer per session.
+        if let configurationChangeObserver {
+            NotificationCenter.default.removeObserver(configurationChangeObserver)
+            self.configurationChangeObserver = nil
+        }
         guard isRunning || tapInstalled || converterBox != nil else { return }
         resetEngine()
         await converterBox?.finish()
@@ -301,17 +328,24 @@ class AudioCaptureService {
     }
 }
 
-private final class AudioConverterBox: @unchecked Sendable {
+// Internal (not private) as a test seam: AudioTests drives the converter
+// directly to cover the mid-session format-change pool rebuild (A2) and the
+// dropped-frame diagnostics contract (A3). Not used outside this file in
+// production code.
+final class AudioConverterBox: @unchecked Sendable {
     private static let frameBytes = AudioCaptureService.outputSampleRate * 2 / 50
     private var converter: AVAudioConverter?
     private let outputFormat: AVAudioFormat
     private let onFrame: @Sendable (Data, Double) -> Void
     private let onLevel: @Sendable (Float) -> Void
+    private let onDiagnostics: (@Sendable (Int) -> Void)?
     private let queue = DispatchQueue(label: "com.mouthpiece.audio-conversion", qos: .userInitiated)
     private let lock = NSLock()
     private var queuedBuffers: [AVAudioPCMBuffer] = []
     private var availableBuffers: [AVAudioPCMBuffer] = []
     private var poolFormat: AVAudioFormat?
+    private var poolCapacity: AVAudioFrameCount = 0
+    private var droppedFrames = 0
     private var drainScheduled = false
     private var accepting = true
     private var pendingPCM = Data()
@@ -319,7 +353,8 @@ private final class AudioConverterBox: @unchecked Sendable {
 
     init(
         onFrame: @escaping @Sendable (Data, Double) -> Void,
-        onLevel: @escaping @Sendable (Float) -> Void
+        onLevel: @escaping @Sendable (Float) -> Void,
+        onDiagnostics: (@Sendable (Int) -> Void)? = nil
     ) throws {
         guard let outputFormat = AVAudioFormat(
             commonFormat: .pcmFormatInt16,
@@ -332,6 +367,7 @@ private final class AudioConverterBox: @unchecked Sendable {
         self.outputFormat = outputFormat
         self.onFrame = onFrame
         self.onLevel = onLevel
+        self.onDiagnostics = onDiagnostics
     }
 
     func process(_ input: AVAudioPCMBuffer) {
@@ -344,25 +380,32 @@ private final class AudioConverterBox: @unchecked Sendable {
         }
         // The tap is installed with a nil format, so a device switch changes
         // the buffer format mid-session; rebuild the reusable pool to match.
-        if poolFormat != format {
-            let capacity = AVAudioFrameCount(max(4_096, Int(format.sampleRate / 10)))
+        // An input larger than the pool's capacity rebuilds too (sized to the
+        // actual demand), so oversized frames are retried instead of dropped.
+        if poolFormat != format || poolCapacity < input.frameLength {
+            let capacity = AVAudioFrameCount(max(4_096, max(Int(format.sampleRate / 10), Int(input.frameLength))))
             availableBuffers = (0..<10).compactMap { _ in
                 AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity)
             }
             poolFormat = format
+            poolCapacity = capacity
         }
         guard let reusable = availableBuffers.popLast() else {
+            droppedFrames += 1
             lock.unlock()
             return
         }
         lock.unlock()
         guard Self.copy(input, into: reusable) else {
-            lock.withLock { availableBuffers.append(reusable) }
+            lock.withLock {
+                droppedFrames += 1
+                returnToPoolLocked(reusable)
+            }
             return
         }
         lock.lock()
         guard accepting else {
-            availableBuffers.append(reusable)
+            returnToPoolLocked(reusable)
             lock.unlock()
             return
         }
@@ -381,9 +424,25 @@ private final class AudioConverterBox: @unchecked Sendable {
             queue.async { [weak self] in
                 self?.drain()
                 self?.emitRemainder()
+                self?.reportDiagnostics()
                 continuation.resume()
             }
         }
+    }
+
+    private func reportDiagnostics() {
+        let dropped = lock.withLock { droppedFrames }
+        guard dropped > 0 else { return }
+        onDiagnostics?(dropped)
+    }
+
+    // Must be called while `lock` is held. A device switch can rebuild the
+    // pool while a buffer is in flight; returning one with a stale format
+    // (or a smaller capacity) would loop corrupted audio when it is reused,
+    // so retire mismatched buffers instead.
+    private func returnToPoolLocked(_ buffer: AVAudioPCMBuffer) {
+        guard buffer.format == poolFormat, buffer.frameCapacity == poolCapacity else { return }
+        availableBuffers.append(buffer)
     }
 
     private func drain() {
@@ -397,7 +456,7 @@ private final class AudioConverterBox: @unchecked Sendable {
             let input = queuedBuffers.removeFirst()
             lock.unlock()
             convert(input)
-            lock.withLock { availableBuffers.append(input) }
+            lock.withLock { returnToPoolLocked(input) }
         }
     }
 

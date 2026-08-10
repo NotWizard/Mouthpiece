@@ -108,7 +108,7 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         guard !pcm16.isEmpty else { return }
         guard taskStarted, let socket, socket.state == .running else {
             pendingAudio.append(pcm16)
-            let maximumPendingBytes = 3 * 16_000 * 2
+            let maximumPendingBytes = RealtimeSocketSession.maximumPendingAudioBytes
             if pendingAudio.count > maximumPendingBytes {
                 pendingAudio.removeFirst(pendingAudio.count - maximumPendingBytes)
             }
@@ -132,15 +132,10 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         }
     }
 
-    // Data(prefix)/Data(dropFirst) rebuild fresh zero-based Data: after
-    // removeFirst, Data.startIndex is no longer 0, so zero-based
-    // subdata/insert would trap on the next flush.
+    // Kept as the public entry point (fixture tests call it here); the
+    // index-safe implementation lives in RealtimeSocketSession.
     static func detachSendableChunks(from buffer: inout Data, chunkBytes: Int) -> Data {
-        let sendableCount = (buffer.count / chunkBytes) * chunkBytes
-        guard sendableCount > 0 else { return Data() }
-        let outgoing = Data(buffer.prefix(sendableCount))
-        buffer = Data(buffer.dropFirst(sendableCount))
-        return outgoing
+        RealtimeSocketSession.detachSendableChunks(from: &buffer, chunkBytes: chunkBytes)
     }
 
     func finish() async throws -> String {
@@ -155,16 +150,17 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         try await sendJSON(finishTask(), over: socket)
         try ensureCurrent(socket: socket, generation: expectedGeneration)
 
-        let deadline = ContinuousClock.now + .seconds(5)
-        while !taskFinished && taskFailedMessage == nil && ContinuousClock.now < deadline {
-            try await Task.sleep(for: .milliseconds(40))
-            try ensureCurrent(socket: socket, generation: expectedGeneration)
-        }
+        let finished = try await RealtimeSocketSession.waitForCondition(
+            timeout: .seconds(5),
+            isSatisfied: { taskFinished },
+            terminalError: { taskFailedMessage },
+            onTick: { try ensureCurrent(socket: socket, generation: expectedGeneration) }
+        )
         if let taskFailedMessage {
             await closeSocket()
             throw BailianRealtimeError.protocolError(taskFailedMessage)
         }
-        guard taskFinished else { throw BailianRealtimeError.timedOut }
+        guard finished else { throw BailianRealtimeError.timedOut }
         let text = resolvedText
         await closeSocket()
         return text
@@ -262,7 +258,8 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
                 handle(payload)
             }
         } catch {
-            guard !Task.isCancelled, expectedGeneration == generation else { return }
+            guard !Task.isCancelled, expectedGeneration == generation,
+                  !RealtimeSocketSession.isBenignReceiveError(afterTerminalState: taskFinished) else { return }
             eventHandler?(.error(
                 BailianRealtimeError.connectionLost(error.localizedDescription).localizedDescription
             ))

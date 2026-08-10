@@ -11,10 +11,8 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
     private var ready = false
     private var connectionError: String?
     private var language: String?
-    private var pendingAudio: [Data] = []
-    private var pendingAudioBytes = 0
+    private var pendingAudio = RealtimePendingAudioBuffer()
     private var generation = 0
-    private let maximumBufferedBytes = 3 * 16_000 * 2
 
     init(session: URLSession = .shared) { self.session = session }
 
@@ -54,11 +52,13 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
         receiveTask = Task { [weak self] in
             await self?.receiveLoop(socket, generation: generation)
         }
-        let deadline = ContinuousClock.now + .seconds(15)
-        while !ready && connectionError == nil && ContinuousClock.now < deadline {
-            try await Task.sleep(for: .milliseconds(25))
-            try ensureCurrent(socket: socket, generation: generation)
-        }
+        let ready = try await RealtimeSocketSession.waitForCondition(
+            timeout: .seconds(15),
+            pollInterval: .milliseconds(25),
+            isSatisfied: { self.ready },
+            terminalError: { connectionError },
+            onTick: { try ensureCurrent(socket: socket, generation: generation) }
+        )
         if let connectionError {
             await cancel()
             throw BailianRealtimeError.protocolError(connectionError)
@@ -82,11 +82,12 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
         let generation = self.generation
         try await socket.send(.string(#"{"type":"Terminate"}"#))
         try ensureCurrent(socket: socket, generation: generation)
-        let deadline = ContinuousClock.now + .seconds(5)
-        while !terminated && connectionError == nil && ContinuousClock.now < deadline {
-            try await Task.sleep(for: .milliseconds(40))
-            try ensureCurrent(socket: socket, generation: generation)
-        }
+        _ = try await RealtimeSocketSession.waitForCondition(
+            timeout: .seconds(5),
+            isSatisfied: { terminated },
+            terminalError: { connectionError },
+            onTick: { try ensureCurrent(socket: socket, generation: generation) }
+        )
         if let connectionError {
             await cancel()
             throw BailianRealtimeError.protocolError(connectionError)
@@ -105,8 +106,7 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
         eventHandler = nil
         ready = false
         connectionError = nil
-        pendingAudio.removeAll()
-        pendingAudioBytes = 0
+        pendingAudio = RealtimePendingAudioBuffer()
     }
 
     private func receiveLoop(_ socket: URLSessionWebSocketTask, generation: Int) async {
@@ -147,7 +147,8 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
                 }
             }
         } catch {
-            if isCurrent(socket: socket, generation: generation), !Task.isCancelled {
+            if isCurrent(socket: socket, generation: generation), !Task.isCancelled,
+               !RealtimeSocketSession.isBenignReceiveError(afterTerminalState: terminated) {
                 connectionError = error.localizedDescription
                 eventHandler?(.error(error.localizedDescription))
             }
@@ -209,19 +210,11 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
     }
 
     private func appendPending(_ data: Data) {
-        guard !data.isEmpty else { return }
         pendingAudio.append(data)
-        pendingAudioBytes += data.count
-        while pendingAudioBytes > maximumBufferedBytes, !pendingAudio.isEmpty {
-            pendingAudioBytes -= pendingAudio.removeFirst().count
-        }
     }
 
     private func flushPendingAudio(_ socket: URLSessionWebSocketTask, generation: Int) async throws {
-        let frames = pendingAudio
-        pendingAudio.removeAll()
-        pendingAudioBytes = 0
-        for frame in frames {
+        for frame in pendingAudio.detachAll() {
             try ensureCurrent(socket: socket, generation: generation)
             try await socket.send(.data(frame))
         }

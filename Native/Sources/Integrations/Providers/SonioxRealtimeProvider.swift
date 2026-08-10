@@ -11,10 +11,10 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
     private var lastFinalText = ""
     private var finalized = false
     private var configured = false
-    private var pendingAudio: [Data] = []
-    private var pendingAudioBytes = 0
+    private var connectionConfirmed = false
+    private var connectionError: String?
+    private var pendingAudio = RealtimePendingAudioBuffer()
     private var generation = 0
-    private let maximumBufferedBytes = 3 * 16_000 * 2
 
     init(session: URLSession = .shared) { self.session = session }
 
@@ -32,19 +32,49 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
         lastFinalText = ""
         finalized = false
         configured = false
+        connectionConfirmed = false
+        connectionError = nil
         let generation = self.generation
         let socket = session.webSocketTask(with: URL(string: "wss://stt-rt.soniox.com/transcribe-websocket")!)
         self.socket = socket
         socket.resume()
-        let config = Self.configurationPayload(for: configuration)
-        try await sendJSON(config, socket: socket)
-        try ensureCurrent(socket: socket, generation: generation)
-        configured = true
-        try await flushPendingAudio(socket, generation: generation)
-        try ensureCurrent(socket: socket, generation: generation)
         receiveTask = Task { [weak self] in
             await self?.receiveLoop(socket, generation: generation)
         }
+        let config = Self.configurationPayload(for: configuration)
+        try await sendJSON(config, socket: socket)
+        try ensureCurrent(socket: socket, generation: generation)
+        // Audit C6: confirm the connection before reporting success so a bad
+        // key or rejected upgrade fails here instead of mid-session. Soniox
+        // has no documented application-level ready ack, so a WebSocket pong
+        // doubles as the server signal alongside any first message (which
+        // also carries auth errors for an invalid api_key).
+        socket.sendPing { [weak self] error in
+            guard error == nil, let self else { return }
+            Task { await self.confirmConnection(socket: socket, generation: generation) }
+        }
+        let confirmed = try await RealtimeSocketSession.waitForCondition(
+            timeout: .seconds(15),
+            pollInterval: .milliseconds(25),
+            isSatisfied: { connectionConfirmed },
+            terminalError: { connectionError },
+            onTick: { try ensureCurrent(socket: socket, generation: generation) }
+        )
+        if let connectionError {
+            await cancel()
+            throw BailianRealtimeError.protocolError(connectionError)
+        }
+        guard confirmed else {
+            await cancel()
+            throw RealtimeProviderError.timedOut(provider: "Soniox")
+        }
+        configured = true
+        try await flushPendingAudio(socket, generation: generation)
+    }
+
+    private func confirmConnection(socket: URLSessionWebSocketTask, generation: Int) {
+        guard isCurrent(socket: socket, generation: generation) else { return }
+        connectionConfirmed = true
     }
 
     static func configurationPayload(
@@ -80,11 +110,12 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
         try ensureCurrent(socket: socket, generation: generation)
         try await socket.send(.data(Data()))
         try ensureCurrent(socket: socket, generation: generation)
-        let deadline = ContinuousClock.now + .seconds(5)
-        while !finalized && ContinuousClock.now < deadline {
-            try await Task.sleep(for: .milliseconds(40))
-            try ensureCurrent(socket: socket, generation: generation)
-        }
+        _ = try await RealtimeSocketSession.waitForCondition(
+            timeout: .seconds(5),
+            isSatisfied: { finalized },
+            terminalError: { nil },
+            onTick: { try ensureCurrent(socket: socket, generation: generation) }
+        )
         let result = liveText
         await cancel()
         return result
@@ -98,8 +129,9 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
         socket = nil
         eventHandler = nil
         configured = false
-        pendingAudio.removeAll()
-        pendingAudioBytes = 0
+        connectionConfirmed = false
+        connectionError = nil
+        pendingAudio = RealtimePendingAudioBuffer()
     }
 
     private func receiveLoop(_ socket: URLSessionWebSocketTask, generation: Int) async {
@@ -107,6 +139,7 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
             while isCurrent(socket: socket, generation: generation), !Task.isCancelled {
                 let message = try await socket.receive(timeout: .seconds(60))
                 guard isCurrent(socket: socket, generation: generation), !Task.isCancelled else { return }
+                connectionConfirmed = true
                 let data: Data
                 switch message {
                 case .data(let value): data = value
@@ -114,7 +147,11 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
                 @unknown default: continue
                 }
                 guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
-                if let error = payload["error"] { eventHandler?(.error(String(describing: error))); continue }
+                if let error = payload["error"] {
+                    if connectionError == nil { connectionError = String(describing: error) }
+                    eventHandler?(.error(String(describing: error)))
+                    continue
+                }
                 guard let rawTokens = payload["tokens"] as? [[String: Any]] else { continue }
                 let tokens = rawTokens.compactMap(SonioxToken.init)
                 var unstable: [SonioxToken] = []
@@ -140,7 +177,9 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
                 if finalized { eventHandler?(.sessionFinished(stable)) }
             }
         } catch {
-            if isCurrent(socket: socket, generation: generation), !Task.isCancelled {
+            if isCurrent(socket: socket, generation: generation), !Task.isCancelled,
+               !RealtimeSocketSession.isBenignReceiveError(afterTerminalState: finalized) {
+                if connectionError == nil { connectionError = error.localizedDescription }
                 eventHandler?(.error(error.localizedDescription))
             }
         }
@@ -157,19 +196,11 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
     }
 
     private func appendPending(_ data: Data) {
-        guard !data.isEmpty else { return }
         pendingAudio.append(data)
-        pendingAudioBytes += data.count
-        while pendingAudioBytes > maximumBufferedBytes, !pendingAudio.isEmpty {
-            pendingAudioBytes -= pendingAudio.removeFirst().count
-        }
     }
 
     private func flushPendingAudio(_ socket: URLSessionWebSocketTask, generation: Int) async throws {
-        let frames = pendingAudio
-        pendingAudio.removeAll()
-        pendingAudioBytes = 0
-        for frame in frames {
+        for frame in pendingAudio.detachAll() {
             try ensureCurrent(socket: socket, generation: generation)
             try await socket.send(.data(frame))
         }

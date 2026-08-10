@@ -19,10 +19,17 @@ enum HistoryRepositoryError: LocalizedError {
 }
 
 actor HistoryRepository {
+    // F1 保留策略：固定常量而非设置项——审计建议先以保守默认值小步落地，待有用户反馈再考虑开放配置。
+    static let retentionDays = 90
+    static let retentionMaxRows = 2000
+    // 累计删除行数达到该阈值时执行一次 VACUUM 回收空间。
+    private static let vacuumThreshold = 200
+
     private let connection: SQLiteConnection
     private let databaseURL: URL
     private static let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
     private var database: OpaquePointer? { connection.pointer }
+    private var prunedRowsSinceVacuum = 0
 
     init(databaseURL: URL = AppPaths.databaseURL) throws {
         self.databaseURL = databaseURL
@@ -60,26 +67,75 @@ actor HistoryRepository {
             sqlite3_bind_null(statement, 2)
         }
         try stepDone(statement)
-        return try record(id: sqlite3_last_insert_rowid(database))
+        let saved = try record(id: sqlite3_last_insert_rowid(database))
+        // F1: 每次写入后做轻量保留清理；清理失败不影响本次保存结果。
+        _ = try? prune()
+        return saved
     }
 
-    func recent(limit: Int = 50) throws -> [TranscriptionRecord] {
+    /// F1: 删除超出保留窗口（天数/行数上限）的最旧记录，返回删除行数；
+    /// 累计删除较多时执行一次 VACUUM。在 actor 串行环境内运行，避免并发写冲突。
+    @discardableResult
+    func prune(now: Date = Date()) throws -> Int {
+        var deleted = 0
+        let cutoff = now.addingTimeInterval(-TimeInterval(Self.retentionDays) * 86_400)
+        let expired = try prepare("DELETE FROM transcriptions WHERE timestamp < ?")
+        defer { sqlite3_finalize(expired) }
+        sqlite3_bind_text(expired, 1, SQLiteDateParser.string(from: cutoff), -1, Self.transient)
+        try stepDone(expired)
+        deleted += Int(sqlite3_changes(database))
+
+        let overflow = try prepare("""
+            DELETE FROM transcriptions WHERE id NOT IN (
+              SELECT id FROM transcriptions ORDER BY timestamp DESC, id DESC LIMIT ?
+            )
+            """)
+        defer { sqlite3_finalize(overflow) }
+        sqlite3_bind_int(overflow, 1, Int32(Self.retentionMaxRows))
+        try stepDone(overflow)
+        deleted += Int(sqlite3_changes(database))
+
+        guard deleted > 0 else { return 0 }
+        prunedRowsSinceVacuum += deleted
+        if prunedRowsSinceVacuum >= Self.vacuumThreshold {
+            prunedRowsSinceVacuum = 0
+            try execute("VACUUM")
+        }
+        return deleted
+    }
+
+    func recent(limit: Int = 50, offset: Int = 0) throws -> [TranscriptionRecord] {
         let statement = try prepare(
-            "SELECT id, text, raw_text, timestamp FROM transcriptions ORDER BY timestamp DESC LIMIT ?"
+            "SELECT id, text, raw_text, timestamp FROM transcriptions ORDER BY timestamp DESC, id DESC LIMIT ? OFFSET ?"
         )
         defer { sqlite3_finalize(statement) }
         sqlite3_bind_int(statement, 1, Int32(max(1, min(limit, 1_000))))
-        var records: [TranscriptionRecord] = []
-        while true {
-            switch sqlite3_step(statement) {
-            case SQLITE_ROW:
-                records.append(Self.decodeRecord(statement))
-            case SQLITE_DONE:
-                return records
-            default:
-                throw currentError()
-            }
-        }
+        sqlite3_bind_int(statement, 2, Int32(max(0, offset)))
+        return try collectRecords(statement)
+    }
+
+    /// D7: 在 SQL 层做大小写不敏感的 LIKE 搜索（转义 %/_/\），命中整理稿或原始稿任一列。
+    func search(query: String, limit: Int = 50, offset: Int = 0) throws -> [TranscriptionRecord] {
+        let clean = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return try recent(limit: limit, offset: offset) }
+        let pattern = "%\(Self.escapeLikePattern(clean))%"
+        let statement = try prepare("""
+            SELECT id, text, raw_text, timestamp FROM transcriptions
+            WHERE text LIKE ?1 ESCAPE '\\' OR raw_text LIKE ?1 ESCAPE '\\'
+            ORDER BY timestamp DESC, id DESC LIMIT ?2 OFFSET ?3
+            """)
+        defer { sqlite3_finalize(statement) }
+        sqlite3_bind_text(statement, 1, pattern, -1, Self.transient)
+        sqlite3_bind_int(statement, 2, Int32(max(1, min(limit, 1_000))))
+        sqlite3_bind_int(statement, 3, Int32(max(0, offset)))
+        return try collectRecords(statement)
+    }
+
+    static func escapeLikePattern(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "%", with: "\\%")
+            .replacingOccurrences(of: "_", with: "\\_")
     }
 
     func delete(id: Int64) throws {
@@ -162,6 +218,20 @@ actor HistoryRepository {
         return Self.decodeRecord(statement)
     }
 
+    private func collectRecords(_ statement: OpaquePointer?) throws -> [TranscriptionRecord] {
+        var records: [TranscriptionRecord] = []
+        while true {
+            switch sqlite3_step(statement) {
+            case SQLITE_ROW:
+                records.append(Self.decodeRecord(statement))
+            case SQLITE_DONE:
+                return records
+            default:
+                throw currentError()
+            }
+        }
+    }
+
     private static func decodeRecord(_ statement: OpaquePointer?) -> TranscriptionRecord {
         let id = sqlite3_column_int64(statement, 0)
         let text = sqlite3_column_text(statement, 1).map { String(cString: $0) } ?? ""
@@ -177,6 +247,8 @@ actor HistoryRepository {
 
     private static func configureAndMigrate(_ database: OpaquePointer?) throws {
         try execute(database, "PRAGMA journal_mode=WAL")
+        // F7: 写锁竞争时最多等待 3 秒，避免并发访问直接抛 SQLITE_BUSY。
+        try execute(database, "PRAGMA busy_timeout=3000")
         try execute(database, "PRAGMA foreign_keys=ON")
         try execute(database, """
             CREATE TABLE IF NOT EXISTS transcriptions (

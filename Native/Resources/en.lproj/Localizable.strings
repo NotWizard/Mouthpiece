@@ -268,3 +268,8 @@
 "processing.translationRequiresCleanup" = "Translation relies on cleanup, so enabling translation also turns cleanup on.";
 "hotkey.capture.requiresModifier" = "Use a combination with modifier keys (such as ⌘⇧D) or a function key.";
 "onboarding.skipStep" = "Skip this step";
+"history.loadMore" = "Load More";
+"dashboard.lastError.title" = "Last Session Error";
+"dashboard.lastError.clear" = "Clear";
+"permissions.accessibilityBanner.title" = "Accessibility Access Needed";
+"permissions.accessibilityBanner.message" = "The dictation hotkey and text insertion are unavailable until Accessibility access is granted.";

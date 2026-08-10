@@ -132,6 +132,7 @@ final class CapsuleController {
     private let panel: NSPanel
     private nonisolated(unsafe) var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private var targetProcessIdentifier: pid_t?
+    private var lastAnnouncedKey: String?
 
     init() {
         panel = NSPanel(
@@ -186,15 +187,46 @@ final class CapsuleController {
 
     func show(_ snapshot: DictationSnapshot) {
         model.apply(snapshot)
+        announcePhaseChange(snapshot)
         reposition()
         panel.orderFrontRegardless()
     }
 
     func update(_ snapshot: DictationSnapshot) {
         model.apply(snapshot)
+        announcePhaseChange(snapshot)
         if snapshot.phase.isActive || snapshot.phase == .failed {
             if !panel.isVisible { show(snapshot) }
         }
+    }
+
+    // D8: 相位 → VoiceOver 通告文案 key；nil 表示该相位不通告。
+    static func announcementKey(for phase: DictationPhase) -> String? {
+        switch phase {
+        case .recording: "capsule.listening"
+        case .stopping, .finalizing: "capsule.transcribing"
+        case .completed: "capsule.success"
+        case .failed: "capsule.failed"
+        default: nil
+        }
+    }
+
+    private func announcePhaseChange(_ snapshot: DictationSnapshot) {
+        let key = Self.announcementKey(for: snapshot.phase)
+        guard key != lastAnnouncedKey else { return }
+        lastAnnouncedKey = key
+        guard let key else { return }
+        let message = snapshot.phase == .failed
+            ? snapshot.errorMessage ?? AppLocalization.string(key, language: model.language)
+            : AppLocalization.string(key, language: model.language)
+        NSAccessibility.post(
+            element: NSApp as Any,
+            notification: .announcementRequested,
+            userInfo: [
+                .announcement: message,
+                .priority: NSAccessibilityPriorityLevel.medium.rawValue,
+            ]
+        )
     }
 
     func updateAudioLevel(_ level: Float, sessionID: UUID) {
