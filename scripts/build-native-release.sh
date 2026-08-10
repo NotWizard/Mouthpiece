@@ -104,18 +104,28 @@ fi
 
 # Read the layout back from Finder: icon positions and the background picture
 # must match what was set above, so a half-applied layout cannot go out.
-if ! LAYOUT=$(osascript <<OSA
+# The window was closed after applying, and a closed container window has no
+# items (-1728 on CI), so reopen it for the readback and close it again.
+read_dmg_layout() {
+  osascript <<OSA
 tell application "Finder"
   tell disk "$VOLNAME"
+    open
+    delay 1
     set appPosition to position of item "Mouthpiece.app" of container window
     set linkPosition to position of item "Applications" of container window
     set backgroundPath to (background picture of icon view options of container window) as text
+    close
   end tell
 end tell
 return ((item 1 of appPosition) as text) & "," & ((item 2 of appPosition) as text) & " " & ((item 1 of linkPosition) as text) & "," & ((item 2 of linkPosition) as text) & " " & backgroundPath
 OSA
-); then
-  fail_dmg_layout "DMG layout readback failed"
+}
+
+if ! LAYOUT=$(read_dmg_layout); then
+  echo "DMG layout readback failed; retrying once" >&2
+  sleep 5
+  LAYOUT=$(read_dmg_layout) || fail_dmg_layout "DMG layout readback failed after retry"
 fi
 case "$LAYOUT" in
   "161,210 472,210 "*".background:background.tiff") ;;
