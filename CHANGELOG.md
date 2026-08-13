@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- Legacy Electron settings migration: all users have migrated, so the first-launch importer (Chromium Local Storage / `.env` reader, migration coordinator, allowlist mapping) and the `swift-leveldb` package dependency are gone, along with the `MOUTHPIECE_SKIP_LEGACY_MIGRATION` escape hatch and migration-only `SettingsRepository` helpers (~600 lines, 7 tests). The legacy model-cache directories are intentionally kept — local models downloaded by the Electron version are still discovered without re-downloading.
+
 ## [2.0.9] - 2026-08-13
 
 ### Fixed

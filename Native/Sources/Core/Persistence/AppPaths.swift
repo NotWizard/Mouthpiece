@@ -33,8 +33,6 @@ enum AppPaths {
 
     static let databaseURL = applicationSupportDirectory.appendingPathComponent("transcriptions.db")
     static let logsDirectory = applicationSupportDirectory.appendingPathComponent("logs", isDirectory: true)
-    static let migrationMarkerURL = applicationSupportDirectory.appendingPathComponent("native-migration-v1.json")
-    static let legacyEnvironmentURL = applicationSupportDirectory.appendingPathComponent(".env")
     static let whisperModelsDirectory = cacheDirectory.appendingPathComponent("whisper-models", isDirectory: true)
     static let parakeetModelsDirectory = cacheDirectory.appendingPathComponent("parakeet-models", isDirectory: true)
     static let qwenASRModelsDirectory = cacheDirectory.appendingPathComponent("qwen-asr-models", isDirectory: true)

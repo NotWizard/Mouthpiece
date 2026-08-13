@@ -1,8 +1,5 @@
 name: Mouthpiece
 packages:
-  SwiftLevelDB:
-    url: https://github.com/NotWizard/swift-leveldb.git
-    revision: de3b97721e2f7458ee3c22ff4b230dfda7d839cd
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle.git
     exactVersion: 2.9.4
@@ -37,8 +34,6 @@ targets:
         type: folder
     dependencies:
       - sdk: libsqlite3.tbd
-      - package: SwiftLevelDB
-        product: swift-leveldb
       - package: Sparkle
         product: Sparkle
     settings:

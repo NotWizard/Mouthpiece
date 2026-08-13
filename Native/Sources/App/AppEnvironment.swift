@@ -383,13 +383,6 @@ final class AppEnvironment: ObservableObject {
         do {
             try ensureInitializationCanContinue()
             try AppPaths.prepareApplicationSupport()
-            if ProcessInfo.processInfo.environment["MOUTHPIECE_SKIP_LEGACY_MIGRATION"] != "1" {
-                _ = try await LegacyMigrationCoordinator().run(
-                    settings: settingsRepository,
-                    keychain: keychain
-                )
-                try ensureInitializationCanContinue()
-            }
             settings = settingsRepository.load()
             let history = try HistoryRepository()
             self.history = history

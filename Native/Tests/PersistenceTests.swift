@@ -1,56 +1,8 @@
 import Foundation
-import swift_leveldb
 import XCTest
 @testable import Mouthpiece
 
 final class PersistenceTests: XCTestCase {
-    @MainActor
-    func testMigrationLockRecoversOnlyWithoutAnotherRunningInstance() throws {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Mouthpiece-LockTests-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-
-        let staleURL = directory.appendingPathComponent("stale.lock")
-        let staleHolder = try XCTUnwrap(NSDistributedLock(path: staleURL.path))
-        XCTAssertTrue(staleHolder.try())
-        let recovered = try LegacyMigrationCoordinator(
-            migrationLockURL: staleURL,
-            anotherInstanceIsRunning: { false }
-        ).acquireMigrationLock()
-        recovered.unlock()
-
-        let activeURL = directory.appendingPathComponent("active.lock")
-        let activeHolder = try XCTUnwrap(NSDistributedLock(path: activeURL.path))
-        XCTAssertTrue(activeHolder.try())
-        defer { activeHolder.unlock() }
-        let coordinator = LegacyMigrationCoordinator(
-            migrationLockURL: activeURL,
-            anotherInstanceIsRunning: { true }
-        )
-        XCTAssertThrowsError(try coordinator.acquireMigrationLock()) { error in
-            guard case LegacyMigrationError.alreadyRunning = error else {
-                return XCTFail("Expected an already-running migration error")
-            }
-        }
-    }
-
-    func testEnvironmentParserHandlesQuotesCommentsAndEquals() {
-        let values = LegacyEnvironmentImporter().parse("""
-            # comment
-            export OPENAI_API_KEY="sk-test=value"
-            BAILIAN_API_KEY=sk-bailian # inline comment
-            GEMINI_API_KEY="sk-gemini" # trailing comment after quotes
-            GROQ_API_KEY="sk-with#hash" # hash inside quotes stays
-            INVALID KEY=value
-            """)
-        XCTAssertEqual(values["OPENAI_API_KEY"], "sk-test=value")
-        XCTAssertEqual(values["BAILIAN_API_KEY"], "sk-bailian")
-        XCTAssertEqual(values["GEMINI_API_KEY"], "sk-gemini")
-        XCTAssertEqual(values["GROQ_API_KEY"], "sk-with#hash")
-        XCTAssertNil(values["INVALID KEY"])
-    }
-
     @MainActor
     func testCorruptSettingsSurfaceLoadFailureAndKeepTheBlob() throws {
         let suite = "MouthpieceTests.\(UUID().uuidString)"
@@ -152,27 +104,6 @@ final class PersistenceTests: XCTestCase {
     }
 
     @MainActor
-    func testLegacyTerminologyMigrationHandlesDuplicateMappings() throws {
-        let suite = "MouthpieceTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        let repository = SettingsRepository(defaults: defaults)
-        let profile = """
-            {"homophoneMappings":[
-              {"source":"嘴替","target":"Mouthpiece Legacy"},
-              {"source":"嘴替","target":"Mouthpiece"}
-            ]}
-            """
-
-        try repository.importLegacyValues(["terminologyProfile": profile])
-
-        XCTAssertEqual(
-            repository.load().terminologyProfile.replacementRules,
-            ["嘴替": "Mouthpiece"]
-        )
-    }
-
-    @MainActor
     func testOlderSettingsKeepExistingTranscriptionDeliveryDefaults() throws {
         let suite = "MouthpieceTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -213,25 +144,6 @@ final class PersistenceTests: XCTestCase {
         XCTAssertEqual(loaded.terminologyProfile.preferredTerms, ["Qwen"])
         XCTAssertTrue(loaded.terminologyProfile.avoidedTerms.isEmpty)
         XCTAssertTrue(loaded.terminologyProfile.replacementRules.isEmpty)
-    }
-
-    @MainActor
-    func testMigrationBackupRestoreNormalizesRuntimeSettings() throws {
-        let suite = "MouthpieceTests.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        let repository = SettingsRepository(defaults: defaults)
-        var backup = AppSettings()
-        backup.dictationKey = ""
-        backup.reasoningProvider = "local"
-        backup.cloudTranscriptionBaseURL = "http://api.example.com/v1"
-
-        repository.restoreMigrationBackup(try JSONEncoder().encode(backup))
-
-        let restored = repository.load()
-        XCTAssertEqual(restored.dictationKey, "RightCommand")
-        XCTAssertEqual(restored.reasoningProvider, "openai")
-        XCTAssertEqual(restored.cloudTranscriptionBaseURL, "https://api.openai.com/v1")
     }
 
     @MainActor
@@ -356,52 +268,6 @@ final class PersistenceTests: XCTestCase {
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: expired.path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: current.path))
-    }
-
-    func testLegacyLocalStorageImporterReadsChromiumLevelDBEncoding() throws {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Mouthpiece-LevelDBTests-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        do {
-            let database = try Database(path: directory.path)
-            try database.put(chromiumValue("zh-CN"), forKey: chromiumKey("uiLanguage"), sync: true)
-            try database.put(chromiumValue("RightCommand"), forKey: chromiumKey("dictationKey"), sync: true)
-            try database.put(chromiumValue("sk-test"), forKey: chromiumKey("bailianApiKey"), sync: true)
-        }
-
-        let values = try LegacyLocalStorageImporter().read(levelDBDirectory: directory)
-
-        XCTAssertEqual(values["uiLanguage"], "zh-CN")
-        XCTAssertEqual(values["dictationKey"], "RightCommand")
-        XCTAssertEqual(values["bailianApiKey"], "sk-test")
-    }
-
-    func testLegacyLocalStorageImporterRejectsForeignOrigin() throws {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Mouthpiece-LevelDBTests-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        do {
-            let database = try Database(path: directory.path)
-            try database.put(
-                chromiumValue("stolen"),
-                forKey: chromiumKey("uiLanguage", origin: "_https://example.com"),
-                sync: true
-            )
-        }
-
-        XCTAssertTrue(try LegacyLocalStorageImporter().read(levelDBDirectory: directory).isEmpty)
-    }
-
-    @MainActor
-    func testMigrationAllowlistDropsUnknownSettings() {
-        let filtered = LegacyMigrationCoordinator.filterAllowedValues([
-            "uiLanguage": "zh-CN",
-            "unknownSetting": "must-not-import",
-        ])
-
-        XCTAssertEqual(filtered, ["uiLanguage": "zh-CN"])
     }
 
     // E4(2): the round trip runs against a unique per-test service name, so it
@@ -573,19 +439,5 @@ final class PersistenceTests: XCTestCase {
             databaseURL: directory.appendingPathComponent("history.sqlite3")
         )
         return (repository, { try? FileManager.default.removeItem(at: directory) })
-    }
-
-    private func chromiumKey(_ key: String, origin: String = "_file://") -> Data {
-        var data = Data(origin.utf8)
-        data.append(0)
-        data.append(1)
-        data.append(contentsOf: key.utf8)
-        return data
-    }
-
-    private func chromiumValue(_ value: String) -> Data {
-        var data = Data([1])
-        data.append(contentsOf: value.utf8)
-        return data
     }
 }

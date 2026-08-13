@@ -37,7 +37,6 @@ if ! spctl --assess --type execute --verbose=4 "$APP_PATH"; then
 fi
 
 MOUTHPIECE_DATA_ROOT="$DATA_ROOT" \
-MOUTHPIECE_SKIP_LEGACY_MIGRATION=1 \
 MOUTHPIECE_DISABLE_UPDATES=1 \
 "$EXECUTABLE" > "$DATA_ROOT/launch.log" 2>&1 &
 PID=$!
