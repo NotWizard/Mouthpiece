@@ -136,6 +136,58 @@ final class AudioTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(trimmed.count, 15_000)
     }
 
+    // A1: multi-sentence dictation used to return only the last sentence. The
+    // gate falls back to .idle after 320ms of silence (any normal pause), and
+    // reopening it rewrote the trim onset to the latest burst, discarding every
+    // earlier utterance. trimmed() must keep first-onset..last-offset across a
+    // long inter-sentence pause.
+    func testTrimmedKeepsFirstUtteranceAcrossLongPause() {
+        var gate = SpeechActivityGate()
+        let silence = pcmFrame(amplitude: 0, milliseconds: 20)
+        let speech = pcmFrame(amplitude: 8_000, milliseconds: 20)
+        let frameBytes = speech.count // 640 bytes = 20 ms of 16 kHz PCM16
+        var recording = Data()
+
+        // Settle, then burst 1.
+        for _ in 0..<20 {
+            recording.append(silence)
+            _ = gate.consume(silence)
+        }
+        for _ in 0..<15 {
+            recording.append(speech)
+            _ = gate.consume(speech)
+        }
+        // 400 ms of silence exceeds the 320 ms hangover, so the gate returns to
+        // .idle and must reopen for burst 2 — the condition that used to drop
+        // burst 1 by overwriting the trim onset.
+        for _ in 0..<20 {
+            recording.append(silence)
+            _ = gate.consume(silence)
+        }
+        for _ in 0..<15 {
+            recording.append(speech)
+            _ = gate.consume(speech)
+        }
+        for _ in 0..<25 {
+            recording.append(silence)
+            _ = gate.consume(silence)
+        }
+
+        let trimmed = gate.trimmed(recording)
+
+        // Span from burst 1's onset to burst 2's last offset within `recording`.
+        // The fixed gate keeps this whole span (plus pre-roll and tail); the
+        // buggy gate trimmed from burst 2's onset, so its output is shorter than
+        // this span and excludes burst 1 entirely.
+        let firstOnset = 20 * frameBytes
+        let lastOffset = (20 + 15 + 20 + 15) * frameBytes
+        let firstToLastSpan = lastOffset - firstOnset
+
+        XCTAssertTrue(gate.speechDetectedEver)
+        XCTAssertLessThan(trimmed.count, recording.count)
+        XCTAssertGreaterThan(trimmed.count, firstToLastSpan)
+    }
+
     func testSpeechGateProcessesTenMinutesOfFramesWithinBudget() {
         var gate = SpeechActivityGate()
         let frame = pcmFrame(amplitude: 2_000, milliseconds: 20)

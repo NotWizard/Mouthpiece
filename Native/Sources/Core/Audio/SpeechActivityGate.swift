@@ -29,6 +29,10 @@ struct SpeechActivityGate: Sendable {
     private var totalBytes = 0
     private var candidateStartByte: Int?
     private var firstSpeechByte: Int?
+    // Write-once session onset: the first confirmed speech byte of the whole
+    // session. Unlike firstSpeechByte, it survives gate reopens so trimmed()
+    // never drops earlier sentences after an inter-sentence pause.
+    private var sessionFirstSpeechByte: Int?
     private var lastSpeechByte: Int?
     private var visualLevel: Float = 0
     private(set) var speechDetectedEver = false
@@ -81,6 +85,10 @@ struct SpeechActivityGate: Sendable {
                     speechDetectedEver = true
                     let preRollBytes = sampleRate * 2 * Self.preRollMilliseconds / 1_000
                     firstSpeechByte = max(0, (candidateStartByte ?? frameStart) - preRollBytes)
+                    // Pin the session onset on the first confirmation only; the
+                    // gate reopens from .idle after ~320ms of silence, and
+                    // overwriting this would discard every earlier utterance.
+                    if sessionFirstSpeechByte == nil { sessionFirstSpeechByte = firstSpeechByte }
                     lastSpeechByte = totalBytes
                 }
             } else {
@@ -121,9 +129,9 @@ struct SpeechActivityGate: Sendable {
     }
 
     func trimmed(_ pcm16: Data) -> Data {
-        guard speechDetectedEver, let firstSpeechByte, let lastSpeechByte else { return pcm16 }
+        guard speechDetectedEver, let sessionFirstSpeechByte, let lastSpeechByte else { return pcm16 }
         let tailBytes = sampleRate * 2 * Self.hangoverMilliseconds / 1_000
-        let lower = min(max(0, firstSpeechByte), pcm16.count)
+        let lower = min(max(0, sessionFirstSpeechByte), pcm16.count)
         let upper = min(pcm16.count, max(lower, lastSpeechByte + tailBytes))
         return Data(pcm16[lower..<upper])
     }
