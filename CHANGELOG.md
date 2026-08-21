@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.10] - 2026-08-21
+
 ### Fixed
 
 - "Show in Dock" off no longer breaks after reopening the control panel from Spotlight/Finder/Launchpad/Dock: reopening a running app sends kAEReopenApplication, during which AppKit resets the activation policy to the Info.plist regular type, so the Dock icon reappeared permanently once the window closed. `applicationShouldHandleReopen` now restores the accessory policy when the user has Dock display off.
