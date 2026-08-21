@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsObserver: NSObjectProtocol?
     private var language = UILanguage.system
     private var showInMenuBar = true
+    private var showInDock = true
     private var terminationInFlight = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -23,8 +24,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] notification in
             let language = notification.userInfo?["language"] as? String
             let showInMenuBar = notification.userInfo?["showInMenuBar"] as? Bool
+            let showInDock = notification.userInfo?["showInDock"] as? Bool
             Task { @MainActor in
-                self?.applyRuntimeSettings(language: language, showInMenuBar: showInMenuBar)
+                self?.applyRuntimeSettings(
+                    language: language,
+                    showInMenuBar: showInMenuBar,
+                    showInDock: showInDock
+                )
             }
         }
         installStatusItem()
@@ -44,6 +50,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// tearing down and recreating the hosting view.
     func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
         showControlPanel()
+        return true
+    }
+
+    /// Opening an already-running app again (Spotlight, Finder, Launchpad, `open`)
+    /// sends kAEReopenApplication, not kAEOpenApplication, so the handler above never
+    /// runs for it. AppKit resets the activation policy to the Info.plist-declared
+    /// regular type while processing that event, which put the Dock icon back for good
+    /// even with "Show in Dock" off. Restore the user's choice here and let AppKit
+    /// re-show the window as it always has.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !showInDock { NSApp.setActivationPolicy(.accessory) }
         return true
     }
 
@@ -103,11 +120,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.menu = menu
     }
 
-    private func applyRuntimeSettings(language raw: String?, showInMenuBar nextVisibility: Bool?) {
+    private func applyRuntimeSettings(
+        language raw: String?,
+        showInMenuBar nextVisibility: Bool?,
+        showInDock nextDockVisibility: Bool?
+    ) {
         if let raw,
            let language = UILanguage(rawValue: raw) {
             self.language = language
         }
+        if let nextDockVisibility { showInDock = nextDockVisibility }
         let visibility = nextVisibility ?? showInMenuBar
         if visibility != showInMenuBar {
             showInMenuBar = visibility

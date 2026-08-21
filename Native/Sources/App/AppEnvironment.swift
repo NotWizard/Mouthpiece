@@ -495,6 +495,7 @@ final class AppEnvironment: ObservableObject {
             userInfo: [
                 "language": settings.uiLanguage.rawValue,
                 "showInMenuBar": settings.showInMenuBar,
+                "showInDock": settings.showInDock,
             ]
         )
         do {

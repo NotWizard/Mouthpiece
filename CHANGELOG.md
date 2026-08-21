@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- "Show in Dock" off no longer breaks after reopening the control panel from Spotlight/Finder/Launchpad/Dock: reopening a running app sends kAEReopenApplication, during which AppKit resets the activation policy to the Info.plist regular type, so the Dock icon reappeared permanently once the window closed. `applicationShouldHandleReopen` now restores the accessory policy when the user has Dock display off.
+
 ### Removed
 
 - Legacy Electron settings migration: all users have migrated, so the first-launch importer (Chromium Local Storage / `.env` reader, migration coordinator, allowlist mapping) and the `swift-leveldb` package dependency are gone, along with the `MOUTHPIECE_SKIP_LEGACY_MIGRATION` escape hatch and migration-only `SettingsRepository` helpers (~600 lines, 7 tests). The legacy model-cache directories are intentionally kept — local models downloaded by the Electron version are still discovered without re-downloading.
