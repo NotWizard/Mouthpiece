@@ -425,6 +425,75 @@ final class DictationCoordinatorTests: XCTestCase {
         XCTAssertEqual(silentLocalCalls, 0, "Silence must never reach the local transcription path")
     }
 
+    // NEW-7: the same data-loss hole as P1-2 reached through the other trigger —
+    // finalizing the realtime stream errored (or timed out) instead of returning
+    // empty text. That rethrow reached fail() -> resetIfCurrent, which wipes the
+    // captured PCM, so the audio was destroyed before the recovery ladder could
+    // route it to the installed local model. Both triggers now share the ladder.
+    func testRealtimeOnlyFinalizeErrorUsesLocalFallbackWhenEnabled() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .succeed, finishText: "never returned")
+        await provider.setFinishError(.connectionLost("socket closed during finalize"))
+        let localRuntime = StubLocalRuntime(text: "salvaged after a finalize error")
+        let harness = try await makeHarness(provider: provider, localRuntime: localRuntime)
+
+        var settings = makeSettings()
+        settings.allowLocalFallback = true
+        settings.fallbackWhisperModel = "small"
+        await harness.coordinator.start(settings: settings)
+        let recording = await harness.coordinator.snapshot()
+        XCTAssertEqual(recording.phase, .recording)
+
+        // 300 ms above the gate's speech threshold and no partial ever arrived,
+        // so the retained audio is the only surviving copy of the user's speech.
+        for _ in 0..<15 { harness.audio.emitFrame(rms: 0.02) }
+        await harness.coordinator.stop()
+
+        let finishCalls = await provider.finishCallCount
+        XCTAssertEqual(finishCalls, 1, "The recovery must follow a real finish() attempt")
+        XCTAssertFalse(
+            harness.recorder.snapshots.contains { $0.phase == .failed },
+            "A finalize error must not fail the session while local fallback is available"
+        )
+        XCTAssertTrue(harness.recorder.snapshots.contains { $0.phase == .completed })
+        let localCalls = await localRuntime.transcribeCallCount
+        XCTAssertEqual(localCalls, 1, "The retained audio must reach the local transcription path")
+        let routedSettings = await localRuntime.lastSettings
+        XCTAssertEqual(routedSettings?.useLocalTranscription, true, "The fallback must route into the local branch")
+        XCTAssertEqual(routedSettings?.localTranscriptionProvider, .whisper)
+        XCTAssertEqual(routedSettings?.whisperModel, "small", "The configured fallback model must be used")
+        let records = try await harness.history.recent(limit: 5)
+        XCTAssertEqual(records.first?.text, "salvaged after a finalize error")
+
+        // With no fallback route the session still fails as before, but the user
+        // must see the provider's real error instead of a misleading "no speech".
+        let strandedProvider = ScriptedRealtimeProvider(connect: .succeed)
+        await strandedProvider.setFinishError(.connectionLost("socket closed during finalize"))
+        let strandedRuntime = StubLocalRuntime(text: "must not be used")
+        let strandedHarness = try await makeHarness(provider: strandedProvider, localRuntime: strandedRuntime)
+        var strandedSettings = settings
+        strandedSettings.allowLocalFallback = false
+        await strandedHarness.coordinator.start(settings: strandedSettings)
+        let strandedRecording = await strandedHarness.coordinator.snapshot()
+        XCTAssertEqual(strandedRecording.phase, .recording)
+
+        for _ in 0..<15 { strandedHarness.audio.emitFrame(rms: 0.02) }
+        await strandedHarness.coordinator.stop()
+
+        let failure = strandedHarness.recorder.snapshots.first { $0.phase == .failed }
+        XCTAssertEqual(
+            failure?.errorMessage,
+            BailianRealtimeError.connectionLost("socket closed during finalize").localizedDescription,
+            "Without a fallback the original realtime error must surface"
+        )
+        XCTAssertNotEqual(
+            failure?.errorMessage,
+            DictationSessionError.noSpeech.localizedDescription,
+            "Speech was detected, so noSpeech would blame the user for the provider's failure"
+        )
+        let strandedLocalCalls = await strandedRuntime.transcribeCallCount
+        XCTAssertEqual(strandedLocalCalls, 0, "A disabled local fallback must never be invoked")
+    }
+
     // D8: the VoiceOver announcement mapping is a pure phase -> key table;
     // phases outside the announced set must stay silent (nil).
     func testCapsuleAnnouncementKeysCoverExactlyTheAnnouncedPhases() {
@@ -551,6 +620,9 @@ private actor ScriptedRealtimeProvider: RealtimeTranscriptionProvider {
     // A2: simulates a socket that dies mid-stream so send() throws; defaults
     // off so existing scenarios are unaffected.
     private var shouldFailSend = false
+    // NEW-7: simulates a realtime finalize that dies (socket drop / timeout) so
+    // finish() throws; nil by default so existing scenarios are unaffected.
+    private var finishError: BailianRealtimeError?
     private(set) var sentFrameCount = 0
     private(set) var cancelCount = 0
     private(set) var finishCallCount = 0
@@ -571,6 +643,10 @@ private actor ScriptedRealtimeProvider: RealtimeTranscriptionProvider {
 
     func setShouldFailSend(_ value: Bool) {
         shouldFailSend = value
+    }
+
+    func setFinishError(_ error: BailianRealtimeError) {
+        finishError = error
     }
 
     // Parks the next finish() call until releaseFinish(), so a test can hold
@@ -614,6 +690,7 @@ private actor ScriptedRealtimeProvider: RealtimeTranscriptionProvider {
                 finishGate = continuation
             }
         }
+        if let finishError { throw finishError }
         return finishText
     }
 

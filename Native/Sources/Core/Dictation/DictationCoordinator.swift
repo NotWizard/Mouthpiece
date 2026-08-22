@@ -307,6 +307,14 @@ actor DictationCoordinator {
             )
 
             var rawText = machine.snapshot.partialText
+            // NEW-7: this path used to rethrow for providers without a batch
+            // endpoint whenever no partial existed, and fail() -> resetIfCurrent
+            // wipes the captured PCM — so a realtime error or finalize timeout
+            // destroyed recoverable audio even with local fallback available.
+            // Remember the error instead and let the same recovery ladder the
+            // empty-transcript trigger uses decide; it resurfaces this error
+            // when no fallback route exists.
+            var realtimeError: Error?
             if let provider, providerSessionID == sessionID {
                 do {
                     let realtimeText = try await Self.finishWithTimeout(provider)
@@ -314,15 +322,13 @@ actor DictationCoordinator {
                     if !realtimeText.isEmpty { rawText = realtimeText }
                 } catch {
                     guard isCurrent(sessionID, phase: .finalizing) else { return }
+                    realtimeError = error
                     let hasPartial = !rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    if !providerHasBatchEndpoint(activeSettings.cloudTranscriptionProvider), !hasPartial {
-                        throw error
-                    }
                     await logger.write(
                         .warning,
                         hasPartial
                             ? "Realtime finalize failed; using the latest partial transcript"
-                            : "Realtime finalize failed; using batch fallback",
+                            : "Realtime finalize failed; recovering from the retained audio",
                         metadata: ["error": error.localizedDescription],
                         sessionID: sessionID
                     )
@@ -338,6 +344,7 @@ actor DictationCoordinator {
                 guard let recovered = try await recoverEmptyRealtimeTranscript(
                     pcm16: recordedPCM,
                     capturedByteCount: capturedByteCount,
+                    realtimeError: realtimeError,
                     sessionID: sessionID
                 ) else { return }
                 rawText = recovered
@@ -928,14 +935,17 @@ private extension DictationCoordinator {
         provider != "bailian" && provider != "volcengine"
     }
 
-    // The realtime transcript came back empty. This used to throw noSpeech for
-    // realtime-only providers before transcribeRecordedAudio was ever reached,
-    // discarding the retained PCM behind a misleading error even with local
-    // fallback enabled and a model installed. Returns nil when the session was
-    // superseded mid-recovery, so stop() bails out as it did inline.
+    // The realtime transcript came back empty, or finalizing it failed. This
+    // used to throw noSpeech / rethrow the provider error for realtime-only
+    // providers before transcribeRecordedAudio was ever reached, discarding the
+    // retained PCM even with local fallback enabled and a model installed. Both
+    // triggers converge here so they cannot drift apart again. Returns nil when
+    // the session was superseded mid-recovery, so stop() bails out as it did
+    // inline.
     func recoverEmptyRealtimeTranscript(
         pcm16: Data,
         capturedByteCount: Int,
+        realtimeError: Error?,
         sessionID: UUID
     ) async throws -> String? {
         guard capturedByteCount > 0 else { throw AudioCaptureError.noAudioFrames }
@@ -943,10 +953,11 @@ private extension DictationCoordinator {
         // hallucinate text; the gate already knows nothing was said.
         guard speechGate.speechDetectedEver else { throw DictationSessionError.noSpeech }
         // Speech was said but no text came back, so anything still reachable
-        // beats dropping the audio. With nothing reachable the empty transcript
-        // is all the information there is.
+        // beats dropping the audio. With nothing reachable, surface the realtime
+        // failure that got us here — reporting noSpeech for a broken stream
+        // would blame the user for the provider's error.
         guard let settings = await fallbackTranscriptionSettings(sessionID: sessionID) else {
-            throw DictationSessionError.noSpeech
+            throw realtimeError ?? DictationSessionError.noSpeech
         }
         guard isCurrent(sessionID, phase: .finalizing) else { return nil }
         return try await transcribeRecordedAudio(pcm16: pcm16, settings: settings, sessionID: sessionID)
