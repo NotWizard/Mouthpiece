@@ -326,6 +326,47 @@ final class DictationCoordinatorTests: XCTestCase {
         XCTAssertEqual(records.first?.text, "final text")
     }
 
+    // A2: a realtime-only socket that dies during the stop drain must not fail
+    // the session and wipe the captured audio — the retained partial has to
+    // survive into history. Pre-fix the send catch called fail() ->
+    // resetIfCurrent (pcm.removeAll) for realtime-only providers, so the
+    // session ended .failed with nothing saved.
+    func testSendFailureDuringStopKeepsPartialTranscript() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .succeed)
+        let harness = try await makeHarness(provider: provider)
+
+        await harness.coordinator.start(settings: makeSettings())
+        let recording = await harness.coordinator.snapshot()
+        XCTAssertEqual(recording.phase, .recording)
+
+        await provider.emit(.partial(stable: "hello ", active: "world"))
+        var partialSeen = false
+        for _ in 0..<200 {
+            if await harness.coordinator.snapshot().partialText == "hello world" {
+                partialSeen = true
+                break
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertTrue(partialSeen, "The partial transcript must land before the socket dies")
+
+        // The socket dies during the stop drain: the queued tail frame's send
+        // throws while the session is winding down.
+        await provider.setShouldFailSend(true)
+        harness.audio.emitFrame()
+        await harness.coordinator.stop()
+
+        XCTAssertFalse(
+            harness.recorder.snapshots.contains { $0.phase == .failed },
+            "A send failure with a retained partial must not fail the session"
+        )
+        XCTAssertTrue(harness.recorder.snapshots.contains { $0.phase == .completed })
+        let finalSnapshot = await harness.coordinator.snapshot()
+        XCTAssertEqual(finalSnapshot.phase, .idle, "A completed session must reset back to idle")
+        let records = try await harness.history.recent(limit: 5)
+        XCTAssertEqual(records.first?.text, "hello world")
+    }
+
     // D8: the VoiceOver announcement mapping is a pure phase -> key table;
     // phases outside the announced set must stay silent (nil).
     func testCapsuleAnnouncementKeysCoverExactlyTheAnnouncedPhases() {
@@ -445,6 +486,9 @@ private actor ScriptedRealtimeProvider: RealtimeTranscriptionProvider {
     private var connectBehavior: ConnectBehavior
     private let finishText: String
     private var onEvent: (@Sendable (RealtimeTranscriptionEvent) -> Void)?
+    // A2: simulates a socket that dies mid-stream so send() throws; defaults
+    // off so existing scenarios are unaffected.
+    private var shouldFailSend = false
     private(set) var sentFrameCount = 0
     private(set) var cancelCount = 0
     private(set) var finishCallCount = 0
@@ -461,6 +505,10 @@ private actor ScriptedRealtimeProvider: RealtimeTranscriptionProvider {
 
     func setConnectBehavior(_ behavior: ConnectBehavior) {
         connectBehavior = behavior
+    }
+
+    func setShouldFailSend(_ value: Bool) {
+        shouldFailSend = value
     }
 
     // Parks the next finish() call until releaseFinish(), so a test can hold
@@ -490,6 +538,9 @@ private actor ScriptedRealtimeProvider: RealtimeTranscriptionProvider {
     }
 
     func send(pcm16: Data) async throws {
+        if shouldFailSend {
+            throw BailianRealtimeError.connectionLost("socket closed mid-stream")
+        }
         sentFrameCount += 1
     }
 

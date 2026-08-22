@@ -481,18 +481,10 @@ actor DictationCoordinator {
         do {
             try await provider.send(pcm16: frame)
         } catch {
-            self.provider = nil
-            providerSessionID = nil
-            await provider.cancel()
-            if isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider) {
-                await fail(error, sessionID: sessionID)
-                return
-            }
-            await logger.write(
-                .warning,
-                "Realtime frame send failed; retaining audio for batch fallback",
-                metadata: ["error": error.localizedDescription],
-                sessionID: sessionID
+            await degradeOrFailAfterRealtimeError(
+                error,
+                sessionID: sessionID,
+                context: "Realtime frame send failed"
             )
         }
     }
@@ -538,41 +530,68 @@ actor DictationCoordinator {
         case .speechStarted:
             break
         case .error(let message):
-            guard isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider) else {
-                await logger.write(.warning, "Realtime provider error", metadata: ["error": message], sessionID: sessionID)
-                return
-            }
-            let phase = machine.snapshot.phase
-            let hasPartial = !machine.snapshot.partialText
-                .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            let isWindingDown = phase == .stopping || phase == .finalizing
-                || phase == .processing || phase == .inserting
-            guard hasPartial || isWindingDown else {
-                // No text yet and still early in the session: nothing to
-                // salvage, so surface the failure immediately.
-                await logger.write(.warning, "Realtime provider error", metadata: ["error": message], sessionID: sessionID)
-                await fail(BailianRealtimeError.protocolError(message), sessionID: sessionID)
-                return
-            }
+            await degradeOrFailAfterRealtimeError(
+                BailianRealtimeError.protocolError(message),
+                sessionID: sessionID,
+                context: "Realtime provider error"
+            )
+        }
+    }
+
+    // A2: both the frame-send catch and the realtime `.error` event used to
+    // decide degrade-vs-fail on their own, and the send catch failed the
+    // session unconditionally for realtime-only providers — even mid-stop with
+    // an essentially complete partial — so fail() -> resetIfCurrent wiped the
+    // captured PCM. Routing both through this single policy keeps them from
+    // diverging again and gives the send path the same hasPartial/winding-down
+    // guard the event path already had.
+    private func degradeOrFailAfterRealtimeError(_ error: Error, sessionID: UUID, context: String) async {
+        let phase = machine.snapshot.phase
+        let hasPartial = !machine.snapshot.partialText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let isWindingDown = phase == .stopping || phase == .finalizing || phase == .processing || phase == .inserting
+
+        // Stop streaming into the broken task before deciding degrade-vs-fail,
+        // for every provider: otherwise a batch-capable session keeps sending
+        // frames into a dead socket every 20 ms for the rest of the recording.
+        // During wind-down keep the provider so an in-flight finish() can still
+        // resolve (it has a hard timeout, so this cannot wedge finalizing).
+        if phase == .preparing || phase == .recording,
+           providerSessionID == sessionID, let provider {
+            self.provider = nil
+            providerSessionID = nil
+            await provider.cancel()
+        }
+
+        guard isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider) else {
+            // Batch-capable providers keep the retained PCM for the fallback.
             await logger.write(
                 .warning,
-                "Realtime provider error; degrading to the partial transcript fallback",
-                metadata: ["error": message, "phase": phase.rawValue],
+                "\(context); retaining audio for batch fallback",
+                metadata: ["error": error.localizedDescription],
                 sessionID: sessionID
             )
-            // While capture is live, mark the connection as degraded: stop
-            // streaming frames into a broken task and let stop() use the
-            // retained partial. During wind-down keep the provider so the
-            // finishWithTimeout/partial fallback in stop() resolves the
-            // session on its own (finish has a hard timeout, so skipping
-            // fail here cannot wedge finalizing).
-            if phase == .preparing || phase == .recording,
-               providerSessionID == sessionID, let provider {
-                self.provider = nil
-                providerSessionID = nil
-                await provider.cancel()
-            }
+            return
         }
+
+        guard hasPartial || isWindingDown else {
+            // No text yet and still early in the session: nothing to salvage,
+            // so surface the failure immediately.
+            await logger.write(
+                .warning,
+                context,
+                metadata: ["error": error.localizedDescription],
+                sessionID: sessionID
+            )
+            await fail(error, sessionID: sessionID)
+            return
+        }
+
+        await logger.write(
+            .warning,
+            "\(context); degrading to the partial transcript fallback",
+            metadata: ["error": error.localizedDescription, "phase": phase.rawValue],
+            sessionID: sessionID
+        )
     }
 
     private func batchTranscribe(pcm16: Data, settings: AppSettings) async throws -> String {

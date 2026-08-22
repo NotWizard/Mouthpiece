@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Realtime-only dictation (Bailian/Volcengine) no longer loses an essentially complete transcript when the socket dies during stop: the frame-send error path used to fail the session unconditionally, and failing runs `resetIfCurrent`, which wiped the captured PCM. The send-error catch and the realtime `.error` event now share one `degradeOrFailAfterRealtimeError` policy that keeps the retained partial (and audio) whenever a partial exists or the session is winding down, and only fails early when there is nothing to salvage (audit A2).
+
 ## [2.0.10] - 2026-08-21
 
 ### Fixed
