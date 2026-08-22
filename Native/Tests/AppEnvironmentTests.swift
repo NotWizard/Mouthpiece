@@ -511,6 +511,7 @@ final class AppEnvironmentTests: XCTestCase {
             "onboarding.try.success",
             "permissions.guide.existing",
             "capsule.success",
+            "capsule.secureInputBlocked",
         ]
         XCTAssertTrue(required.isSubset(of: keySets[0]))
     }
@@ -563,6 +564,42 @@ final class AppEnvironmentTests: XCTestCase {
         guard case .notInserted = outcome else {
             return XCTFail("Expected .notInserted for a missing element, got \(outcome)")
         }
+    }
+
+    // P1-3: Secure Input makes the window server drop the synthetic Cmd+V, so
+    // the paste silently no-oped and the delayed restore then wiped the
+    // transcript off the clipboard as well — the dictation vanished with no
+    // error. The gate must keep the transcript and report the reason instead.
+    func testSecureInputActiveKeepsTranscriptOnClipboardAndThrows() {
+        let pasteboard = NSPasteboard.withUniqueName()
+        pasteboard.clearContents()
+        pasteboard.setString("user clipboard", forType: .string)
+        let service = TextInsertionService()
+        service.secureInputActive = { true }
+
+        do {
+            try service.retainTranscriptIfSecureInputActive("dictated transcript", pasteboard: pasteboard)
+            XCTFail("Expected the Secure Input gate to block the synthetic paste")
+        } catch TextInsertionError.secureInputActive {
+            // The transcript stays available for a manual ⌘V, and no restore is
+            // pending that could erase it ~900 ms later.
+            XCTAssertEqual(pasteboard.string(forType: .string), "dictated transcript")
+            XCTAssertFalse(service.hasPendingClipboardRestore)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        // Inactive Secure Input must stay a no-op: the paste path keeps its own
+        // snapshot/restore behaviour and the clipboard is left untouched here.
+        let unblocked = TextInsertionService()
+        unblocked.secureInputActive = { false }
+        pasteboard.clearContents()
+        pasteboard.setString("user clipboard", forType: .string)
+        XCTAssertNoThrow(
+            try unblocked.retainTranscriptIfSecureInputActive("dictated transcript", pasteboard: pasteboard)
+        )
+        XCTAssertEqual(pasteboard.string(forType: .string), "user clipboard")
+        XCTAssertFalse(unblocked.hasPendingClipboardRestore)
     }
 
     func testPasteDelayAdaptsToTheTargetApplication() {

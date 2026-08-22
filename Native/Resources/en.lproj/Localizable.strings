@@ -261,6 +261,7 @@
 "capsule.transcribing" = "Transcribing…";
 "capsule.polishing" = "Refining…";
 "capsule.polishingFallback" = "Refining failed, using the raw transcript";
+"capsule.secureInputBlocked" = "Secure Input blocked pasting, text copied to the clipboard";
 "capsule.inserting" = "Inserting text…";
 "capsule.success" = "Ready";
 "capsule.failed" = "Dictation failed";

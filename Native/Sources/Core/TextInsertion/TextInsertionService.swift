@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import Carbon.HIToolbox
 
 struct TextInsertionTarget: Equatable, @unchecked Sendable {
     let processIdentifier: pid_t
@@ -31,6 +32,7 @@ enum TextInsertionError: LocalizedError {
     case blockedSensitiveApplication(String)
     case accessibilityPermissionDenied
     case targetBusy(String)
+    case secureInputActive
     case insertionFailed(AXError)
 
     var errorDescription: String? {
@@ -39,6 +41,8 @@ enum TextInsertionError: LocalizedError {
         case .blockedSensitiveApplication(let name): "Text insertion is disabled for \(name)."
         case .accessibilityPermissionDenied: "Accessibility permission is required to insert text."
         case .targetBusy(let name): "\(name) is busy and could not accept text. Try again."
+        case .secureInputActive:
+            "Secure Input is active, so the text was copied to the clipboard instead of pasted."
         case .insertionFailed(let error): "Text insertion failed with Accessibility error \(error.rawValue)."
         }
     }
@@ -48,6 +52,10 @@ enum TextInsertionError: LocalizedError {
 final class TextInsertionService {
     private var lastExternalApplication: NSRunningApplication?
     private nonisolated(unsafe) var activationObserver: NSObjectProtocol?
+    // Test seam: the only public way to detect Secure Input (Apple TN2150) is
+    // this global HIToolbox flag, which no test can turn on; injecting it keeps
+    // the paste gate coverable. Production always uses the real API.
+    var secureInputActive: () -> Bool = { IsSecureEventInputEnabled() }
 
     init() {
         rememberExternalApplication(NSWorkspace.shared.frontmostApplication)
@@ -382,8 +390,32 @@ final class TextInsertionService {
 
     private var pendingRestore: PendingRestore?
 
+    // Internal (not private) so tests can assert the Secure Input path leaves
+    // no restore behind to erase the retained transcript.
+    var hasPendingClipboardRestore: Bool { pendingRestore != nil }
+
+    // Secure Input (password fields, `sudo` in Terminal, some login forms) makes
+    // the window server drop synthetic keystrokes, so the Cmd+V below silently
+    // no-ops; the delayed restore would then wipe the transcript from the
+    // clipboard too and the dictation vanished with no error at all. Leave the
+    // transcript on the clipboard for a manual paste, drop any pending restore
+    // that would erase it, and report why. The flag is global rather than
+    // per-field (TN2150), so `false` is not a success guarantee — the AX path is
+    // still tried first and the paste itself stays best-effort.
+    // Internal (not private) so tests can cover both outcomes without posting
+    // synthetic keystrokes.
+    func retainTranscriptIfSecureInputActive(_ text: String, pasteboard: NSPasteboard) throws {
+        guard secureInputActive() else { return }
+        pendingRestore?.task.cancel()
+        pendingRestore = nil
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+        throw TextInsertionError.secureInputActive
+    }
+
     private func paste(_ text: String, into target: TextInsertionTarget) async throws {
         let pasteboard = NSPasteboard.general
+        try retainTranscriptIfSecureInputActive(text, pasteboard: pasteboard)
         let oldItems: [[NSPasteboard.PasteboardType: Data]]
         if let pending = pendingRestore {
             // A second dictation within the restore delay would otherwise

@@ -261,6 +261,7 @@
 "capsule.transcribing" = "正在转录…";
 "capsule.polishing" = "正在润色…";
 "capsule.polishingFallback" = "整理失败，已使用原始转写";
+"capsule.secureInputBlocked" = "安全输入已阻止粘贴，文本已复制到剪贴板";
 "capsule.inserting" = "正在插入文本…";
 "capsule.success" = "准备就绪";
 "capsule.failed" = "听写失败";

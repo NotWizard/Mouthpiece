@@ -396,7 +396,7 @@ actor DictationCoordinator {
             if activeSettings.automaticallyPasteTranscription, let target {
                 try machine.transition(to: .inserting, sessionID: sessionID)
                 await publish()
-                try await insertion.insert(finalText, into: target, settings: activeSettings)
+                try await insertOrReportSecureInputBlock(finalText, into: target, sessionID: sessionID)
                 completionPhase = .inserting
             } else {
                 completionPhase = .finalizing
@@ -415,6 +415,21 @@ actor DictationCoordinator {
             await resetIfCurrent(sessionID)
         } catch {
             await fail(error, sessionID: sessionID)
+        }
+    }
+
+    // Secure Input (password fields, `sudo`) makes the window server drop the
+    // synthetic Cmd+V; insert() detects it and leaves the transcript on the
+    // clipboard instead. Swallow that one error so the session still completes
+    // and the history entry is written — failing here would reset the session
+    // and leave the user with neither an insert nor an explanation.
+    private func insertOrReportSecureInputBlock(_ text: String, into target: TextInsertionTarget, sessionID: UUID) async throws {
+        do {
+            try await insertion.insert(text, into: target, settings: activeSettings)
+        } catch TextInsertionError.secureInputActive {
+            let message = "Secure Input blocked the automatic paste; transcript kept on the clipboard"
+            await logger.write(.warning, message, sessionID: sessionID)
+            await capsule.flashStatus(localizedKey: "capsule.secureInputBlocked")
         }
     }
 
