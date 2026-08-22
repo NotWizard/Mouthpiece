@@ -1,5 +1,17 @@
 import Foundation
 
+// Test seam: the local transcription edge runs out-of-process (whisper /
+// parakeet / qwen servers), which unit tests cannot launch. These are the only
+// three calls the coordinator makes on it; LocalModelRuntime is the production
+// conformance and stays the default.
+protocol LocalTranscriptionRuntime: Sendable {
+    func status(provider: LocalTranscriptionProvider, model: String) async -> LocalModelStatus
+    func transcribe(pcm16: Data, settings: AppSettings, prompt: String?) async throws -> String
+    func stopAll() async
+}
+
+extension LocalModelRuntime: LocalTranscriptionRuntime {}
+
 actor DictationCoordinator {
     private let audio: AudioCaptureService
     private let history: HistoryRepository
@@ -13,7 +25,7 @@ actor DictationCoordinator {
     private let sonioxProvider: SonioxRealtimeProvider
     private let assemblyAIProvider: AssemblyAIRealtimeProvider
     private let volcengineProvider: VolcengineRealtimeProvider
-    private let localRuntime: LocalModelRuntime
+    private let localRuntime: any LocalTranscriptionRuntime
     private let reasoning: ReasoningService
     private let mediaPlayback = MediaPlaybackController()
     // Test seam: swaps the selected realtime provider for a scripted stub in
@@ -48,7 +60,7 @@ actor DictationCoordinator {
         sonioxProvider: SonioxRealtimeProvider = SonioxRealtimeProvider(),
         assemblyAIProvider: AssemblyAIRealtimeProvider = AssemblyAIRealtimeProvider(),
         volcengineProvider: VolcengineRealtimeProvider = VolcengineRealtimeProvider(),
-        localRuntime: LocalModelRuntime = LocalModelRuntime(),
+        localRuntime: any LocalTranscriptionRuntime = LocalModelRuntime(),
         reasoningService: ReasoningService? = nil,
         realtimeProviderOverride: (any RealtimeTranscriptionProvider)? = nil,
         onSnapshot: @escaping @MainActor @Sendable (DictationSnapshot) -> Void
@@ -220,7 +232,7 @@ actor DictationCoordinator {
                 } catch {
                     await realtime.provider.cancel()
                     guard isCurrent(sessionID, phase: .preparing) else { return }
-                    if isRealtimeOnlyProvider(settings.cloudTranscriptionProvider) {
+                    if !providerHasBatchEndpoint(settings.cloudTranscriptionProvider) {
                         throw error
                     }
                     await logger.write(
@@ -303,7 +315,7 @@ actor DictationCoordinator {
                 } catch {
                     guard isCurrent(sessionID, phase: .finalizing) else { return }
                     let hasPartial = !rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    if isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider), !hasPartial {
+                    if !providerHasBatchEndpoint(activeSettings.cloudTranscriptionProvider), !hasPartial {
                         throw error
                     }
                     await logger.write(
@@ -323,20 +335,12 @@ actor DictationCoordinator {
             }
             guard isCurrent(sessionID, phase: .finalizing) else { return }
             if rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                guard capturedByteCount > 0 else { throw AudioCaptureError.noAudioFrames }
-                guard !isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider) else {
-                    throw DictationSessionError.noSpeech
-                }
-                // Uploading an all-silence capture wastes a round-trip and can
-                // hallucinate text; the gate already knows nothing was said.
-                guard speechGate.speechDetectedEver else {
-                    throw DictationSessionError.noSpeech
-                }
-                rawText = try await transcribeRecordedAudio(
+                guard let recovered = try await recoverEmptyRealtimeTranscript(
                     pcm16: recordedPCM,
-                    settings: activeSettings,
+                    capturedByteCount: capturedByteCount,
                     sessionID: sessionID
-                )
+                ) else { return }
+                rawText = recovered
             }
             guard isCurrent(sessionID, phase: .finalizing) else { return }
             let normalizedRawText = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -562,7 +566,7 @@ actor DictationCoordinator {
             await provider.cancel()
         }
 
-        guard isRealtimeOnlyProvider(activeSettings.cloudTranscriptionProvider) else {
+        guard !providerHasBatchEndpoint(activeSettings.cloudTranscriptionProvider) else {
             // Batch-capable providers keep the retained PCM for the fallback.
             await logger.write(
                 .warning,
@@ -595,7 +599,7 @@ actor DictationCoordinator {
     }
 
     private func batchTranscribe(pcm16: Data, settings: AppSettings) async throws -> String {
-        guard !isRealtimeOnlyProvider(settings.cloudTranscriptionProvider) else {
+        guard providerHasBatchEndpoint(settings.cloudTranscriptionProvider) else {
             throw BailianRealtimeError.protocolError("The selected provider only supports realtime transcription.")
         }
         let account: CredentialAccount
@@ -766,10 +770,6 @@ actor DictationCoordinator {
         ]
     }
 
-    private func isRealtimeOnlyProvider(_ provider: String) -> Bool {
-        provider == "bailian" || provider == "volcengine"
-    }
-
     // Join the parallel pause first: resuming before pauseIfPlaying set its
     // "paused by us" flag would no-op and leave the user's media stuck paused.
     private func resumePausedMedia() async {
@@ -913,5 +913,68 @@ actor DictationCoordinator {
         let snapshot = machine.snapshot
         await onSnapshot(snapshot)
         if show { await capsule.show(snapshot) } else { await capsule.update(snapshot) }
+    }
+}
+
+// MARK: - Empty-transcript degradation ladder (P1-2)
+
+private extension DictationCoordinator {
+    // A provider capability, not a fallback policy: bailian/volcengine expose
+    // no batch/HTTP transcription endpoint, so a failed or empty stream cannot
+    // be re-uploaded to the same vendor. Callers that mean "no fallback at all"
+    // must additionally consult the user's settings — conflating the two is
+    // what made allowLocalFallback inert and lost the user's speech.
+    func providerHasBatchEndpoint(_ provider: String) -> Bool {
+        provider != "bailian" && provider != "volcengine"
+    }
+
+    // The realtime transcript came back empty. This used to throw noSpeech for
+    // realtime-only providers before transcribeRecordedAudio was ever reached,
+    // discarding the retained PCM behind a misleading error even with local
+    // fallback enabled and a model installed. Returns nil when the session was
+    // superseded mid-recovery, so stop() bails out as it did inline.
+    func recoverEmptyRealtimeTranscript(
+        pcm16: Data,
+        capturedByteCount: Int,
+        sessionID: UUID
+    ) async throws -> String? {
+        guard capturedByteCount > 0 else { throw AudioCaptureError.noAudioFrames }
+        // Uploading an all-silence capture wastes a round-trip and can
+        // hallucinate text; the gate already knows nothing was said.
+        guard speechGate.speechDetectedEver else { throw DictationSessionError.noSpeech }
+        // Speech was said but no text came back, so anything still reachable
+        // beats dropping the audio. With nothing reachable the empty transcript
+        // is all the information there is.
+        guard let settings = await fallbackTranscriptionSettings(sessionID: sessionID) else {
+            throw DictationSessionError.noSpeech
+        }
+        guard isCurrent(sessionID, phase: .finalizing) else { return nil }
+        return try await transcribeRecordedAudio(pcm16: pcm16, settings: settings, sessionID: sessionID)
+    }
+
+    // Picks the surviving route for the retained audio: the provider's own
+    // batch endpoint where it has one (unchanged behavior), otherwise the local
+    // model when the user enabled local fallback and it is actually installed.
+    func fallbackTranscriptionSettings(sessionID: UUID) async -> AppSettings? {
+        if providerHasBatchEndpoint(activeSettings.cloudTranscriptionProvider) { return activeSettings }
+        guard activeSettings.allowLocalFallback else { return nil }
+        let model = activeSettings.fallbackWhisperModel
+        let status = await localRuntime.status(provider: .whisper, model: model)
+        guard status.runtimeAvailable, status.modelAvailable else { return nil }
+        await logger.write(
+            .warning,
+            "Realtime transcript was empty; falling back to local transcription",
+            metadata: ["model": model],
+            sessionID: sessionID
+        )
+        var fallback = activeSettings
+        fallback.useLocalTranscription = true
+        fallback.localTranscriptionProvider = .whisper
+        fallback.whisperModel = model
+        // No batch endpoint to escalate to: keep a local failure from bouncing
+        // into batchTranscribe, which would only replace the real error with
+        // "the selected provider only supports realtime transcription".
+        fallback.allowCloudFallback = false
+        return fallback
     }
 }

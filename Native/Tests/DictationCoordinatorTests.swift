@@ -367,6 +367,64 @@ final class DictationCoordinatorTests: XCTestCase {
         XCTAssertEqual(records.first?.text, "hello world")
     }
 
+    // P1-2: for a realtime-only provider (no batch endpoint) an empty realtime
+    // transcript used to throw noSpeech before transcribeRecordedAudio was ever
+    // reached, so the retained PCM was discarded and the user's speech lost
+    // even with local fallback enabled and a model installed. With speech
+    // detected the session must now recover through the local model.
+    func testRealtimeOnlyFinalizeFailureUsesLocalFallbackWhenEnabled() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .succeed, finishText: "")
+        let localRuntime = StubLocalRuntime(text: "recovered by the local model")
+        let harness = try await makeHarness(provider: provider, localRuntime: localRuntime)
+
+        var settings = makeSettings()
+        settings.allowLocalFallback = true
+        settings.fallbackWhisperModel = "small"
+        await harness.coordinator.start(settings: settings)
+        let recording = await harness.coordinator.snapshot()
+        XCTAssertEqual(recording.phase, .recording)
+
+        // 300 ms above the gate's speech threshold: speech was definitely said,
+        // so an empty realtime transcript means the stream failed us, not the user.
+        for _ in 0..<15 { harness.audio.emitFrame(rms: 0.02) }
+        await harness.coordinator.stop()
+
+        XCTAssertFalse(
+            harness.recorder.snapshots.contains { $0.phase == .failed },
+            "An empty realtime transcript must not fail the session while local fallback is available"
+        )
+        XCTAssertTrue(harness.recorder.snapshots.contains { $0.phase == .completed })
+        let localCalls = await localRuntime.transcribeCallCount
+        XCTAssertEqual(localCalls, 1, "The retained audio must reach the local transcription path")
+        let routedSettings = await localRuntime.lastSettings
+        XCTAssertEqual(routedSettings?.useLocalTranscription, true, "The fallback must route into the local branch")
+        XCTAssertEqual(routedSettings?.localTranscriptionProvider, .whisper)
+        XCTAssertEqual(routedSettings?.whisperModel, "small", "The configured fallback model must be used")
+        let records = try await harness.history.recent(limit: 5)
+        XCTAssertEqual(records.first?.text, "recovered by the local model")
+
+        // The opposite case is unchanged: nothing was ever spoken, so uploading
+        // silence to any engine would only risk hallucinated text.
+        let silentProvider = ScriptedRealtimeProvider(connect: .succeed, finishText: "")
+        let silentLocalRuntime = StubLocalRuntime(text: "must not be used")
+        let silentHarness = try await makeHarness(provider: silentProvider, localRuntime: silentLocalRuntime)
+        await silentHarness.coordinator.start(settings: settings)
+        let silentRecording = await silentHarness.coordinator.snapshot()
+        XCTAssertEqual(silentRecording.phase, .recording)
+
+        for _ in 0..<15 { silentHarness.audio.emitFrame(rms: 0.001) }
+        await silentHarness.coordinator.stop()
+
+        let failure = silentHarness.recorder.snapshots.first { $0.phase == .failed }
+        XCTAssertEqual(
+            failure?.errorMessage,
+            DictationSessionError.noSpeech.localizedDescription,
+            "A capture with no detected speech must still fail with noSpeech"
+        )
+        let silentLocalCalls = await silentLocalRuntime.transcribeCallCount
+        XCTAssertEqual(silentLocalCalls, 0, "Silence must never reach the local transcription path")
+    }
+
     // D8: the VoiceOver announcement mapping is a pure phase -> key table;
     // phases outside the announced set must stay silent (nil).
     func testCapsuleAnnouncementKeysCoverExactlyTheAnnouncedPhases() {
@@ -406,7 +464,10 @@ final class DictationCoordinatorTests: XCTestCase {
         return settings
     }
 
-    private func makeHarness(provider: ScriptedRealtimeProvider) async throws -> Harness {
+    private func makeHarness(
+        provider: ScriptedRealtimeProvider,
+        localRuntime: any LocalTranscriptionRuntime = LocalModelRuntime()
+    ) async throws -> Harness {
         // An isolated keychain service keeps the test key out of the real
         // "com.mouthpiece.app.credentials" service.
         let keychain = KeychainStore(service: "com.mouthpiece.app.tests.\(UUID().uuidString)")
@@ -433,6 +494,7 @@ final class DictationCoordinatorTests: XCTestCase {
             logger: DebugLogStore(enabled: false),
             insertion: TextInsertionService(),
             capsule: CapsuleController(),
+            localRuntime: localRuntime,
             reasoningService: ReasoningService(keychain: keychain),
             realtimeProviderOverride: provider,
             onSnapshot: { recorder.append($0) }
@@ -564,4 +626,35 @@ private actor ScriptedRealtimeProvider: RealtimeTranscriptionProvider {
     func emit(_ event: RealtimeTranscriptionEvent) {
         onEvent?(event)
     }
+}
+
+// P1-2: the local transcription edge is an out-of-process whisper server in
+// production, so the realtime-only local fallback is only testable through the
+// LocalTranscriptionRuntime seam.
+private actor StubLocalRuntime: LocalTranscriptionRuntime {
+    private let text: String
+    private let installedStatus: LocalModelStatus
+    private(set) var transcribeCallCount = 0
+    private(set) var lastSettings: AppSettings?
+
+    init(text: String, runtimeAvailable: Bool = true, modelAvailable: Bool = true) {
+        self.text = text
+        installedStatus = LocalModelStatus(
+            runtimeAvailable: runtimeAvailable,
+            modelAvailable: modelAvailable,
+            running: false
+        )
+    }
+
+    func status(provider: LocalTranscriptionProvider, model: String) -> LocalModelStatus {
+        installedStatus
+    }
+
+    func transcribe(pcm16: Data, settings: AppSettings, prompt: String?) -> String {
+        transcribeCallCount += 1
+        lastSettings = settings
+        return text
+    }
+
+    func stopAll() {}
 }
