@@ -172,21 +172,7 @@ final class TextInsertionService {
             return
         }
 
-        switch await Self.insertViaAccessibility(text, on: target.focusedElement) {
-        case .inserted: return
-        case .denied: throw TextInsertionError.accessibilityPermissionDenied
-        case .notInserted: break
-        }
-
-        var focusedResult = await Self.currentFocusedElement(processIdentifier: target.processIdentifier)
-        switch await Self.insertViaAccessibility(text, on: focusedResult.element) {
-        case .inserted: return
-        case .denied: throw TextInsertionError.accessibilityPermissionDenied
-        case .notInserted: break
-        }
-        if focusedResult.error == .apiDisabled {
-            throw TextInsertionError.accessibilityPermissionDenied
-        }
+        if try await insertViaAccessibilityPreferringLiveFocus(text, into: target) { return }
 
         if NSWorkspace.shared.frontmostApplication?.processIdentifier != target.processIdentifier {
             application.activate(options: [.activateIgnoringOtherApps])
@@ -196,7 +182,7 @@ final class TextInsertionService {
                 }
                 try await Task.sleep(for: .milliseconds(30))
             }
-            focusedResult = await Self.currentFocusedElement(processIdentifier: target.processIdentifier)
+            let focusedResult = await Self.currentFocusedElement(processIdentifier: target.processIdentifier)
             switch await Self.insertViaAccessibility(text, on: focusedResult.element) {
             case .inserted: return
             case .denied: throw TextInsertionError.accessibilityPermissionDenied
@@ -210,7 +196,52 @@ final class TextInsertionService {
         try await paste(text, into: target)
     }
 
-    private struct AXElementBox: @unchecked Sendable {
+    // The captured `target.focusedElement` is a snapshot taken when dictation
+    // started. If the user clicks another field in the same app while dictating,
+    // that stale element usually still is a writable text control, so trying it
+    // first wrote the transcript into the field the user had LEFT (audit P1-4).
+    // Live focus is therefore authoritative and the captured element is only a
+    // fallback for when the live read itself fails (no element, .apiDisabled,
+    // timeout) — a live element that merely refuses the write (GPU terminals
+    // report AXGroup) must fall through to paste, not to the stale element.
+    //
+    // Internal (not private) so tests can drive this ordering without a live AX
+    // session; both closures default to the real AX calls.
+    func insertViaAccessibilityPreferringLiveFocus(
+        _ text: String,
+        into target: TextInsertionTarget,
+        readFocusedElement: @MainActor (pid_t) async -> (element: AXUIElement?, error: AXError) = {
+            await TextInsertionService.currentFocusedElement(processIdentifier: $0)
+        },
+        write: @MainActor (String, AXElementBox?) async -> AXInsertOutcome = {
+            await TextInsertionService.insertViaAccessibility($0, on: $1?.element)
+        }
+    ) async throws -> Bool {
+        let live = await readFocusedElement(target.processIdentifier)
+        switch await write(text, live.element.map(AXElementBox.init(element:))) {
+        case .inserted: return true
+        case .denied: throw TextInsertionError.accessibilityPermissionDenied
+        case .notInserted: break
+        }
+
+        if live.element == nil || live.error != .success {
+            switch await write(text, target.focusedElement.map(AXElementBox.init(element:))) {
+            case .inserted: return true
+            case .denied: throw TextInsertionError.accessibilityPermissionDenied
+            case .notInserted: break
+            }
+        }
+
+        if live.error == .apiDisabled {
+            throw TextInsertionError.accessibilityPermissionDenied
+        }
+        return false
+    }
+
+    // Internal (not private) so the insertViaAccessibilityPreferringLiveFocus
+    // seam can carry an element across the main-actor boundary the way the rest
+    // of this file does: AXUIElement is not Sendable.
+    struct AXElementBox: @unchecked Sendable {
         let element: AXUIElement
     }
 
@@ -239,7 +270,9 @@ final class TextInsertionService {
         let error: AXError
     }
 
-    private nonisolated static func currentFocusedElement(
+    // Internal rather than private so the insertion tests can drive the live
+    // focus read directly.
+    nonisolated static func currentFocusedElement(
         processIdentifier: pid_t
     ) async -> (element: AXUIElement?, error: AXError) {
         let appElement = AXElementBox(element: AXUIElementCreateApplication(processIdentifier))

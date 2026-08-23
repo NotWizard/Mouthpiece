@@ -566,6 +566,93 @@ final class AppEnvironmentTests: XCTestCase {
         }
     }
 
+    // P1-4: the element captured when dictation started is not authoritative at
+    // insertion time. Clicking another field in the same app leaves the captured
+    // element a perfectly writable text control, so trying it first landed the
+    // transcript in the field the user had LEFT. Live focus must win, with the
+    // captured element kept only as a fallback for a failed live read.
+    func testInsertPrefersLiveFocusedElementOverCapturedOne() async throws {
+        let capturedElement = AXUIElementCreateApplication(1)
+        let liveElement = AXUIElementCreateApplication(2)
+        func label(_ box: TextInsertionService.AXElementBox?) -> String {
+            guard let element = box?.element else { return "none" }
+            if CFEqual(element, liveElement) { return "live" }
+            if CFEqual(element, capturedElement) { return "captured" }
+            return "other"
+        }
+        let service = TextInsertionService()
+        let target = TextInsertionTarget(
+            processIdentifier: 4242,
+            bundleIdentifier: "com.example.editor",
+            applicationName: "Editor",
+            focusedElement: capturedElement
+        )
+
+        // The write stub accepts anything, so the recorded order alone proves
+        // which field the transcript reached.
+        var liveFocusWrites: [String] = []
+        let insertedIntoLiveField = try await service.insertViaAccessibilityPreferringLiveFocus(
+            "transcript",
+            into: target,
+            readFocusedElement: { _ in (liveElement, .success) },
+            write: { text, box in
+                XCTAssertEqual(text, "transcript")
+                liveFocusWrites.append(label(box))
+                return .inserted
+            }
+        )
+        XCTAssertTrue(insertedIntoLiveField)
+        XCTAssertEqual(liveFocusWrites, ["live"])
+
+        // Fallback preserved: a failed live read (timeout, no element) still
+        // reaches the captured element rather than giving up on Accessibility.
+        var failedReadWrites: [String] = []
+        let insertedIntoCapturedField = try await service.insertViaAccessibilityPreferringLiveFocus(
+            "transcript",
+            into: target,
+            readFocusedElement: { _ in (nil, .cannotComplete) },
+            write: { _, box in
+                failedReadWrites.append(label(box))
+                return box == nil ? .notInserted : .inserted
+            }
+        )
+        XCTAssertTrue(insertedIntoCapturedField)
+        XCTAssertEqual(failedReadWrites, ["none", "captured"])
+
+        // A live element that refuses the write (GPU terminals report AXGroup)
+        // must fall through to the paste path, never to the stale element.
+        var refusedWrites: [String] = []
+        let usedAccessibility = try await service.insertViaAccessibilityPreferringLiveFocus(
+            "transcript",
+            into: target,
+            readFocusedElement: { _ in (liveElement, .success) },
+            write: { _, box in
+                refusedWrites.append(label(box))
+                return .notInserted
+            }
+        )
+        XCTAssertFalse(usedAccessibility)
+        XCTAssertEqual(refusedWrites, ["live"])
+
+        // Revoked Accessibility permission still surfaces, after the captured
+        // element got its fallback attempt.
+        var disabledWrites: [String] = []
+        do {
+            _ = try await service.insertViaAccessibilityPreferringLiveFocus(
+                "transcript",
+                into: target,
+                readFocusedElement: { _ in (nil, .apiDisabled) },
+                write: { _, box in
+                    disabledWrites.append(label(box))
+                    return .notInserted
+                }
+            )
+            XCTFail("Expected .apiDisabled to map to accessibilityPermissionDenied")
+        } catch TextInsertionError.accessibilityPermissionDenied {
+            XCTAssertEqual(disabledWrites, ["none", "captured"])
+        }
+    }
+
     // P1-3: Secure Input makes the window server drop the synthetic Cmd+V, so
     // the paste silently no-oped and the delayed restore then wiped the
     // transcript off the clipboard as well — the dictation vanished with no
