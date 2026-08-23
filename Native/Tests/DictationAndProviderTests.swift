@@ -86,7 +86,6 @@ final class DictationAndProviderTests: XCTestCase {
         try Data().write(to: root.appendingPathComponent("decoder.int8.onnx"))
         XCTAssertFalse(LocalModelInstallationService.parakeetModelIsComplete(root))
     }
-    }
 
     func testTruncatedDownloadRejectedExistingModelSurvives() throws {
         // Audit P2-12: a truncated download with a wrong pinned SHA-256
@@ -906,7 +905,11 @@ final class DictationAndProviderTests: XCTestCase {
 
         XCTAssertTrue(prompt.contains("The output language must be: English"))
         XCTAssertTrue(prompt.contains("Mouthpiece"))
-        XCTAssertFalse(prompt.contains("legacy avoided term"))
+        // NEW-6: avoided terms are now injected as a soft prompt constraint.
+        XCTAssertTrue(prompt.contains("legacy avoided term"))
+        // Replacement rules run as POST-processing on the final transcript,
+        // not as an LLM instruction, so their literal notation must not leak
+        // into the prompt.
         XCTAssertFalse(prompt.contains("嘴替 -> Mouthpiece"))
         XCTAssertTrue(prompt.contains("Keep product names unchanged."))
         XCTAssertTrue(prompt.hasSuffix("<transcript>\n测试嘴替\n</transcript>"))
@@ -924,17 +927,31 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(prompt.components(separatedBy: "</transcript>").count, 2)
     }
 
-    func testLegacyReplacementRulesDoNotModifyTranscriptWhenCleanupIsDisabled() async throws {
+    func testReplacementRulesAreAppliedToFinalTranscript() async throws {
         var settings = AppSettings()
         settings.useReasoningModel = false
-        settings.terminologyProfile.replacementRules = ["mouthpiece": "Mouthpiece"]
+        settings.terminologyProfile.replacementRules = ["hello": "hi"]
         // P1-15: an in-memory CredentialStore keeps this off the real keychain
         // even though the cleanup-disabled branch never actually reads it.
         let service = ReasoningService(keychain: InMemoryCredentialStore())
 
-        let result = try await service.process("Use mouthpiece", settings: settings, target: nil)
+        let result = try await service.process("hello world", settings: settings, target: nil)
 
-        XCTAssertEqual(result, "Use mouthpiece")
+        // NEW-6: post-processing rules run even when the LLM cleanup is off,
+        // so the VocabularyRulesView UI is no longer a false promise.
+        XCTAssertEqual(result, "hi world")
+    }
+
+    func testAvoidedTermsAreIncludedInReasoningPrompt() {
+        var settings = AppSettings()
+        settings.terminologyProfile.avoidedTerms = ["utilize", "leverage"]
+
+        let prompt = ReasoningService.prompt(transcript: "please utilize this", settings: settings)
+
+        // NEW-6: both terms and an "Avoid" directive must reach the LLM.
+        XCTAssertTrue(prompt.contains("Avoid"))
+        XCTAssertTrue(prompt.contains("utilize"))
+        XCTAssertTrue(prompt.contains("leverage"))
     }
 
     func testReasoningResponsesJoinEveryProviderTextBlock() throws {

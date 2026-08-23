@@ -42,7 +42,31 @@ actor ReasoningService {
         } else {
             result = clean
         }
-        return result.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = result.trimmingCharacters(in: .whitespacesAndNewlines)
+        // NEW-6: user-defined vocabulary rules are applied to the final
+        // transcript regardless of whether the LLM cleanup ran, so the
+        // VocabularyRulesView UI is no longer a false promise when
+        // `useReasoningModel == false`.
+        return Self.applyReplacementRules(trimmed, rules: settings.terminologyProfile.replacementRules)
+    }
+
+    // Literal, case-insensitive substring replacement. Longer keys win on
+    // overlap so a more specific rule can supersede a shorter one; equal-
+    // length keys sort lexicographically for determinism. `normalize()` on
+    // AppSettings already trims keys/values and drops empty ones, so this
+    // helper trusts the input to be free of empty keys.
+    static func applyReplacementRules(_ text: String, rules: [String: String]) -> String {
+        guard !rules.isEmpty else { return text }
+        let orderedKeys = rules.keys.sorted { left, right in
+            if left.count != right.count { return left.count > right.count }
+            return left < right
+        }
+        var output = text
+        for key in orderedKeys {
+            guard let value = rules[key] else { continue }
+            output = output.replacingOccurrences(of: key, with: value, options: [.caseInsensitive])
+        }
+        return output
     }
 
     static func shouldCallModel(settings: AppSettings, target: TextInsertionTarget?) -> Bool {
@@ -64,6 +88,12 @@ actor ReasoningService {
         let terminology = settings.terminologyProfile
         if !terminology.preferredTerms.isEmpty {
             instructions.append("Use these exact preferred terms when applicable: \(terminology.preferredTerms.joined(separator: ", ")).")
+        }
+        // NEW-6: soft constraint injected as a system-prompt suffix so the
+        // avoided-terms list in VocabularyRulesView actually reaches the
+        // LLM. Post-processing rules run separately in `process(...)`.
+        if !terminology.avoidedTerms.isEmpty {
+            instructions.append("Avoid using these terms in the output; substitute a natural alternative when the meaning allows: \(terminology.avoidedTerms.joined(separator: ", ")).")
         }
         instructions.append(safetyGuardrail(for: settings.uiLanguage))
         if settings.translationEnabled {
