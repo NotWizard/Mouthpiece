@@ -53,6 +53,18 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
+      # P2-15: Mouthpiece.xcodeproj/ is generated from project.yml via
+      # xcodegen and also committed to the repo. The release script always
+      # regenerates before shipping, so drift bites only IDE users — this
+      # step catches it in CI right after `xcodegen generate` above and
+      # before the tests run, turning silent drift into a red build.
+      - name: Verify xcodeproj matches project.yml
+        run: |
+          if ! git diff --exit-code -- Mouthpiece.xcodeproj/; then
+            echo "::error::Mouthpiece.xcodeproj/ is out of sync with project.yml. Run 'xcodegen generate' locally and commit the resulting changes to Mouthpiece.xcodeproj/ (audit P2-15)."
+            exit 1
+          fi
+
       - name: Run native tests
         run: |
           xcodebuild -project Mouthpiece.xcodeproj -scheme Mouthpiece \
