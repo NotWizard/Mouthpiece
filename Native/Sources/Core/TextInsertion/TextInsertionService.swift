@@ -2,6 +2,34 @@ import AppKit
 import ApplicationServices
 import Carbon.HIToolbox
 
+extension NSPasteboard {
+    // http://nspasteboard.org/ — clipboard managers (Alfred, Paste, Raycast,
+    // Maccy, …) treat any of these marker types as "do not retain in history"
+    // signals. AppKit has no first-party concealed flag, so this community
+    // convention is the only way to keep dictation content off long-lived
+    // clipboard-manager stores.
+    static let concealedTranscriptType = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
+    static let transientTranscriptType = NSPasteboard.PasteboardType("org.nspasteboard.TransientType")
+
+    // Every transcript write in the app funnels through this helper so the
+    // markers cannot be forgotten at a call site; the marker payload is empty
+    // Data, only the presence of the type matters per the convention.
+    // `transient` also stamps TransientType for the paste-then-restore fast
+    // path where the transcript is on the clipboard for <1 s.
+    // Implementation uses NSPasteboardItem + writeObjects (the same shape
+    // `restore()` below uses) so all types are declared atomically — Apple's
+    // NSPasteboard.setData docs require declared types, and the recommended
+    // modern write path is a single writeObjects call.
+    func writeTranscriptText(_ text: String, transient: Bool = false) {
+        clearContents()
+        let item = NSPasteboardItem()
+        item.setString(text, forType: .string)
+        item.setData(Data(), forType: Self.concealedTranscriptType)
+        if transient { item.setData(Data(), forType: Self.transientTranscriptType) }
+        writeObjects([item])
+    }
+}
+
 struct TextInsertionTarget: Equatable, @unchecked Sendable {
     let processIdentifier: pid_t
     let bundleIdentifier: String?
@@ -77,8 +105,7 @@ final class TextInsertionService {
     }
 
     func copyToClipboard(_ text: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+        NSPasteboard.general.writeTranscriptText(text)
     }
 
     func captureTarget() async -> TextInsertionTarget? {
@@ -441,8 +468,7 @@ final class TextInsertionService {
         guard secureInputActive() else { return }
         pendingRestore?.task.cancel()
         pendingRestore = nil
-        pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
+        pasteboard.writeTranscriptText(text)
         throw TextInsertionError.secureInputActive
     }
 
@@ -466,8 +492,7 @@ final class TextInsertionService {
         } else {
             oldItems = Self.snapshot(of: pasteboard)
         }
-        pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
+        pasteboard.writeTranscriptText(text, transient: true)
         let insertedChangeCount = pasteboard.changeCount
 
         await Self.postPasteEvents()

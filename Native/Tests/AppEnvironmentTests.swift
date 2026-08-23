@@ -726,6 +726,35 @@ final class AppEnvironmentTests: XCTestCase {
         XCTAssertFalse(unblocked.hasPendingClipboardRestore)
     }
 
+    // NEW-1: clipboard managers (Alfred/Paste/Raycast/Maccy/…) will happily
+    // keep dictation content in their history unless the write carries the
+    // community `org.nspasteboard.ConcealedType` marker. The paste-then-restore
+    // fast path additionally carries `TransientType` so managers can ignore
+    // the sub-second flash entirely. Both markers must ride EVERY transcript
+    // write funnelled through the shared helper.
+    func testTranscriptClipboardWriteIsMarkedConcealed() {
+        let keep = NSPasteboard.withUniqueName()
+        keep.writeTranscriptText("dictated transcript")
+        XCTAssertEqual(keep.string(forType: .string), "dictated transcript")
+        XCTAssertNotNil(keep.data(forType: NSPasteboard.concealedTranscriptType))
+        // The Secure-Input / keep-in-clipboard case must NOT masquerade as
+        // transient — the user pastes it manually at their own pace.
+        XCTAssertNil(keep.data(forType: NSPasteboard.transientTranscriptType))
+
+        let pasteFlash = NSPasteboard.withUniqueName()
+        pasteFlash.writeTranscriptText("paste path", transient: true)
+        XCTAssertEqual(pasteFlash.string(forType: .string), "paste path")
+        XCTAssertNotNil(pasteFlash.data(forType: NSPasteboard.concealedTranscriptType))
+        XCTAssertNotNil(pasteFlash.data(forType: NSPasteboard.transientTranscriptType))
+
+        // A subsequent non-transient write must not inherit the previous
+        // TransientType stamp: `clearContents()` inside the helper wipes it.
+        pasteFlash.writeTranscriptText("kept after paste")
+        XCTAssertEqual(pasteFlash.string(forType: .string), "kept after paste")
+        XCTAssertNotNil(pasteFlash.data(forType: NSPasteboard.concealedTranscriptType))
+        XCTAssertNil(pasteFlash.data(forType: NSPasteboard.transientTranscriptType))
+    }
+
     func testPasteDelayAdaptsToTheTargetApplication() {
         let service = TextInsertionService()
         func target(_ bundleIdentifier: String) -> TextInsertionTarget {

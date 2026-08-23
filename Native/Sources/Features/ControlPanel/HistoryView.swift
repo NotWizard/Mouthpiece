@@ -107,8 +107,7 @@ struct HistoryView: View {
     }
 
     private func copy(_ text: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+        NSPasteboard.general.writeTranscriptText(text)
     }
 
     private func delete(_ item: TranscriptionRecord) {
