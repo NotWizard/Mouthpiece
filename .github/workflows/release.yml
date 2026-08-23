@@ -223,6 +223,86 @@ jobs:
             fi
           done
 
+      - name: Validate appcast has current release
+        # Audit P2-16: the previous check only asserted the feed was non-empty
+        # and had SOME <item>, so a merge that failed to append the current
+        # build would still pass because the prior release's entry alone
+        # satisfied the check. Assert instead that the newest <item> (post-merge
+        # the feed is sorted DESC by sparkle:version, so items[0] is newest) is
+        # the current build: sparkle:version == CURRENT_PROJECT_VERSION,
+        # sparkle:shortVersionString == VERSION, enclosure URL contains the
+        # tag, and both sparkle:edSignature and sparkle:minimumSystemVersion
+        # are present and non-empty.
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          BUILD_NUMBER=$(awk -F. '{ print ($1 * 10000) + ($2 * 100) + $3 }' <<<"$VERSION")
+          for ARCH in arm64 x64; do
+            python3 - "release-assets/appcast-$ARCH.xml" "$VERSION" "$BUILD_NUMBER" "$TAG" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          SPARKLE = "http://www.andymatuschak.org/xml-namespaces/sparkle"
+
+          path, expected_short, expected_build, expected_tag = sys.argv[1:5]
+
+          def fail(msg):
+              print("Appcast validation failed for %s: %s" % (path, msg), file=sys.stderr)
+              sys.exit(1)
+
+          try:
+              tree = ET.parse(path)
+          except (ET.ParseError, OSError) as error:
+              fail("cannot parse XML (%s)" % error)
+
+          channel = tree.getroot().find("channel")
+          if channel is None:
+              fail("no <channel> element")
+          items = channel.findall("item")
+          if not items:
+              fail("no <item> under <channel>")
+
+          item = items[0]  # post-merge sort_key(reverse=True): newest first
+          enclosure = item.find("enclosure")
+          if enclosure is None:
+              fail("first <item> has no <enclosure>")
+
+          version_node = item.find("{%s}version" % SPARKLE)
+          if version_node is not None and version_node.text and version_node.text.strip():
+              version = version_node.text.strip()
+          else:
+              version = (enclosure.get("{%s}version" % SPARKLE) or "").strip()
+          if version != expected_build:
+              fail("first item sparkle:version %r != CURRENT_PROJECT_VERSION %r" % (version, expected_build))
+
+          short_node = item.find("{%s}shortVersionString" % SPARKLE)
+          if short_node is not None and short_node.text and short_node.text.strip():
+              short = short_node.text.strip()
+          else:
+              short = (enclosure.get("{%s}shortVersionString" % SPARKLE) or "").strip()
+          if short != expected_short:
+              fail("first item sparkle:shortVersionString %r != VERSION %r" % (short, expected_short))
+
+          url = enclosure.get("url") or ""
+          if expected_tag not in url:
+              fail("first item enclosure url %r missing tag %r" % (url, expected_tag))
+
+          signature = (enclosure.get("{%s}edSignature" % SPARKLE) or "").strip()
+          if not signature:
+              fail("first item enclosure missing non-empty sparkle:edSignature")
+
+          min_sys_node = item.find("{%s}minimumSystemVersion" % SPARKLE)
+          min_sys_text = min_sys_node.text.strip() if (min_sys_node is not None and min_sys_node.text) else ""
+          min_sys_attr = (enclosure.get("{%s}minimumSystemVersion" % SPARKLE) or "").strip()
+          if not (min_sys_text or min_sys_attr):
+              fail("first item missing sparkle:minimumSystemVersion (child or attribute)")
+
+          print("OK %s: sparkle:version=%s shortVersionString=%s url=%s minSys=%s" %
+                (path, version, short, url, min_sys_text or min_sys_attr))
+          PY
+          done
+
       - name: Generate legacy electron-updater feed (one-time bridge to 2.0.0)
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
