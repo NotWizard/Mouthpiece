@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 // Shared plumbing for the realtime WebSocket providers (audit C5): the
 // cold-start audio buffer, the finish/connect polling loop, and the benign
@@ -20,6 +21,28 @@ enum RealtimeSocketSession {
     static let maximumPendingAudioBytes = pendingAudioCapacityBytes(
         confirmationTimeoutSeconds: defaultConfirmationTimeoutSeconds
     )
+
+    // Audit P2-4: single canonical finalize budget every provider uses to
+    // wait for its terminal message (`is_last_package` / `Termination` /
+    // `finished`-close / `<fin>` endpoint / Bailian `task-finished`). When
+    // the wait elapses without that signal, each `finish()` falls through
+    // and returns the best available partial text — no throw, no hang.
+    // Prior to this audit Bailian threw `BailianRealtimeError.timedOut` on
+    // that path (dropping the tail entirely) and the magic `5` was copied
+    // verbatim in every provider; centralising the constant here also
+    // stops any provider from silently reverting to URLSession's ~60 s
+    // default via the operating-system socket layer.
+    static let defaultFinalizeTimeoutSeconds = 5
+
+    // Central warning emitted by every provider's `finish()` when the
+    // finalize wait falls through to best-partial. Kept in one place so
+    // support logs and future breadcrumbs share one shape.
+    static func logFinalizeTimeout(provider: String) {
+        Logger(subsystem: "com.mouthpiece.app", category: "realtime")
+            .warning(
+                "\(provider, privacy: .public) finalize timed out after \(defaultFinalizeTimeoutSeconds, privacy: .public)s; returning best available partial."
+            )
+    }
 
     static func pendingAudioCapacityBytes(
         confirmationTimeoutSeconds: Int,

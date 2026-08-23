@@ -88,8 +88,10 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
         let generation = self.generation
         try await socket.send(.string(#"{"type":"Terminate"}"#))
         try ensureCurrent(socket: socket, generation: generation)
-        _ = try await RealtimeSocketSession.waitForCondition(
-            timeout: .seconds(5),
+        // Audit P2-4: shared finalize budget — falls through to best-partial
+        // when `Termination` never arrives.
+        let terminatedInTime = try await RealtimeSocketSession.waitForCondition(
+            timeout: .seconds(RealtimeSocketSession.defaultFinalizeTimeoutSeconds),
             isSatisfied: { terminated },
             terminalError: { connectionError },
             onTick: { try ensureCurrent(socket: socket, generation: generation) }
@@ -98,6 +100,7 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
             await cancel()
             throw BailianRealtimeError.protocolError(connectionError)
         }
+        if !terminatedInTime { RealtimeSocketSession.logFinalizeTimeout(provider: "AssemblyAI") }
         let text = joinedTranscript()
         await cancel()
         return text

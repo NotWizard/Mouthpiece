@@ -100,13 +100,16 @@ actor VolcengineRealtimeProvider: RealtimeTranscriptionProvider {
         try await socket.send(.data(VolcengineFrameCodec.audio(Data(), isLast: true)))
         try ensureCurrent(socket: socket, generation: generation)
 
-        _ = try await RealtimeSocketSession.waitForCondition(
-            timeout: .seconds(5),
+        // Audit P2-4: shared finalize budget — falls through to best-partial
+        // when the terminal frame (`is_last_package`) never arrives.
+        let finalizedInTime = try await RealtimeSocketSession.waitForCondition(
+            timeout: .seconds(RealtimeSocketSession.defaultFinalizeTimeoutSeconds),
             isSatisfied: { finalized },
             terminalError: { terminalError },
             onTick: { try ensureCurrent(socket: socket, generation: generation) }
         )
         if let terminalError { throw VolcengineRealtimeError.protocolError(terminalError) }
+        if !finalizedInTime { RealtimeSocketSession.logFinalizeTimeout(provider: "Volcengine") }
         let result = liveText
         await cancel()
         return result

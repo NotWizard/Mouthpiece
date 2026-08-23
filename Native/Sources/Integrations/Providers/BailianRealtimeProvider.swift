@@ -177,8 +177,16 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         try await sendJSON(finishTask(), over: socket)
         try ensureCurrent(socket: socket, generation: expectedGeneration)
 
-        let finished = try await RealtimeSocketSession.waitForCondition(
-            timeout: .seconds(5),
+        // Audit P2-4: use the shared 5 s finalize budget, but Bailian is
+        // realtime-only so an unfinished `task-finished` still THROWS
+        // `BailianRealtimeError.timedOut` (the pre-audit behaviour). The
+        // throw is what routes finalize into `DictationCoordinator.stop`'s
+        // P1-2/NEW-7 recovery ladder — dropping through to best-partial
+        // here would silently swallow the tail for a provider that has no
+        // batch endpoint of its own. The shared `logFinalizeTimeout`
+        // warning still fires so support logs see the fall-through event.
+        let finishedInTime = try await RealtimeSocketSession.waitForCondition(
+            timeout: .seconds(RealtimeSocketSession.defaultFinalizeTimeoutSeconds),
             isSatisfied: { taskFinished },
             terminalError: { taskFailedMessage },
             onTick: { try ensureCurrent(socket: socket, generation: expectedGeneration) }
@@ -187,7 +195,11 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
             await closeSocket()
             throw BailianRealtimeError.protocolError(taskFailedMessage)
         }
-        guard finished else { throw BailianRealtimeError.timedOut }
+        guard finishedInTime else {
+            RealtimeSocketSession.logFinalizeTimeout(provider: "Bailian")
+            await closeSocket()
+            throw BailianRealtimeError.timedOut
+        }
         let text = resolvedText
         await closeSocket()
         return text

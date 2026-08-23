@@ -39,6 +39,7 @@
 		6A09D19A72BF6FFF93D4650F /* LocalModelInstallationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C2E9CA9C9D5BF8111BD9A1 /* LocalModelInstallationService.swift */; };
 		6BA70C1AFC7F5F3C50096045 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A32ED6154EF45C286E3C807C /* OnboardingView.swift */; };
 		71B51A2960D7F6CF036B2DC3 /* PermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D16F6F6D12736CCEDDC2A832 /* PermissionService.swift */; };
+		785AF491081C42C22A93DC4A /* RealtimeSocketSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B355A151353D33A873E9C90E /* RealtimeSocketSessionTests.swift */; };
 		82335095A4919636E2FA228B /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 6D51BE0C469FD773D295D0B9 /* Sparkle */; };
 		877514FAFBC099F0338389C6 /* LocalModelRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 985AC5EB7663AEBC56A4E41F /* LocalModelRuntime.swift */; };
 		879E33605FB4F96D271478A0 /* provider-anthropic.svg in Resources */ = {isa = PBXBuildFile; fileRef = 9F0AA63B360B006DB2405323 /* provider-anthropic.svg */; };
@@ -142,6 +143,7 @@
 		AFB1FA0A318163DC8EBA246D /* DictationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationState.swift; sourceTree = "<group>"; };
 		B1501A6F849E3703BD3FAB3F /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		B182DDF5D81617CECF2EE06C /* provider-groq.svg */ = {isa = PBXFileReference; path = "provider-groq.svg"; sourceTree = "<group>"; };
+		B355A151353D33A873E9C90E /* RealtimeSocketSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealtimeSocketSessionTests.swift; sourceTree = "<group>"; };
 		B46BD5418BD14A71E9B04135 /* TextInsertionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInsertionService.swift; sourceTree = "<group>"; };
 		B65963C52779B6662A3496C1 /* AudioTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTests.swift; sourceTree = "<group>"; };
 		B68D767A89514C2F25309937 /* DebugLogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogStore.swift; sourceTree = "<group>"; };
@@ -201,6 +203,7 @@
 				22AC7898EDE23F6F4CC60717 /* InMemoryCredentialStore.swift */,
 				F462A88170866B446AECBEDF /* LocalModelRuntimeTests.swift */,
 				0C55850A84F69D2693F16674 /* PersistenceTests.swift */,
+				B355A151353D33A873E9C90E /* RealtimeSocketSessionTests.swift */,
 				3EC3BCBDDF31A9E15195D511 /* SupervisedProcessTests.swift */,
 			);
 			path = Tests;
@@ -579,6 +582,7 @@
 				8EFAF03070B5E53B645AC98F /* InMemoryCredentialStore.swift in Sources */,
 				048C1C41BD00CB879A1F1807 /* LocalModelRuntimeTests.swift in Sources */,
 				53BE6F512E01624BE516DBF6 /* PersistenceTests.swift in Sources */,
+				785AF491081C42C22A93DC4A /* RealtimeSocketSessionTests.swift in Sources */,
 				4FFCB31EF517A1A0BD665495 /* SupervisedProcessTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

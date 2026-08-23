@@ -119,8 +119,10 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
         closeRequested = true
         try await socket.send(.string(#"{"type":"CloseStream"}"#))
         try ensureCurrent(socket: socket, generation: generation)
-        _ = try await RealtimeSocketSession.waitForCondition(
-            timeout: .seconds(5),
+        // Audit P2-4: shared finalize budget — falls through to best-partial
+        // if the server never closes after CloseStream.
+        let finishedInTime = try await RealtimeSocketSession.waitForCondition(
+            timeout: .seconds(RealtimeSocketSession.defaultFinalizeTimeoutSeconds),
             isSatisfied: { finished },
             terminalError: { terminalError },
             onTick: { try ensureCurrent(socket: socket, generation: generation) }
@@ -129,6 +131,7 @@ actor DeepgramRealtimeProvider: RealtimeTranscriptionProvider {
             await cancel()
             throw BailianRealtimeError.protocolError(terminalError)
         }
+        if !finishedInTime { RealtimeSocketSession.logFinalizeTimeout(provider: "Deepgram") }
         let result = joinedTranscript()
         await cancel()
         return result

@@ -116,12 +116,16 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
         try ensureCurrent(socket: socket, generation: generation)
         try await socket.send(.data(Data()))
         try ensureCurrent(socket: socket, generation: generation)
-        _ = try await RealtimeSocketSession.waitForCondition(
-            timeout: .seconds(5),
+        // Audit P2-4: shared finalize budget — falls through to best-partial
+        // when the `<fin>` endpoint marker never arrives (P1-13 filtering
+        // in the receive loop stays authoritative for what "finalized" means).
+        let finalizedInTime = try await RealtimeSocketSession.waitForCondition(
+            timeout: .seconds(RealtimeSocketSession.defaultFinalizeTimeoutSeconds),
             isSatisfied: { finalized },
             terminalError: { nil },
             onTick: { try ensureCurrent(socket: socket, generation: generation) }
         )
+        if !finalizedInTime { RealtimeSocketSession.logFinalizeTimeout(provider: "Soniox") }
         let result = liveText
         await cancel()
         return result
