@@ -96,11 +96,16 @@ final class AppEnvironment: ObservableObject {
     }
 
     func refreshHistory() {
-        Task {
+        // P2-21: `[weak self]` prevents the fire-and-forget Task from
+        // strongly retaining the environment past `shutdown()`. If the
+        // environment has been released by the time the closure runs,
+        // both `self?.reloadHistory()` and the error branch turn into
+        // no-ops via optional-chaining.
+        Task { [weak self] in
             do {
-                try await reloadHistory()
+                try await self?.reloadHistory()
             } catch {
-                startupError = error.localizedDescription
+                self?.startupError = error.localizedDescription
             }
         }
     }
@@ -118,14 +123,20 @@ final class AppEnvironment: ObservableObject {
         let revision = historyLoadRevision
         let query = historyQuery
         let offset = transcriptions.count
-        Task {
+        // P2-21: `[weak self]` keeps the closure from strongly retaining
+        // the environment across the DB fetch — a stalled SQLite call
+        // used to pin the AppEnvironment alive past `shutdown()`. The
+        // post-await `guard let self` re-strengthens only to write the
+        // page in; the error branch stays weak so it silently drops on
+        // a released environment.
+        Task { [weak self] in
             do {
                 let page = try await Self.fetchHistoryPage(history: history, query: query, offset: offset)
-                guard revision == historyLoadRevision else { return }
-                transcriptions += page
-                hasMoreHistory = page.count == Self.historyPageSize
+                guard let self, revision == self.historyLoadRevision else { return }
+                self.transcriptions += page
+                self.hasMoreHistory = page.count == Self.historyPageSize
             } catch {
-                startupError = error.localizedDescription
+                self?.startupError = error.localizedDescription
             }
         }
     }
@@ -135,37 +146,44 @@ final class AppEnvironment: ObservableObject {
     }
 
     func clearHistory() {
-        Task {
+        // P2-21: `[weak self]` keeps the closure from retaining the
+        // environment past `shutdown()`; the actor-isolated
+        // `history.clear()` still commits on its own actor even if the
+        // environment is released mid-write, and the reload/error
+        // branches then no-op through `self?`.
+        Task { [weak self] in
             do {
-                guard let history else { return }
+                guard let history = self?.history else { return }
                 try await history.clear()
-                try await reloadHistory()
+                try await self?.reloadHistory()
             } catch {
-                startupError = error.localizedDescription
+                self?.startupError = error.localizedDescription
             }
         }
     }
 
     func deleteTranscription(_ id: Int64) {
-        Task {
+        // P2-21: same weak-self rationale as `clearHistory()`.
+        Task { [weak self] in
             do {
-                guard let history else { return }
+                guard let history = self?.history else { return }
                 try await history.delete(id: id)
-                try await reloadHistory()
+                try await self?.reloadHistory()
             } catch {
-                startupError = error.localizedDescription
+                self?.startupError = error.localizedDescription
             }
         }
     }
 
     func restoreTranscription(_ record: TranscriptionRecord) {
-        Task {
+        // P2-21: same weak-self rationale as `clearHistory()`.
+        Task { [weak self] in
             do {
-                guard let history else { return }
+                guard let history = self?.history else { return }
                 try await history.restore(record)
-                try await reloadHistory()
+                try await self?.reloadHistory()
             } catch {
-                startupError = error.localizedDescription
+                self?.startupError = error.localizedDescription
             }
         }
     }
@@ -214,9 +232,15 @@ final class AppEnvironment: ObservableObject {
     }
 
     func requestMicrophonePermission() {
-        Task {
+        // P2-21: The TCC prompt suspends for as long as the user takes
+        // to answer, so `[weak self]` is required to prevent that wait
+        // from pinning the environment alive past `shutdown()`. The
+        // service itself is captured directly so the request still
+        // completes; `self?.refreshPermissions()` no-ops on a released
+        // environment.
+        Task { [weak self, permissionsService] in
             _ = await permissionsService.requestMicrophone()
-            refreshPermissions()
+            self?.refreshPermissions()
         }
     }
 
@@ -296,12 +320,19 @@ final class AppEnvironment: ObservableObject {
            modelInstallationState.modelID != model {
             modelInstallationState = .idle
         }
-        Task {
+        // P2-21: `[weak self]` prevents the fire-and-forget lookup from
+        // keeping the environment alive past `shutdown()`. The installer
+        // is captured directly so the async probe still runs; the
+        // post-await request-vs-current guard requires `self` and the
+        // mutation is skipped cleanly if the environment was released
+        // while the check was in flight.
+        Task { [weak self, modelInstaller] in
             let installed = await modelInstaller.isInstalled(provider: provider, model: model)
-            guard request == localModelStatusRequest,
-                  provider == settings.localTranscriptionProvider,
-                  model == selectedLocalModelID else { return }
-            selectedLocalModelInstalled = installed
+            guard let self,
+                  request == self.localModelStatusRequest,
+                  provider == self.settings.localTranscriptionProvider,
+                  model == self.selectedLocalModelID else { return }
+            self.selectedLocalModelInstalled = installed
         }
     }
 
@@ -373,9 +404,14 @@ final class AppEnvironment: ObservableObject {
     func stopDictation() {
         guard let coordinator else { return }
         if settings.audioCuesEnabled { audioCues.playStop(preset: settings.soundPreset) }
-        Task {
+        // P2-21: `[weak self]` prevents a stalled `coordinator.stop()`
+        // from keeping the environment alive past `shutdown()`. The
+        // local `coordinator` is captured strongly so its own actor
+        // still drives the stop; the history refresh no-ops via
+        // `self?` if the environment has been released.
+        Task { [weak self] in
             await coordinator.stop()
-            refreshHistory()
+            self?.refreshHistory()
         }
     }
 
@@ -725,7 +761,10 @@ final class AppEnvironment: ObservableObject {
             isActive: dictation.phase.isActive
         ) else { return }
         cancelPendingMainHotkey()
-        Task { await logger?.write(.debug, "Escape cancellation requested") }
+        // P2-21: match the translation-hotkey log site's `[logger]`
+        // capture so the fire-and-forget debug write does not retain
+        // the environment past `shutdown()`.
+        Task { [logger] in await logger?.write(.debug, "Escape cancellation requested") }
         cancelDictation()
     }
 

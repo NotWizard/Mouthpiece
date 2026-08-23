@@ -900,4 +900,53 @@ final class AppEnvironmentTests: XCTestCase {
         // Must be a safe no-op instead of crashing on a nil updater.
         controller.checkForUpdates()
     }
+
+    // P2-21: Fire-and-forget `Task { ... }` closures on the long-lived
+    // AppEnvironment used to strongly capture `self` and could outlive
+    // `shutdown()`, pinning the environment alive with a queued
+    // history-load / delete / restore / model-status check / clipboard-
+    // hotkey callback in flight. Every such site now captures
+    // `[weak self]` (or `[logger]` / `[permissionsService]` /
+    // `[modelInstaller]`), so dropping the last strong reference at
+    // scope exit deallocates the environment whether or not those
+    // queued Task bodies have run yet.
+    func testShutdownCancelsFireAndForgetTasks() async {
+        weak var weakEnv: AppEnvironment?
+        do {
+            let env = AppEnvironment(bootstrap: false)
+            weakEnv = env
+            // Every public method below funnels through a
+            // `Task { ... }`; in `bootstrap: false` several of them
+            // short-circuit before Task creation (missing history /
+            // coordinator), but `refreshHistory`, `clearHistory`,
+            // `deleteTranscription`, `restoreTranscription`, and
+            // `refreshLocalModelStatus` each unconditionally spawn one
+            // — sufficient to demonstrate the invariant.
+            env.refreshHistory()
+            env.loadMoreHistory()
+            env.clearHistory()
+            env.deleteTranscription(1)
+            env.restoreTranscription(TranscriptionRecord(
+                id: 1, text: "restored", rawText: nil, timestamp: .now
+            ))
+            env.stopDictation()
+            env.cancelDictation()
+            env.refreshLocalModelStatus()
+            await env.shutdown()
+        }
+        // DO NOT yield the MainActor between shutdown and this
+        // assertion. Yielding would let each queued fire-and-forget
+        // Task body run to its guard-short-circuit exit and drop the
+        // strong `self` even in the un-fixed baseline. Keeping the
+        // MainActor exclusive from `env.shutdown()` through the
+        // assertion pins the exact invariant the fix restores: with
+        // `[weak self]` on every fire-and-forget Task, dropping the
+        // last strong reference at scope exit deallocates the
+        // AppEnvironment regardless of whether the queued Task bodies
+        // have executed yet (audit P2-21).
+        XCTAssertNil(
+            weakEnv,
+            "Fire-and-forget Task closures on AppEnvironment must capture self weakly so shutdown() plus scope exit deallocate the environment even before queued Task bodies drain (audit P2-21)"
+        )
+    }
 }
