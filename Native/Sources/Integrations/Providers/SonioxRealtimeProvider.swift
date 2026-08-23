@@ -153,22 +153,23 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
                     continue
                 }
                 guard let rawTokens = payload["tokens"] as? [[String: Any]] else { continue }
-                let tokens = rawTokens.compactMap(SonioxToken.init)
-                var unstable: [SonioxToken] = []
-                for token in tokens {
-                    if token.text == "<fin>" {
-                        if token.isFinal { finalized = true }
-                        continue
-                    }
-                    if token.isFinal {
-                        if stableKeys.insert(token.signature).inserted { stableTokens.append(token) }
-                    } else if !stableKeys.contains(token.signature) {
-                        unstable.append(token)
-                    }
+                // Audit P1-13: route all control-token filtering through the
+                // pure decoder so `<end>` (emitted by Soniox alongside `<fin>`
+                // when endpoint detection is enabled) cannot leak into the
+                // transcript through any single missed string compare.
+                let frame = SonioxMessageDecoder.decode(rawTokens: rawTokens)
+                if frame.hasEndpointToken { finalized = true }
+                for token in frame.stableTokens where stableKeys.insert(token.signature).inserted {
+                    stableTokens.append(token)
                 }
-                let stable = joined(stableTokens)
-                let active = joined(unstable)
-                liveText = [stable, active].filter { !$0.isEmpty }.joined(separator: " ")
+                let unstable = frame.activeTokens.filter { !stableKeys.contains($0.signature) }
+                let stable = SonioxMessageDecoder.joinedText(stableTokens)
+                let active = SonioxMessageDecoder.joinedText(unstable)
+                // Audit P1-13: `joined(separator: " ")` injected an ASCII
+                // space between the accumulated stable text and the current
+                // active text, which produced "你好 世界" between CJK glyphs.
+                // Route the seam through the shared CJK-aware joiner.
+                liveText = TranscriptJoiner.join(stable, active, language: nil)
                 if !liveText.isEmpty { eventHandler?(.partial(stable: stable, active: active)) }
                 if !stable.isEmpty, stable != lastFinalText {
                     lastFinalText = stable
@@ -183,11 +184,6 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
                 eventHandler?(.error(error.localizedDescription))
             }
         }
-    }
-
-    private func joined(_ tokens: [SonioxToken]) -> String {
-        tokens.map(\.text).joined().replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func sendJSON(_ value: [String: Any], socket: URLSessionWebSocketTask) async throws {
@@ -217,7 +213,7 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
     }
 }
 
-private struct SonioxToken {
+struct SonioxToken {
     let text: String
     let isFinal: Bool
     let start: Int
@@ -232,4 +228,50 @@ private struct SonioxToken {
     }
 
     var signature: String { "\(start):\(end):\(text)" }
+}
+
+// Audit P1-13: pure, nonisolated Soniox raw-token decoder. Centralises the
+// control-token allowlist so no other site does a bare `token == "<fin>"`
+// string compare; the Soniox raw WebSocket surfaces `<end>` alongside `<fin>`
+// once `enable_endpoint_detection` is on (matching their soniox-js SDK's
+// `filterSpecialTokens` set), and dropping only `<fin>` here previously let
+// the `<end>` marker land in the user transcript.
+enum SonioxMessageDecoder {
+    static let controlTokens: Set<String> = ["<end>", "<fin>"]
+
+    struct Frame {
+        let stableTokens: [SonioxToken]
+        let activeTokens: [SonioxToken]
+        let hasEndpointToken: Bool
+
+        var stableText: String { SonioxMessageDecoder.joinedText(stableTokens) }
+        var activeText: String { SonioxMessageDecoder.joinedText(activeTokens) }
+    }
+
+    static func decode(rawTokens: [[String: Any]]) -> Frame {
+        var stable: [SonioxToken] = []
+        var active: [SonioxToken] = []
+        var endpoint = false
+        for raw in rawTokens {
+            guard let token = SonioxToken(raw) else { continue }
+            if controlTokens.contains(token.text) {
+                // <fin> as an is_final=true marker signals the endpoint; <end>
+                // (and any non-final control tokens) are just dropped.
+                if token.isFinal, token.text == "<fin>" { endpoint = true }
+                continue
+            }
+            if token.isFinal {
+                stable.append(token)
+            } else {
+                active.append(token)
+            }
+        }
+        return Frame(stableTokens: stable, activeTokens: active, hasEndpointToken: endpoint)
+    }
+
+    static func joinedText(_ tokens: [SonioxToken]) -> String {
+        tokens.map(\.text).joined()
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 }

@@ -946,6 +946,67 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(payload["enable_language_identification"] as? Bool, true)
     }
 
+    func testSonioxTokensDropEndpointMarkersAndJoinCJK() {
+        // Fixture 1: English + CJK with BOTH <fin> and <end> control tokens.
+        // The Soniox raw WebSocket emits <end> as a literal token alongside
+        // <fin> when enable_endpoint_detection is on (matching their
+        // soniox-js SDK's filterSpecialTokens = {<end>, <fin>}); pre-fix the
+        // provider only filtered <fin>, so <end> flowed into the transcript.
+        let mixedWithControls: [[String: Any]] = [
+            ["text": "hello", "is_final": true, "start_ms": 0, "end_ms": 100],
+            ["text": " world", "is_final": true, "start_ms": 100, "end_ms": 260],
+            ["text": "<end>", "is_final": true, "start_ms": 260, "end_ms": 260],
+            ["text": "你好", "is_final": false, "start_ms": 300, "end_ms": 420],
+            ["text": "<fin>", "is_final": true, "start_ms": 420, "end_ms": 420],
+        ]
+        let frame = SonioxMessageDecoder.decode(rawTokens: mixedWithControls)
+        XCTAssertTrue(SonioxMessageDecoder.controlTokens.contains("<end>"))
+        XCTAssertTrue(SonioxMessageDecoder.controlTokens.contains("<fin>"))
+        XCTAssertFalse(frame.stableText.contains("<end>"))
+        XCTAssertFalse(frame.stableText.contains("<fin>"))
+        XCTAssertFalse(frame.activeText.contains("<end>"))
+        XCTAssertFalse(frame.activeText.contains("<fin>"))
+        XCTAssertEqual(frame.stableText, "hello world")
+        XCTAssertEqual(frame.activeText, "你好")
+        XCTAssertTrue(frame.hasEndpointToken)
+
+        // Fixture 2: CJK-only stream must not gain an injected ASCII space
+        // between the accumulated stable tail and the active head.
+        let cjkOnly: [[String: Any]] = [
+            ["text": "你", "is_final": true, "start_ms": 0, "end_ms": 120],
+            ["text": "好", "is_final": true, "start_ms": 120, "end_ms": 240],
+            ["text": "世", "is_final": false, "start_ms": 240, "end_ms": 360],
+            ["text": "界", "is_final": false, "start_ms": 360, "end_ms": 480],
+        ]
+        let cjkFrame = SonioxMessageDecoder.decode(rawTokens: cjkOnly)
+        XCTAssertEqual(cjkFrame.stableText, "你好")
+        XCTAssertEqual(cjkFrame.activeText, "世界")
+        let cjkSeam = TranscriptJoiner.join(cjkFrame.stableText, cjkFrame.activeText, language: nil)
+        XCTAssertEqual(cjkSeam, "你好世界")
+        XCTAssertFalse(cjkSeam.contains(" "))
+
+        // Fixture 3: mixed stream keeps English spacing but never injects a
+        // space between two CJK glyphs at the stable/active seam.
+        let mixed: [[String: Any]] = [
+            ["text": "hello", "is_final": true, "start_ms": 0, "end_ms": 100],
+            ["text": " world", "is_final": true, "start_ms": 100, "end_ms": 260],
+            ["text": "你好", "is_final": false, "start_ms": 300, "end_ms": 420],
+            ["text": "世界", "is_final": false, "start_ms": 420, "end_ms": 540],
+        ]
+        let mixedFrame = SonioxMessageDecoder.decode(rawTokens: mixed)
+        XCTAssertEqual(mixedFrame.stableText, "hello world")
+        XCTAssertEqual(mixedFrame.activeText, "你好世界")
+        let mixedSeam = TranscriptJoiner.join(
+            mixedFrame.stableText, mixedFrame.activeText, language: nil
+        )
+        XCTAssertEqual(mixedSeam, "hello world 你好世界")
+
+        // Fixture 4: CJK stable tail meets CJK active head at the seam - the
+        // exact case the previous joined(separator: " ") got wrong.
+        let cjkSeamCase = TranscriptJoiner.join("你好", "世界", language: nil)
+        XCTAssertEqual(cjkSeamCase, "你好世界")
+    }
+
     func testVolcengineRealtimeFramesAndIncrementalResponse() throws {
         let request = try VolcengineFrameCodec.fullRequest(
             configuration: RealtimeTranscriptionConfiguration(apiKey: "test-key")
