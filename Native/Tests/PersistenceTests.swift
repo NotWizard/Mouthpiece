@@ -459,9 +459,60 @@ final class PersistenceTests: XCTestCase {
         }
     }
 
+    // P1-8: prune() 有实际删除时，必须调用一次 pruneLogger 且消息含删除计数；
+    // 无删除的运行不得产生任何日志——避免每次写入都刷日志。
+    func testPruneEmitsInfoLogWhenRowsRemoved() async throws {
+        let recorder = PruneLogRecorder()
+        let (repository, cleanup) = try makeHistoryRepository { message in
+            recorder.append(message)
+        }
+        defer { cleanup() }
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        let day: TimeInterval = 86_400
+        for index in 1...3 {
+            try await repository.restore(TranscriptionRecord(
+                id: Int64(index),
+                text: "expired \(index)",
+                rawText: nil,
+                timestamp: base.addingTimeInterval(TimeInterval(index))
+            ))
+        }
+        try await repository.restore(TranscriptionRecord(
+            id: 99, text: "kept", rawText: nil, timestamp: base.addingTimeInterval(91 * day)
+        ))
+
+        // 90 天窗口外的 3 条应被裁掉。
+        let deleted = try await repository.prune(now: base.addingTimeInterval(91 * day))
+        XCTAssertEqual(deleted, 3)
+
+        let messages = recorder.snapshot()
+        XCTAssertEqual(messages.count, 1, "prune() 有删除时应仅记录一次 info 日志")
+        let message = try XCTUnwrap(messages.first)
+        XCTAssertTrue(
+            message.contains("\(deleted)"),
+            "info 日志必须提及删除条数 \(deleted)，实际为：\(message)"
+        )
+
+        // 第二次调用，没有可删的行——不得再追加任何日志。
+        let secondPass = try await repository.prune(now: base.addingTimeInterval(91 * day))
+        XCTAssertEqual(secondPass, 0)
+        XCTAssertEqual(recorder.snapshot().count, 1, "零删除的 prune() 不得触发日志")
+    }
+
     private func makeHistoryRepository() throws -> (HistoryRepository, () -> Void) {
         let (repository, cleanup, _) = try makeHistoryRepositoryWithURL()
         return (repository, cleanup)
+    }
+
+    private func makeHistoryRepository(
+        pruneLogger: @escaping @Sendable (String) -> Void
+    ) throws -> (HistoryRepository, () -> Void) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Mouthpiece-HistoryTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appendingPathComponent("history.sqlite3")
+        let repository = try HistoryRepository(databaseURL: url, pruneLogger: pruneLogger)
+        return (repository, { try? FileManager.default.removeItem(at: directory) })
     }
 
     private func makeHistoryRepositoryWithURL() throws -> (HistoryRepository, () -> Void, URL) {
@@ -471,5 +522,23 @@ final class PersistenceTests: XCTestCase {
         let url = directory.appendingPathComponent("history.sqlite3")
         let repository = try HistoryRepository(databaseURL: url)
         return (repository, { try? FileManager.default.removeItem(at: directory) }, url)
+    }
+}
+
+// P1-8: 线程安全的字符串桶——pruneLogger 是 @Sendable，允许跨 actor 调用。
+private final class PruneLogRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var messages: [String] = []
+
+    func append(_ message: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        messages.append(message)
+    }
+
+    func snapshot() -> [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return messages
     }
 }

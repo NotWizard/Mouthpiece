@@ -512,8 +512,45 @@ final class AppEnvironmentTests: XCTestCase {
             "permissions.guide.existing",
             "capsule.success",
             "capsule.secureInputBlocked",
+            "history.retentionFooter",
         ]
         XCTAssertTrue(required.isSubset(of: keySets[0]))
+    }
+
+    // P1-8: 保留策略披露必须以本地化字符串出现在所有语言，并当前锚定于
+    // HistoryRepository.retentionDays / retentionMaxRows 两个常量——UI 用同一路径
+    // 渲染。不做视图快照，直接断言本地化格式化后字符串仍包含实际数字。
+    func testHistoryFooterStatesRetentionWindow() throws {
+        let localizations = ["en", "zh-Hans", "zh-Hant"]
+        let days = HistoryRepository.retentionDays
+        let rows = HistoryRepository.retentionMaxRows
+        for localization in localizations {
+            let url = try XCTUnwrap(
+                Bundle.main.url(
+                    forResource: "Localizable",
+                    withExtension: "strings",
+                    subdirectory: nil,
+                    localization: localization
+                )
+            )
+            let data = try Data(contentsOf: url)
+            let dictionary = try XCTUnwrap(
+                PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
+            )
+            let template = try XCTUnwrap(
+                dictionary["history.retentionFooter"],
+                "history.retentionFooter must exist in \(localization)"
+            )
+            let rendered = String(format: template, days, rows)
+            XCTAssertTrue(
+                rendered.contains("\(days)"),
+                "Footer in \(localization) must mention retention days (\(days)): \(rendered)"
+            )
+            XCTAssertTrue(
+                rendered.contains("\(rows)"),
+                "Footer in \(localization) must mention row cap (\(rows)): \(rendered)"
+            )
+        }
     }
 
     // E4(4): insert() decision paths that need no live AX session.

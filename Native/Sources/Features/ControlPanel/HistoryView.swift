@@ -60,6 +60,21 @@ struct HistoryView: View {
                     .frame(maxWidth: .infinity)
                 }
             }
+
+            // P1-8: 保留策略披露——固定文案说明 90 天/2000 行的自动清理阈值。
+            // 与 HistoryRepository.retention* 常量绑定，确保 UI 与实际策略一致。
+            Text(
+                String(
+                    format: NSLocalizedString("history.retentionFooter", comment: ""),
+                    HistoryRepository.retentionDays,
+                    HistoryRepository.retentionMaxRows
+                )
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 28)
+            .padding(.vertical, 10)
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .searchable(text: $query, placement: .toolbar, prompt: Text("history.search"))

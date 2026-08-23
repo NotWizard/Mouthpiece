@@ -210,6 +210,7 @@
 "history.clear.confirm" = "清除歷史";
 "history.clear.confirmBody" = "所有聽寫記錄都會永久刪除，此操作無法復原。";
 "history.delete.action" = "刪除聽寫";
+"history.retentionFooter" = "超過 %1$d 天或超出最新 %2$d 筆的記錄會被自動移除。";
 "privacy.title" = "權限與診斷";
 "privacy.subtitle" = "管理系統權限、診斷、軟體更新和版本資訊。";
 "privacy.diagnostics" = "診斷";

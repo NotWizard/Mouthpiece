@@ -210,6 +210,7 @@
 "history.clear.confirm" = "Clear History";
 "history.clear.confirmBody" = "All dictation records will be permanently deleted. This cannot be undone.";
 "history.delete.action" = "Delete Dictation";
+"history.retentionFooter" = "Entries older than %1$d days or beyond the newest %2$d are removed automatically.";
 "privacy.title" = "Permissions & Diagnostics";
 "privacy.subtitle" = "Manage system permissions, diagnostics, software updates, and version information.";
 "privacy.diagnostics" = "Diagnostics";

@@ -30,9 +30,17 @@ actor HistoryRepository {
     private static let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
     private var database: OpaquePointer? { connection.pointer }
     private var prunedRowsSinceVacuum = 0
+    // P1-8: 默认为 nil 以保留 HEAD 行为；生产可注入 { msg in Task { await logger.write(.info, msg) } }
+    // 让 save() 内部隐式触发的 prune 也被记录（当前 AppEnvironment 仅记录启动期 prune）。
+    // 由测试 testPruneEmitsInfoLogWhenRowsRemoved 驱动，断言 non-zero 删除时触发一次。
+    private let pruneLogger: (@Sendable (String) -> Void)?
 
-    init(databaseURL: URL = AppPaths.databaseURL) throws {
+    init(
+        databaseURL: URL = AppPaths.databaseURL,
+        pruneLogger: (@Sendable (String) -> Void)? = nil
+    ) throws {
         self.databaseURL = databaseURL
+        self.pruneLogger = pruneLogger
         try FileManager.default.createDirectory(
             at: databaseURL.deletingLastPathComponent(),
             withIntermediateDirectories: true
@@ -106,6 +114,8 @@ actor HistoryRepository {
         deleted += Int(sqlite3_changes(database))
 
         guard deleted > 0 else { return 0 }
+        // P1-8: 仅在真实发生删除时发一次；VACUUM 报错不吞掉观察点。
+        pruneLogger?("History prune removed \(deleted) records")
         prunedRowsSinceVacuum += deleted
         if prunedRowsSinceVacuum >= Self.vacuumThreshold {
             prunedRowsSinceVacuum = 0

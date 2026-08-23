@@ -210,6 +210,7 @@
 "history.clear.confirm" = "清空历史";
 "history.clear.confirmBody" = "所有听写记录都会被永久删除，此操作无法撤销。";
 "history.delete.action" = "删除听写";
+"history.retentionFooter" = "超过 %1$d 天或超出最新 %2$d 条的记录会被自动移除。";
 "privacy.title" = "权限与诊断";
 "privacy.subtitle" = "管理系统权限、诊断、软件更新和版本信息。";
 "privacy.diagnostics" = "诊断";
