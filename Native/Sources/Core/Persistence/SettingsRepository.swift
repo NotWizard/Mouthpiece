@@ -13,9 +13,24 @@ enum SettingsRepositoryError: LocalizedError {
 @MainActor
 final class SettingsRepository {
     private static let storageKey = "native.settings.v1"
+    // P3-5: a slider drag on the control panel fires ~60 save() calls per
+    // second; on HEAD each one re-encoded and re-wrote the full settings
+    // blob to UserDefaults from the main actor. Deferring the write behind
+    // this debounce collapses a rapid burst into a single UserDefaults
+    // mutation while the in-memory cache still reflects the latest value
+    // immediately (consumers see changes without waiting for the timer).
+    // Callers that need the blob on disk right now — shutdown, tests
+    // reading `defaults.data(forKey:)` directly — call `flush()`.
+    static let debounceInterval: Duration = .milliseconds(250)
     private let defaults: UserDefaults
     private var cached: AppSettings
     private(set) var loadFailed = false
+    private var pendingData: Data?
+    private var debounceTask: Task<Void, Never>?
+    // Test seam: number of `defaults.set(_:forKey:)` calls this repository has
+    // performed. Read-only outside the type so regression tests can prove that
+    // N rapid save()s coalesced into exactly one write.
+    private(set) var writeCount = 0
 
     init(defaults: UserDefaults? = nil) {
         let defaults = defaults ?? Self.defaultStore()
@@ -50,12 +65,28 @@ final class SettingsRepository {
         cached
     }
 
+    // Normalize + encode + cache update stay synchronous so callers observe
+    // the new AppSettings — and any encoding error — the moment save()
+    // returns. Only the UserDefaults write itself is deferred; use flush()
+    // when you must read the persisted blob on disk immediately.
     func save(_ settings: AppSettings) throws {
         var normalized = settings
         normalized.normalize()
         let data = try JSONEncoder().encode(normalized)
-        defaults.set(data, forKey: Self.storageKey)
         cached = normalized
+        scheduleWrite(data: data)
+    }
+
+    /// Persist any pending debounced write immediately and cancel the timer.
+    /// Idempotent and safe to call from shutdown paths; a no-op when nothing
+    /// is queued. Required whenever a caller must see the settings blob land
+    /// in UserDefaults before proceeding (app termination, tests that assert
+    /// on `defaults.data(forKey:)` directly).
+    func flush() {
+        debounceTask?.cancel()
+        debounceTask = nil
+        guard let data = pendingData else { return }
+        commit(data)
     }
 
     func update(_ mutation: (inout AppSettings) -> Void) throws -> AppSettings {
@@ -63,6 +94,32 @@ final class SettingsRepository {
         mutation(&next)
         try save(next)
         return cached
+    }
+
+    private func scheduleWrite(data: Data) {
+        pendingData = data
+        debounceTask?.cancel()
+        debounceTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.debounceInterval)
+            guard !Task.isCancelled, let self else { return }
+            self.commitPending()
+        }
+    }
+
+    private func commitPending() {
+        // A concurrent flush() (e.g., shutdown racing the timer wake) may have
+        // already written pendingData and cleared it; the guard makes the
+        // timer path a no-op in that case. All state is MainActor-isolated,
+        // so no lock is needed — flush() and this method serialize naturally.
+        defer { debounceTask = nil }
+        guard let data = pendingData else { return }
+        commit(data)
+    }
+
+    private func commit(_ data: Data) {
+        defaults.set(data, forKey: Self.storageKey)
+        pendingData = nil
+        writeCount += 1
     }
 
     private static func decodeWithDefaults(_ data: Data) -> AppSettings? {

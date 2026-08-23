@@ -237,6 +237,12 @@ final class AppEnvironment: ObservableObject {
     func shutdown() async {
         guard !isShuttingDown else { return }
         isShuttingDown = true
+        // P3-5: SettingsRepository.save() debounces the UserDefaults write, so
+        // the very last user mutation (a slider dragged moments before quit,
+        // a checkbox toggle right before Cmd+Q) can still sit in memory when
+        // shutdown fires. Flushing first — before any awaits — persists the
+        // pending blob synchronously so it survives termination.
+        settingsRepository.flush()
         initializationTask?.cancel()
         hotkey.stop()
         translationHotkey.stop()

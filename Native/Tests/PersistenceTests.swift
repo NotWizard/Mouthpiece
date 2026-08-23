@@ -181,6 +181,79 @@ final class PersistenceTests: XCTestCase {
         XCTAssertEqual(loaded.reasoningBaseURL, "http://localhost:11434/v1")
     }
 
+    // P3-5: 快速连击 save()（滑块拖动会以 ~60Hz 触发）不得每次都落一次 UserDefaults。
+    // 根治后 save() 仅在主线程做「normalize + encode + 更新 cached」，真正的
+    // defaults.set(...) 走 250ms 去抖计时器；此测试在同一 MainActor 上下文里连打 10
+    // 次 save()（中间没有 await，去抖任务无法插入），断言：
+    //   1) 10 次 save() 期间 UserDefaults 写入计数保持 0（去抖仍在窗口内）；
+    //   2) flush() 后写入计数恰好 == 1（真正的合并写入）；
+    //   3) 落盘的 blob 反映最后一次 save() 的状态（不丢失最新值）。
+    @MainActor
+    func testRapidSaveCoalescesToSingleWrite() throws {
+        let suite = "MouthpieceTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let repository = SettingsRepository(defaults: defaults)
+
+        var latest = AppSettings()
+        for index in 1...10 {
+            // pauseOtherMediaDuringDictation is a plain Bool that survives
+            // normalize verbatim, so we can flip it each iteration and know
+            // the final persisted blob must match the last write's value.
+            latest.pauseOtherMediaDuringDictation = index.isMultiple(of: 2)
+            try repository.save(latest)
+        }
+
+        XCTAssertEqual(
+            repository.writeCount, 0,
+            "Rapid saves must not touch UserDefaults until the debounce fires or flush() is called"
+        )
+        XCTAssertNil(
+            defaults.data(forKey: "native.settings.v1"),
+            "No blob should be persisted while the debounce window is open"
+        )
+
+        repository.flush()
+
+        XCTAssertEqual(repository.writeCount, 1, "flush() must collapse the burst into one write")
+        let raw = try XCTUnwrap(defaults.data(forKey: "native.settings.v1"))
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: raw)
+        XCTAssertEqual(decoded.pauseOtherMediaDuringDictation, latest.pauseOtherMediaDuringDictation)
+    }
+
+    // P3-5: shutdown must flush any pending debounced write so a user
+    // mutation made moments before quit reaches disk. Mirrors what
+    // AppEnvironment.shutdown() does — one save, then flush(), then verify
+    // the UserDefaults blob is present and decodes to the saved state.
+    @MainActor
+    func testShutdownFlushesPendingSave() throws {
+        let suite = "MouthpieceTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let repository = SettingsRepository(defaults: defaults)
+
+        var settings = AppSettings()
+        settings.pauseOtherMediaDuringDictation = true
+        try repository.save(settings)
+
+        XCTAssertEqual(repository.writeCount, 0, "save() must defer the write to the debounce timer")
+        XCTAssertNil(
+            defaults.data(forKey: "native.settings.v1"),
+            "Nothing should be on disk before flush()"
+        )
+
+        repository.flush()
+
+        XCTAssertEqual(repository.writeCount, 1)
+        let raw = try XCTUnwrap(defaults.data(forKey: "native.settings.v1"))
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: raw)
+        XCTAssertTrue(decoded.pauseOtherMediaDuringDictation)
+
+        // A second flush() with no pending write is a no-op — no new write.
+        repository.flush()
+        XCTAssertEqual(repository.writeCount, 1, "flush() must be idempotent when nothing is pending")
+    }
+
     func testHistoryRepositoryMigratesLegacySchemaAndPreservesRawText() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("MouthpieceTests-\(UUID().uuidString)", isDirectory: true)
