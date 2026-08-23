@@ -840,7 +840,9 @@ final class DictationAndProviderTests: XCTestCase {
         var settings = AppSettings()
         settings.useReasoningModel = false
         settings.terminologyProfile.replacementRules = ["mouthpiece": "Mouthpiece"]
-        let service = ReasoningService(keychain: KeychainStore())
+        // P1-15: an in-memory CredentialStore keeps this off the real keychain
+        // even though the cleanup-disabled branch never actually reads it.
+        let service = ReasoningService(keychain: InMemoryCredentialStore())
 
         let result = try await service.process("Use mouthpiece", settings: settings, target: nil)
 

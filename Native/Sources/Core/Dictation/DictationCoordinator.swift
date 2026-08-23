@@ -15,7 +15,12 @@ extension LocalModelRuntime: LocalTranscriptionRuntime {}
 actor DictationCoordinator {
     private let audio: AudioCaptureService
     private let history: HistoryRepository
-    private let keychain: KeychainStore
+    // P1-15: widened from `KeychainStore` to the CredentialStore protocol so
+    // tests can inject an in-memory store and skip the SecurityAgent prompt
+    // that otherwise makes DictationCoordinatorTests XCTSkip on CI / locked
+    // screens. The production wire-up in AppEnvironment still passes the
+    // KeychainStore singleton, so behavior is unchanged.
+    private let keychain: any CredentialStore
     private let logger: DebugLogStore
     private let insertion: TextInsertionService
     private let capsule: CapsuleController
@@ -50,7 +55,7 @@ actor DictationCoordinator {
     init(
         audio: AudioCaptureService,
         history: HistoryRepository,
-        keychain: KeychainStore,
+        keychain: any CredentialStore,
         logger: DebugLogStore,
         insertion: TextInsertionService,
         capsule: CapsuleController,

@@ -17,10 +17,12 @@ enum ReasoningServiceError: LocalizedError, Equatable {
 }
 
 actor ReasoningService {
-    private let keychain: KeychainStore
+    // P1-15: widened to the CredentialStore protocol so tests can inject an
+    // in-memory store instead of prompting the keychain (see CredentialStore).
+    private let keychain: any CredentialStore
     private let session: URLSession
 
-    init(keychain: KeychainStore, session: URLSession = .shared) {
+    init(keychain: any CredentialStore, session: URLSession = .shared) {
         self.keychain = keychain
         self.session = session
     }

@@ -537,15 +537,15 @@ final class DictationCoordinatorTests: XCTestCase {
         provider: ScriptedRealtimeProvider,
         localRuntime: any LocalTranscriptionRuntime = LocalModelRuntime()
     ) async throws -> Harness {
-        // An isolated keychain service keeps the test key out of the real
-        // "com.mouthpiece.app.credentials" service.
-        let keychain = KeychainStore(service: "com.mouthpiece.app.tests.\(UUID().uuidString)")
-        do {
-            try await keychain.write("unit-test-key", for: .bailian)
-        } catch KeychainError.unhandled(let status) {
-            throw XCTSkip("The keychain is unavailable in this environment (OSStatus \(status)).")
-        }
-        addTeardownBlock { try? await keychain.delete(.bailian) }
+        // P1-15: an in-memory CredentialStore seeded with the bailian key keeps
+        // this harness off the real keychain entirely. Previously the harness
+        // wrote to an isolated keychain service, which still hits the
+        // SecurityAgent ACL prompt on fresh test-host signatures — on CI /
+        // locked screens that prompt is impossible and every test in this
+        // class silently XCTSkip'd. The coordinator is being exercised for its
+        // orchestration, not its storage, so this seam is behaviourally
+        // identical to a keychain hit that always returned "unit-test-key".
+        let keychain = InMemoryCredentialStore(seed: [.bailian: "unit-test-key"])
 
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("Mouthpiece-Coordinator-\(UUID().uuidString)", isDirectory: true)

@@ -45,6 +45,7 @@
 		8844C8F25E92E987286457EA /* SupervisedProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4839CE9A5603125120A84F94 /* SupervisedProcess.swift */; };
 		8997B00990024C92C753D668 /* BatchTranscriptionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61A78229C54CB604F1508042 /* BatchTranscriptionClient.swift */; };
 		8B40A64563DB47477131FC76 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F07BDA1719C968AE23A7997 /* AppDelegate.swift */; };
+		8EFAF03070B5E53B645AC98F /* InMemoryCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22AC7898EDE23F6F4CC60717 /* InMemoryCredentialStore.swift */; };
 		930134D742359C55F3140F82 /* Mouthpiece.icns in Resources */ = {isa = PBXBuildFile; fileRef = 531364AC24AAD1894E4DBB28 /* Mouthpiece.icns */; };
 		94864AA9B71BC37736D3222E /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = D992A8D85465C52531CBD002 /* AppSettings.swift */; };
 		959207A8004EEA084B2FD23C /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA603181932CF2478C9EC907 /* KeychainStore.swift */; };
@@ -60,6 +61,7 @@
 		BFD43B45905647659F23EFF0 /* ObjCExceptionGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79667A472C6D2AB2632C64FB /* ObjCExceptionGuard.swift */; };
 		C0E3D6E50DB92F5E4DA894E6 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FB4E666C85506C60072109F /* libsqlite3.tbd */; };
 		C75391A3121C91FAAD7FCE67 /* TextInsertionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B46BD5418BD14A71E9B04135 /* TextInsertionService.swift */; };
+		CF6921BB639B74645EAB9DEA /* CredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BC32D1B30840775D8ECF085 /* CredentialStore.swift */; };
 		D398048BF564B5ADF2251AAF /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 71C4CEA23ED3CCFB11B6A7E2 /* Localizable.strings */; };
 		D4DE70343D16D35E22AD4436 /* BailianRealtimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCEBC42060FEFC594B4704CD /* BailianRealtimeProvider.swift */; };
 		D7D9BF453C84177252BEEE69 /* ProviderErrorSanitizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D12196A0053C4F520959AF3 /* ProviderErrorSanitizer.swift */; };
@@ -101,6 +103,7 @@
 		19F2A6E2EE5C6307AD1B0397 /* SpeechActivityGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechActivityGate.swift; sourceTree = "<group>"; };
 		202A5C104CA1D33343D7EB28 /* MouthpieceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouthpieceApp.swift; sourceTree = "<group>"; };
 		21215E9A7E2E8B6EE98CA3CF /* CapsuleController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsuleController.swift; sourceTree = "<group>"; };
+		22AC7898EDE23F6F4CC60717 /* InMemoryCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InMemoryCredentialStore.swift; sourceTree = "<group>"; };
 		2400733301B8C6B62BBBBADE /* AssemblyAIRealtimeProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssemblyAIRealtimeProvider.swift; sourceTree = "<group>"; };
 		25D63F24AE6F5D1F437FCA08 /* provider-mistral.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "provider-mistral.png"; sourceTree = "<group>"; };
 		2E3015682C8A3F7CF19589AD /* AudioCueService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCueService.swift; sourceTree = "<group>"; };
@@ -116,6 +119,7 @@
 		5347628D5BA72A65E1824F5C /* provider-soniox.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "provider-soniox.png"; sourceTree = "<group>"; };
 		58C2E9CA9C9D5BF8111BD9A1 /* LocalModelInstallationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalModelInstallationService.swift; sourceTree = "<group>"; };
 		5BBEF14EF7D7B5E4B7925B11 /* mouthpiece-mark.svg */ = {isa = PBXFileReference; path = "mouthpiece-mark.svg"; sourceTree = "<group>"; };
+		5BC32D1B30840775D8ECF085 /* CredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialStore.swift; sourceTree = "<group>"; };
 		616849886AEB53652DF4F366 /* provider-assemblyai.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "provider-assemblyai.png"; sourceTree = "<group>"; };
 		61A78229C54CB604F1508042 /* BatchTranscriptionClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchTranscriptionClient.swift; sourceTree = "<group>"; };
 		6F6EAB50116A2E22E1BEF9E2 /* UpdateController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateController.swift; sourceTree = "<group>"; };
@@ -194,6 +198,7 @@
 				B65963C52779B6662A3496C1 /* AudioTests.swift */,
 				40DCD77EEE51E5CD93773591 /* DictationAndProviderTests.swift */,
 				E25ADB4A2A92A60860ADDE97 /* DictationCoordinatorTests.swift */,
+				22AC7898EDE23F6F4CC60717 /* InMemoryCredentialStore.swift */,
 				F462A88170866B446AECBEDF /* LocalModelRuntimeTests.swift */,
 				0C55850A84F69D2693F16674 /* PersistenceTests.swift */,
 				3EC3BCBDDF31A9E15195D511 /* SupervisedProcessTests.swift */,
@@ -378,6 +383,7 @@
 			children = (
 				42E56BBE96DE36354A1C2355 /* AppPaths.swift */,
 				D992A8D85465C52531CBD002 /* AppSettings.swift */,
+				5BC32D1B30840775D8ECF085 /* CredentialStore.swift */,
 				E4296C56083431AF4D8B75F2 /* HistoryRepository.swift */,
 				DA603181932CF2478C9EC907 /* KeychainStore.swift */,
 				D4977AEE94F4AF686A40201B /* SettingsRepository.swift */,
@@ -570,6 +576,7 @@
 				FAB1E10BBED423630CD1E836 /* AudioTests.swift in Sources */,
 				E4BB190875CFB4CF76D4EE64 /* DictationAndProviderTests.swift in Sources */,
 				0AA230812A550B3677854703 /* DictationCoordinatorTests.swift in Sources */,
+				8EFAF03070B5E53B645AC98F /* InMemoryCredentialStore.swift in Sources */,
 				048C1C41BD00CB879A1F1807 /* LocalModelRuntimeTests.swift in Sources */,
 				53BE6F512E01624BE516DBF6 /* PersistenceTests.swift in Sources */,
 				4FFCB31EF517A1A0BD665495 /* SupervisedProcessTests.swift in Sources */,
@@ -593,6 +600,7 @@
 				9B9ACF7A4FFD525AB596CD1A /* CapsuleController.swift in Sources */,
 				95ECF44D33840B29123C0005 /* ControlPanelComponents.swift in Sources */,
 				4D2EFEB2F4185781B7272688 /* ControlPanelView.swift in Sources */,
+				CF6921BB639B74645EAB9DEA /* CredentialStore.swift in Sources */,
 				BBFB3EA1322BA1862CAD2129 /* DebugLogStore.swift in Sources */,
 				6944071CAFC02BB0704CFFAD /* DeepgramRealtimeProvider.swift in Sources */,
 				0CC9ECF7F562AD5316B0D744 /* DictationCoordinator.swift in Sources */,

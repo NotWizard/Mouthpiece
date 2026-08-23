@@ -62,6 +62,53 @@ jobs:
             -enableCodeCoverage YES test \
             CODE_SIGNING_ALLOWED=NO
 
+      # P1-15: gate the workflow on the executed / skipped / failed counts.
+      # Without this the whole `test` step can pass even if every high-value
+      # test XCTSkip'd because the keychain / SecurityAgent was unreachable
+      # (audit P1-15). The floor is deliberately close to the current count so
+      # accidentally dropping a whole test class fails CI instead of shipping.
+      - name: Gate on test execution counts
+        run: |
+          set -euo pipefail
+          BUNDLE=.build/test-results/Mouthpiece.xcresult
+          SUMMARY=.build/test-results/summary.json
+          FLOOR=128
+          xcrun xcresulttool get test-results summary --path "$BUNDLE" > "$SUMMARY"
+          python3 - "$SUMMARY" "$FLOOR" <<'EOF'
+          import json, sys
+          summary_path, floor = sys.argv[1], int(sys.argv[2])
+          with open(summary_path) as f:
+              summary = json.load(f)
+          total = int(summary.get("totalTestCount", 0))
+          passed = int(summary.get("passedTests", 0))
+          failed = int(summary.get("failedTests", 0))
+          skipped = int(summary.get("skippedTests", 0))
+          expected_failures = int(summary.get("expectedFailures", 0))
+          print(
+              f"total={total} passed={passed} failed={failed} "
+              f"skipped={skipped} expectedFailures={expected_failures} floor={floor}"
+          )
+          errors = []
+          if failed > 0:
+              errors.append(f"{failed} test(s) failed")
+          if skipped > 0:
+              errors.append(
+                  f"{skipped} test(s) XCTSkip'd — the CI runner cannot exercise a "
+                  "test the release build ships (audit P1-15). Grant the missing "
+                  "permission on the runner, or add a real test double, before "
+                  "letting this step pass."
+              )
+          if total < floor:
+              errors.append(
+                  f"total executed tests {total} is below the floor {floor} — "
+                  "a whole test class or method may have been silently dropped"
+              )
+          if errors:
+              for message in errors:
+                  print(f"::error::{message}")
+              sys.exit(1)
+          EOF
+
       - name: Report coverage summary
         run: |
           xcrun xccov view --report --json .build/test-results/Mouthpiece.xcresult > .build/coverage.json
