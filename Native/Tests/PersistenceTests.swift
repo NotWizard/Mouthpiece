@@ -335,6 +335,58 @@ final class PersistenceTests: XCTestCase {
         }
     }
 
+    // NEW-5: keychain writes must pin accessibility to the device-only
+    // variant on BOTH the SecItemAdd (first write) and SecItemUpdate
+    // (subsequent overwrite) paths, so credentials cannot ride iCloud Keychain
+    // sync nor be restored to another device from an encrypted backup. This
+    // test reads back kSecAttrAccessible via SecItemCopyMatching after each
+    // write to observe the persisted attribute — a stronger check than
+    // asserting on the constant, which would miss a regression that dropped
+    // the attribute from either dictionary. Uses a unique per-test service so
+    // it never prompts SecurityAgent (same pattern the round-trip test uses).
+    func testCredentialAccessibleAttributeIsDeviceOnlyOnAddAndUpdate() async throws {
+        let service = "com.mouthpiece.app.tests.\(UUID().uuidString)"
+        let store = KeychainStore(service: service)
+        do {
+            try await store.write("first", for: .openAI)
+        } catch KeychainError.unhandled(let status) {
+            throw XCTSkip("The keychain is unavailable in this environment (OSStatus \(status)).")
+        }
+        addTeardownBlock { try? await store.delete(.openAI) }
+
+        // Add path: fresh insert must land as device-only.
+        XCTAssertEqual(
+            try readAccessibleAttribute(service: service, account: CredentialAccount.openAI.rawValue),
+            kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly as String
+        )
+
+        // Update path: overwriting an existing item must preserve device-only.
+        try await store.write("second", for: .openAI)
+        XCTAssertEqual(
+            try readAccessibleAttribute(service: service, account: CredentialAccount.openAI.rawValue),
+            kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly as String
+        )
+    }
+
+    private func readAccessibleAttribute(service: String, account: String) throws -> String {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        guard status == errSecSuccess,
+              let attributes = item as? [String: Any],
+              let value = attributes[kSecAttrAccessible as String] as? NSString
+        else {
+            throw KeychainError.unhandled(status)
+        }
+        return value as String
+    }
+
     // E4(2): the round trip runs against a unique per-test service name, so it
     // never touches the real "com.mouthpiece.app.credentials" service.
     func testKeychainStoreRoundTripOverwriteAndDelete() async throws {
