@@ -562,6 +562,73 @@ final class DictationCoordinatorTests: XCTestCase {
         await harness.coordinator.cancel()
     }
 
+    // P2-2: stop()'s drain used to `await frameTask?.value` and `await
+    // providerEventTask?.value` unbounded, so a hung audio engine or a
+    // dead provider socket whose event stream never finishes parked the
+    // session in .stopping forever with no user recourse except Escape.
+    // Wedge the provider event drain via the DEBUG delay seam and prove
+    // stop() completes within the shared watchdog and still saves the
+    // retained partial to history. Pre-fix stop() awaits providerEventTask
+    // forever; the XCTest expectation timeout keeps the whole run from
+    // hanging so the regression surfaces as a clean failure.
+    func testStopDrainTimesOutAndFinalizes() async throws {
+        // A wedged actor must not cascade into the follow-up assertions.
+        continueAfterFailure = false
+
+        let provider = ScriptedRealtimeProvider(connect: .succeed, finishText: "")
+        let harness = try await makeHarness(provider: provider)
+
+        await harness.coordinator.start(settings: makeSettings())
+        let recording = await harness.coordinator.snapshot()
+        XCTAssertEqual(recording.phase, .recording)
+
+        // Land a partial cleanly (no delay yet); this is what the retained-
+        // partial recovery path must save into history once the watchdog
+        // gives up on the wedged drain.
+        await provider.emit(.partial(stable: "hello ", active: "world"))
+        var partialSeen = false
+        for _ in 0..<200 {
+            if await harness.coordinator.snapshot().partialText == "hello world" {
+                partialSeen = true
+                break
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertTrue(partialSeen, "The partial must land before we wedge the drain")
+
+        // Wedge the provider event consumer: the next event's handle() parks
+        // on a 30 s Task.sleep before touching state, so providerEventTask
+        // never completes on its own. `.speechStarted` is applied as a
+        // no-op by handle(), so even if the wedged event resumes after we
+        // cancel the task, it cannot overwrite partialText.
+        await harness.coordinator.setTestEventHandleDelay { _ in .seconds(30) }
+        await provider.emit(.speechStarted)
+
+        let stopFinished = XCTestExpectation(description: "stop() completes within the drain watchdog")
+        let coordinator = harness.coordinator
+        Task {
+            await coordinator.stop()
+            stopFinished.fulfill()
+        }
+        // 8 s comfortably covers the 3 s drain watchdog plus the finalize
+        // path (finishWithTimeout returns immediately for an empty final,
+        // no reasoning/insertion/clipboard in makeSettings). Without the
+        // P2-2 watchdog stop() awaits providerEventTask forever and this
+        // expectation trips instead of hanging the whole run.
+        await fulfillment(of: [stopFinished], timeout: 8)
+
+        XCTAssertTrue(
+            harness.recorder.snapshots.contains { $0.phase == .completed },
+            "The retained partial must reach the completed phase once the watchdog fires"
+        )
+        let records = try await harness.history.recent(limit: 5)
+        XCTAssertEqual(
+            records.first?.text,
+            "hello world",
+            "The retained partial must be saved to history after the drain watchdog fires"
+        )
+    }
+
     // MARK: - Harness
 
     private struct Harness {

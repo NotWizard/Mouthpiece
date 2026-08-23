@@ -301,11 +301,19 @@ actor DictationCoordinator {
             // the PCM; frames landing after the snapshot used to be lost.
             frameContinuation?.finish()
             frameContinuation = nil
-            await frameTask?.value
-            frameTask = nil
             // P2-1: drain every already-yielded provider event through the
             // single consumer before we snapshot partialText for the fallback.
-            await drainProviderEventStream()
+            providerEventContinuation?.finish()
+            providerEventContinuation = nil
+            // P2-2: bound both drains with a shared watchdog so a hung audio
+            // engine (never releasing the frame continuation) or a dead
+            // provider socket (whose event stream never finishes) can't wedge
+            // the session in .stopping forever. On timeout we cancel the
+            // consumers (safe: AsyncStream `for await` exits on cancellation)
+            // and let finalize proceed with whatever PCM/partial text is
+            // available — losing an in-flight tail beats losing the whole
+            // recording, which is what unbounded drains cost the user pre-fix.
+            await runBoundedStopDrain(sessionID: sessionID)
             await resumePausedMedia()
             guard isCurrent(sessionID, phase: .stopping) else { return }
             try machine.transition(to: .finalizing, sessionID: sessionID)
@@ -1070,6 +1078,77 @@ private extension DictationCoordinator {
         providerEventContinuation = nil
         await providerEventTask?.value
         providerEventTask = nil
+    }
+}
+
+// MARK: - Stop drain watchdog (P2-2)
+
+private extension DictationCoordinator {
+    // Extracts the stop() drain block into an actor method so the
+    // `if !drainedCleanly` branch does not inflate stop()'s cyclomatic
+    // complexity beyond its pre-fix count. Captures the pending consumer
+    // Tasks into local `let`s so the actor stops referencing them while
+    // the racer inside awaitDrainWithTimeout still holds them, then logs
+    // a single warning when the watchdog fires. The finish() bookkeeping
+    // for the two continuations stays inline in stop() next to its
+    // P2-1 comment.
+    func runBoundedStopDrain(sessionID: UUID) async {
+        let pendingFrameTask = frameTask
+        let pendingEventTask = providerEventTask
+        frameTask = nil
+        providerEventTask = nil
+        let drainedCleanly = await Self.awaitDrainWithTimeout(
+            frame: pendingFrameTask,
+            event: pendingEventTask
+        )
+        if !drainedCleanly {
+            await logger.write(
+                .warning,
+                "Stop drain watchdog fired; finalizing with the retained PCM and partial",
+                sessionID: sessionID
+            )
+        }
+    }
+
+    // Bounded variant of `await frameTask?.value` + `await
+    // providerEventTask?.value`. Pre-fix stop() awaited each drain
+    // unbounded, so a hung audio engine that never released the frame
+    // continuation or a dead provider socket whose event stream never
+    // finished parked the session in .stopping forever with no user
+    // recourse except Escape. Race the combined drain against a watchdog
+    // via the same claim-gate shape as finishWithTimeout so the
+    // continuation resumes on the first winner even when the loser Task
+    // ignores cancellation (a `withTaskGroup` variant would still block
+    // on the group's implicit join in that case). Cancelling the frame
+    // and event consumer Tasks on timeout is best-effort: AsyncStream
+    // `for await` exits on cancellation, but a stuck downstream await
+    // (e.g. provider.send parked on a dead socket) won't unblock — the
+    // point of the helper is to unwedge stop(), not to force the leak
+    // task to unwind. Lives in this extension so SwiftLint's
+    // type_body_length rule keeps the actor body under 800 lines, same
+    // as the P2-1 helpers above.
+    nonisolated static func awaitDrainWithTimeout(
+        frame frameTask: Task<Void, Never>?,
+        event eventTask: Task<Void, Never>?,
+        timeout: Duration = .seconds(3)
+    ) async -> Bool {
+        let gate = ClaimGate()
+        return await withCheckedContinuation { continuation in
+            let drainTask = Task {
+                await frameTask?.value
+                await eventTask?.value
+                if gate.claim() { continuation.resume(returning: true) }
+            }
+            Task {
+                try? await Task.sleep(for: timeout)
+                if gate.claim() {
+                    frameTask?.cancel()
+                    eventTask?.cancel()
+                    drainTask.cancel()
+                    continuation.resume(returning: false)
+                }
+            }
+        }
     }
 }
 
