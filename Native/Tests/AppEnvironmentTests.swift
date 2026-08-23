@@ -216,6 +216,51 @@ final class AppEnvironmentTests: XCTestCase {
         )
     }
 
+    // P3-4: onboarding permissions step must let a privacy-conscious user proceed
+    // past accessibility by pressing "Skip", but microphone remains mandatory.
+    func testOnboardingCanAdvanceWhenAccessibilityDeclined() {
+        // Happy path: both granted → advance.
+        XCTAssertTrue(
+            OnboardingProgress.canAdvancePermissions(
+                microphoneGranted: true,
+                accessibilityGranted: true,
+                accessibilitySkipped: false
+            )
+        )
+        // Mic granted, accessibility declined, no skip yet → still gated.
+        XCTAssertFalse(
+            OnboardingProgress.canAdvancePermissions(
+                microphoneGranted: true,
+                accessibilityGranted: false,
+                accessibilitySkipped: false
+            )
+        )
+        // Mic granted, accessibility declined but user pressed Skip → advance (P3-4 core case).
+        XCTAssertTrue(
+            OnboardingProgress.canAdvancePermissions(
+                microphoneGranted: true,
+                accessibilityGranted: false,
+                accessibilitySkipped: true
+            )
+        )
+        // Microphone stays mandatory: skipping accessibility does not unlock advance
+        // when mic is still missing.
+        XCTAssertFalse(
+            OnboardingProgress.canAdvancePermissions(
+                microphoneGranted: false,
+                accessibilityGranted: false,
+                accessibilitySkipped: true
+            )
+        )
+        XCTAssertFalse(
+            OnboardingProgress.canAdvancePermissions(
+                microphoneGranted: false,
+                accessibilityGranted: true,
+                accessibilitySkipped: true
+            )
+        )
+    }
+
     func testHotkeyCaptureDetectsConflictsAndEscape() {
         XCTAssertTrue(HotkeyCapture.conflicts("Command+K", " command + k "))
         XCTAssertFalse(HotkeyCapture.conflicts("RightCommand", "Command+K"))

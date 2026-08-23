@@ -40,6 +40,18 @@ enum OnboardingProgress {
         guard hotkeyConfigured else { return .hotkey }
         return .tryIt
     }
+
+    /// P3-4: microphone stays mandatory (the app cannot capture speech without it),
+    /// accessibility is optional — a user who declines it can still advance by
+    /// pressing "Skip", after which the sidebar `AccessibilityPermissionBanner`
+    /// carries the ongoing "please grant" reminder.
+    static func canAdvancePermissions(
+        microphoneGranted: Bool,
+        accessibilityGranted: Bool,
+        accessibilitySkipped: Bool
+    ) -> Bool {
+        microphoneGranted && (accessibilityGranted || accessibilitySkipped)
+    }
 }
 
 private enum OnboardingVerificationState: Equatable {
@@ -190,6 +202,10 @@ struct OnboardingView: View {
     @State private var step = OnboardingStep.welcome
     @State private var selectedHotkey: String?
     @State private var isHotkeyCapturePresented = false
+    // P3-4: session-local skip flag for the optional Accessibility grant.
+    // Cleared implicitly next launch; harmless once the grant lands because
+    // `canAdvancePermissions` ORs granted with skipped.
+    @State private var accessibilitySkipped = false
 
     private static let hotkeyPresets = [
         "RightCommand",
@@ -347,7 +363,7 @@ struct OnboardingView: View {
     private var permissionsContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             PermissionRows()
-            if !permissionsReady {
+            if !canAdvancePermissions {
                 Label("onboarding.permissions.bothRequired", systemImage: "info.circle")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -480,6 +496,18 @@ struct OnboardingView: View {
                 Button("onboarding.skipStep") { finishOnboarding() }
             }
 
+            // P3-4: Accessibility grant is optional; expose a skip so the
+            // permissions step is no longer a dead-end when the user declines.
+            if step == .permissions,
+               environment.permissions.microphone,
+               !environment.permissions.accessibility,
+               !accessibilitySkipped {
+                Button("onboarding.skipStep") {
+                    accessibilitySkipped = true
+                    advance()
+                }
+            }
+
             Button(primaryActionTitle) { advance() }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
@@ -515,10 +543,19 @@ struct OnboardingView: View {
         environment.permissions.microphone && environment.permissions.accessibility
     }
 
+    /// P3-4: bridge from live TCC state + session skip flag into the pure gate.
+    private var canAdvancePermissions: Bool {
+        OnboardingProgress.canAdvancePermissions(
+            microphoneGranted: environment.permissions.microphone,
+            accessibilityGranted: environment.permissions.accessibility,
+            accessibilitySkipped: accessibilitySkipped
+        )
+    }
+
     private var canAdvance: Bool {
         switch step {
         case .welcome: true
-        case .permissions: permissionsReady
+        case .permissions: canAdvancePermissions
         case .hotkey: selectedHotkey != nil
         case .tryIt: verification.state == .success
         }
@@ -603,8 +640,8 @@ struct OnboardingView: View {
         switch item {
         case .welcome: true
         case .permissions: welcomeSeen
-        case .hotkey: welcomeSeen && permissionsReady
-        case .tryIt: welcomeSeen && permissionsReady && hotkeyConfigured
+        case .hotkey: welcomeSeen && canAdvancePermissions
+        case .tryIt: welcomeSeen && canAdvancePermissions && hotkeyConfigured
         }
     }
 
