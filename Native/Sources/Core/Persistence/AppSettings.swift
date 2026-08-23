@@ -106,11 +106,9 @@ struct AppSettings: Codable, Equatable, Sendable {
 
     var terminologyProfile = TerminologyProfile()
     var customPrompt = ""
-    var cloudBackupEnabled = false
     var sensitiveAppProtectionEnabled = true
     var sensitiveAppBlockInsertion = true
     var allowSensitiveAppCloudReasoning = false
-    var allowSensitiveAppPasteMonitoring = false
     var debugLoggingEnabled = false
     var onboardingCompleted = false
 
