@@ -78,6 +78,12 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
     }
 
     func finish() async throws -> String {
+        // Audit P2-3: leading audio truncated past the 15 s confirmation
+        // budget invalidates the realtime transcript.
+        if pendingAudio.leadingAudioDropped {
+            await cancel()
+            throw RealtimePendingAudioError.leadingAudioDropped
+        }
         guard let socket else { return joinedTranscript() }
         let generation = self.generation
         try await socket.send(.string(#"{"type":"Terminate"}"#))

@@ -57,6 +57,12 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
     private var taskFailedMessage: String?
     private var warmCreatedAt: Date?
     private var pendingAudio = Data()
+    // Audit P2-3: raw `pendingAudio` also serves the running chunking path
+    // (see the >= networkChunkBytes flush below), so instead of swapping
+    // the buffer type we track a sibling flag flipped when the cold-start
+    // cap is exceeded. `finish()` reads it to invalidate the realtime
+    // transcript and let the coordinator fall back to batch/local.
+    private var pendingAudioLeadingDropped = false
     private var committedText = ""
     private var activeText = ""
     private var completedSentenceBegins = Set<Int>()
@@ -108,9 +114,18 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         guard !pcm16.isEmpty else { return }
         guard taskStarted, let socket, socket.state == .running else {
             pendingAudio.append(pcm16)
-            let maximumPendingBytes = RealtimeSocketSession.maximumPendingAudioBytes
+            // Audit P2-3: Bailian's `createTask` waits up to 30 s for
+            // `task-started`, so tie the cold-start cap to the same 30 s
+            // budget. When the cap IS exceeded, still drop oldest bytes to
+            // keep memory bounded — but flip the flag so `finish()` can
+            // invalidate the transcript instead of returning a truncated
+            // one silently.
+            let maximumPendingBytes = RealtimeSocketSession.pendingAudioCapacityBytes(
+                confirmationTimeoutSeconds: 30
+            )
             if pendingAudio.count > maximumPendingBytes {
                 pendingAudio.removeFirst(pendingAudio.count - maximumPendingBytes)
+                pendingAudioLeadingDropped = true
             }
             return
         }
@@ -139,6 +154,18 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
     }
 
     func finish() async throws -> String {
+        // Audit P2-3: leading audio truncated past the 30 s task-started
+        // budget invalidates the realtime transcript. Route through the
+        // existing throw path so DictationCoordinator's finalize catch
+        // remembers the error and the empty-transcript fallback ladder
+        // resurfaces the full retained PCM via batch/local (or local
+        // Whisper for Bailian, which is realtime-only via its own realtime
+        // endpoint but reaches local fallback through the same recovery
+        // ladder).
+        if pendingAudioLeadingDropped {
+            await closeSocket()
+            throw RealtimePendingAudioError.leadingAudioDropped
+        }
         guard let socket, taskStarted, socket.state == .running else {
             throw BailianRealtimeError.connectionLost("Bailian realtime task is not active")
         }
@@ -366,6 +393,7 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         taskFinished = false
         warmCreatedAt = nil
         pendingAudio.removeAll(keepingCapacity: false)
+        pendingAudioLeadingDropped = false
     }
 
     private func ensureCurrent(socket: URLSessionWebSocketTask, generation: Int) throws {
@@ -380,6 +408,7 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
 
     private func resetTranscript() {
         pendingAudio.removeAll(keepingCapacity: true)
+        pendingAudioLeadingDropped = false
         committedText = ""
         activeText = ""
         completedSentenceBegins.removeAll()

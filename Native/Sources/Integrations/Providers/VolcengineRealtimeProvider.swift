@@ -86,6 +86,15 @@ actor VolcengineRealtimeProvider: RealtimeTranscriptionProvider {
     }
 
     func finish() async throws -> String {
+        // Audit P2-3: leading audio truncated past the 15 s confirmation
+        // budget invalidates the realtime transcript. Route through the
+        // existing throw path so DictationCoordinator's finalize catch
+        // remembers the error and the empty-transcript fallback ladder
+        // resurfaces the full retained PCM via batch/local.
+        if pendingAudio.leadingAudioDropped {
+            await cancel()
+            throw RealtimePendingAudioError.leadingAudioDropped
+        }
         guard let socket else { return liveText }
         let generation = self.generation
         try await socket.send(.data(VolcengineFrameCodec.audio(Data(), isLast: true)))

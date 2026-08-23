@@ -1111,6 +1111,15 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertLessThan(cancelledAt.duration(to: clock.now), .seconds(2))
     }
 
+    func testPendingAudioOverflowInvalidatesRealtimeTranscript() async throws { // Audit P2-3.
+        let provider = VolcengineRealtimeProvider()
+        for _ in 0..<((RealtimeSocketSession.maximumPendingAudioBytes / 3_200) + 20) {
+            try await provider.send(pcm16: Data(count: 3_200))
+        }
+        let result = try? await provider.finish()
+        XCTAssertNil(result, "finish() should invalidate the transcript when the cold-start buffer overflowed")
+    }
+
     func testLocalModelRuntimeForceStopsProcessThatIgnoresTermination() throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
