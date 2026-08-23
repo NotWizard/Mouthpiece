@@ -24,23 +24,36 @@ actor HistoryRepository {
     static let retentionMaxRows = 2000
     // 累计删除行数达到该阈值时执行一次 VACUUM 回收空间。
     private static let vacuumThreshold = 200
+    // P2-17: 攒够 N 次写入再跑一次保留清理，避免每次 save() 都做 self-anti-join——
+    // 原实现每条写入都跑 DELETE ... NOT IN (SELECT ...)，行数增大后代价显著。
+    // 选 32 而非 64：兼顾"超出保留窗口的最坏延迟"（<= 32 条 ≈ 用户几分钟到几十分钟
+    // 的听写量）与"减少低价值 prune 次数"（100 条写入 3 次而非 100 次）。启动时另外
+    // 从 init() 强制跑一次，保证冷启动就能收敛到窗口内。
+    static let pruneEveryNWrites = 32
 
     private let connection: SQLiteConnection
     private let databaseURL: URL
     private static let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
     private var database: OpaquePointer? { connection.pointer }
     private var prunedRowsSinceVacuum = 0
+    // P2-17: 距上次 save 触发 prune 已累积多少次写入；达到 pruneEveryNWrites 才触发一次。
+    private var writesSincePrune = 0
     // P1-8: 默认为 nil 以保留 HEAD 行为；生产可注入 { msg in Task { await logger.write(.info, msg) } }
     // 让 save() 内部隐式触发的 prune 也被记录（当前 AppEnvironment 仅记录启动期 prune）。
     // 由测试 testPruneEmitsInfoLogWhenRowsRemoved 驱动，断言 non-zero 删除时触发一次。
     private let pruneLogger: (@Sendable (String) -> Void)?
+    // P2-17: 每次 prune() 被调用时触发一次（与是否有删除无关），仅供测试观察调用频次；
+    // 用途上与 pruneLogger 正交——pruneLogger 描述"删了几条"，pruneObserver 描述"跑了几次"。
+    private let pruneObserver: (@Sendable () -> Void)?
 
     init(
         databaseURL: URL = AppPaths.databaseURL,
-        pruneLogger: (@Sendable (String) -> Void)? = nil
+        pruneLogger: (@Sendable (String) -> Void)? = nil,
+        pruneObserver: (@Sendable () -> Void)? = nil
     ) throws {
         self.databaseURL = databaseURL
         self.pruneLogger = pruneLogger
+        self.pruneObserver = pruneObserver
         try FileManager.default.createDirectory(
             at: databaseURL.deletingLastPathComponent(),
             withIntermediateDirectories: true
@@ -86,8 +99,14 @@ actor HistoryRepository {
         }
         try stepDone(statement)
         let saved = try record(id: sqlite3_last_insert_rowid(database))
-        // F1: 每次写入后做轻量保留清理；清理失败不影响本次保存结果。
-        _ = try? prune()
+        // P2-17: 攒够 pruneEveryNWrites 次写入才跑一次保留清理——避免每条 save() 都做
+        // self-anti-join，同时保证长期运行的会话最终仍会收敛到保留窗口内。
+        // 冷启动的一次由 init() 负责；此处失败不影响本次保存结果。
+        writesSincePrune += 1
+        if writesSincePrune >= Self.pruneEveryNWrites {
+            writesSincePrune = 0
+            _ = try? prune()
+        }
         return saved
     }
 
@@ -95,6 +114,8 @@ actor HistoryRepository {
     /// 累计删除较多时执行一次 VACUUM。在 actor 串行环境内运行，避免并发写冲突。
     @discardableResult
     func prune(now: Date = Date()) throws -> Int {
+        // P2-17: 每次 prune() 都通知观察者，与是否有删除无关——测试用它计数调用频次。
+        pruneObserver?()
         var deleted = 0
         let cutoff = now.addingTimeInterval(-TimeInterval(Self.retentionDays) * 86_400)
         let expired = try prepare("DELETE FROM transcriptions WHERE timestamp < ?")
@@ -103,9 +124,13 @@ actor HistoryRepository {
         try stepDone(expired)
         deleted += Int(sqlite3_changes(database))
 
+        // P2-17: 用 IN + LIMIT -1 OFFSET 替代 NOT IN + LIMIT——语义等价（都是"保留最新 N 条、
+        // 删除其余最旧的"），但 IN + OFFSET 让 SQLite 沿 timestamp 索引走一次即可，
+        // 避免原 NOT IN 子查询的 self-anti-join。ORDER BY timestamp DESC, id DESC 保持
+        // 与旧查询一致（并列 timestamp 时 id 大者留下）。
         let overflow = try prepare("""
-            DELETE FROM transcriptions WHERE id NOT IN (
-              SELECT id FROM transcriptions ORDER BY timestamp DESC, id DESC LIMIT ?
+            DELETE FROM transcriptions WHERE id IN (
+              SELECT id FROM transcriptions ORDER BY timestamp DESC, id DESC LIMIT -1 OFFSET ?
             )
             """)
         defer { sqlite3_finalize(overflow) }

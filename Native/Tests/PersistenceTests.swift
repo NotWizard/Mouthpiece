@@ -616,6 +616,42 @@ final class PersistenceTests: XCTestCase {
         XCTAssertEqual(recorder.snapshot().count, 1, "零删除的 prune() 不得触发日志")
     }
 
+    // P2-17: prune() 每次 save() 都跑一次 self-anti-join 太贵；根治后 save() 只在
+    // 攒够 pruneEveryNWrites 次写入才触发 prune()；启动时由调用方（生产为
+    // AppEnvironment.initialize）显式跑一次以拿到删除条数用于日志。init 本身不
+    // 再 prune（HistoryRepository 为 actor，init 无法同步 await 隔离方法）。
+    // 用 pruneObserver 计数调用频次（与是否有删除无关）：
+    //   1) 打开新库后显式 prune() 一次 → observer 计数 == 1（模拟启动清理）
+    //   2) 连续 save() N-1 次 → observer 计数仍为 1（阈值下不触发）
+    //   3) 再 save() 一次（第 N 次） → observer 计数变为 2（阈值命中触发一次）
+    func testInsertsBelowThresholdDoNotTriggerPrune() async throws {
+        let counter = PruneInvocationCounter()
+        let (repository, cleanup) = try makeHistoryRepository(pruneObserver: {
+            counter.increment()
+        })
+        defer { cleanup() }
+
+        // 模拟 AppEnvironment.initialize() 的启动 prune 调用。
+        _ = try await repository.prune()
+        XCTAssertEqual(counter.value(), 1, "启动 prune() 应触发一次")
+
+        let threshold = HistoryRepository.pruneEveryNWrites
+        for index in 1...(threshold - 1) {
+            _ = try await repository.save(text: "row \(index)", rawText: nil)
+        }
+        XCTAssertEqual(
+            counter.value(), 1,
+            "少于阈值的 save() 不得触发 prune()（当前 \(counter.value()) 次，期望 1 次）"
+        )
+
+        // 第 N 次 save() 应命中阈值，多触发一次 prune()。
+        _ = try await repository.save(text: "row \(threshold)", rawText: nil)
+        XCTAssertEqual(
+            counter.value(), 2,
+            "第 \(threshold) 次 save() 应触发一次 prune()（当前 \(counter.value()) 次，期望 2 次）"
+        )
+    }
+
     private func makeHistoryRepository() throws -> (HistoryRepository, () -> Void) {
         let (repository, cleanup, _) = try makeHistoryRepositoryWithURL()
         return (repository, cleanup)
@@ -629,6 +665,17 @@ final class PersistenceTests: XCTestCase {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let url = directory.appendingPathComponent("history.sqlite3")
         let repository = try HistoryRepository(databaseURL: url, pruneLogger: pruneLogger)
+        return (repository, { try? FileManager.default.removeItem(at: directory) })
+    }
+
+    private func makeHistoryRepository(
+        pruneObserver: @escaping @Sendable () -> Void
+    ) throws -> (HistoryRepository, () -> Void) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Mouthpiece-HistoryTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appendingPathComponent("history.sqlite3")
+        let repository = try HistoryRepository(databaseURL: url, pruneObserver: pruneObserver)
         return (repository, { try? FileManager.default.removeItem(at: directory) })
     }
 
@@ -657,5 +704,23 @@ private final class PruneLogRecorder: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return messages
+    }
+}
+
+// P2-17: 线程安全的调用计数器——pruneObserver 是 @Sendable，允许跨 actor 调用。
+private final class PruneInvocationCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    func increment() {
+        lock.lock()
+        defer { lock.unlock() }
+        count += 1
+    }
+
+    func value() -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return count
     }
 }
