@@ -276,19 +276,12 @@ actor ReasoningService {
         return data
     }
 
-    // Raw error bodies can contain internal request IDs or whole HTML error
-    // pages; show the provider's human-readable message when one exists.
+    // Raw error bodies can contain internal request IDs, whole HTML error
+    // pages, or echoes of the request (hotword lists, prompt fragments).
+    // Route through the shared sanitizer so every provider surfaces the
+    // same bounded message shape.
     static func providerErrorMessage(_ body: Data, statusCode: Int) -> String {
-        if let object = try? JSONSerialization.jsonObject(with: body) as? [String: Any] {
-            if let error = object["error"] as? [String: Any], let message = error["message"] as? String {
-                return message
-            }
-            if let message = object["message"] as? String { return message }
-            if let error = object["error"] as? String { return error }
-        }
-        let text = String(decoding: body, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
-        if !text.isEmpty, !text.hasPrefix("<"), text.count <= 300 { return text }
-        return "HTTP \(statusCode)"
+        ProviderErrorSanitizer.message(from: body, statusCode: statusCode)
     }
 
     private func defaultModel(for provider: String) -> String {

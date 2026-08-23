@@ -506,6 +506,59 @@ final class DictationAndProviderTests: XCTestCase {
         )
     }
 
+    func testProviderErrorBodyIsTruncatedAndSanitized() {
+        // JSON error.message is preserved so users still see the provider's
+        // actionable text (rather than a bare status code).
+        XCTAssertEqual(
+            ProviderErrorSanitizer.message(
+                from: Data(#"{"error":{"message":"Missing hotword \"alpha\""}}"#.utf8),
+                statusCode: 400
+            ),
+            "Missing hotword \"alpha\""
+        )
+
+        // HTML pages must never surface: no markup and no request echoes
+        // (hotwords, prompt fragments) reach the user.
+        let htmlBody = Data("<html><body>hotword=secret-project-alpha</body></html>".utf8)
+        let htmlResult = ProviderErrorSanitizer.message(from: htmlBody, statusCode: 502)
+        XCTAssertEqual(htmlResult, "HTTP 502")
+        XCTAssertFalse(htmlResult.contains("<"))
+        XCTAssertFalse(htmlResult.contains("hotword"))
+
+        // A very long plain-text body must not surface verbatim, so the
+        // sanitizer falls back to the bounded HTTP-code label.
+        let longPlain = String(repeating: "hotword-alpha-", count: 100) // 1400 chars
+        let plainResult = ProviderErrorSanitizer.message(from: Data(longPlain.utf8), statusCode: 413)
+        XCTAssertLessThanOrEqual(plainResult.count, ProviderErrorSanitizer.maximumLength)
+        XCTAssertFalse(plainResult.contains("hotword-alpha-"))
+
+        // A JSON-extracted message that is itself too long must be capped so
+        // upstream stack traces or echoed prompts cannot slip through the
+        // JSON branch either.
+        let longMessage = String(repeating: "A", count: 500)
+        let longJSON = Data("{\"error\":{\"message\":\"\(longMessage)\"}}".utf8)
+        let capped = ProviderErrorSanitizer.message(from: longJSON, statusCode: 429)
+        XCTAssertLessThanOrEqual(capped.count, ProviderErrorSanitizer.maximumLength)
+        XCTAssertTrue(capped.hasPrefix("A"))
+
+        // Empty body still yields a meaningful HTTP <code> fallback rather
+        // than an empty error string.
+        XCTAssertEqual(
+            ProviderErrorSanitizer.message(from: Data(), statusCode: 500),
+            "HTTP 500"
+        )
+
+        // FastAPI-style `detail` field is also recognized so Python-stack
+        // providers do not silently fall through to HTTP <code>.
+        XCTAssertEqual(
+            ProviderErrorSanitizer.message(
+                from: Data(#"{"detail":"Rate limited"}"#.utf8),
+                statusCode: 429
+            ),
+            "Rate limited"
+        )
+    }
+
     func testSwallowRequiresEnabledArmedAndMatched() {
         // Escape swallowing must be gated by arming; otherwise the persistent
         // active tap consumes every bare ESC system-wide even when idle.

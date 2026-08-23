@@ -508,8 +508,10 @@ actor BailianVocabularyService {
         ])
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            let message = String(data: data, encoding: .utf8) ?? "Unknown vocabulary error"
-            throw BailianRealtimeError.protocolError(message)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw BailianRealtimeError.protocolError(
+                ProviderErrorSanitizer.message(from: data, statusCode: status)
+            )
         }
         guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw BailianRealtimeError.protocolError("Bailian returned an invalid vocabulary response.")

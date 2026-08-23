@@ -42,8 +42,10 @@ struct BatchTranscriptionClient: Sendable {
 
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            let message = String(data: data, encoding: .utf8) ?? "Unknown provider error"
-            throw BailianRealtimeError.protocolError(message)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw BailianRealtimeError.protocolError(
+                ProviderErrorSanitizer.message(from: data, statusCode: status)
+            )
         }
         let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         guard let text = payload?["text"] as? String else {
@@ -213,7 +215,10 @@ struct BatchTranscriptionClient: Sendable {
     private func json(_ request: URLRequest) async throws -> [String: Any] {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw BailianRealtimeError.protocolError(String(decoding: data, as: UTF8.self))
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw BailianRealtimeError.protocolError(
+                ProviderErrorSanitizer.message(from: data, statusCode: status)
+            )
         }
         guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw BailianRealtimeError.protocolError("Provider returned malformed JSON")

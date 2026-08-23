@@ -61,6 +61,7 @@
 		C75391A3121C91FAAD7FCE67 /* TextInsertionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B46BD5418BD14A71E9B04135 /* TextInsertionService.swift */; };
 		D398048BF564B5ADF2251AAF /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 71C4CEA23ED3CCFB11B6A7E2 /* Localizable.strings */; };
 		D4DE70343D16D35E22AD4436 /* BailianRealtimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCEBC42060FEFC594B4704CD /* BailianRealtimeProvider.swift */; };
+		D7D9BF453C84177252BEEE69 /* ProviderErrorSanitizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D12196A0053C4F520959AF3 /* ProviderErrorSanitizer.swift */; };
 		DE8EF049174BD51DE610DA2B /* provider-mistral.png in Resources */ = {isa = PBXBuildFile; fileRef = 25D63F24AE6F5D1F437FCA08 /* provider-mistral.png */; };
 		E0C75E131F314CEC3114585E /* UsageSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A16804AD18BF019565AA5C /* UsageSettingsView.swift */; };
 		E153AB82A0978C515CDEAA56 /* SpeechActivityGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19F2A6E2EE5C6307AD1B0397 /* SpeechActivityGate.swift */; };
@@ -125,6 +126,7 @@
 		82D4C3234DFE8927E6B80953 /* AppLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocalization.swift; sourceTree = "<group>"; };
 		82FC2F38172C9F6D2401A7C4 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		871C50B88CEA598EF7F41391 /* mouthpiece-menubar-mark.svg */ = {isa = PBXFileReference; path = "mouthpiece-menubar-mark.svg"; sourceTree = "<group>"; };
+		8D12196A0053C4F520959AF3 /* ProviderErrorSanitizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderErrorSanitizer.swift; sourceTree = "<group>"; };
 		985AC5EB7663AEBC56A4E41F /* LocalModelRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalModelRuntime.swift; sourceTree = "<group>"; };
 		9F07BDA1719C968AE23A7997 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9F0AA63B360B006DB2405323 /* provider-anthropic.svg */ = {isa = PBXFileReference; path = "provider-anthropic.svg"; sourceTree = "<group>"; };
@@ -296,6 +298,7 @@
 				BCEBC42060FEFC594B4704CD /* BailianRealtimeProvider.swift */,
 				61A78229C54CB604F1508042 /* BatchTranscriptionClient.swift */,
 				3447C40CD33646B1C77CFEAD /* DeepgramRealtimeProvider.swift */,
+				8D12196A0053C4F520959AF3 /* ProviderErrorSanitizer.swift */,
 				FCDAC59350B9390117359543 /* RealtimeSocketSession.swift */,
 				0C07998451259427FC5F9268 /* SonioxRealtimeProvider.swift */,
 				AD15DDB4974E8338A9223CBC /* TranscriptionProvider.swift */,
@@ -605,6 +608,7 @@
 				71B51A2960D7F6CF036B2DC3 /* PermissionService.swift in Sources */,
 				5CE5B3948AE7DBFC00EAB40F /* PrivacyDiagnosticsView.swift in Sources */,
 				BB52C51AEF1B38A7CB931508 /* ProcessingSettingsView.swift in Sources */,
+				D7D9BF453C84177252BEEE69 /* ProviderErrorSanitizer.swift in Sources */,
 				4AADC71C2AD99C4B02C73EDD /* RealtimeSocketSession.swift in Sources */,
 				650DB320394040311A3B290F /* ReasoningService.swift in Sources */,
 				9E9E292CD9916AB9F8B742ED /* SettingsRepository.swift in Sources */,
