@@ -507,6 +507,61 @@ final class DictationCoordinatorTests: XCTestCase {
         }
     }
 
+    // P2-1: realtime provider events must be processed in emit order.
+    // Pre-fix, each event spawned its own unstructured `Task { await
+    // handle(event) }`, so a delayed `.final` could race against a trailing
+    // `.partial` and overwrite it on the machine's `partialText`, corrupting
+    // the transcript at stop() time. Post-fix the single-consumer
+    // AsyncStream drains events sequentially so the last emit always wins.
+    func testProviderEventsProcessInOrder() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .succeed, finishText: "")
+        let harness = try await makeHarness(provider: provider)
+
+        await harness.coordinator.start(settings: makeSettings())
+        let recording = await harness.coordinator.snapshot()
+        XCTAssertEqual(recording.phase, .recording)
+
+        // Force a deterministic reordering pre-fix: delay `.final` by 60 ms
+        // so a Task-per-event scheme applies the trailing `.partial("stale")`
+        // first and then lets the woken `.final("ABC")` overwrite it. Post-fix
+        // the single consumer parks on the delayed `.final` and only pulls
+        // the trailing `.partial("stale")` afterwards, so "stale" wins.
+        await harness.coordinator.setTestEventHandleDelay { event in
+            if case .final = event { return .milliseconds(60) }
+            return nil
+        }
+
+        await provider.emit(.partial(stable: "", active: "A"))
+        await provider.emit(.partial(stable: "", active: "AB"))
+        await provider.emit(.final("ABC"))
+        await provider.emit(.partial(stable: "", active: "stale"))
+
+        // 60 ms delay + slack for actor hops and MainActor publish.
+        try await Task.sleep(for: .milliseconds(300))
+
+        let partial = await harness.coordinator.snapshot().partialText
+        XCTAssertEqual(
+            partial,
+            "stale",
+            "Events must be applied in emit order; pre-fix the delayed .final overwrites the trailing .partial and lands on \"ABC\""
+        )
+
+        // Belt-and-suspenders: at rest, no snapshot with the post-final
+        // trailing partial ("stale") may be followed by a later snapshot that
+        // reverts to the earlier `.final` text ("ABC"). Post-fix the consumer
+        // orders these strictly; pre-fix the racing task reintroduces "ABC"
+        // after "stale" already landed.
+        let published = harness.recorder.snapshots.map(\.partialText)
+        if let staleIndex = published.lastIndex(of: "stale") {
+            XCTAssertFalse(
+                published[staleIndex...].contains("ABC"),
+                "A later `.final` snapshot must never follow the trailing `.partial`"
+            )
+        }
+
+        await harness.coordinator.cancel()
+    }
+
     // MARK: - Harness
 
     private struct Harness {

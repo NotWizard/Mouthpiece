@@ -49,6 +49,14 @@ actor DictationCoordinator {
     private var preparingWatchdogTask: Task<Void, Never>?
     private var frameTask: Task<Void, Never>?
     private var frameContinuation: AsyncStream<(Data, Double)>.Continuation?
+    // P2-1: single-consumer AsyncStream drains provider events in emit
+    // order. Pre-fix, one unstructured `Task { await handle(event) }` per
+    // callback let a late `.partial` overwrite a `.final`. `testEventHandleDelay`
+    // is the DEBUG-only seam for `testProviderEventsProcessInOrder`; nil
+    // (default) means the delay hook is inert in production.
+    private var providerEventTask: Task<Void, Never>?
+    private var providerEventContinuation: AsyncStream<RealtimeTranscriptionEvent>.Continuation?
+    private var testEventHandleDelay: (@Sendable (RealtimeTranscriptionEvent) -> Duration?)?
     private var reasoningTask: Task<String, Error>?
     private var mediaPauseTask: Task<Void, Never>?
 
@@ -116,6 +124,7 @@ actor DictationCoordinator {
         frameTask = nil
         frameContinuation?.finish()
         frameContinuation = nil
+        await drainProviderEventStream()
         reasoningTask?.cancel()
         reasoningTask = nil
         await audio.stop()
@@ -218,10 +227,16 @@ actor DictationCoordinator {
                     apiKey: key,
                     defaultModel: realtime.defaultModel
                 )
+                // P2-1: one consumer task per session drains provider events
+                // sequentially in emit order. Pre-fix, each event spawned its
+                // own unstructured `Task { await handle(event) }`, so a late
+                // `.partial` could overwrite a `.final` on `partialText`.
+                let yieldEvent = armProviderEventStream(sessionID: sessionID)
                 do {
-                    try await realtime.provider.connect(configuration: configuration) { [weak self] event in
-                        Task { await self?.handle(event: event, sessionID: sessionID) }
-                    }
+                    try await realtime.provider.connect(
+                        configuration: configuration,
+                        onEvent: yieldEvent
+                    )
                     if settings.cloudTranscriptionProvider == "bailian" {
                         await logger.write(
                             .debug,
@@ -288,6 +303,9 @@ actor DictationCoordinator {
             frameContinuation = nil
             await frameTask?.value
             frameTask = nil
+            // P2-1: drain every already-yielded provider event through the
+            // single consumer before we snapshot partialText for the fallback.
+            await drainProviderEventStream()
             await resumePausedMedia()
             guard isCurrent(sessionID, phase: .stopping) else { return }
             try machine.transition(to: .finalizing, sessionID: sessionID)
@@ -547,26 +565,6 @@ actor DictationCoordinator {
     private func consume(level: Float, sessionID: UUID) async {
         guard (try? machine.updateAudioLevel(level, sessionID: sessionID)) != nil else { return }
         await capsule.updateAudioLevel(level, sessionID: sessionID)
-    }
-
-    private func handle(event: RealtimeTranscriptionEvent, sessionID: UUID) async {
-        guard machine.snapshot.sessionID == sessionID else { return }
-        switch event {
-        case .partial(let stable, let active):
-            try? machine.updatePartial(stable + active, sessionID: sessionID)
-            await publish()
-        case .final(let text), .sessionFinished(let text):
-            try? machine.updatePartial(text, sessionID: sessionID)
-            await publish()
-        case .speechStarted:
-            break
-        case .error(let message):
-            await degradeOrFailAfterRealtimeError(
-                BailianRealtimeError.protocolError(message),
-                sessionID: sessionID,
-                context: "Realtime provider error"
-            )
-        }
     }
 
     // A2: both the frame-send catch and the realtime `.error` event used to
@@ -847,6 +845,7 @@ actor DictationCoordinator {
         frameTask = nil
         frameContinuation?.finish()
         frameContinuation = nil
+        await drainProviderEventStream()
         reasoningTask?.cancel()
         reasoningTask = nil
         provider = nil
@@ -1009,3 +1008,80 @@ private extension DictationCoordinator {
         return fallback
     }
 }
+
+// MARK: - Provider event stream (P2-1)
+
+private extension DictationCoordinator {
+    // Moved out of the actor body so SwiftLint's type_body_length rule keeps
+    // its 800-line envelope intact. Semantics are unchanged from the pre-fix
+    // implementation apart from the DEBUG-only delay seam.
+    func handle(event: RealtimeTranscriptionEvent, sessionID: UUID) async {
+        #if DEBUG
+        if let delay = testEventHandleDelay?(event) {
+            try? await Task.sleep(for: delay)
+        }
+        #endif
+        guard machine.snapshot.sessionID == sessionID else { return }
+        switch event {
+        case .partial(let stable, let active):
+            try? machine.updatePartial(stable + active, sessionID: sessionID)
+            await publish()
+        case .final(let text), .sessionFinished(let text):
+            try? machine.updatePartial(text, sessionID: sessionID)
+            await publish()
+        case .speechStarted:
+            break
+        case .error(let message):
+            await degradeOrFailAfterRealtimeError(
+                BailianRealtimeError.protocolError(message),
+                sessionID: sessionID,
+                context: "Realtime provider error"
+            )
+        }
+    }
+
+    // Creates the per-session AsyncStream and spawns the single consumer
+    // Task. Returns the @Sendable closure that yields events into the
+    // continuation so start() can hand it straight to provider.connect.
+    func armProviderEventStream(
+        sessionID: UUID
+    ) -> @Sendable (RealtimeTranscriptionEvent) -> Void {
+        let (events, continuation) = AsyncStream<RealtimeTranscriptionEvent>.makeStream(
+            bufferingPolicy: .unbounded
+        )
+        providerEventTask?.cancel()
+        providerEventContinuation?.finish()
+        providerEventContinuation = continuation
+        providerEventTask = Task { [weak self] in
+            for await event in events {
+                await self?.handle(event: event, sessionID: sessionID)
+            }
+        }
+        return { event in continuation.yield(event) }
+    }
+
+    // Finishes the event continuation, drains any buffered events through
+    // the consumer, and clears both slots. Used by every teardown path
+    // (stop/shutdown/resetIfCurrent) — the frame stream keeps its inline
+    // wiring; this helper only exists to keep the actor body under the
+    // SwiftLint type_body_length threshold.
+    func drainProviderEventStream() async {
+        providerEventContinuation?.finish()
+        providerEventContinuation = nil
+        await providerEventTask?.value
+        providerEventTask = nil
+    }
+}
+
+#if DEBUG
+extension DictationCoordinator {
+    // Test seam for DictationCoordinatorTests.testProviderEventsProcessInOrder.
+    // Kept in a non-private extension so `@testable import` can reach it while
+    // `testEventHandleDelay` itself stays `private` on the actor body.
+    func setTestEventHandleDelay(
+        _ delay: (@Sendable (RealtimeTranscriptionEvent) -> Duration?)?
+    ) {
+        testEventHandleDelay = delay
+    }
+}
+#endif
