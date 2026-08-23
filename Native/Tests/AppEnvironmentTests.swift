@@ -760,6 +760,23 @@ final class AppEnvironmentTests: XCTestCase {
         ].contains(ArchitectureUpdateFeedDelegate.feedURLString))
     }
 
+    // P2-9: appcast selection must key off the HOST architecture, not the
+    // build architecture. Prior to the fix `#if arch(arm64)` locked an x86_64
+    // build under Rosetta 2 on Apple Silicon to appcast-x64.xml forever, so
+    // the user was stranded on the translated slice with no notice. The pure
+    // seam below is what release code composes with sysctl (`hw.optional.arm64`
+    // and `sysctl.proc_translated`) — either signal flips the input to true.
+    func testUpdateFeedURLPrefersARM64WhenHostSupports() {
+        XCTAssertEqual(
+            ArchitectureUpdateFeedDelegate.feedURLString(hostSupportsARM64: true),
+            "https://github.com/NotWizard/Mouthpiece/releases/latest/download/appcast-arm64.xml"
+        )
+        XCTAssertEqual(
+            ArchitectureUpdateFeedDelegate.feedURLString(hostSupportsARM64: false),
+            "https://github.com/NotWizard/Mouthpiece/releases/latest/download/appcast-x64.xml"
+        )
+    }
+
     func testUpdateActivationRequiresAPublicKeyAndHonorsTheKillSwitch() {
         XCTAssertEqual(
             UpdateController.activation(
