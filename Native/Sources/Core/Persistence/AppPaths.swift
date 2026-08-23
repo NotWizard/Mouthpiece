@@ -33,6 +33,11 @@ enum AppPaths {
 
     static let databaseURL = applicationSupportDirectory.appendingPathComponent("transcriptions.db")
     static let logsDirectory = applicationSupportDirectory.appendingPathComponent("logs", isDirectory: true)
+    /// Per-child-server pid records used by `LocalModelRuntime` to reap
+    /// orphaned model-server subprocesses that survived a previous
+    /// crash/Force-Quit (audit P1-10). One file per running server.
+    static let runtimeStateDirectory = applicationSupportDirectory
+        .appendingPathComponent("runtime", isDirectory: true)
     static let whisperModelsDirectory = cacheDirectory.appendingPathComponent("whisper-models", isDirectory: true)
     static let parakeetModelsDirectory = cacheDirectory.appendingPathComponent("parakeet-models", isDirectory: true)
     static let qwenASRModelsDirectory = cacheDirectory.appendingPathComponent("qwen-asr-models", isDirectory: true)

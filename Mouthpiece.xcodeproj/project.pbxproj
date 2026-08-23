@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		048C1C41BD00CB879A1F1807 /* LocalModelRuntimeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F462A88170866B446AECBEDF /* LocalModelRuntimeTests.swift */; };
 		07408B987BBE686D4A2867C8 /* AssemblyAIRealtimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2400733301B8C6B62BBBBADE /* AssemblyAIRealtimeProvider.swift */; };
 		0A440C120208A9FAA7026F3A /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D4C3234DFE8927E6B80953 /* AppLocalization.swift */; };
 		0AA230812A550B3677854703 /* DictationCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E25ADB4A2A92A60860ADDE97 /* DictationCoordinatorTests.swift */; };
@@ -159,6 +160,7 @@
 		EBF9512E0313324EAB4D27AF /* provider-gemini.svg */ = {isa = PBXFileReference; path = "provider-gemini.svg"; sourceTree = "<group>"; };
 		F33CE4BB76FFC238A6A35B30 /* provider-openai.svg */ = {isa = PBXFileReference; path = "provider-openai.svg"; sourceTree = "<group>"; };
 		F355B8755FE4FE25201F1ED0 /* LocalModelCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalModelCatalog.swift; sourceTree = "<group>"; };
+		F462A88170866B446AECBEDF /* LocalModelRuntimeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalModelRuntimeTests.swift; sourceTree = "<group>"; };
 		F4C623CB05090C7BECBB185C /* Binaries */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Binaries; path = Native/Binaries; sourceTree = SOURCE_ROOT; };
 		FCDAC59350B9390117359543 /* RealtimeSocketSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealtimeSocketSession.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -192,6 +194,7 @@
 				B65963C52779B6662A3496C1 /* AudioTests.swift */,
 				40DCD77EEE51E5CD93773591 /* DictationAndProviderTests.swift */,
 				E25ADB4A2A92A60860ADDE97 /* DictationCoordinatorTests.swift */,
+				F462A88170866B446AECBEDF /* LocalModelRuntimeTests.swift */,
 				0C55850A84F69D2693F16674 /* PersistenceTests.swift */,
 				3EC3BCBDDF31A9E15195D511 /* SupervisedProcessTests.swift */,
 			);
@@ -567,6 +570,7 @@
 				FAB1E10BBED423630CD1E836 /* AudioTests.swift in Sources */,
 				E4BB190875CFB4CF76D4EE64 /* DictationAndProviderTests.swift in Sources */,
 				0AA230812A550B3677854703 /* DictationCoordinatorTests.swift in Sources */,
+				048C1C41BD00CB879A1F1807 /* LocalModelRuntimeTests.swift in Sources */,
 				53BE6F512E01624BE516DBF6 /* PersistenceTests.swift in Sources */,
 				4FFCB31EF517A1A0BD665495 /* SupervisedProcessTests.swift in Sources */,
 			);

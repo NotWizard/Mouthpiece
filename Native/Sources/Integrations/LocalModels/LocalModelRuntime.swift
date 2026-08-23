@@ -40,6 +40,10 @@ actor LocalModelRuntime {
         let model: String
         let apiKey: String?
         var logURL: URL?
+        /// Path to the runtime-state record for this server, so a graceful
+        /// stop can remove it. Nil when writing the record failed (best
+        /// effort — the reaper still handles crash-time orphans).
+        var stateURL: URL?
     }
 
     private let session: URLSession
@@ -47,6 +51,11 @@ actor LocalModelRuntime {
     private var whisper: RunningServer?
     private var parakeet: RunningServer?
     private var qwen: RunningServer?
+    /// Audit P1-10: reap orphan model-server subprocesses left behind by a
+    /// previous crash/Force-Quit on the first ensure*() call of this
+    /// instance. Guarded so a whisper spawn followed by a parakeet spawn
+    /// does not rescan the runtime-state directory twice.
+    private var didReapOrphans = false
 
     init(session: URLSession = .shared, fileManager: FileManager = .default) {
         self.session = session
@@ -95,7 +104,7 @@ actor LocalModelRuntime {
     }
 
     func stopAll() {
-        [whisper, parakeet, qwen].compactMap(\.self).forEach { stop($0.process) }
+        [whisper, parakeet, qwen].compactMap(\.self).forEach { stop($0) }
         whisper = nil
         parakeet = nil
         qwen = nil
@@ -171,8 +180,9 @@ actor LocalModelRuntime {
     }
 
     private func ensureWhisper(model: String, language: String) async throws -> RunningServer {
+        runReaperIfNeeded()
         if let whisper, whisper.process.isRunning, whisper.model == model { return whisper }
-        if let whisper { stop(whisper.process) }
+        if let whisper { stop(whisper) }
         guard let binary = binaryURL(for: .whisper) else {
             throw LocalModelRuntimeError.binaryMissing(Self.binaryName(for: .whisper))
         }
@@ -190,12 +200,13 @@ actor LocalModelRuntime {
                 "--language", language.isEmpty ? "auto" : language,
             ],
             port: port,
-            model: model
+            model: model,
+            kind: "whisper"
         )
         do {
             try await waitForHTTP(server: server, paths: ["/"], timeout: .seconds(60))
         } catch {
-            stop(server.process)
+            stop(server)
             throw error
         }
         whisper = server
@@ -203,8 +214,9 @@ actor LocalModelRuntime {
     }
 
     private func ensureParakeet(model: String) async throws -> RunningServer {
+        runReaperIfNeeded()
         if let parakeet, parakeet.process.isRunning, parakeet.model == model { return parakeet }
-        if let parakeet { stop(parakeet.process) }
+        if let parakeet { stop(parakeet) }
         guard let binary = binaryURL(for: .parakeet) else {
             throw LocalModelRuntimeError.binaryMissing(Self.binaryName(for: .parakeet))
         }
@@ -224,12 +236,13 @@ actor LocalModelRuntime {
                 "--num-threads=\(max(1, min(4, ProcessInfo.processInfo.activeProcessorCount * 3 / 4)))",
             ],
             port: port,
-            model: model
+            model: model,
+            kind: "parakeet"
         )
         do {
             try await waitForPort(server: server, timeout: .seconds(60))
         } catch {
-            stop(server.process)
+            stop(server)
             throw error
         }
         parakeet = server
@@ -238,8 +251,9 @@ actor LocalModelRuntime {
 
     private func ensureQwen(model: String) async throws -> RunningServer {
 #if arch(arm64)
+        runReaperIfNeeded()
         if let qwen, qwen.process.isRunning, qwen.model == model { return qwen }
-        if let qwen { stop(qwen.process) }
+        if let qwen { stop(qwen) }
         guard let binary = binaryURL(for: .qwen) else {
             throw LocalModelRuntimeError.binaryMissing(Self.binaryName(for: .qwen))
         }
@@ -264,6 +278,7 @@ actor LocalModelRuntime {
             ],
             port: port,
             model: model,
+            kind: "qwen",
             apiKey: apiKey,
             environment: environment
         )
@@ -275,7 +290,7 @@ actor LocalModelRuntime {
                 bearerToken: apiKey
             )
         } catch {
-            stop(server.process)
+            stop(server)
             throw error
         }
         qwen = server
@@ -290,6 +305,7 @@ actor LocalModelRuntime {
         arguments: [String],
         port: Int,
         model: String,
+        kind: String,
         apiKey: String? = nil,
         environment: [String: String]? = nil
     ) throws -> RunningServer {
@@ -335,7 +351,24 @@ actor LocalModelRuntime {
         } catch {
             throw LocalModelRuntimeError.launchFailed(error.localizedDescription)
         }
-        return RunningServer(process: process, port: port, model: model, apiKey: apiKey, logURL: logURL)
+        // Audit P1-10: drop an OS-visible record of this child so the next
+        // Mouthpiece launch (after a crash / Force Quit) can identify it
+        // as an orphan and reap it before scanning ports.
+        let stateURL = Self.writeRuntimeStateRecord(
+            childPID: process.processIdentifier,
+            port: port,
+            executable: executable,
+            model: model,
+            kind: kind
+        )
+        return RunningServer(
+            process: process,
+            port: port,
+            model: model,
+            apiKey: apiKey,
+            logURL: logURL,
+            stateURL: stateURL
+        )
     }
 
     private nonisolated static func startupDiagnostics(_ server: RunningServer) -> String {
@@ -372,7 +405,7 @@ actor LocalModelRuntime {
             }
             try await Task.sleep(for: .milliseconds(150))
         }
-        stop(server.process)
+        stop(server)
         throw LocalModelRuntimeError.startupTimedOut(server.model + Self.startupDiagnostics(server))
     }
 
@@ -388,7 +421,7 @@ actor LocalModelRuntime {
             if !Self.isPortAvailable(server.port) { return }
             try await Task.sleep(for: .milliseconds(100))
         }
-        stop(server.process)
+        stop(server)
         throw LocalModelRuntimeError.startupTimedOut(server.model + Self.startupDiagnostics(server))
     }
 
@@ -647,8 +680,13 @@ actor LocalModelRuntime {
         return String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private func stop(_ process: Process) {
-        Self.terminate(process)
+    private func stop(_ server: RunningServer) {
+        Self.terminate(server.process)
+        // Audit P1-10: a graceful stop removes the runtime-state record so
+        // the next launch's reaper does not chase a pid we already killed.
+        if let stateURL = server.stateURL {
+            try? fileManager.removeItem(at: stateURL)
+        }
     }
 
     nonisolated static func terminate(_ process: Process, gracePeriod: TimeInterval = 0.5) {
@@ -663,7 +701,132 @@ actor LocalModelRuntime {
         }
         process.waitUntilExit()
     }
+
+    // MARK: - Orphan reaper (audit P1-10)
+
+    /// Serialised on disk under `AppPaths.runtimeStateDirectory` as
+    /// `<kind>-<childPID>.json`. `ownerPID` identifies the Mouthpiece
+    /// process that spawned the server; on the next launch the reaper
+    /// treats a missing `ownerPID` as evidence the previous parent
+    /// crashed / was Force Quit and the child reparented to launchd.
+    private struct RuntimeStateRecord: Codable {
+        let ownerPID: Int32
+        let port: Int
+        let executable: String
+        let model: String
+        let launchedAt: Date
+    }
+
+    /// Writes the runtime-state record atomically. Failure is best-effort
+    /// (still returns nil) — the child is already running and the reaper
+    /// only depends on the file when a graceful stop cannot happen.
+    private nonisolated static func writeRuntimeStateRecord(
+        childPID: Int32,
+        port: Int,
+        executable: URL,
+        model: String,
+        kind: String
+    ) -> URL? {
+        let directory = AppPaths.runtimeStateDirectory
+        do {
+            try FileManager.default.createDirectory(
+                at: directory, withIntermediateDirectories: true
+            )
+            let record = RuntimeStateRecord(
+                ownerPID: ProcessInfo.processInfo.processIdentifier,
+                port: port,
+                executable: executable.path,
+                model: model,
+                launchedAt: Date()
+            )
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .secondsSince1970
+            let data = try encoder.encode(record)
+            let url = directory.appendingPathComponent("\(kind)-\(childPID).json")
+            try data.write(to: url, options: .atomic)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
+    private func runReaperIfNeeded() {
+        guard !didReapOrphans else { return }
+        didReapOrphans = true
+        Self.reapOrphanServers()
+    }
+
+    /// Scans `directory` for runtime-state records whose owning Mouthpiece
+    /// process no longer exists (crash / Force Quit / kernel kill), and
+    /// terminates the recorded child process before deleting the file. Safe
+    /// to call multiple times; idempotent when no orphans exist. Runs
+    /// entirely off the actor so a whisper spawn can reap parakeet/qwen
+    /// orphans and vice versa.
+    nonisolated static func reapOrphanServers(
+        directory: URL = AppPaths.runtimeStateDirectory,
+        fileManager: FileManager = .default
+    ) {
+        guard let entries = try? fileManager.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: nil
+        ) else { return }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .secondsSince1970
+        for url in entries where url.pathExtension == "json" {
+            guard let data = try? Data(contentsOf: url),
+                  let record = try? decoder.decode(RuntimeStateRecord.self, from: data)
+            else { continue }
+            // kill(_, 0) is the canonical liveness probe: success (0) means
+            // the pid exists and we may signal it; ESRCH means the previous
+            // owner is definitely gone and its children are orphans. Any
+            // other errno (EPERM etc.) is conservative → skip.
+            if Darwin.kill(record.ownerPID, 0) == 0 { continue }
+            if errno != ESRCH { continue }
+            defer { try? fileManager.removeItem(at: url) }
+            // Extract the child pid from the filename (`<kind>-<pid>.json`).
+            let base = url.deletingPathExtension().lastPathComponent
+            guard let dash = base.lastIndex(of: "-"),
+                  let childPID = Int32(base[base.index(after: dash)...]),
+                  childPID > 0
+            else { continue }
+            // PID reuse: if the OS has already recycled the pid to a
+            // different program, do NOT signal it — we could kill a shell,
+            // an editor, anything. proc_pidpath is the resolving check.
+            guard Self.pidHasExecutable(childPID, expected: record.executable) else { continue }
+            _ = Darwin.kill(childPID, SIGTERM)
+            let deadline = Date().addingTimeInterval(0.5)
+            while Date() < deadline {
+                if Darwin.kill(childPID, 0) != 0, errno == ESRCH { break }
+                Thread.sleep(forTimeInterval: 0.02)
+            }
+            if Darwin.kill(childPID, 0) == 0 {
+                _ = Darwin.kill(childPID, SIGKILL)
+            }
+        }
+    }
+
+    /// True when `proc_pidpath(pid)` resolves to `expected`. Used to defend
+    /// against PID reuse before signalling a recorded child.
+    private nonisolated static func pidHasExecutable(_ pid: Int32, expected: String) -> Bool {
+        // PROC_PIDPATHINFO_MAXSIZE is 4 * MAXPATHLEN (4096) on macOS.
+        let capacity = 4096
+        var buffer = [Int8](repeating: 0, count: capacity)
+        let length = buffer.withUnsafeMutableBufferPointer { ptr -> Int32 in
+            guard let base = ptr.baseAddress else { return 0 }
+            return proc_pidpath(pid, UnsafeMutableRawPointer(base), UInt32(capacity))
+        }
+        guard length > 0 else { return false }
+        return String(cString: buffer) == expected
+    }
 }
+
+/// libproc.h forward declaration — avoids a bridging-header change just to
+/// resolve one symbol used by the orphan reaper.
+@_silgen_name("proc_pidpath")
+private func proc_pidpath(
+    _ pid: pid_t,
+    _ buffer: UnsafeMutableRawPointer?,
+    _ buffersize: UInt32
+) -> Int32
 
 private extension Data {
     func chunked(maximumBytes: Int) -> [Data] {
