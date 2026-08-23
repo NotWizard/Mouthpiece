@@ -217,6 +217,13 @@ final class CapsuleController {
         }
     }
 
+    // P3-1: Reduce Motion 打开时返回 nil，SwiftUI 的 `.animation(nil, value:)` 会跳过隐式过渡；
+    // 关闭时返回原本的 140ms ease-out。抽成纯静态函数是为让回归测试可以在不注入
+    // SwiftUI 环境的前提下同时钉住两条分支。
+    nonisolated static func contentTransitionAnimation(reduceMotion: Bool) -> Animation? {
+        reduceMotion ? nil : .easeOut(duration: 0.14)
+    }
+
     private func announcePhaseChange(_ snapshot: DictationSnapshot) {
         let key = Self.announcementKey(for: snapshot.phase)
         guard key != lastAnnouncedKey else { return }
@@ -326,6 +333,10 @@ enum CapsuleTargetWindowLocator {
 private struct CapsuleView: View {
     @ObservedObject var model: CapsuleViewModel
     @Environment(\.colorScheme) private var colorScheme
+    // P3-1: Reduce Motion 关闭 contentKind 之间的 140ms 过渡；Increase Contrast 加粗
+    // 描边并抬高 borderTint 的不透明度，避免弱视用户在浅色背景上完全丢失胶囊轮廓。
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -355,12 +366,15 @@ private struct CapsuleView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(borderTint, lineWidth: 0.8)
+                .strokeBorder(borderTint, lineWidth: contrast == .increased ? 1.6 : 0.8)
         )
         .shadow(color: shadowTint, radius: 12, y: 5)
         .padding(CapsuleLayout.shadowInset)
         .frame(width: CapsuleLayout.windowWidth, height: CapsuleLayout.windowHeight)
-        .animation(.easeOut(duration: 0.14), value: contentKind)
+        .animation(
+            CapsuleController.contentTransitionAnimation(reduceMotion: reduceMotion),
+            value: contentKind
+        )
     }
 
     private var contentKind: CapsuleContentKind {
@@ -427,12 +441,18 @@ private struct CapsuleView: View {
     }
 
     private var borderTint: LinearGradient {
-        LinearGradient(
+        // P3-1: Increase Contrast 打开时把两端不透明度大致翻倍（并夹在 1 内），
+        // 让加粗后的描边不会被极低对比度的 primary/accent 灰阶稀释。
+        let boost = contrast == .increased
+        let leading = colorScheme == .dark ? (boost ? 0.48 : 0.24) : (boost ? 0.36 : 0.15)
+        let trailingActive = boost ? 0.56 : 0.28
+        let trailingIdle = colorScheme == .dark ? (boost ? 0.24 : 0.08) : (boost ? 0.22 : 0.08)
+        return LinearGradient(
             colors: [
-                Color.primary.opacity(colorScheme == .dark ? 0.24 : 0.15),
+                Color.primary.opacity(leading),
                 model.snapshot.phase == .recording
-                    ? Color.accentColor.opacity(0.28)
-                    : Color.primary.opacity(0.08),
+                    ? Color.accentColor.opacity(trailingActive)
+                    : Color.primary.opacity(trailingIdle),
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -513,6 +533,9 @@ private struct ScrollerHider: NSViewRepresentable {
 private struct RollingTranscriptView: View {
     let text: String
     private let bottomID = "capsule-transcript-bottom"
+    // P3-1: 打开 Reduce Motion 时把 180ms 滚动动画降级为立即滚到底，行为等价于
+    // `withAnimation(nil) { ... }`（SwiftUI 会跳过 transaction 的隐式过渡）。
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -535,7 +558,7 @@ private struct RollingTranscriptView: View {
                 proxy.scrollTo(bottomID, anchor: .bottom)
             }
             .onChange(of: text) {
-                withAnimation(.easeOut(duration: 0.18)) {
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) {
                     proxy.scrollTo(bottomID, anchor: .bottom)
                 }
             }

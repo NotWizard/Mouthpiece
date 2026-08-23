@@ -48,6 +48,8 @@ struct ControlPanelView: View {
     @EnvironmentObject private var environment: AppEnvironment
     @Environment(\.openWindow) private var openWindow
     @AppStorage("controlPanel.selectedSection") private var storedSelection = ControlPanelSection.usage.rawValue
+    // P3-1: Reduce Motion 打开时侧栏选中态切换不再走 160ms ease-out。
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Group {
@@ -112,7 +114,7 @@ struct ControlPanelView: View {
                 VStack(spacing: 3) {
                     ForEach(ControlPanelSection.allCases) { section in
                         Button {
-                            withAnimation(.easeOut(duration: 0.16)) {
+                            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.16)) {
                                 storedSelection = section.rawValue
                             }
                         } label: {
@@ -165,6 +167,11 @@ struct ControlPanelView: View {
 
 private struct SidebarNavigationRow: View {
     @Environment(\.colorScheme) private var colorScheme
+    // P3-1: Reduce Motion 关闭 hover / isSelected 的 120-160ms ease-out；
+    // Increase Contrast 给选中态描边加粗+抬高不透明度，避免仅凭 accent 微弱渐变
+    // 区分选中/未选中行。
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
 
     let section: ControlPanelSection
     let isSelected: Bool
@@ -195,16 +202,28 @@ private struct SidebarNavigationRow: View {
         .overlay {
             RoundedRectangle(cornerRadius: 7, style: .continuous)
                 .stroke(
-                    isSelected ? Color.accentColor.opacity(colorScheme == .dark ? 0.28 : 0.2) : .clear,
-                    lineWidth: 0.5
+                    isSelected ? selectionStrokeColor : .clear,
+                    lineWidth: selectionStrokeWidth
                 )
         }
         .onHover { hovering in
-            withAnimation(.easeOut(duration: 0.12)) {
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.12)) {
                 isHovered = hovering
             }
         }
-        .animation(.easeOut(duration: 0.16), value: isSelected)
+        .animation(
+            reduceMotion ? nil : .easeOut(duration: 0.16),
+            value: isSelected
+        )
+    }
+
+    private var selectionStrokeColor: Color {
+        let base = colorScheme == .dark ? 0.28 : 0.2
+        return Color.accentColor.opacity(contrast == .increased ? min(1, base + 0.4) : base)
+    }
+
+    private var selectionStrokeWidth: CGFloat {
+        contrast == .increased ? 1.4 : 0.5
     }
 
     private var backgroundGradient: LinearGradient {

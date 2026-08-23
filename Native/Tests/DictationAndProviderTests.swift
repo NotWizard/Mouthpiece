@@ -1,4 +1,5 @@
 import ApplicationServices
+import SwiftUI
 import XCTest
 @testable import Mouthpiece
 
@@ -237,6 +238,20 @@ final class DictationAndProviderTests: XCTestCase {
         snapshot.phase = .failed
         snapshot.errorMessage = "Failure"
         XCTAssertEqual(CapsuleContentKind.resolve(snapshot), .error)
+    }
+
+    // P3-1: 胶囊 contentKind 过渡在 Reduce Motion 打开时必须返回 nil，
+    // 让 `.animation(nil, value:)` 跳过隐式过渡；关闭时返回非 nil 的 ease-out。
+    // 抽成静态纯函数正是为了在这里钉住两条分支而无需注入 SwiftUI 环境。
+    func testReduceMotionDisablesCapsuleContentTransition() {
+        XCTAssertNil(
+            CapsuleController.contentTransitionAnimation(reduceMotion: true),
+            "Reduce Motion 打开时 capsule 过渡动画必须为 nil"
+        )
+        XCTAssertNotNil(
+            CapsuleController.contentTransitionAnimation(reduceMotion: false),
+            "Reduce Motion 关闭时 capsule 仍需要 ease-out 过渡"
+        )
     }
 
     func testStateMachineRejectsStaleSessionEvents() throws {
