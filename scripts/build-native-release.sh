@@ -40,19 +40,42 @@ ditto -c -k --sequesterRsrc --keepParent "$STAGING/Mouthpiece.app" "$ZIP"
 # Build a laid-out DMG: Mouthpiece.app on the left, Applications on the right,
 # with a branded drag-arrow background. A bare `hdiutil create` leaves Finder to
 # place icons alphabetically (Applications left, app right) with no background.
-VOLNAME="Mouthpiece $VERSION"
-MOUNT="/Volumes/$VOLNAME"
-RW_DMG="$ROOT/.build/release/rw-$ARCH.dmg"
+#
+# Everything DMG-related lives in a per-run mktemp workdir, mounted at a
+# per-run mountpoint (never /Volumes/<name>), with a build-unique volname
+# during Finder layout. Two concurrent builds or a retry after a leaked mount
+# can no longer collide, and the trap detaches the image and removes the
+# workdir on any exit path so a hung AppleScript cannot leak a mount into the
+# next run. The volume is renamed back to the release-facing name before the
+# UDZO convert so the shipped DMG surfaces the polished name to end users.
+mkdir -p "$ROOT/.build/release"
+WORK_DIR=
+MOUNT=
+cleanup_dmg() {
+  if [[ -n "${MOUNT:-}" ]]; then
+    hdiutil detach "$MOUNT" -quiet 2>/dev/null \
+      || hdiutil detach "$MOUNT" -force -quiet 2>/dev/null \
+      || true
+  fi
+  if [[ -n "${WORK_DIR:-}" ]]; then
+    rm -rf "$WORK_DIR"
+  fi
+}
+trap cleanup_dmg EXIT
+WORK_DIR=$(mktemp -d "$ROOT/.build/release/dmg-$ARCH.XXXXXX")
+MOUNT="$WORK_DIR/mount"
+RW_DMG="$WORK_DIR/rw.dmg"
 BG_SRC="$ROOT/Native/Packaging/dmg-background.png"
-BG_1X="$ROOT/.build/release/dmg-bg-1x-$ARCH.png"
+BG_1X="$WORK_DIR/dmg-bg-1x.png"
+VOLNAME_BUILD="Mouthpiece $VERSION $ARCH-$$"
+VOLNAME_FINAL="Mouthpiece $VERSION"
 
 ln -s /Applications "$STAGING/Applications"
-hdiutil detach "$MOUNT" 2>/dev/null || true
-rm -f "$RW_DMG"
+mkdir -p "$MOUNT"
 
 STAGING_KB=$(du -sk "$STAGING" | awk '{ print $1 }')
 IMAGE_MB=$(( STAGING_KB / 1024 + 60 ))
-hdiutil create -volname "$VOLNAME" -srcfolder "$STAGING" -fs HFS+ \
+hdiutil create -volname "$VOLNAME_BUILD" -srcfolder "$STAGING" -fs HFS+ \
   -format UDRW -size "${IMAGE_MB}m" -ov "$RW_DMG"
 hdiutil attach "$RW_DMG" -mountpoint "$MOUNT" -nobrowse -noverify -noautoopen
 
@@ -69,7 +92,7 @@ rm -f "$BG_1X"
 apply_dmg_layout() {
   osascript <<OSA
 tell application "Finder"
-  tell disk "$VOLNAME"
+  tell disk "$VOLNAME_BUILD"
     open
     set current view of container window to icon view
     set toolbar visible of container window to false
@@ -92,7 +115,6 @@ OSA
 
 fail_dmg_layout() {
   echo "$1" >&2
-  hdiutil detach "$MOUNT" 2>/dev/null || true
   exit 1
 }
 
@@ -109,13 +131,29 @@ fi
 
 sync
 test -s "$MOUNT/.DS_Store" || fail_dmg_layout "DMG layout was not applied (missing or empty .DS_Store)"
+
+# Rename the volume to the release-facing name now that layout is applied.
+# The build used a build-unique volname to disambiguate Finder's `tell disk`
+# under concurrent runs; renaming in-place before detach lets the UDZO convert
+# carry the polished `Mouthpiece <version>` label to end users.
+diskutil renameVolume "$MOUNT" "$VOLNAME_FINAL" >/dev/null
+
 hdiutil detach "$MOUNT" || hdiutil detach "$MOUNT" -force
 
 rm -f "$DMG"
 hdiutil convert "$RW_DMG" -format UDZO -imagekey zlib-level=9 -o "$DMG"
-rm -f "$RW_DMG"
 rm "$STAGING/Applications"
 
-shasum -a 256 "$ZIP" "$DMG" > "$ROOT/$OUTPUT/Mouthpiece-$VERSION-$ARCH.sha256"
+# Emit checksums with bare basenames so downstream `shasum -c` can verify from
+# whatever directory the artifacts land in; the previous absolute-path form
+# baked the build machine's `/Users/runner/.../artifacts/...` into the sha256
+# file and made `-c` fail unless consumers reproduced that exact tree.
+(
+  cd "$ROOT/$OUTPUT"
+  shasum -a 256 \
+    "Mouthpiece-$VERSION-$ARCH-mac.zip" \
+    "Mouthpiece-$VERSION-$ARCH.dmg" \
+    > "Mouthpiece-$VERSION-$ARCH.sha256"
+)
 scripts/verify-native-artifact.sh "$DMG" "$ARCH"
 echo "Created native $ARCH release artifacts in $OUTPUT"
