@@ -25,6 +25,7 @@
 		4D2EFEB2F4185781B7272688 /* ControlPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1827FCF96D30560F007B93C /* ControlPanelView.swift */; };
 		4F7E2751C9085D48308B2CA9 /* DictationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB1FA0A318163DC8EBA246D /* DictationState.swift */; };
 		4FB05E7D0CDE2589D8A3FABD /* MouthpieceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 202A5C104CA1D33343D7EB28 /* MouthpieceApp.swift */; };
+		4FFCB31EF517A1A0BD665495 /* SupervisedProcessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EC3BCBDDF31A9E15195D511 /* SupervisedProcessTests.swift */; };
 		5114DA72C8727D9B4F23A72D /* provider-openai.svg in Resources */ = {isa = PBXBuildFile; fileRef = F33CE4BB76FFC238A6A35B30 /* provider-openai.svg */; };
 		53BE6F512E01624BE516DBF6 /* PersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C55850A84F69D2693F16674 /* PersistenceTests.swift */; };
 		583C66018112909D4C31B399 /* mouthpiece-mark.svg in Resources */ = {isa = PBXBuildFile; fileRef = 5BBEF14EF7D7B5E4B7925B11 /* mouthpiece-mark.svg */; };
@@ -40,6 +41,7 @@
 		82335095A4919636E2FA228B /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 6D51BE0C469FD773D295D0B9 /* Sparkle */; };
 		877514FAFBC099F0338389C6 /* LocalModelRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 985AC5EB7663AEBC56A4E41F /* LocalModelRuntime.swift */; };
 		879E33605FB4F96D271478A0 /* provider-anthropic.svg in Resources */ = {isa = PBXBuildFile; fileRef = 9F0AA63B360B006DB2405323 /* provider-anthropic.svg */; };
+		8844C8F25E92E987286457EA /* SupervisedProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4839CE9A5603125120A84F94 /* SupervisedProcess.swift */; };
 		8997B00990024C92C753D668 /* BatchTranscriptionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61A78229C54CB604F1508042 /* BatchTranscriptionClient.swift */; };
 		8B40A64563DB47477131FC76 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F07BDA1719C968AE23A7997 /* AppDelegate.swift */; };
 		930134D742359C55F3140F82 /* Mouthpiece.icns in Resources */ = {isa = PBXBuildFile; fileRef = 531364AC24AAD1894E4DBB28 /* Mouthpiece.icns */; };
@@ -101,9 +103,11 @@
 		25D63F24AE6F5D1F437FCA08 /* provider-mistral.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "provider-mistral.png"; sourceTree = "<group>"; };
 		2E3015682C8A3F7CF19589AD /* AudioCueService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCueService.swift; sourceTree = "<group>"; };
 		3447C40CD33646B1C77CFEAD /* DeepgramRealtimeProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepgramRealtimeProvider.swift; sourceTree = "<group>"; };
+		3EC3BCBDDF31A9E15195D511 /* SupervisedProcessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupervisedProcessTests.swift; sourceTree = "<group>"; };
 		40DCD77EEE51E5CD93773591 /* DictationAndProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationAndProviderTests.swift; sourceTree = "<group>"; };
 		42E56BBE96DE36354A1C2355 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
 		473B94E3083AC662E10BB2F3 /* provider-volcengine.svg */ = {isa = PBXFileReference; path = "provider-volcengine.svg"; sourceTree = "<group>"; };
+		4839CE9A5603125120A84F94 /* SupervisedProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupervisedProcess.swift; sourceTree = "<group>"; };
 		4FB4E666C85506C60072109F /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		4FF10FB8792E36433269C821 /* provider-alibaba-cloud.svg */ = {isa = PBXFileReference; path = "provider-alibaba-cloud.svg"; sourceTree = "<group>"; };
 		531364AC24AAD1894E4DBB28 /* Mouthpiece.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Mouthpiece.icns; sourceTree = "<group>"; };
@@ -187,6 +191,7 @@
 				40DCD77EEE51E5CD93773591 /* DictationAndProviderTests.swift */,
 				E25ADB4A2A92A60860ADDE97 /* DictationCoordinatorTests.swift */,
 				0C55850A84F69D2693F16674 /* PersistenceTests.swift */,
+				3EC3BCBDDF31A9E15195D511 /* SupervisedProcessTests.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -224,6 +229,7 @@
 				F355B8755FE4FE25201F1ED0 /* LocalModelCatalog.swift */,
 				58C2E9CA9C9D5BF8111BD9A1 /* LocalModelInstallationService.swift */,
 				985AC5EB7663AEBC56A4E41F /* LocalModelRuntime.swift */,
+				4839CE9A5603125120A84F94 /* SupervisedProcess.swift */,
 			);
 			path = LocalModels;
 			sourceTree = "<group>";
@@ -559,6 +565,7 @@
 				E4BB190875CFB4CF76D4EE64 /* DictationAndProviderTests.swift in Sources */,
 				0AA230812A550B3677854703 /* DictationCoordinatorTests.swift in Sources */,
 				53BE6F512E01624BE516DBF6 /* PersistenceTests.swift in Sources */,
+				4FFCB31EF517A1A0BD665495 /* SupervisedProcessTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -603,6 +610,7 @@
 				9E9E292CD9916AB9F8B742ED /* SettingsRepository.swift in Sources */,
 				664AEC27457E03F9EAE8BD73 /* SonioxRealtimeProvider.swift in Sources */,
 				E153AB82A0978C515CDEAA56 /* SpeechActivityGate.swift in Sources */,
+				8844C8F25E92E987286457EA /* SupervisedProcess.swift in Sources */,
 				C75391A3121C91FAAD7FCE67 /* TextInsertionService.swift in Sources */,
 				BAB55B4AB4A206574AC342C0 /* TranscriptionProvider.swift in Sources */,
 				9E6B73D27BF5EAB22FAE3506 /* UpdateController.swift in Sources */,
@@ -690,7 +698,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 20009;
+				CURRENT_PROJECT_VERSION = 20010;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -704,7 +712,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 2.0.9;
+				MARKETING_VERSION = 2.0.10;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -788,7 +796,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 20009;
+				CURRENT_PROJECT_VERSION = 20010;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -808,7 +816,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 2.0.9;
+				MARKETING_VERSION = 2.0.10;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

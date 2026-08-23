@@ -375,35 +375,22 @@ actor MediaPlaybackController {
         arguments: [String],
         timeout: TimeInterval
     ) async -> String? {
-        await withCheckedContinuation { (continuation: CheckedContinuation<String?, Never>) in
-            DispatchQueue.global(qos: .userInitiated).async {
-                let process = Process()
-                process.executableURL = URL(fileURLWithPath: perl)
-                process.arguments = [script, framework] + arguments
-                let stdout = Pipe()
-                process.standardOutput = stdout
-                process.standardError = Pipe()
-                let timeoutItem = DispatchWorkItem {
-                    if process.isRunning { process.terminate() }
-                }
-                DispatchQueue.global().asyncAfter(deadline: .now() + timeout, execute: timeoutItem)
-                do {
-                    try process.run()
-                } catch {
-                    timeoutItem.cancel()
-                    continuation.resume(returning: nil)
-                    return
-                }
-                let data = stdout.fileHandleForReading.readDataToEndOfFile()
-                process.waitUntilExit()
-                timeoutItem.cancel()
-                guard process.terminationStatus == 0 else {
-                    continuation.resume(returning: nil)
-                    return
-                }
-                continuation.resume(returning: String(data: data, encoding: .utf8) ?? "")
-            }
+        // SupervisedProcess drains stderr (previously ignored, so a chatty
+        // adapter writing >64 KB blocked on the pipe until the SIGTERM at
+        // `timeout`) and escalates SIGTERM->SIGKILL if the child ignores the
+        // termination signal (audit NEW-4).
+        let outcome: SupervisedProcess.Outcome
+        do {
+            outcome = try await SupervisedProcess.run(
+                executable: URL(fileURLWithPath: perl),
+                arguments: [script, framework] + arguments,
+                timeout: .milliseconds(Int(timeout * 1000))
+            )
+        } catch {
+            return nil
         }
+        guard case .exited(0) = outcome.termination else { return nil }
+        return String(data: outcome.stdout, encoding: .utf8) ?? ""
     }
 
     // MRMediaRemoteSendCommand reports success but is a silent no-op on macOS

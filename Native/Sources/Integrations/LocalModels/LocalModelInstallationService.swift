@@ -341,36 +341,19 @@ actor LocalModelInstallationService {
     }
 }
 
-final class ProcessCommand: @unchecked Sendable {
-    private let executable: URL
-    private let arguments: [String]
-    private let environment: [String: String]?
-    private let timeout: Duration
-
-    private init(
-        executable: URL,
-        arguments: [String],
-        environment: [String: String]?,
-        timeout: Duration
-    ) {
-        self.executable = executable
-        self.arguments = arguments
-        self.environment = environment
-        self.timeout = timeout
-    }
-
+enum ProcessCommand {
     static func run(
         executable: URL,
         arguments: [String],
         environment: [String: String]? = nil,
         timeout: Duration = .seconds(300)
     ) async throws {
-        _ = try await ProcessCommand(
+        _ = try await execute(
             executable: executable,
             arguments: arguments,
             environment: environment,
             timeout: timeout
-        ).execute()
+        )
     }
 
     static func output(
@@ -378,59 +361,51 @@ final class ProcessCommand: @unchecked Sendable {
         arguments: [String],
         timeout: Duration
     ) async throws -> String {
-        try await ProcessCommand(
+        try await execute(
             executable: executable,
             arguments: arguments,
             environment: nil,
             timeout: timeout
-        ).execute()
+        )
     }
 
-    private func execute() async throws -> String {
-        let process = Process()
-        let outputURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Mouthpiece-Command-\(UUID().uuidString).log")
-        FileManager.default.createFile(atPath: outputURL.path, contents: nil)
-        let outputHandle = try FileHandle(forWritingTo: outputURL)
-        defer { try? FileManager.default.removeItem(at: outputURL) }
-        process.executableURL = executable
-        process.arguments = arguments
-        process.environment = environment
-        process.standardOutput = outputHandle
-        process.standardError = outputHandle
+    /// Delegates to `SupervisedProcess.run` for correct SIGTERM->SIGKILL
+    /// escalation and non-deadlocking pipe drainage; the previous
+    /// `waitUntilExit()` implementation could wedge indefinitely when the
+    /// child ignored SIGTERM (audit P1-11).
+    private static func execute(
+        executable: URL,
+        arguments: [String],
+        environment: [String: String]?,
+        timeout: Duration
+    ) async throws -> String {
+        let outcome: SupervisedProcess.Outcome
         do {
-            try process.run()
-        } catch {
-            try? outputHandle.close()
-            throw error
+            outcome = try await SupervisedProcess.run(
+                executable: executable,
+                arguments: arguments,
+                environment: environment,
+                timeout: timeout
+            )
+        } catch let error as SupervisedProcess.LaunchError {
+            throw error.underlying
         }
-        return try await withTaskCancellationHandler {
-            try await withThrowingTaskGroup(of: String.self) { group in
-                group.addTask {
-                    process.waitUntilExit()
-                    try? outputHandle.close()
-                    try Task.checkCancellation()
-                    let data = (try? Data(contentsOf: outputURL)) ?? Data()
-                    let output = String(decoding: data, as: UTF8.self)
-                    guard process.terminationStatus == 0 else {
-                        let message = output.trimmingCharacters(in: .whitespacesAndNewlines)
-                        throw ModelInstallationError.commandFailed(message.isEmpty ? "Command failed." : message)
-                    }
-                    return output
-                }
-                group.addTask {
-                    try await Task.sleep(for: self.timeout)
-                    if process.isRunning { process.terminate() }
-                    throw ModelInstallationError.commandFailed("Command timed out.")
-                }
-                guard let result = try await group.next() else { throw CancellationError() }
-                group.cancelAll()
-                return result
-            }
-        } onCancel: {
-            if process.isRunning {
-                process.terminate()
-            }
+        // stdout and stderr are captured separately; concatenate for the
+        // error message so callers see the full context, matching the
+        // previous behaviour of a merged log file.
+        var combined = outcome.stdout
+        combined.append(outcome.stderr)
+        let output = String(decoding: combined, as: UTF8.self)
+        switch outcome.termination {
+        case .exited(0):
+            return output
+        case .exited:
+            let message = output.trimmingCharacters(in: .whitespacesAndNewlines)
+            throw ModelInstallationError.commandFailed(message.isEmpty ? "Command failed." : message)
+        case .terminatedByTimeout:
+            throw ModelInstallationError.commandFailed("Command timed out.")
+        case .terminatedByCancellation:
+            throw CancellationError()
         }
     }
 }
