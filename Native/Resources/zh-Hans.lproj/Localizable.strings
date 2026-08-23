@@ -266,6 +266,7 @@
 "capsule.inserting" = "正在插入文本…";
 "capsule.success" = "准备就绪";
 "capsule.failed" = "听写失败";
+"capsule.cancelled" = "已取消";
 "capsule.currentApplication" = "当前应用";
 "processing.translationRequiresCleanup" = "翻译依赖文字整理，开启翻译会同时启用文字整理。";
 "hotkey.capture.requiresModifier" = "请使用带修饰键的组合（如 ⌘⇧D）或功能键。";

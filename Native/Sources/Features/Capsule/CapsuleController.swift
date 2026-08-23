@@ -200,14 +200,20 @@ final class CapsuleController {
         }
     }
 
-    // D8: 相位 → VoiceOver 通告文案 key；nil 表示该相位不通告。
+    // D8 / P3-3: 相位 → VoiceOver 通告文案 key。除 `.idle` 外每个相位都必须返回一个已本地化的
+    // key，让 VoiceOver 用户在每个可见阶段都收到语音反馈；`switch` 覆盖所有 `DictationPhase` 情况
+    // 且不使用 `default`，因此新增相位会被 Swift 编译器强制要求补齐映射。
     static func announcementKey(for phase: DictationPhase) -> String? {
         switch phase {
+        case .idle: nil
+        case .preparing: "capsule.preparing"
         case .recording: "capsule.listening"
         case .stopping, .finalizing: "capsule.transcribing"
+        case .processing: "capsule.polishing"
+        case .inserting: "capsule.inserting"
         case .completed: "capsule.success"
+        case .cancelled: "capsule.cancelled"
         case .failed: "capsule.failed"
-        default: nil
         }
     }
 

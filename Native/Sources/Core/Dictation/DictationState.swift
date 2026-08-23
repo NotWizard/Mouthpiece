@@ -1,6 +1,6 @@
 import Foundation
 
-enum DictationPhase: String, Codable, Sendable {
+enum DictationPhase: String, Codable, Sendable, CaseIterable {
     case idle
     case preparing
     case recording

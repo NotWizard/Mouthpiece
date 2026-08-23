@@ -494,16 +494,44 @@ final class DictationCoordinatorTests: XCTestCase {
         XCTAssertEqual(strandedLocalCalls, 0, "A disabled local fallback must never be invoked")
     }
 
-    // D8: the VoiceOver announcement mapping is a pure phase -> key table;
-    // phases outside the announced set must stay silent (nil).
+    // D8 / P3-3: the VoiceOver announcement mapping must cover every non-idle
+    // phase with a non-nil localized key so screen-reader users hear feedback
+    // for every visible capsule state. `.idle` stays silent so the announcement
+    // is not re-fired when a session ends and the capsule dismisses.
     func testCapsuleAnnouncementKeysCoverExactlyTheAnnouncedPhases() {
+        XCTAssertNil(CapsuleController.announcementKey(for: .idle), "idle must not announce")
+        XCTAssertEqual(CapsuleController.announcementKey(for: .preparing), "capsule.preparing")
         XCTAssertEqual(CapsuleController.announcementKey(for: .recording), "capsule.listening")
         XCTAssertEqual(CapsuleController.announcementKey(for: .stopping), "capsule.transcribing")
         XCTAssertEqual(CapsuleController.announcementKey(for: .finalizing), "capsule.transcribing")
+        XCTAssertEqual(CapsuleController.announcementKey(for: .processing), "capsule.polishing")
+        XCTAssertEqual(CapsuleController.announcementKey(for: .inserting), "capsule.inserting")
         XCTAssertEqual(CapsuleController.announcementKey(for: .completed), "capsule.success")
+        XCTAssertEqual(CapsuleController.announcementKey(for: .cancelled), "capsule.cancelled")
         XCTAssertEqual(CapsuleController.announcementKey(for: .failed), "capsule.failed")
-        for silent in [DictationPhase.idle, .preparing, .processing, .inserting, .cancelled] {
-            XCTAssertNil(CapsuleController.announcementKey(for: silent), "\(silent) must not announce")
+    }
+
+    // P3-3: iteration-based backstop — any future `DictationPhase` case that
+    // forgets to add an announcement key (or a localization) fails here
+    // regardless of whether the pinned test above is updated.
+    func testEveryNonIdlePhaseHasAnnouncement() {
+        for phase in DictationPhase.allCases {
+            let key = CapsuleController.announcementKey(for: phase)
+            if phase == .idle {
+                XCTAssertNil(key, "\(phase) must not announce")
+                continue
+            }
+            guard let key else {
+                XCTFail("\(phase) must map to a non-nil announcement key")
+                continue
+            }
+            for language in [UILanguage.english, .simplifiedChinese, .traditionalChinese] {
+                let localized = AppLocalization.string(key, language: language)
+                XCTAssertFalse(
+                    localized.isEmpty || localized == key,
+                    "\(phase) key \(key) missing localization for \(language)"
+                )
+            }
         }
     }
 
