@@ -85,6 +85,41 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertFalse(LocalModelInstallationService.parakeetModelIsComplete(root))
     }
 
+    func testBinaryResolutionRejectsPathsOutsideBundle() throws {
+        // Audit P1-9: user-writable candidates must never precede a bundle
+        // candidate. HEAD inserted qwen legacy-cache at index 0; this
+        // order assertion would fail against HEAD for provider = .qwen.
+        for provider in LocalTranscriptionProvider.allCases {
+            let candidates = LocalModelRuntime.binaryCandidateURLs(for: provider)
+            XCTAssertFalse(candidates.isEmpty, "\(provider) yielded no candidates")
+            var seenDev = false
+            for candidate in candidates {
+                if LocalModelRuntime.isBinaryInsideMainBundle(candidate) {
+                    XCTAssertFalse(seenDev, "Bundle candidate after dev for \(provider): \(candidate.path)")
+                } else {
+                    seenDev = true
+                }
+            }
+        }
+        // Force release policy from DEBUG: every candidate must be inside Bundle.main.
+        let previous = LocalModelRuntime.testForceBundleOnly
+        LocalModelRuntime.testForceBundleOnly = true
+        defer { LocalModelRuntime.testForceBundleOnly = previous }
+        for provider in LocalTranscriptionProvider.allCases {
+            for candidate in LocalModelRuntime.binaryCandidateURLs(for: provider) {
+                XCTAssertTrue(
+                    LocalModelRuntime.isBinaryInsideMainBundle(candidate),
+                    "Release candidate outside bundle: \(candidate.path)"
+                )
+            }
+        }
+        // Pre-launch containment gate rejects the exact HEAD-priority-0 path.
+        XCTAssertFalse(LocalModelRuntime.isBinaryInsideMainBundle(URL(fileURLWithPath: "/tmp/attacker/mlx-qwen3-asr")))
+        XCTAssertFalse(LocalModelRuntime.isBinaryInsideMainBundle(
+            AppPaths.legacyQwenASRRuntimeDirectory.appendingPathComponent("bin/mlx-qwen3-asr")
+        ))
+    }
+
     override func tearDown() {
         ProviderStubURLProtocol.reset()
         super.tearDown()

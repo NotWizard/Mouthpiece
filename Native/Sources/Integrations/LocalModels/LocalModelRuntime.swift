@@ -4,6 +4,7 @@ import Foundation
 
 enum LocalModelRuntimeError: LocalizedError, Equatable {
     case binaryMissing(String)
+    case binaryVerificationFailed(URL)
     case modelMissing(String)
     case unsupported(String)
     case noAvailablePort(ClosedRange<Int>)
@@ -14,6 +15,8 @@ enum LocalModelRuntimeError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .binaryMissing(let name): "Required local runtime is missing: \(name)."
+        case .binaryVerificationFailed(let url):
+            "Refusing to launch local model binary from outside the app bundle: \(url.path)."
         case .modelMissing(let name): "Local model is not downloaded: \(name)."
         case .unsupported(let reason): reason
         case .noAvailablePort(let range): "No local server port is available in \(range)."
@@ -171,7 +174,7 @@ actor LocalModelRuntime {
         if let whisper, whisper.process.isRunning, whisper.model == model { return whisper }
         if let whisper { stop(whisper.process) }
         guard let binary = binaryURL(for: .whisper) else {
-            throw LocalModelRuntimeError.binaryMissing(binaryName(for: .whisper))
+            throw LocalModelRuntimeError.binaryMissing(Self.binaryName(for: .whisper))
         }
         let modelURL = modelURL(for: .whisper, model: model)
         guard modelIsValid(provider: .whisper, model: model, url: modelURL) else {
@@ -203,7 +206,7 @@ actor LocalModelRuntime {
         if let parakeet, parakeet.process.isRunning, parakeet.model == model { return parakeet }
         if let parakeet { stop(parakeet.process) }
         guard let binary = binaryURL(for: .parakeet) else {
-            throw LocalModelRuntimeError.binaryMissing(binaryName(for: .parakeet))
+            throw LocalModelRuntimeError.binaryMissing(Self.binaryName(for: .parakeet))
         }
         let modelURL = modelURL(for: .parakeet, model: model)
         guard modelIsValid(provider: .parakeet, model: model, url: modelURL) else {
@@ -238,7 +241,7 @@ actor LocalModelRuntime {
         if let qwen, qwen.process.isRunning, qwen.model == model { return qwen }
         if let qwen { stop(qwen.process) }
         guard let binary = binaryURL(for: .qwen) else {
-            throw LocalModelRuntimeError.binaryMissing(binaryName(for: .qwen))
+            throw LocalModelRuntimeError.binaryMissing(Self.binaryName(for: .qwen))
         }
         let modelURL = modelURL(for: .qwen, model: model)
         guard modelIsValid(provider: .qwen, model: model, url: modelURL) else {
@@ -290,6 +293,22 @@ actor LocalModelRuntime {
         apiKey: String? = nil,
         environment: [String: String]? = nil
     ) throws -> RunningServer {
+        // Pre-launch defence-in-depth (audit P1-9, option 3): refuse any
+        // resolved binary that lives outside Bundle.main.resourceURL. The
+        // release-mode candidate list already excludes such paths so this
+        // is redundant in production, but the redundancy is cheap and
+        // catches any future regression that reintroduces a writable
+        // candidate. In DEBUG the check is off by default so engineers
+        // can iterate against locally-built model servers; a unit test
+        // flips `testForceBundleOnly` to exercise the release policy.
+#if DEBUG
+        let enforceContainment = Self.testForceBundleOnly
+#else
+        let enforceContainment = true
+#endif
+        if enforceContainment, !Self.isBinaryInsideMainBundle(executable) {
+            throw LocalModelRuntimeError.binaryVerificationFailed(executable)
+        }
         let process = Process()
         process.executableURL = executable
         process.arguments = arguments
@@ -449,31 +468,104 @@ actor LocalModelRuntime {
     }
 
     private func binaryURL(for provider: LocalTranscriptionProvider) -> URL? {
-        let name = binaryName(for: provider)
-        var candidates = [
-            Bundle.main.resourceURL?.appendingPathComponent("bin/\(name)"),
-            Bundle.main.resourceURL?.appendingPathComponent("Binaries/\(runtimeDirectory(for: provider))/\(name)"),
-            Bundle.main.resourceURL?.appendingPathComponent(name),
-            AppPaths.applicationSupportDirectory.appendingPathComponent("bin/\(name)"),
-            URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("resources/bin/\(name)"),
-        ].compactMap { $0 }
-        if provider == .qwen {
-            candidates.insert(
-                AppPaths.legacyQwenASRRuntimeDirectory.appendingPathComponent("bin/\(name)"),
-                at: 0
-            )
-            candidates.insert(
-                AppPaths.qwenASRRuntimeDirectory.appendingPathComponent("bin/\(name)"),
-                at: 0
-            )
+        Self.binaryCandidateURLs(for: provider).first {
+            fileManager.isExecutableFile(atPath: $0.path)
         }
-        if provider == .whisper {
-            candidates.append(contentsOf: candidates.map { $0.deletingLastPathComponent().appendingPathComponent("whisper-server") })
-        }
-        return candidates.first { fileManager.isExecutableFile(atPath: $0.path) }
     }
 
-    private func runtimeDirectory(for provider: LocalTranscriptionProvider) -> String {
+    // MARK: - Binary resolution (audit P1-9 defence-in-depth)
+
+    /// Enumerates the search order for a model-server binary. Bundle
+    /// candidates ALWAYS come first; user-writable development paths only
+    /// exist in `#if DEBUG` builds so a release-build attacker who can write
+    /// to Application Support / the working directory / the legacy qwen
+    /// runtime cache cannot preempt the shipped binary and inherit the
+    /// Microphone + Accessibility TCC grants (plus
+    /// `disable-library-validation`). Nonisolated so unit tests can inspect
+    /// the resolution order without spinning up the actor.
+    nonisolated static func binaryCandidateURLs(
+        for provider: LocalTranscriptionProvider,
+        bundle: Bundle = .main
+    ) -> [URL] {
+        let name = binaryName(for: provider)
+        var bundleCandidates: [URL] = []
+        if let resourceURL = bundle.resourceURL {
+            bundleCandidates.append(resourceURL.appendingPathComponent("bin/\(name)"))
+            bundleCandidates.append(
+                resourceURL
+                    .appendingPathComponent("Binaries/\(runtimeDirectory(for: provider))/\(name)")
+            )
+            bundleCandidates.append(resourceURL.appendingPathComponent(name))
+        }
+        var developmentCandidates: [URL] = []
+#if DEBUG
+        if !testForceBundleOnly {
+            // Development-only: engineers can point at a locally-built
+            // model server without repacking Mouthpiece.app. These paths
+            // are user-writable so RELEASE builds MUST NOT reach them —
+            // the entire block is compiled out. In DEBUG a test seam
+            // (`testForceBundleOnly`) can force the release policy so the
+            // regression test asserts the same shape production ships.
+            if provider == .qwen {
+                developmentCandidates.append(
+                    AppPaths.qwenASRRuntimeDirectory.appendingPathComponent("bin/\(name)")
+                )
+                developmentCandidates.append(
+                    AppPaths.legacyQwenASRRuntimeDirectory.appendingPathComponent("bin/\(name)")
+                )
+            }
+            developmentCandidates.append(
+                AppPaths.applicationSupportDirectory.appendingPathComponent("bin/\(name)")
+            )
+            developmentCandidates.append(
+                URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+                    .appendingPathComponent("resources/bin/\(name)")
+            )
+        }
+#endif
+        if provider == .whisper {
+            // Legacy whisper.cpp builds shipped a bare `whisper-server`
+            // binary; check the alias next to every real candidate.
+            bundleCandidates.append(contentsOf: bundleCandidates.map {
+                $0.deletingLastPathComponent().appendingPathComponent("whisper-server")
+            })
+            developmentCandidates.append(contentsOf: developmentCandidates.map {
+                $0.deletingLastPathComponent().appendingPathComponent("whisper-server")
+            })
+        }
+        return bundleCandidates + developmentCandidates
+    }
+
+    /// True when `url` resolves to a path inside `bundle.resourceURL`. Used
+    /// as the release-mode candidate filter AND the pre-launch containment
+    /// check. Chosen over a full `SecStaticCode` + requirement chain
+    /// (option 2 of the audit) because the app is self-signed and
+    /// unnotarised — there is no stable Team ID to pin, and the model
+    /// servers are separately-built binaries whose cdhash differs from the
+    /// host's. Structural path containment is the decisive gain here.
+    nonisolated static func isBinaryInsideMainBundle(
+        _ url: URL,
+        bundle: Bundle = .main
+    ) -> Bool {
+        guard let resourceURL = bundle.resourceURL?.standardizedFileURL else { return false }
+        let base = resourceURL.path
+        let target = url.standardizedFileURL.path
+        // The trailing "/" prevents a sibling path that only prefixes the
+        // resource-URL string (e.g. `.../Contents/Resources.evil/...`) from
+        // sneaking through.
+        return target == base || target.hasPrefix(base + "/")
+    }
+
+#if DEBUG
+    /// Test-only seam. When `true`, `binaryCandidateURLs(for:)` behaves as
+    /// in a release build (bundle candidates only) and `launch(...)`
+    /// enforces the pre-launch containment check. Production code never
+    /// touches this — flipping it in a release build has no effect because
+    /// the whole `#if DEBUG` block is absent.
+    nonisolated(unsafe) static var testForceBundleOnly: Bool = false
+#endif
+
+    private nonisolated static func runtimeDirectory(for provider: LocalTranscriptionProvider) -> String {
         switch provider {
         case .whisper: "whisper"
         case .parakeet: "parakeet"
@@ -481,7 +573,7 @@ actor LocalModelRuntime {
         }
     }
 
-    private func binaryName(for provider: LocalTranscriptionProvider) -> String {
+    private nonisolated static func binaryName(for provider: LocalTranscriptionProvider) -> String {
 #if arch(arm64)
         let architecture = "arm64"
 #else
