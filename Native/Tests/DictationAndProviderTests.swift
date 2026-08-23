@@ -1,4 +1,5 @@
 import ApplicationServices
+import CryptoKit
 import SwiftUI
 import XCTest
 @testable import Mouthpiece
@@ -84,6 +85,66 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertTrue(LocalModelInstallationService.parakeetModelIsComplete(root))
         try Data().write(to: root.appendingPathComponent("decoder.int8.onnx"))
         XCTAssertFalse(LocalModelInstallationService.parakeetModelIsComplete(root))
+    }
+    }
+
+    func testTruncatedDownloadRejectedExistingModelSurvives() throws {
+        // Audit P2-12: a truncated download with a wrong pinned SHA-256
+        // must not delete a pre-existing good model. The atomic-replace
+        // helper streams SHA-256, throws on mismatch, and relies on
+        // `FileManager.replaceItemAt` for the actual swap so the existing
+        // file survives until the rename succeeds.
+        let workspace = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Mouthpiece-Atomic-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: workspace, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: workspace) }
+
+        let destination = workspace.appendingPathComponent("model.bin")
+        let existingBytes = Data("existing".utf8)
+        try existingBytes.write(to: destination)
+
+        let temp = workspace.appendingPathComponent("staging.bin")
+        let truncated = Data("truncated".utf8)
+        try truncated.write(to: temp)
+
+        // Sixty-four zeros — a syntactically valid SHA-256 digest that
+        // cannot match any non-trivial payload, so the mismatch branch
+        // fires deterministically.
+        let wrongHash = String(repeating: "0", count: 64)
+
+        do {
+            try LocalModelInstallationService.atomicallyReplaceItem(
+                at: destination,
+                withItemAt: temp,
+                expectedSHA256: wrongHash
+            )
+            XCTFail("Expected checksumMismatch to throw")
+        } catch ModelInstallationError.checksumMismatch {
+            // expected
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        // Destination unchanged — the audit's core assertion.
+        XCTAssertEqual(try Data(contentsOf: destination), existingBytes)
+        // Temp file cleaned up on the error path (defer in the helper).
+        XCTAssertFalse(FileManager.default.fileExists(atPath: temp.path))
+
+        // Positive case: with the matching hash, the helper swaps the
+        // destination and consumes the temp file. Independent hash via
+        // CryptoKit's one-shot `SHA256.hash(data:)` avoids the tautology
+        // of using the service's own streamingSHA256 to verify itself.
+        try truncated.write(to: temp)
+        let correctHash = SHA256.hash(data: truncated)
+            .map { String(format: "%02x", $0) }
+            .joined()
+        try LocalModelInstallationService.atomicallyReplaceItem(
+            at: destination,
+            withItemAt: temp,
+            expectedSHA256: correctHash
+        )
+        XCTAssertEqual(try Data(contentsOf: destination), truncated)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: temp.path))
     }
 
     func testBinaryResolutionRejectsPathsOutsideBundle() throws {

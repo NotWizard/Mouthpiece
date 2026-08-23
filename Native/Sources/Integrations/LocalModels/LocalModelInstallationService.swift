@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 enum ModelInstallationState: Equatable, Sendable {
@@ -10,6 +11,7 @@ enum ModelInstallationState: Equatable, Sendable {
 enum ModelInstallationError: LocalizedError {
     case unknownModel
     case invalidDownload
+    case checksumMismatch(expected: String, actual: String)
     case pythonMissing
     case commandFailed(String)
     case unsupported
@@ -19,6 +21,8 @@ enum ModelInstallationError: LocalizedError {
         switch self {
         case .unknownModel: "The selected local model is not supported."
         case .invalidDownload: "The downloaded model failed validation."
+        case .checksumMismatch(let expected, let actual):
+            "Downloaded model checksum did not match (expected \(expected), got \(actual))."
         case .pythonMissing: "Python 3.10 or newer is required to install Qwen ASR MLX."
         case .commandFailed(let message): message
         case .unsupported: "Qwen ASR MLX requires an Apple Silicon Mac."
@@ -125,6 +129,59 @@ actor LocalModelInstallationService {
         }
     }
 
+    /// Verifies `temp` against the pinned SHA-256 (when provided) then
+    /// atomically replaces `destination` with it via
+    /// `FileManager.replaceItemAt`. The pre-existing file at `destination`
+    /// stays intact until the rename succeeds, so a truncated download
+    /// cannot delete a good local model. On mismatch or any thrown error
+    /// the temp file is removed so `NSTemporaryDirectory()` does not
+    /// accumulate half-downloads (audit P2-12).
+    nonisolated static func atomicallyReplaceItem(
+        at destination: URL,
+        withItemAt temp: URL,
+        expectedSHA256: String?,
+        fileManager: FileManager = .default
+    ) throws {
+        var tempConsumed = false
+        defer {
+            if !tempConsumed {
+                try? fileManager.removeItem(at: temp)
+            }
+        }
+
+        if let expected = expectedSHA256 {
+            let actual = try streamingSHA256(of: temp)
+            guard actual.caseInsensitiveCompare(expected) == .orderedSame else {
+                throw ModelInstallationError.checksumMismatch(expected: expected, actual: actual)
+            }
+        }
+
+        try fileManager.createDirectory(
+            at: destination.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+
+        if fileManager.fileExists(atPath: destination.path) {
+            _ = try fileManager.replaceItemAt(destination, withItemAt: temp)
+        } else {
+            try fileManager.moveItem(at: temp, to: destination)
+        }
+        tempConsumed = true
+    }
+
+    /// Streams SHA-256 over `url` in 1 MiB chunks so a multi-GB model is
+    /// never materialised in memory. Returns the lowercase hex digest.
+    nonisolated static func streamingSHA256(of url: URL) throws -> String {
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        var hasher = SHA256()
+        let chunkSize = 1_048_576
+        while let chunk = try handle.read(upToCount: chunkSize), !chunk.isEmpty {
+            hasher.update(data: chunk)
+        }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+    }
+
     func install(
         provider: LocalTranscriptionProvider,
         model: String,
@@ -189,11 +246,20 @@ actor LocalModelInstallationService {
                   expectedSizeBytes: descriptor.expectedSizeBytes,
                   fileManager: fileManager
               ) else {
+            try? fileManager.removeItem(at: temporary)
             throw ModelInstallationError.invalidDownload
         }
         let destination = whisperURL(descriptor)
-        try? fileManager.removeItem(at: destination)
-        try fileManager.moveItem(at: temporary, to: destination)
+        // Atomic replace: preserves the pre-existing good model until the
+        // rename succeeds. `expectedSHA256` is nil because no whisper.cpp
+        // descriptor currently pins a hash; when a pin lands the helper
+        // will stream-verify before the swap (audit P2-12).
+        try Self.atomicallyReplaceItem(
+            at: destination,
+            withItemAt: temporary,
+            expectedSHA256: nil,
+            fileManager: fileManager
+        )
     }
 
     private func installParakeet(
