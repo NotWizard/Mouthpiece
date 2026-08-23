@@ -397,6 +397,45 @@ final class DictationAndProviderTests: XCTestCase {
         ))
     }
 
+    func testModifierOnlyReleaseObservedWhenSameModifierHeldOnOtherSide() {
+        // Right Command is the default push-to-talk key. Holding Left Command
+        // (keyCode 55) while tapping Right Command (keyCode 54) leaves
+        // `.maskCommand` set in the release event's aggregate flags, so the
+        // pre-fix mask-only check kept `pressed` stuck at true forever. The
+        // helper must fall back to the physical keyCode down-state to decide.
+        let descriptor = HotkeyDescriptor.parse("RightCommand")
+        XCTAssertTrue(descriptor.modifierOnly)
+
+        // Regression case: mask still contains .maskCommand from the held left
+        // Cmd, but the right Cmd physical key is already up.
+        XCTAssertFalse(HotkeyService.modifierOnlyPressedState(
+            flags: .maskCommand,
+            mask: descriptor.modifiers,
+            physicalKeyDown: false
+        ))
+
+        // Positive case: both the aggregate mask and the physical key agree.
+        XCTAssertTrue(HotkeyService.modifierOnlyPressedState(
+            flags: .maskCommand,
+            mask: descriptor.modifiers,
+            physicalKeyDown: true
+        ))
+
+        // Guard against noise on unrelated flags: mask must still be a
+        // necessary condition, so a stray physical-down without the modifier
+        // bit must not report pressed.
+        XCTAssertFalse(HotkeyService.modifierOnlyPressedState(
+            flags: [],
+            mask: descriptor.modifiers,
+            physicalKeyDown: true
+        ))
+        XCTAssertFalse(HotkeyService.modifierOnlyPressedState(
+            flags: .maskShift,
+            mask: descriptor.modifiers,
+            physicalKeyDown: true
+        ))
+    }
+
     func testRealtimeProviderErrorsNameTheFailingProvider() {
         // Deepgram/AssemblyAI used to borrow BailianRealtimeError and surface
         // "Alibaba Bailian" in their failure messages.
