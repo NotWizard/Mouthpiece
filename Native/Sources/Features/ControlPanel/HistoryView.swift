@@ -146,6 +146,11 @@ private struct HistoryCard: View {
                 Spacer()
                 Button(role: .destructive, action: onDelete) {
                     Image(systemName: "trash")
+                        .frame(
+                            minWidth: SettingsControlMetrics.minIconHitTarget,
+                            minHeight: SettingsControlMetrics.minIconHitTarget
+                        )
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .help("common.delete")
@@ -204,6 +209,11 @@ private struct HistoryCard: View {
                 Spacer()
                 Button(action: onCopy) {
                     Image(systemName: "doc.on.doc")
+                        .frame(
+                            minWidth: SettingsControlMetrics.minIconHitTarget,
+                            minHeight: SettingsControlMetrics.minIconHitTarget
+                        )
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .help(copyLabel)

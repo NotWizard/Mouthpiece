@@ -254,6 +254,18 @@ final class DictationAndProviderTests: XCTestCase {
         )
     }
 
+    // 审计 P3-2：ControlPanel / History / Onboarding 里的小图标按钮统一走
+    // `SettingsControlMetrics.minIconHitTarget` 一个常量决定 44×44 pt 命中区，
+    // 这里钉住这个常量不得低于 Apple HIG 的 44 pt 最小推荐值——任何未来把它
+    // 调小到 44 以下的改动都会当场失败，避免各站点回归到裸 Image 大小。
+    func testIconButtonHitTargetMeetsAppleHIGMinimum() {
+        XCTAssertGreaterThanOrEqual(
+            SettingsControlMetrics.minIconHitTarget,
+            44,
+            "SettingsControlMetrics.minIconHitTarget 必须 >= Apple HIG 44 pt (audit P3-2)"
+        )
+    }
+
     func testStateMachineRejectsStaleSessionEvents() throws {
         var machine = DictationStateMachine()
         let sessionID = UUID()

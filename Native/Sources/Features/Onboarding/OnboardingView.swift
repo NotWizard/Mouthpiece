@@ -648,6 +648,11 @@ struct OnboardingView: View {
                 environment.dismissStartupError()
             } label: {
                 Image(systemName: "xmark")
+                    .frame(
+                        minWidth: SettingsControlMetrics.minIconHitTarget,
+                        minHeight: SettingsControlMetrics.minIconHitTarget
+                    )
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help("common.close")

@@ -3,6 +3,11 @@ import SwiftUI
 
 enum SettingsControlMetrics {
     static let configurationFieldWidth: CGFloat = 280
+    // Apple HIG recommends a minimum 44×44 pt hit target for reliable pointer/touch
+    // input; every plain-styled icon button in ControlPanel/History/Onboarding routes
+    // its `.frame(minWidth:minHeight:) + .contentShape(Rectangle())` through this
+    // constant so the P3-2 regression test can pin the floor with a single seam.
+    static let minIconHitTarget: CGFloat = 44
 }
 
 struct SettingsPage<Content: View>: View {

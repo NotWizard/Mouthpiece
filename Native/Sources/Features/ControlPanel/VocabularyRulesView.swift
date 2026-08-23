@@ -146,11 +146,21 @@ private struct EditableTermRow: View {
                 if isEditing { commit() } else { isEditing = true }
             } label: {
                 Image(systemName: isEditing ? "checkmark" : "pencil")
+                    .frame(
+                        minWidth: SettingsControlMetrics.minIconHitTarget,
+                        minHeight: SettingsControlMetrics.minIconHitTarget
+                    )
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help(isEditing ? "common.done" : "common.edit")
             Button(action: onDelete) {
                 Image(systemName: "trash")
+                    .frame(
+                        minWidth: SettingsControlMetrics.minIconHitTarget,
+                        minHeight: SettingsControlMetrics.minIconHitTarget
+                    )
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help("common.delete")
