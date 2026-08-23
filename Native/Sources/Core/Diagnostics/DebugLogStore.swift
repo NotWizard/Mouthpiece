@@ -14,8 +14,10 @@ actor DebugLogStore {
     private let fileManager: FileManager
     private let retention: TimeInterval
     private let maximumFiles: Int
+    private let maximumFileBytes: Int
     private var fileURL: URL?
     private var fileHandle: FileHandle?
+    private var bytesWritten: Int = 0
     private var lastPruneDate: Date?
     private var enabled: Bool
 
@@ -24,13 +26,15 @@ actor DebugLogStore {
         directory: URL = AppPaths.logsDirectory,
         fileManager: FileManager = .default,
         retention: TimeInterval = 7 * 24 * 60 * 60,
-        maximumFiles: Int = 20
+        maximumFiles: Int = 20,
+        maximumFileBytes: Int = 4 * 1024 * 1024
     ) {
         self.enabled = enabled
         self.directory = directory
         self.fileManager = fileManager
         self.retention = retention
         self.maximumFiles = maximumFiles
+        self.maximumFileBytes = maximumFileBytes
     }
 
     func setEnabled(_ value: Bool) {
@@ -39,6 +43,7 @@ actor DebugLogStore {
             try? fileHandle?.close()
             fileHandle = nil
             fileURL = nil
+            bytesWritten = 0
         }
     }
 
@@ -74,8 +79,10 @@ actor DebugLogStore {
             encoder.dateEncodingStrategy = .iso8601
             var data = try encoder.encode(payload)
             data.append(0x0A)
+            try rollActiveFileIfNeeded(pendingBytes: data.count, now: now)
             guard let fileHandle else { return }
             try fileHandle.write(contentsOf: data)
+            bytesWritten += data.count
         } catch {
             logger.error("Failed to write debug log: \(error.localizedDescription, privacy: .public)")
         }
@@ -116,10 +123,44 @@ actor DebugLogStore {
             let url = directory.appendingPathComponent("debug-\(name).log")
             fileManager.createFile(atPath: url.path, contents: nil)
             let handle = try FileHandle(forWritingTo: url)
-            try handle.seekToEnd()
+            let end = try handle.seekToEnd()
             fileURL = url
             fileHandle = handle
+            bytesWritten = Int(end)
         }
+    }
+
+    // P2-11: cap the active file at `maximumFileBytes` (default ~4 MB). Menu-bar
+    // apps run for weeks; without this the single active file grew unbounded
+    // because `prune()` only ever deletes NON-active files.
+    private func rollActiveFileIfNeeded(pendingBytes: Int, now: Date) throws {
+        guard let handle = fileHandle, let url = fileURL else { return }
+        // Skip when the file is still empty: rolling an empty file cannot
+        // satisfy an oversize single record and would just spin.
+        guard bytesWritten > 0, bytesWritten + pendingBytes > maximumFileBytes else { return }
+        try handle.close()
+        let archive = uniqueArchiveURL(for: url)
+        try fileManager.moveItem(at: url, to: archive)
+        fileHandle = nil
+        fileURL = nil
+        bytesWritten = 0
+        try prepareIfNeeded(now: now)
+    }
+
+    // Rename target has a `-rolled` suffix so the next `prepareIfNeeded` can
+    // safely reopen the same `debug-<ts>.log` path even inside the same
+    // ISO-8601 second (busy bursts / tests). A numeric suffix breaks
+    // sub-second collisions between multiple rolls.
+    private func uniqueArchiveURL(for active: URL) -> URL {
+        let base = active.deletingPathExtension().lastPathComponent
+        let dir = active.deletingLastPathComponent()
+        var candidate = dir.appendingPathComponent("\(base)-rolled.log")
+        var seq = 1
+        while fileManager.fileExists(atPath: candidate.path) {
+            candidate = dir.appendingPathComponent("\(base)-rolled-\(seq).log")
+            seq += 1
+        }
+        return candidate
     }
 }
 

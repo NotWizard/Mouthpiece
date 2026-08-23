@@ -388,7 +388,7 @@ final class AppEnvironment: ObservableObject {
             self.history = history
             let logger = DebugLogStore(enabled: settings.debugLoggingEnabled)
             self.logger = logger
-            try await logger.prune()
+            try? await logger.prune()
             try ensureInitializationCanContinue()
             // F1: 启动打开库后执行一次历史保留清理；失败仅记日志，不阻断初始化。
             do {

@@ -1,4 +1,5 @@
 import Foundation
+import Security
 import XCTest
 @testable import Mouthpiece
 
@@ -268,6 +269,70 @@ final class PersistenceTests: XCTestCase {
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: expired.path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: current.path))
+    }
+
+    // P2-11: prune() only deletes non-active files, so on HEAD the active
+    // debug log grows without bound. Post-fix, DebugLogStore tracks bytes and
+    // rolls the active file at ~4 MB (configurable). This test uses a small
+    // 256 KB threshold to stay fast, writes ~500 KB of records, and asserts
+    // that at least one archive was produced, the archive is still readable
+    // JSON, and the active file starts fresh below the threshold.
+    func testLogFileRollsOverAtSizeThreshold() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Mouthpiece-LogRoll-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let threshold = 256 * 1024
+        let store = DebugLogStore(
+            enabled: true,
+            directory: directory,
+            maximumFileBytes: threshold
+        )
+        let payload = String(repeating: "A", count: 1000)
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        for index in 0 ..< 400 {
+            await store.write(
+                .info,
+                "\(index):\(payload)",
+                now: start.addingTimeInterval(Double(index) * 0.001)
+            )
+        }
+
+        let files = try FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.fileSizeKey],
+            options: [.skipsHiddenFiles]
+        ).filter { $0.lastPathComponent.hasPrefix("debug-") && $0.pathExtension == "log" }
+        XCTAssertGreaterThan(
+            files.count, 1,
+            "Roll should have produced at least one archive plus a fresh active file"
+        )
+
+        let archives = files.filter { $0.lastPathComponent.contains("-rolled") }
+        let active = files.filter { !$0.lastPathComponent.contains("-rolled") }
+        XCTAssertFalse(archives.isEmpty, "Expected at least one -rolled archive")
+        XCTAssertEqual(active.count, 1, "Exactly one active (non-rolled) file expected")
+
+        let archive = archives.sorted { $0.lastPathComponent < $1.lastPathComponent }[0]
+        let archiveData = try Data(contentsOf: archive)
+        let archiveString = String(data: archiveData, encoding: .utf8) ?? ""
+        XCTAssertTrue(
+            archiveString.contains(payload),
+            "Archive must retain original log payloads"
+        )
+        let firstLine = archiveString.split(separator: "\n").first.map(String.init) ?? ""
+        let decoded = try? JSONSerialization.jsonObject(with: Data(firstLine.utf8)) as? [String: Any]
+        XCTAssertNotNil(decoded, "First archived line must be valid JSON")
+        XCTAssertEqual(decoded?["level"] as? String, "info")
+
+        if let activeURL = active.first {
+            let size = (try FileManager.default.attributesOfItem(atPath: activeURL.path)[.size] as? Int) ?? 0
+            XCTAssertLessThan(
+                size, threshold,
+                "Active file must start fresh under the threshold"
+            )
+        }
     }
 
     // E4(2): the round trip runs against a unique per-test service name, so it
