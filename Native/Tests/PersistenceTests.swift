@@ -18,6 +18,111 @@ final class PersistenceTests: XCTestCase {
         XCTAssertEqual(defaults.data(forKey: "native.settings.v1"), garbage)
     }
 
+    // P2-8: pre-fix, a single wrong-typed field (e.g. `translationHotkeySuffix`
+    // stored as a JSON number where AppSettings expects a String) made
+    // JSONDecoder fail atomically and reverted EVERY field to AppSettings()
+    // defaults — a user with a single corrupted field silently lost every
+    // other preference on next launch. The two-pass decode now keeps every
+    // field whose stored JSON type matches the default's type and defaults
+    // only the mismatched leaves, and the pre-corruption bytes are archived
+    // under `native.settings.v1.corrupt.<epoch>` for later inspection.
+    @MainActor
+    func testSingleBadFieldKeepsOtherFields() throws {
+        let suite = "MouthpieceTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        // Start from a valid encoded AppSettings blob and mutate two top-level
+        // fields: one well-typed change we expect to survive
+        // (`dictationKey = "LeftCommand"` — valid per HotkeyDescriptor and
+        // different from the default `"RightCommand"` so the assertion is not
+        // trivially satisfied by the fallback path) and one type mismatch
+        // (`translationHotkeySuffix = 42` where a String is expected).
+        var stored = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(AppSettings())) as? [String: Any]
+        )
+        stored["dictationKey"] = "LeftCommand"
+        stored["translationHotkeySuffix"] = 42
+        let originalBlob = try JSONSerialization.data(withJSONObject: stored)
+        defaults.set(originalBlob, forKey: "native.settings.v1")
+
+        let repository = SettingsRepository(defaults: defaults)
+        XCTAssertFalse(
+            repository.loadFailed,
+            "Partial corruption must be recoverable — loadFailed should stay false"
+        )
+        let loaded = repository.load()
+        XCTAssertEqual(
+            loaded.dictationKey, "LeftCommand",
+            "Well-typed field survives the tolerant fallback (would be 'RightCommand' pre-fix)"
+        )
+        XCTAssertEqual(
+            loaded.translationHotkeySuffix,
+            TranslationHotkey.defaultSuffix,
+            "Type-mismatched field falls back to its default value"
+        )
+
+        // The pre-corruption bytes are archived so support can inspect them
+        // even after the next save() overwrites the primary key.
+        let corruptKeys = defaults.dictionaryRepresentation().keys
+            .filter { $0.hasPrefix("native.settings.v1.corrupt.") }
+        XCTAssertEqual(
+            corruptKeys.count, 1,
+            "Exactly one backup blob should be recorded on the first tolerant load"
+        )
+        let backupKey = try XCTUnwrap(corruptKeys.first)
+        XCTAssertEqual(defaults.data(forKey: backupKey), originalBlob)
+    }
+
+    // P2-8: a fully unreadable blob (non-JSON) must still surface
+    // loadFailed=true and keep the raw bytes at the primary key (so the
+    // UI's warning can offer manual recovery), AND back them up under the
+    // corrupt-blob prefix so a subsequent save() — which overwrites the
+    // primary key — cannot silently lose the original bytes.
+    @MainActor
+    func testCorruptBlobSurvivesSubsequentSave() throws {
+        let suite = "MouthpieceTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let garbage = Data("not json".utf8)
+        defaults.set(garbage, forKey: "native.settings.v1")
+
+        let repository = SettingsRepository(defaults: defaults)
+        XCTAssertTrue(repository.loadFailed)
+        XCTAssertEqual(
+            defaults.data(forKey: "native.settings.v1"), garbage,
+            "The raw corrupt blob must be preserved at the primary key for manual recovery"
+        )
+        let corruptKeys = defaults.dictionaryRepresentation().keys
+            .filter { $0.hasPrefix("native.settings.v1.corrupt.") }
+        let backupKey = try XCTUnwrap(
+            corruptKeys.first,
+            "A backup blob must be written when the strict decode fails"
+        )
+        XCTAssertEqual(defaults.data(forKey: backupKey), garbage)
+
+        // A subsequent save() must cleanly overwrite the primary key. Nothing
+        // from the pre-save garbage should linger in the decoded result.
+        var settings = AppSettings()
+        settings.dictationKey = "LeftCommand"
+        try repository.save(settings)
+        repository.flush()
+
+        let raw = try XCTUnwrap(defaults.data(forKey: "native.settings.v1"))
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: raw)
+        XCTAssertEqual(decoded.dictationKey, "LeftCommand")
+        XCTAssertNotEqual(
+            defaults.data(forKey: "native.settings.v1"), garbage,
+            "save() must overwrite the primary key with fresh JSON"
+        )
+
+        // The corrupt-blob backup remains untouched so support can still see
+        // the original bytes after save().
+        XCTAssertEqual(
+            defaults.data(forKey: backupKey), garbage,
+            "Backup blob must survive subsequent save()s"
+        )
+    }
+
     @MainActor
     func testSettingsRoundTripAndNormalization() throws {
         let suite = "MouthpieceTests.\(UUID().uuidString)"
