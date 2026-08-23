@@ -17,6 +17,67 @@ final class AppEnvironmentTests: XCTestCase {
         XCTAssertTrue(AppEnvironment(bootstrap: false).isReady)
     }
 
+    // P2-13: An activation event (menu-bar toggle click,
+    // NSApplication.didBecomeActive, NSWorkspace.didWake) that fires
+    // AFTER `AppEnvironment.init()` has registered its observers but
+    // BEFORE the async `initialize()` finishes wiring the coordinator,
+    // hotkey callbacks, and hotkey-service `swallowArmed = false`
+    // resets must not mutate any state. Without the isReady guard the
+    // handler would run refreshPermissions() -> updateHotkeyRegistrations(),
+    // starting CGEventTap hotkeys whose HotkeyService.swallowArmed
+    // still defaults to `true` — swallowing user keystrokes with no
+    // handler wired — and populating `microphones` against the not-
+    // yet-initialised state. The test uses the new
+    // `autoMarkReady: false` init parameter to hold the environment at
+    // isReady = false and asserts the deterministic invocation counter
+    // stays at zero (proof the guard short-circuited BEFORE any
+    // handler body executed) plus the observable state (microphones,
+    // hotkey.isRunning, translationHotkey.isRunning,
+    // escapeHotkey.isRunning) all stay at their construction defaults.
+    func testActivationBeforeInitializeDoesNotArmSwallowing() {
+        let env = AppEnvironment(bootstrap: false, autoMarkReady: false)
+        XCTAssertFalse(
+            env.isReady,
+            "autoMarkReady=false must keep isReady=false so pre-init handler paths can be exercised"
+        )
+        XCTAssertEqual(env.recoverSystemIntegrationsInvocationCount, 0)
+        XCTAssertTrue(env.microphones.isEmpty)
+        XCTAssertFalse(env.hotkey.isRunning)
+        XCTAssertFalse(env.translationHotkey.isRunning)
+        XCTAssertFalse(env.escapeHotkey.isRunning)
+
+        // Simulate the NSApplication.didBecomeActive / NSWorkspace.didWake
+        // handler invocation the observers scheduled inside init() would
+        // deliver during the initialize() window.
+        env.recoverSystemIntegrations()
+
+        XCTAssertFalse(
+            env.isReady,
+            "isReady must remain false — only initialize() may flip it"
+        )
+        XCTAssertEqual(
+            env.recoverSystemIntegrationsInvocationCount,
+            0,
+            "Pre-init activation handler must short-circuit on the isReady guard"
+        )
+        XCTAssertTrue(
+            env.microphones.isEmpty,
+            "Pre-init activation handler must not enumerate microphones"
+        )
+        XCTAssertFalse(
+            env.hotkey.isRunning,
+            "Pre-init activation handler must not start the main CGEventTap"
+        )
+        XCTAssertFalse(
+            env.translationHotkey.isRunning,
+            "Pre-init activation handler must not start the translation CGEventTap (swallowArmed defaults to true)"
+        )
+        XCTAssertFalse(
+            env.escapeHotkey.isRunning,
+            "Pre-init activation handler must not start the escape CGEventTap (swallowArmed defaults to true)"
+        )
+    }
+
     func testCredentialLoadDoesNotOverwriteAnotherAccountOrNewInput() {
         XCTAssertTrue(CredentialEditor.shouldApplyLoadedCredential(
             targetAccount: .openAI,

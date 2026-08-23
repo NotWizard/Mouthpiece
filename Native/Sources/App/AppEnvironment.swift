@@ -16,6 +16,12 @@ final class AppEnvironment: ObservableObject {
     @Published private(set) var selectedLocalModelInstalled = false
     @Published private(set) var modelInstallationState = ModelInstallationState.idle
     @Published private(set) var startupError: String?
+    // P2-13: Test seam. Counts how many times the activation-observer
+    // handler body has executed past the `isReady` guard. Regression
+    // tests read this to deterministically confirm that a pre-init
+    // activation event short-circuits before mutating any state —
+    // independent of the host's audio devices or granted permissions.
+    private(set) var recoverSystemIntegrationsInvocationCount = 0
 
     let settingsRepository = SettingsRepository()
     let keychain = KeychainStore()
@@ -52,7 +58,7 @@ final class AppEnvironment: ObservableObject {
     private var historyLoadRevision = 0
     private var lastFailedSessionID: UUID?
 
-    init(bootstrap: Bool = true) {
+    init(bootstrap: Bool = true, autoMarkReady: Bool = true) {
         if settingsRepository.loadFailed {
             startupError = SettingsRepositoryError.corruptedStore.localizedDescription
         }
@@ -71,7 +77,13 @@ final class AppEnvironment: ObservableObject {
             initializationTask = Task { [weak self] in
                 await self?.initialize()
             }
-        } else {
+        } else if autoMarkReady {
+            // P2-13: existing `bootstrap: false` callers (production
+            // never uses it; tests such as `testEnvironmentStartsReady`
+            // depend on it) keep the previous isReady = true semantics.
+            // Passing `autoMarkReady: false` lets a regression test hold
+            // the environment at isReady = false to simulate a pre-init
+            // activation window.
             isReady = true
         }
     }
@@ -580,6 +592,13 @@ final class AppEnvironment: ObservableObject {
     }
 
     private func toggleDictation() {
+        // P2-13: The mouthpieceToggleDictation observer is registered
+        // in init() before the async initialize() finishes wiring the
+        // coordinator and hotkey callbacks. A menu-bar toggle-dictation
+        // click that arrives during that window must not race the
+        // half-initialised state — short-circuit until isReady is set
+        // at the tail of initialize().
+        guard isReady else { return }
         dictation.phase.isActive ? stopDictation() : startDictation(translation: false)
     }
 
@@ -824,6 +843,12 @@ final class AppEnvironment: ObservableObject {
     }
 
     private func prepareForSleep() async {
+        // P2-13: The willSleep observer is registered in init() before
+        // the async initialize() finishes. A sleep notification during
+        // that window must not tear down hotkey taps that were never
+        // started or await a nil coordinator — short-circuit until
+        // initialize() sets isReady.
+        guard isReady else { return }
         cancelPendingMainHotkey()
         hotkey.stop()
         translationHotkey.stop()
@@ -833,8 +858,23 @@ final class AppEnvironment: ObservableObject {
         await coordinator?.shutdown()
     }
 
-    private func recoverSystemIntegrations() {
-        guard !isShuttingDown else { return }
+    // P2-13: `internal` (not `private`) so the regression test
+    // `testActivationBeforeInitializeDoesNotArmSwallowing` can invoke
+    // the handler directly to simulate a pre-init NSApplication /
+    // NSWorkspace activation event.
+    func recoverSystemIntegrations() {
+        // P2-13: didBecomeActive and didWake observers are registered
+        // in init() before the async initialize() finishes wiring the
+        // coordinator, hotkey onPress/onRelease callbacks, and the
+        // explicit `translationHotkey/escapeHotkey.setSwallowArmed(false)`
+        // resets. Without this guard a notification arriving during the
+        // init window would run refreshPermissions() ->
+        // updateHotkeyRegistrations() which starts CGEventTap hotkeys
+        // whose HotkeyService.swallowArmed still defaults to `true`,
+        // swallowing user keystrokes with no handler wired. Return early
+        // until initialize() sets isReady at its own tail.
+        guard isReady, !isShuttingDown else { return }
+        recoverSystemIntegrationsInvocationCount += 1
         microphones = audio.availableInputDevices()
         refreshPermissions()
         capsule.repositionIfVisible()
