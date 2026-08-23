@@ -431,13 +431,45 @@ final class PersistenceTests: XCTestCase {
         XCTAssertEqual(afterVacuum.text, "after vacuum")
     }
 
+    // P1-7: clear() 后 .db 与 -wal 磁盘文件都不得残留任何听写明文。
+    // 依赖 secure_delete=ON（就地清零被释放的页面）+ wal_checkpoint(TRUNCATE)
+    // （截断 -wal）+ VACUUM（重写整库覆盖历史 freelist）三步同时生效。
+    func testClearHistoryLeavesNoPlaintextInDatabaseOrWAL() async throws {
+        let (repository, cleanup, url) = try makeHistoryRepositoryWithURL()
+        defer { cleanup() }
+        let needle = "MP-P17-NEEDLE-\(UUID().uuidString)"
+        _ = try await repository.save(text: needle, rawText: needle)
+
+        try await repository.clear()
+
+        let needleBytes = Data(needle.utf8)
+        let dbData = try Data(contentsOf: url)
+        XCTAssertNil(
+            dbData.range(of: needleBytes),
+            "Cleared transcript must not survive in the main .db file"
+        )
+
+        let walURL = URL(fileURLWithPath: url.path + "-wal")
+        if FileManager.default.fileExists(atPath: walURL.path) {
+            let walData = try Data(contentsOf: walURL)
+            XCTAssertNil(
+                walData.range(of: needleBytes),
+                "Cleared transcript must not survive in the -wal sidecar"
+            )
+        }
+    }
+
     private func makeHistoryRepository() throws -> (HistoryRepository, () -> Void) {
+        let (repository, cleanup, _) = try makeHistoryRepositoryWithURL()
+        return (repository, cleanup)
+    }
+
+    private func makeHistoryRepositoryWithURL() throws -> (HistoryRepository, () -> Void, URL) {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("Mouthpiece-HistoryTests-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let repository = try HistoryRepository(
-            databaseURL: directory.appendingPathComponent("history.sqlite3")
-        )
-        return (repository, { try? FileManager.default.removeItem(at: directory) })
+        let url = directory.appendingPathComponent("history.sqlite3")
+        let repository = try HistoryRepository(databaseURL: url)
+        return (repository, { try? FileManager.default.removeItem(at: directory) }, url)
     }
 }

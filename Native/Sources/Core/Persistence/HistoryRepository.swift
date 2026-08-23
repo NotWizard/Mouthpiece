@@ -52,6 +52,16 @@ actor HistoryRepository {
         try Self.configureAndMigrate(handle)
     }
 
+    // P1-7: 关闭前兜底 checkpoint 一次——delete(id:) 依赖 secure_delete=ON 就地清零，
+    // 但被清零的帧仍在 -wal 里，直到默认 4MB 阈值触发自动 checkpoint 才回写。选择
+    // per-shutdown 而不是"WAL 超过 N MB 主动 checkpoint"：前者零状态、零计数器，
+    // 后者需要在每次 delete/save 后额外查 PRAGMA wal_autocheckpoint 页大小，收益不
+    // 明显。SQLITE_OPEN_FULLMUTEX 保证在 nonisolated deinit 中调用是线程安全的。
+    deinit {
+        guard let handle = connection.pointer else { return }
+        sqlite3_exec(handle, "PRAGMA wal_checkpoint(TRUNCATE)", nil, nil, nil)
+    }
+
     func save(text: String, rawText: String?) throws -> TranscriptionRecord {
         let cleanText = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanText.isEmpty else {
@@ -163,6 +173,12 @@ actor HistoryRepository {
 
     func clear() throws {
         try execute("DELETE FROM transcriptions")
+        // P1-7: DELETE 已按 secure_delete=ON 就地清零本次删除的页面，但 WAL 里的
+        // 历史 INSERT 帧和早于本修复的 freelist 页仍是明文。checkpoint(TRUNCATE)
+        // 把待写帧回写主库并把 -wal 截断为 0 字节；随后 VACUUM 重写整库覆盖历史
+        // freelist。checkpoint 因 BUSY 失败时不阻断，VACUUM 自身也会重写文件。
+        try? execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        try execute("VACUUM")
     }
 
     func dictionary() throws -> [String] {
@@ -249,6 +265,11 @@ actor HistoryRepository {
         try execute(database, "PRAGMA journal_mode=WAL")
         // F7: 写锁竞争时最多等待 3 秒，避免并发访问直接抛 SQLITE_BUSY。
         try execute(database, "PRAGMA busy_timeout=3000")
+        // P1-7: 每次打开都开启 secure_delete，让后续 DELETE 就地用零覆写被释放的
+        // 页面，避免明文听写记录残留在 freelist；历史 freelist 需 VACUUM 才能回收
+        // （见 clear()/prune()）。选 ON 而非 FAST：FAST 会跳过增大 I/O 的覆写，
+        // 留下取证痕迹，不符合隐私目标（sqlite.org/pragma.html#pragma_secure_delete）。
+        try execute(database, "PRAGMA secure_delete=ON")
         try execute(database, "PRAGMA foreign_keys=ON")
         try execute(database, """
             CREATE TABLE IF NOT EXISTS transcriptions (
