@@ -249,6 +249,42 @@ final class AudioTests: XCTestCase {
         XCTAssertLessThanOrEqual(totalBytes, 7_040)
     }
 
+    // P2-20: `startEngineSession` now prewarms the converter's buffer pool
+    // BEFORE installing the render tap, so CoreAudio's realtime thread never
+    // executes the reactive `availableBuffers = (0..<10).compactMap {...}`
+    // allocation while holding `lock` on the normal path. This asserts the
+    // seam on both branches: a non-prewarmed box still bumps the counter on
+    // its first buffer (proving the counter fires when it should); a
+    // prewarmed box feeding a burst of same-format buffers keeps the counter
+    // at 0.
+    func testBufferPoolPrewarmedNoAllocUnderLock() async throws {
+        let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 1))
+
+        // Positive control: without prewarm, the first buffer of a session
+        // must land in the reactive branch (previous production behaviour),
+        // so the counter proves the seam actually fires when it should.
+        let cold = try AudioConverterBox(onFrame: { _, _ in }, onLevel: { _ in })
+        cold.process(try makeSineBuffer(sampleRate: 48_000, frames: 480))
+        await cold.finish()
+        XCTAssertEqual(
+            cold.allocationsUnderLock, 1,
+            "Non-prewarmed box must allocate under lock on the first buffer"
+        )
+
+        // Primary regression: prewarm mirrors what `startEngineSession` now
+        // does, and every subsequent same-format render call reuses the pool.
+        let warm = try AudioConverterBox(onFrame: { _, _ in }, onLevel: { _ in })
+        warm.prewarm(for: format)
+        for _ in 0..<20 {
+            warm.process(try makeSineBuffer(sampleRate: 48_000, frames: 480))
+        }
+        await warm.finish()
+        XCTAssertEqual(
+            warm.allocationsUnderLock, 0,
+            "Prewarmed pool must not allocate under lock on the render path"
+        )
+    }
+
     private func makeSineBuffer(sampleRate: Double, frames: AVAudioFrameCount) throws -> AVAudioPCMBuffer {
         let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1))
         let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames))

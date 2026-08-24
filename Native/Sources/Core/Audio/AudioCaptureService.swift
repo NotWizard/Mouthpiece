@@ -2,6 +2,7 @@
 import AudioToolbox
 import CoreAudio
 import Foundation
+import os
 
 struct AudioInputDevice: Identifiable, Equatable, Sendable {
     let id: String
@@ -142,6 +143,16 @@ class AudioCaptureService {
                         onLevel: onLevel,
                         onDiagnostics: onDiagnostics
                     )
+                    // P2-20: prewarm the reusable buffer pool BEFORE the tap
+                    // is installed. CoreAudio drives the tap on its realtime
+                    // queue; allocating 10 PCM buffers there under `lock`
+                    // (previously happened on the first buffer of every
+                    // session because `poolFormat` was nil) risks priority
+                    // inversion against non-realtime threads. Running the
+                    // allocation on `engineQueue` before `installTap`/
+                    // `engine.start` means the render tap's fast path only
+                    // pops from a pre-populated pool.
+                    converter.prewarm(for: inputFormat)
                     // AVFAudio raises ObjC exceptions here (for example when
                     // the cached format no longer matches the hardware after
                     // an input-device switch); Swift do/catch cannot intercept
@@ -340,12 +351,26 @@ final class AudioConverterBox: @unchecked Sendable {
     private let onLevel: @Sendable (Float) -> Void
     private let onDiagnostics: (@Sendable (Int) -> Void)?
     private let queue = DispatchQueue(label: "com.mouthpiece.audio-conversion", qos: .userInitiated)
-    private let lock = NSLock()
+    // P2-20: os_unfair_lock (heap-allocated because Swift stored properties
+    // have no stable address) replaces NSLock so the render tap thread does
+    // not hop through Foundation's scheduler-aware locking on contention.
+    // Every lock/unlock pair here happens on one thread's stack frame, so
+    // the "same thread must unlock" contract holds.
+    private let lock: UnsafeMutablePointer<os_unfair_lock> = {
+        let pointer = UnsafeMutablePointer<os_unfair_lock>.allocate(capacity: 1)
+        pointer.initialize(to: os_unfair_lock())
+        return pointer
+    }()
     private var queuedBuffers: [AVAudioPCMBuffer] = []
     private var availableBuffers: [AVAudioPCMBuffer] = []
     private var poolFormat: AVAudioFormat?
     private var poolCapacity: AVAudioFrameCount = 0
     private var droppedFrames = 0
+    // P2-20 test seam: number of times the render path re-allocated the pool
+    // while holding `lock` (i.e. hit the reactive branch in `process()`).
+    // Prewarming from `startEngineSession` keeps this at 0 on the normal
+    // path; only a genuine mid-session format change (A2/A3) bumps it.
+    private var _allocationsUnderLock = 0
     private var drainScheduled = false
     private var accepting = true
     private var pendingPCM = Data()
@@ -370,19 +395,57 @@ final class AudioConverterBox: @unchecked Sendable {
         self.onDiagnostics = onDiagnostics
     }
 
+    deinit {
+        lock.deinitialize(count: 1)
+        lock.deallocate()
+    }
+
+    // P2-20: read the reactive-allocation counter under lock so tests
+    // observing it after `finish()` do not race with a still-running drain.
+    var allocationsUnderLock: Int { withLock { _allocationsUnderLock } }
+
+    // P2-20: called from `startEngineSession` on `engineQueue` BEFORE the
+    // render tap is installed. Populates the pool with 10 buffers matching
+    // the input format so the first tap callback pops instead of allocating.
+    // Capacity mirrors the sizing used in the reactive branch of `process()`
+    // (max(4_096, sampleRate / 10)); the tap installs with `bufferSize: 960`
+    // frames of 20 ms audio, so 4_096-frame capacity absorbs any oversize
+    // delivery CoreAudio may still choose to send.
+    func prewarm(for format: AVAudioFormat) {
+        guard format.sampleRate > 0, format.channelCount > 0 else { return }
+        let capacity = AVAudioFrameCount(max(4_096, Int(format.sampleRate / 10)))
+        let buffers = (0..<10).compactMap { _ in
+            AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity)
+        }
+        withLock {
+            availableBuffers = buffers
+            poolFormat = format
+            poolCapacity = capacity
+        }
+    }
+
+    private func withLock<T>(_ body: () -> T) -> T {
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        return body()
+    }
+
     func process(_ input: AVAudioPCMBuffer) {
         let format = input.format
         guard format.sampleRate > 0, format.channelCount > 0 else { return }
-        lock.lock()
+        os_unfair_lock_lock(lock)
         guard accepting else {
-            lock.unlock()
+            os_unfair_lock_unlock(lock)
             return
         }
         // The tap is installed with a nil format, so a device switch changes
         // the buffer format mid-session; rebuild the reusable pool to match.
         // An input larger than the pool's capacity rebuilds too (sized to the
         // actual demand), so oversized frames are retried instead of dropped.
+        // P2-20: `startEngineSession` prewarms the pool so this branch is
+        // unreachable on the normal path; the counter proves that.
         if poolFormat != format || poolCapacity < input.frameLength {
+            _allocationsUnderLock += 1
             let capacity = AVAudioFrameCount(max(4_096, max(Int(format.sampleRate / 10), Int(input.frameLength))))
             availableBuffers = (0..<10).compactMap { _ in
                 AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity)
@@ -392,34 +455,34 @@ final class AudioConverterBox: @unchecked Sendable {
         }
         guard let reusable = availableBuffers.popLast() else {
             droppedFrames += 1
-            lock.unlock()
+            os_unfair_lock_unlock(lock)
             return
         }
-        lock.unlock()
+        os_unfair_lock_unlock(lock)
         guard Self.copy(input, into: reusable) else {
-            lock.withLock {
+            withLock {
                 droppedFrames += 1
                 returnToPoolLocked(reusable)
             }
             return
         }
-        lock.lock()
+        os_unfair_lock_lock(lock)
         guard accepting else {
             returnToPoolLocked(reusable)
-            lock.unlock()
+            os_unfair_lock_unlock(lock)
             return
         }
         queuedBuffers.append(reusable)
         let shouldSchedule = !drainScheduled
         drainScheduled = true
-        lock.unlock()
+        os_unfair_lock_unlock(lock)
         if shouldSchedule {
             queue.async { [weak self] in self?.drain() }
         }
     }
 
     func finish() async {
-        lock.withLock { accepting = false }
+        withLock { accepting = false }
         await withCheckedContinuation { continuation in
             queue.async { [weak self] in
                 self?.drain()
@@ -431,7 +494,7 @@ final class AudioConverterBox: @unchecked Sendable {
     }
 
     private func reportDiagnostics() {
-        let dropped = lock.withLock { droppedFrames }
+        let dropped = withLock { droppedFrames }
         guard dropped > 0 else { return }
         onDiagnostics?(dropped)
     }
@@ -447,16 +510,16 @@ final class AudioConverterBox: @unchecked Sendable {
 
     private func drain() {
         while true {
-            lock.lock()
+            os_unfair_lock_lock(lock)
             guard !queuedBuffers.isEmpty else {
                 drainScheduled = false
-                lock.unlock()
+                os_unfair_lock_unlock(lock)
                 return
             }
             let input = queuedBuffers.removeFirst()
-            lock.unlock()
+            os_unfair_lock_unlock(lock)
             convert(input)
-            lock.withLock { returnToPoolLocked(input) }
+            withLock { returnToPoolLocked(input) }
         }
     }
 
