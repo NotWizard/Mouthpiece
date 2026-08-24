@@ -212,7 +212,7 @@ actor DictationCoordinator {
             try await audio.start(
                 selectedDeviceUID: settings.selectedMicrophoneUID,
                 onFrame: { frame, rms in frameContinuation.yield((frame, rms)) },
-                onLevel: { _ in },
+                onLevel: nil,
                 onSessionInterrupted: { [weak self] in
                     Task { await self?.handleAudioSessionInterruption(sessionID: sessionID) }
                 },

@@ -285,6 +285,44 @@ final class AudioTests: XCTestCase {
         )
     }
 
+    // P3-7: `AudioConverterBox.emit` used to compute the smoothed audio level
+    // (log10 + exponential smoothing) and fire `onLevel` on EVERY ~20 ms frame,
+    // even for the dictation session whose call site passed `onLevel: { _ in }`
+    // — pure wasted work ~50x/second. `onLevel` is now optional and the
+    // dictation path passes nil, so the whole computation is gated on a real
+    // consumer. This pins both branches: a nil callback must skip the
+    // computation (the counter stays 0), while a real callback must run it and
+    // receive one level per computed frame (the onboarding mic test's path).
+    func testOnLevelSkippedWhenCallbackAbsent() async throws {
+        let silent = try AudioConverterBox(onFrame: { _, _ in }, onLevel: nil)
+        for _ in 0..<3 {
+            silent.process(try makeSineBuffer(sampleRate: 48_000, frames: 4_800))
+        }
+        await silent.finish()
+        XCTAssertEqual(
+            silent.levelComputations, 0,
+            "A nil onLevel must skip the per-frame smoothed-level computation entirely"
+        )
+
+        let levels = LevelSink()
+        let metered = try AudioConverterBox(
+            onFrame: { _, _ in },
+            onLevel: { levels.record($0) }
+        )
+        for _ in 0..<3 {
+            metered.process(try makeSineBuffer(sampleRate: 48_000, frames: 4_800))
+        }
+        await metered.finish()
+        XCTAssertGreaterThan(
+            metered.levelComputations, 0,
+            "A real onLevel must compute the smoothed level per frame"
+        )
+        XCTAssertEqual(
+            levels.count, metered.levelComputations,
+            "Every computed level must be delivered to the onLevel callback"
+        )
+    }
+
     private func makeSineBuffer(sampleRate: Double, frames: AVAudioFrameCount) throws -> AVAudioPCMBuffer {
         let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1))
         let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames))
@@ -319,5 +357,19 @@ private final class ConverterFrameSink: @unchecked Sendable {
 
     func recordDropped(_ count: Int) {
         lock.withLock { storedDropped = count }
+    }
+}
+
+// P3-7: collects `onLevel` callbacks across the conversion queue. finish()
+// drains the queue before returning, so reads after `await finish()` see the
+// final count.
+private final class LevelSink: @unchecked Sendable {
+    private let lock = NSLock()
+    private var levels: [Float] = []
+
+    var count: Int { lock.withLock { levels.count } }
+
+    func record(_ level: Float) {
+        lock.withLock { levels.append(level) }
     }
 }

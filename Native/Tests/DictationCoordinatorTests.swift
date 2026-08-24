@@ -909,7 +909,7 @@ private final class StubAudioCapture: AudioCaptureService {
     override func start(
         selectedDeviceUID: String?,
         onFrame: @escaping @Sendable (Data, Double) -> Void,
-        onLevel: @escaping @Sendable (Float) -> Void,
+        onLevel: (@Sendable (Float) -> Void)?,
         onSessionInterrupted: (@Sendable () -> Void)?,
         onDiagnostics: (@Sendable (Int) -> Void)?
     ) async throws {

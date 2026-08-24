@@ -65,7 +65,7 @@ class AudioCaptureService {
     func start(
         selectedDeviceUID: String?,
         onFrame: @escaping @Sendable (Data, Double) -> Void,
-        onLevel: @escaping @Sendable (Float) -> Void,
+        onLevel: (@Sendable (Float) -> Void)? = nil,
         onSessionInterrupted: (@Sendable () -> Void)? = nil,
         onDiagnostics: (@Sendable (Int) -> Void)? = nil
     ) async throws {
@@ -120,7 +120,7 @@ class AudioCaptureService {
         _ box: EngineBox,
         selectedDeviceUID: String?,
         onFrame: @escaping @Sendable (Data, Double) -> Void,
-        onLevel: @escaping @Sendable (Float) -> Void,
+        onLevel: (@Sendable (Float) -> Void)?,
         onDiagnostics: (@Sendable (Int) -> Void)?
     ) async throws -> AudioConverterBox {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<AudioConverterBox, Error>) in
@@ -348,7 +348,7 @@ final class AudioConverterBox: @unchecked Sendable {
     private var converter: AVAudioConverter?
     private let outputFormat: AVAudioFormat
     private let onFrame: @Sendable (Data, Double) -> Void
-    private let onLevel: @Sendable (Float) -> Void
+    private let onLevel: (@Sendable (Float) -> Void)?
     private let onDiagnostics: (@Sendable (Int) -> Void)?
     private let queue = DispatchQueue(label: "com.mouthpiece.audio-conversion", qos: .userInitiated)
     // P2-20: os_unfair_lock (heap-allocated because Swift stored properties
@@ -378,7 +378,7 @@ final class AudioConverterBox: @unchecked Sendable {
 
     init(
         onFrame: @escaping @Sendable (Data, Double) -> Void,
-        onLevel: @escaping @Sendable (Float) -> Void,
+        onLevel: (@Sendable (Float) -> Void)? = nil,
         onDiagnostics: (@Sendable (Int) -> Void)? = nil
     ) throws {
         guard let outputFormat = AVAudioFormat(
@@ -403,6 +403,16 @@ final class AudioConverterBox: @unchecked Sendable {
     // P2-20: read the reactive-allocation counter under lock so tests
     // observing it after `finish()` do not race with a still-running drain.
     var allocationsUnderLock: Int { withLock { _allocationsUnderLock } }
+
+    #if DEBUG
+    // P3-7 test seam: how many frames actually ran the smoothed-level
+    // computation. It is bumped only inside the `onLevel != nil` branch of
+    // `emit`, so a dictation session (which passes `onLevel == nil`) keeps it
+    // at 0 while the onboarding mic test (a real consumer) bumps it per frame.
+    // Read under `lock`, mirroring `allocationsUnderLock`.
+    private var _levelComputations = 0
+    var levelComputations: Int { withLock { _levelComputations } }
+    #endif
 
     // P2-20: called from `startEngineSession` on `engineQueue` BEFORE the
     // render tap is installed. Populates the pool with 10 buffers matching
@@ -571,8 +581,18 @@ final class AudioConverterBox: @unchecked Sendable {
         }
         let rms = count == 0 ? 0 : sqrt(sum / Double(count))
         onFrame(data, rms)
-        smoothedLevel = AudioCaptureService.normalizedLevel(rms: rms, previous: smoothedLevel)
-        onLevel(smoothedLevel)
+        // P3-7: the smoothed-level metering is a side path only the onboarding
+        // mic test consumes; the dictation session passes `onLevel == nil`.
+        // Skip the per-frame log10 + smoothing there entirely — that is the
+        // win. Gating is safe because `onLevel` is an immutable `let` fixed for
+        // the whole session, so it never flips between frames.
+        if let onLevel {
+            smoothedLevel = AudioCaptureService.normalizedLevel(rms: rms, previous: smoothedLevel)
+            #if DEBUG
+            withLock { _levelComputations += 1 }
+            #endif
+            onLevel(smoothedLevel)
+        }
     }
 
     private static func copy(_ input: AVAudioPCMBuffer, into copy: AVAudioPCMBuffer) -> Bool {
