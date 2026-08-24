@@ -41,20 +41,25 @@ ditto -c -k --sequesterRsrc --keepParent "$STAGING/Mouthpiece.app" "$ZIP"
 # with a branded drag-arrow background. A bare `hdiutil create` leaves Finder to
 # place icons alphabetically (Applications left, app right) with no background.
 #
-# Everything DMG-related lives in a per-run mktemp workdir, mounted at a
-# per-run mountpoint (never /Volumes/<name>), with a build-unique volname
-# during Finder layout. Two concurrent builds or a retry after a leaked mount
-# can no longer collide, and the trap detaches the image and removes the
-# workdir on any exit path so a hung AppleScript cannot leak a mount into the
-# next run. The volume is renamed back to the release-facing name before the
-# UDZO convert so the shipped DMG surfaces the polished name to end users.
+# Everything DMG-related lives in a per-run mktemp workdir. The image mounts at
+# /Volumes/<build-unique volname>: Finder can only resolve `tell disk "<name>"`
+# for volumes under /Volumes (an arbitrary mountpoint fails with -1728), so the
+# uniqueness lives in the NAME rather than the path — two concurrent builds or a
+# retry after a leaked mount still cannot collide. The build volname is kept
+# short because HFS+ truncates past 27 characters, which would break `tell disk`.
+# Detach always goes through the device node captured at attach time, because
+# `diskutil renameVolume` relocates the mountpoint and leaves the original path
+# invalid. The trap detaches and removes the workdir on any exit path so a hung
+# AppleScript cannot leak a mount into the next run. The volume is renamed to the
+# release-facing name before the UDZO convert so the shipped DMG surfaces the
+# polished name to end users.
 mkdir -p "$ROOT/.build/release"
 WORK_DIR=
-MOUNT=
+DEV_NODE=
 cleanup_dmg() {
-  if [[ -n "${MOUNT:-}" ]]; then
-    hdiutil detach "$MOUNT" -quiet 2>/dev/null \
-      || hdiutil detach "$MOUNT" -force -quiet 2>/dev/null \
+  if [[ -n "${DEV_NODE:-}" ]]; then
+    hdiutil detach "$DEV_NODE" -quiet 2>/dev/null \
+      || hdiutil detach "$DEV_NODE" -force -quiet 2>/dev/null \
       || true
   fi
   if [[ -n "${WORK_DIR:-}" ]]; then
@@ -63,21 +68,22 @@ cleanup_dmg() {
 }
 trap cleanup_dmg EXIT
 WORK_DIR=$(mktemp -d "$ROOT/.build/release/dmg-$ARCH.XXXXXX")
-MOUNT="$WORK_DIR/mount"
 RW_DMG="$WORK_DIR/rw.dmg"
 BG_SRC="$ROOT/Native/Packaging/dmg-background.png"
 BG_1X="$WORK_DIR/dmg-bg-1x.png"
-VOLNAME_BUILD="Mouthpiece $VERSION $ARCH-$$"
+VOLNAME_BUILD="Mouthpiece $ARCH-$$"
 VOLNAME_FINAL="Mouthpiece $VERSION"
+MOUNT="/Volumes/$VOLNAME_BUILD"
 
 ln -s /Applications "$STAGING/Applications"
-mkdir -p "$MOUNT"
 
 STAGING_KB=$(du -sk "$STAGING" | awk '{ print $1 }')
 IMAGE_MB=$(( STAGING_KB / 1024 + 60 ))
 hdiutil create -volname "$VOLNAME_BUILD" -srcfolder "$STAGING" -fs HFS+ \
   -format UDRW -size "${IMAGE_MB}m" -ov "$RW_DMG"
-hdiutil attach "$RW_DMG" -mountpoint "$MOUNT" -nobrowse -noverify -noautoopen
+DEV_NODE=$(hdiutil attach "$RW_DMG" -mountpoint "$MOUNT" -nobrowse -noverify \
+  -noautoopen | awk '/\/dev\/disk/ { print $1; exit }')
+test -n "$DEV_NODE" || { echo "hdiutil attach reported no device node" >&2; exit 1; }
 
 # HiDPI background: pair a 1x (632x424) with the source 2x (1264x848) so the
 # window renders crisply on Retina and correctly on non-Retina displays.
@@ -138,7 +144,11 @@ test -s "$MOUNT/.DS_Store" || fail_dmg_layout "DMG layout was not applied (missi
 # carry the polished `Mouthpiece <version>` label to end users.
 diskutil renameVolume "$MOUNT" "$VOLNAME_FINAL" >/dev/null
 
-hdiutil detach "$MOUNT" || hdiutil detach "$MOUNT" -force
+# Detach by device node: the rename above moved the volume to
+# /Volumes/$VOLNAME_FINAL, so "$MOUNT" no longer resolves. Clearing DEV_NODE
+# keeps the exit trap from trying to detach an image that is already gone.
+hdiutil detach "$DEV_NODE" || hdiutil detach "$DEV_NODE" -force
+DEV_NODE=
 
 rm -f "$DMG"
 hdiutil convert "$RW_DMG" -format UDZO -imagekey zlib-level=9 -o "$DMG"
