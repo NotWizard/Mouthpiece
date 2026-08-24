@@ -15,7 +15,17 @@ final class AppEnvironment: ObservableObject {
     @Published private(set) var dictionaryWords: [String] = []
     @Published private(set) var selectedLocalModelInstalled = false
     @Published private(set) var modelInstallationState = ModelInstallationState.idle
+    // P2-7: `startupError` is the FATAL channel — only the two genuine
+    // init failures write it (a corrupted settings store in init(), the
+    // initialize() catch), and the control panel / onboarding keep it on
+    // screen until the user dismisses it. Every recoverable runtime
+    // failure (history write, credential save, launch-at-login toggle,
+    // hotkey re-registration after a permission refresh) now lands on
+    // `operationError` instead, so a failed history delete can no longer
+    // erase the startup diagnostic — and a startup error can no longer
+    // hide an operation failure by occupying the only slot.
     @Published private(set) var startupError: String?
+    @Published private(set) var operationError: String?
     // P2-13: Test seam. Counts how many times the activation-observer
     // handler body has executed past the `isReady` guard. Regression
     // tests read this to deterministically confirm that a pre-init
@@ -60,7 +70,7 @@ final class AppEnvironment: ObservableObject {
 
     init(bootstrap: Bool = true, autoMarkReady: Bool = true) {
         if settingsRepository.loadFailed {
-            startupError = SettingsRepositoryError.corruptedStore.localizedDescription
+            reportStartupFailure(SettingsRepositoryError.corruptedStore.localizedDescription)
         }
         toggleDictationObserver = NotificationCenter.default.addObserver(
             forName: .mouthpieceToggleDictation,
@@ -103,7 +113,7 @@ final class AppEnvironment: ObservableObject {
             if changes.systemIntegrations { applySystemSettings() }
             if changes.localModel { refreshLocalModelStatus() }
         } catch {
-            startupError = error.localizedDescription
+            report(error)
         }
     }
 
@@ -117,7 +127,7 @@ final class AppEnvironment: ObservableObject {
             do {
                 try await self?.reloadHistory()
             } catch {
-                self?.startupError = error.localizedDescription
+                self?.report(error)
             }
         }
     }
@@ -148,7 +158,7 @@ final class AppEnvironment: ObservableObject {
                 self.transcriptions += page
                 self.hasMoreHistory = page.count == Self.historyPageSize
             } catch {
-                self?.startupError = error.localizedDescription
+                self?.report(error)
             }
         }
     }
@@ -169,7 +179,7 @@ final class AppEnvironment: ObservableObject {
                 try await history.clear()
                 try await self?.reloadHistory()
             } catch {
-                self?.startupError = error.localizedDescription
+                self?.report(error)
             }
         }
     }
@@ -182,7 +192,7 @@ final class AppEnvironment: ObservableObject {
                 try await history.delete(id: id)
                 try await self?.reloadHistory()
             } catch {
-                self?.startupError = error.localizedDescription
+                self?.report(error)
             }
         }
     }
@@ -195,7 +205,7 @@ final class AppEnvironment: ObservableObject {
                 try await history.restore(record)
                 try await self?.reloadHistory()
             } catch {
-                self?.startupError = error.localizedDescription
+                self?.report(error)
             }
         }
     }
@@ -225,7 +235,7 @@ final class AppEnvironment: ObservableObject {
                 try await history.replaceDictionary(normalizedWords)
             } catch {
                 guard revision == self.dictionarySaveRevision else { return }
-                self.startupError = error.localizedDescription
+                self.report(error)
             }
         }
     }
@@ -304,9 +314,20 @@ final class AppEnvironment: ObservableObject {
         updateHotkeyRegistrations()
     }
 
-    func report(_ error: Error) { startupError = error.localizedDescription }
+    // P2-7: the sole writer of the fatal channel — called by init()'s
+    // corrupted-store branch and initialize()'s catch. Internal (not
+    // private) so `testOperationErrorDoesNotOverwriteStartupError` can
+    // seed the exact state those two paths produce without corrupting the
+    // real UserDefaults settings store.
+    func reportStartupFailure(_ message: String) { startupError = message }
+
+    // P2-7: transient channel. Recoverable runtime failures land here and
+    // are shown as an auto-dismissing toast, so they neither overwrite nor
+    // get blocked by a fatal `startupError`.
+    func report(_ error: Error) { operationError = error.localizedDescription }
 
     func dismissStartupError() { startupError = nil }
+    func dismissOperationError() { operationError = nil }
     func checkForUpdates() { updates.checkForUpdates() }
 
     func suspendHotkeysForCapture() {
@@ -490,7 +511,7 @@ final class AppEnvironment: ObservableObject {
             isReady = true
         } catch {
             guard !isShuttingDown, !Task.isCancelled else { return }
-            startupError = error.localizedDescription
+            reportStartupFailure(error.localizedDescription)
             isReady = true
         }
     }
@@ -565,7 +586,7 @@ final class AppEnvironment: ObservableObject {
                 break
             }
         } catch {
-            startupError = error.localizedDescription
+            report(error)
         }
     }
 
@@ -712,7 +733,7 @@ final class AppEnvironment: ObservableObject {
         } catch {
             hotkey.stop()
             translationHotkey.stop()
-            startupError = error.localizedDescription
+            report(error)
             return
         }
         updateTranslationHotkey()
@@ -731,7 +752,7 @@ final class AppEnvironment: ObservableObject {
             translationHotkey.setSwallowArmed(hotkeyPressedAt != nil)
         } catch {
             translationHotkey.stop()
-            startupError = error.localizedDescription
+            report(error)
         }
     }
 
@@ -754,7 +775,7 @@ final class AppEnvironment: ObservableObject {
             try escapeHotkey.update(key: "Escape")
         } catch {
             escapeHotkey.stop()
-            startupError = error.localizedDescription
+            report(error)
             installEscapeLocalMonitor()
         }
     }

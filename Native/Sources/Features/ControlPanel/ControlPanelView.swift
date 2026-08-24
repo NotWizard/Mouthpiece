@@ -86,6 +86,49 @@ struct ControlPanelView: View {
         } message: {
             Text(environment.startupError ?? "")
         }
+        // P2-7: transient operation failures get their own presentation so
+        // they neither overwrite nor are blocked by the fatal startup alert
+        // above. The toast auto-dismisses; a newer message restarts the
+        // window because changing the `.task` id cancels the pending timer.
+        .overlay(alignment: .bottom) {
+            if let message = environment.operationError {
+                operationErrorToast(message)
+            }
+        }
+        .task(id: environment.operationError) {
+            guard environment.operationError != nil else { return }
+            try? await Task.sleep(for: .seconds(5))
+            guard !Task.isCancelled else { return }
+            environment.dismissOperationError()
+        }
+    }
+
+    private func operationErrorToast(_ message: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            Text(message)
+                .font(.callout)
+                .lineLimit(2)
+            Button {
+                environment.dismissOperationError()
+            } label: {
+                Image(systemName: "xmark")
+                    .frame(
+                        minWidth: SettingsControlMetrics.minIconHitTarget,
+                        minHeight: SettingsControlMetrics.minIconHitTarget
+                    )
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("common.close")
+            .accessibilityLabel("common.close")
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 40)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.bottom, 16)
+        .frame(maxWidth: 520)
     }
 
     private var selectedSection: ControlPanelSection {

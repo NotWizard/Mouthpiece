@@ -1010,4 +1010,50 @@ final class AppEnvironmentTests: XCTestCase {
             "Fire-and-forget Task closures on AppEnvironment must capture self weakly so shutdown() plus scope exit deallocate the environment even before queued Task bodies drain (audit P2-21)"
         )
     }
+
+    // P2-7: `startupError` (fatal init diagnostic; persistent alert/banner)
+    // and `operationError` (recoverable runtime failure; auto-dismissing
+    // toast) are now separate channels. On HEAD every transient failure —
+    // a failed history delete, a rejected credential save, a launch-at-login
+    // registration error, a hotkey re-registration after a permission
+    // refresh — assigned `startupError` directly, so the last writer won:
+    // either the transient message erased the fatal diagnostic the user
+    // still needed, or the fatal one occupied the only slot and the
+    // operation failure was never shown. Both writers here are the real
+    // production entry points (`reportStartupFailure` is called by init()'s
+    // corrupted-store branch and initialize()'s catch; `report` is what all
+    // eleven rerouted runtime sites call), so this pins the split itself.
+    func testOperationErrorDoesNotOverwriteStartupError() {
+        struct TransientFailure: LocalizedError {
+            var errorDescription: String? { "History record could not be deleted" }
+        }
+
+        let env = AppEnvironment(bootstrap: false)
+        let fatal = SettingsRepositoryError.corruptedStore.localizedDescription
+        env.reportStartupFailure(fatal)
+        XCTAssertEqual(env.startupError, fatal)
+        XCTAssertNil(env.operationError, "A fatal startup failure must not populate the transient channel")
+
+        env.report(TransientFailure())
+
+        XCTAssertEqual(
+            env.startupError, fatal,
+            "A transient operation failure must not overwrite the fatal startup diagnostic (audit P2-7)"
+        )
+        XCTAssertEqual(
+            env.operationError, "History record could not be deleted",
+            "A transient operation failure must surface on its own channel even while a startup error is pending (audit P2-7)"
+        )
+
+        // Dismissal is per-channel: auto-dismissing the toast must leave the
+        // persistent startup diagnostic on screen, and vice versa.
+        env.dismissOperationError()
+        XCTAssertNil(env.operationError)
+        XCTAssertEqual(env.startupError, fatal)
+
+        env.report(TransientFailure())
+        env.dismissStartupError()
+        XCTAssertNil(env.startupError)
+        XCTAssertEqual(env.operationError, "History record could not be deleted")
+    }
 }
