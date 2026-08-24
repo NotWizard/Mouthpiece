@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-08-24
+
 ### Fixed
 
 - The media-pause adapter (`MediaPlaybackController.runAdapter` in `AudioCueService.swift`) no longer blocks on an undrained stderr pipe or leaves a SIGTERM-ignoring child running: this is the same defect flagged as NEW-2 (the adapter's `standardError = Pipe()` was never read, the timeout path only called `terminate()`, and `waitUntilExit()` blocked), and it was fixed when `runAdapter` was migrated to the shared `SupervisedProcess.run` helper as part of P1-11/NEW-4 (commit `707fa8cb`). `SupervisedProcess` drains both stdout and stderr continuously via `readabilityHandler` with a 512 KB per-stream cap, so a chatty adapter writing past the ~64 KB kernel pipe buffer can no longer wedge the child, and it escalates SIGTERM → `killGrace` → SIGKILL on wall-clock timeout or cooperative cancellation, so a child that ignores SIGTERM is still reaped. Because `runAdapter` routes entirely through `SupervisedProcess.run`, NEW-2's two properties are locked in transitively by the existing `SupervisedProcessTests.testStderrIsDrainedAndNeverBlocksTheChild` (a child writing ~700 KB to stderr still exits 0 with stderr captured exactly at the 512 KiB cap) and `testTimeoutEscalatesToSIGKILLWhenChildIgnoresSIGTERM` (a `$SIG{TERM}='IGNORE'` child is brought down within timeout + killGrace); the private `nonisolated static runAdapter` has no test seam that does not require a real bundled perl adapter binary, so no redundant AudioCueService-level test is added (audit NEW-2).
