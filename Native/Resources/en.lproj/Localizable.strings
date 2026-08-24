@@ -10,6 +10,7 @@
 "common.close" = "Close";
 "common.done" = "Done";
 "common.edit" = "Edit";
+"common.retry" = "Retry";
 "menu.openControlPanel" = "Open Control Panel";
 "menu.toggleDictation" = "Start or stop dictation";
 "menu.quit" = "Quit Mouthpiece";

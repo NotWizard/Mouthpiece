@@ -503,6 +503,26 @@ final class TextInsertionService {
     // no restore behind to erase the retained transcript.
     var hasPendingClipboardRestore: Bool { pendingRestore != nil }
 
+    // P2-14: the delayed restore below lives in a `Task` that simply dies
+    // with the process, so quitting inside its ~1.1 s window left the user's
+    // real clipboard replaced by our transcript — permanently, and with the
+    // dictated text still sitting there for the next ⌘V in any app. Called
+    // from `AppEnvironment.shutdown()`: cancel the timer and run the very
+    // same guarded restore synchronously. No await, so it cannot delay
+    // termination, and `restore(_:ifUnchanged:expectedText:pasteboard:)`
+    // still refuses to touch a clipboard the user has overwritten since.
+    func flushPendingRestore() {
+        guard let pending = pendingRestore else { return }
+        pending.task.cancel()
+        pendingRestore = nil
+        Self.restore(
+            pending.items,
+            ifUnchanged: pending.changeCount,
+            expectedText: pending.text,
+            pasteboard: .general
+        )
+    }
+
     // Secure Input (password fields, `sudo` in Terminal, some login forms) makes
     // the window server drop synthetic keystrokes, so the Cmd+V below silently
     // no-ops; the delayed restore would then wipe the transcript from the

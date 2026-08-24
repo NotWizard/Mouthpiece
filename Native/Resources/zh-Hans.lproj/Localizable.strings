@@ -10,6 +10,7 @@
 "common.close" = "关闭";
 "common.done" = "完成";
 "common.edit" = "编辑";
+"common.retry" = "重试";
 "menu.openControlPanel" = "打开控制面板";
 "menu.toggleDictation" = "开始或停止听写";
 "menu.quit" = "退出 Mouthpiece";

@@ -54,9 +54,16 @@ struct ControlPanelView: View {
     var body: some View {
         Group {
             if !environment.isReady {
-                ProgressView()
-                    .controlSize(.small)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // P2-14: a failed initialize() now stays at isReady = false,
+                // so this branch must offer the reason and a retry instead of
+                // spinning forever on an app that will never become ready.
+                if let reason = environment.degradedReason {
+                    degradedStartupPane(reason)
+                } else {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             } else if !environment.settings.onboardingCompleted {
                 OnboardingView()
             } else {
@@ -101,6 +108,32 @@ struct ControlPanelView: View {
             guard !Task.isCancelled else { return }
             environment.dismissOperationError()
         }
+    }
+
+    // P2-14: the degraded startup state. `initialize()` failing leaves the
+    // environment at isReady = false with a reason attached, so the panel
+    // states what broke and offers the only recovery that exists —
+    // re-running the same initialization — instead of a spinner that will
+    // never resolve. The fatal `startupError` alert above still fires
+    // independently; this pane is what remains on screen after it is
+    // dismissed.
+    private func degradedStartupPane(_ reason: String) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.largeTitle)
+                .foregroundStyle(.orange)
+            Text("common.error")
+                .font(.headline)
+            Text(reason)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 360)
+            Button("common.retry") { environment.retryInitialize() }
+                .buttonStyle(.borderedProminent)
+        }
+        .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func operationErrorToast(_ message: String) -> some View {

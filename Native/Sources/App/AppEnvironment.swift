@@ -26,6 +26,22 @@ final class AppEnvironment: ObservableObject {
     // hide an operation failure by occupying the only slot.
     @Published private(set) var startupError: String?
     @Published private(set) var operationError: String?
+    // P2-14: `initialize()` used to set `isReady = true` on BOTH its
+    // success and its failure tail, so an init that never built the
+    // DictationCoordinator still reported a live app: the dictation UI
+    // stayed armed and the hotkey path hit `guard let coordinator else
+    // { return }` in complete silence, with no explanation and no way to
+    // retry. The failure tail now leaves `isReady = false` and records the
+    // reason here, which both keeps the P2-13 lifecycle guards
+    // short-circuited and gives the control panel something actionable to
+    // show. Non-nil implies `isReady == false`; `retryInitialize()` and
+    // the success tail are the only clearers.
+    @Published private(set) var degradedReason: String?
+    // P2-14: Test seam. Counts launched initialization attempts (the one
+    // from init(bootstrap:) plus every retryInitialize()), so the
+    // regression test can prove a retry genuinely re-attempts instead of
+    // only clearing the banner.
+    private(set) var initializeAttemptCount = 0
     // P2-13: Test seam. Counts how many times the activation-observer
     // handler body has executed past the `isReady` guard. Regression
     // tests read this to deterministically confirm that a pre-init
@@ -62,6 +78,10 @@ final class AppEnvironment: ObservableObject {
     private var dictionarySaveRevision = 0
     private var dictionarySaveTask: Task<Void, Never>?
     private var initializationTask: Task<Void, Never>?
+    // P2-14: guards `startInitialization()` so a second Retry click (or a
+    // retry racing the bootstrap attempt) cannot run two initializations
+    // against the same coordinator/history slots.
+    private var isInitializing = false
     private var localModelOperationTask: Task<Void, Never>?
     private static let historyPageSize = 200
     private var historyQuery = ""
@@ -84,9 +104,7 @@ final class AppEnvironment: ObservableObject {
             await self?.shutdown()
         }
         if bootstrap {
-            initializationTask = Task { [weak self] in
-                await self?.initialize()
-            }
+            startInitialization()
         } else if autoMarkReady {
             // P2-13: existing `bootstrap: false` callers (production
             // never uses it; tests such as `testEnvironmentStartsReady`
@@ -289,6 +307,19 @@ final class AppEnvironment: ObservableObject {
         // shutdown fires. Flushing first — before any awaits — persists the
         // pending blob synchronously so it survives termination.
         settingsRepository.flush()
+        // P2-14: a quick Cmd+Q used to reach `coordinator.shutdown()` below,
+        // which cancels the frame task, resets the state machine and drops
+        // the retained PCM — the sentence the user was still speaking
+        // vanished with no history row and no insertion. Give a live
+        // session the real stop() path (finalize -> insert -> history
+        // write) first, but strictly time-boxed: quitting must not hang on
+        // a half-dead provider socket. The clipboard restore is flushed
+        // AFTER that, because stop()'s insertion is what registers it.
+        if let coordinator, dictation.phase.isActive {
+            let stopTask = Task { await coordinator.stop() }
+            await Self.awaitStopWithTimeout(stopTask)
+        }
+        insertion.flushPendingRestore()
         initializationTask?.cancel()
         hotkey.stop()
         translationHotkey.stop()
@@ -320,6 +351,34 @@ final class AppEnvironment: ObservableObject {
     // seed the exact state those two paths produce without corrupting the
     // real UserDefaults settings store.
     func reportStartupFailure(_ message: String) { startupError = message }
+
+    // P2-14: initialize()'s failure tail. Still writes the fatal channel so
+    // the existing alert/banner fires unchanged, and additionally holds the
+    // app in the degraded state: `isReady = false` keeps every P2-13
+    // lifecycle guard (toggleDictation / recoverSystemIntegrations /
+    // prepareForSleep) short-circuited instead of driving a nil
+    // coordinator, and `degradedReason` gives the control panel the text
+    // plus the Retry affordance. Internal (not private) so the regression
+    // test can seed exactly this state without having to break the host's
+    // Application Support directory or SQLite — the same rationale as
+    // P2-7's reportStartupFailure, and the same real production writer.
+    func reportInitializationFailure(_ error: Error) {
+        let reason = error.localizedDescription
+        reportStartupFailure(reason)
+        isReady = false
+        degradedReason = reason
+    }
+
+    // P2-14: the degraded state's only exit. Clears the banner state first
+    // (a second failure re-arms it) and then re-runs the very same
+    // initialization path used at startup; `startInitialization()`'s
+    // `isInitializing` guard makes a double-click a no-op.
+    func retryInitialize() {
+        guard !isInitializing, !isShuttingDown else { return }
+        degradedReason = nil
+        dismissStartupError()
+        startInitialization()
+    }
 
     // P2-7: transient channel. Recoverable runtime failures land here and
     // are shown as an auto-dismissing toast, so they neither overwrite nor
@@ -454,7 +513,20 @@ final class AppEnvironment: ObservableObject {
         Task { await coordinator.cancel() }
     }
 
+    // P2-14: the single place an initialization attempt is launched —
+    // init(bootstrap:) at startup and retryInitialize() from the degraded
+    // control panel — so both share one re-entrancy guard and one counter.
+    private func startInitialization() {
+        guard !isInitializing, !isShuttingDown else { return }
+        isInitializing = true
+        initializeAttemptCount += 1
+        initializationTask = Task { [weak self] in
+            await self?.initialize()
+        }
+    }
+
     private func initialize() async {
+        defer { isInitializing = false }
         do {
             try ensureInitializationCanContinue()
             try AppPaths.prepareApplicationSupport()
@@ -508,11 +580,14 @@ final class AppEnvironment: ObservableObject {
             updateHotkeyRegistrations()
             applySystemSettings()
             refreshLocalModelStatus()
+            degradedReason = nil
             isReady = true
         } catch {
             guard !isShuttingDown, !Task.isCancelled else { return }
-            reportStartupFailure(error.localizedDescription)
-            isReady = true
+            // P2-14: pre-fix this tail also ran `isReady = true`, so a
+            // half-initialised app (no coordinator, no hotkey callbacks)
+            // presented itself as fully live.
+            reportInitializationFailure(error)
         }
     }
 
@@ -899,6 +974,61 @@ final class AppEnvironment: ObservableObject {
         microphones = audio.availableInputDevices()
         refreshPermissions()
         capsule.repositionIfVisible()
+    }
+}
+
+// MARK: - Bounded quit-time flush (P2-14)
+
+private extension AppEnvironment {
+    // Bounded variant of `await coordinator.stop()` for `shutdown()`.
+    // stop() finalizes through the network (bounded at 8 s by the
+    // coordinator's own finishWithTimeout), reasoning, insertion and the
+    // history write, but a socket that never answers and ignores
+    // cancellation would otherwise park the quit sequence forever with the
+    // user staring at a beach ball — `applicationShouldTerminate` already
+    // returned `.terminateLater` and only replies after this returns. Race
+    // the stop against a watchdog so the first winner resumes the
+    // continuation even when the loser refuses to unwind (a `withTaskGroup`
+    // variant would still block on the group's implicit join). This mirrors
+    // DictationCoordinator's P2-2 `awaitDrainWithTimeout` shape, which
+    // lives in a fileprivate extension there and so cannot be called from
+    // this file. Losing an unfinishable tail beats blocking quit; dropping
+    // the whole recording — the pre-fix behavior — is worse than both.
+    nonisolated static func awaitStopWithTimeout(
+        _ stopTask: Task<Void, Never>,
+        timeout: Duration = .seconds(3)
+    ) async {
+        let gate = ShutdownClaimGate()
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            Task {
+                await stopTask.value
+                if gate.claim() { continuation.resume() }
+            }
+            Task {
+                try? await Task.sleep(for: timeout)
+                if gate.claim() {
+                    stopTask.cancel()
+                    continuation.resume()
+                }
+            }
+        }
+    }
+}
+
+// Single-winner gate for the racer above: exactly one of the two branches
+// may resume the continuation. Same contract as DictationCoordinator's
+// ClaimGate (P2-2/P2-4), duplicated here only because that one is nested
+// and private to the coordinator.
+private final class ShutdownClaimGate: @unchecked Sendable {
+    private var claimed = false
+    private let lock = NSLock()
+
+    func claim() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        if claimed { return false }
+        claimed = true
+        return true
     }
 }
 

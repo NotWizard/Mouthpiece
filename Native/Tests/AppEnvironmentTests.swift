@@ -1056,4 +1056,78 @@ final class AppEnvironmentTests: XCTestCase {
         XCTAssertNil(env.startupError)
         XCTAssertEqual(env.operationError, "History record could not be deleted")
     }
+
+    // P2-14: `initialize()` ran `isReady = true` on BOTH tails, so an init
+    // that threw — a non-writable Application Support directory, a SQLite
+    // open failure, a corrupted history file — still advertised a fully
+    // live app while `coordinator` stayed nil. Every dictation entry point
+    // then hit `guard let coordinator else { return }`: the hotkey did
+    // nothing, the menu item did nothing, and the user got no explanation
+    // and no way to retry short of relaunching. The failure tail now keeps
+    // the app at `isReady = false` with the reason attached, which also
+    // means P2-13's `isReady` guards keep the lifecycle handlers off a
+    // half-initialised environment, and `retryInitialize()` re-runs the
+    // very same initialization path. `reportInitializationFailure` is the
+    // real production writer (initialize()'s catch calls exactly it), so
+    // seeding through it pins the shipped behaviour rather than a test-only
+    // shortcut — the same rationale as P2-7's `reportStartupFailure`.
+    func testFailedInitReportsDegradedAndAllowsRetry() async {
+        struct InitializationFailure: LocalizedError {
+            var errorDescription: String? { "Application Support could not be prepared" }
+        }
+
+        let env = AppEnvironment(bootstrap: false)
+        XCTAssertTrue(env.isReady)
+        XCTAssertNil(env.degradedReason)
+        let attemptsBeforeRetry = env.initializeAttemptCount
+
+        env.reportInitializationFailure(InitializationFailure())
+
+        XCTAssertFalse(
+            env.isReady,
+            "A failed initialize() must not report the app as ready — the coordinator is nil (audit P2-14)"
+        )
+        XCTAssertEqual(
+            env.degradedReason, "Application Support could not be prepared",
+            "The degraded state must carry the reason so the panel can explain the failure (audit P2-14)"
+        )
+        XCTAssertEqual(
+            env.startupError, "Application Support could not be prepared",
+            "The degraded state must still write the fatal channel so the existing banner fires (audit P2-7)"
+        )
+
+        // Because the degraded state holds isReady = false, P2-13's guards
+        // keep the lifecycle handlers away from the nil coordinator too.
+        env.recoverSystemIntegrations()
+        XCTAssertEqual(
+            env.recoverSystemIntegrationsInvocationCount, 0,
+            "Lifecycle handlers must stay short-circuited while degraded (audit P2-13 + P2-14)"
+        )
+
+        env.retryInitialize()
+
+        XCTAssertNil(
+            env.degradedReason,
+            "retryInitialize() must clear the degraded banner at the start of the new attempt (audit P2-14)"
+        )
+        XCTAssertNil(env.startupError, "The stale fatal diagnostic must not outlive the retry")
+        XCTAssertEqual(
+            env.initializeAttemptCount, attemptsBeforeRetry + 1,
+            "retryInitialize() must actually re-attempt initialization, not just clear the banner (audit P2-14)"
+        )
+
+        // A second Retry click while the attempt is in flight must not stack
+        // a competing initialization over the same coordinator/history slots.
+        env.retryInitialize()
+        XCTAssertEqual(
+            env.initializeAttemptCount, attemptsBeforeRetry + 1,
+            "Concurrent retries must collapse onto the in-flight attempt (audit P2-14)"
+        )
+
+        // Cancel the queued retry before its body can touch the host's
+        // Application Support directory, login items, or event taps:
+        // shutdown() cancels the initialization task, whose first
+        // `ensureInitializationCanContinue()` then throws immediately.
+        await env.shutdown()
+    }
 }
