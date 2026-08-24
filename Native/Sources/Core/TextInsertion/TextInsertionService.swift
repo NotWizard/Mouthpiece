@@ -129,6 +129,12 @@ final class TextInsertionService {
     // sinks deterministically. DEBUG-only, so release builds always take the
     // real NSWorkspace / AX capture in captureTarget().
     var capturedTargetOverride: (() -> TextInsertionTarget?)?
+    // Test seam (P2-5): insert() guards on AXIsProcessTrusted() (false on CI)
+    // before it can reach the AX/paste pipeline, so a coordinator session that
+    // must run insertion to reach .completed cannot be driven deterministically
+    // in tests. When set, insert() delegates here and returns; DEBUG-only, so
+    // release builds always run the real AX/paste implementation below.
+    var insertOverride: ((String, TextInsertionTarget, AppSettings) async throws -> Void)?
     #endif
 
     init() {
@@ -228,6 +234,12 @@ final class TextInsertionService {
         into target: TextInsertionTarget,
         settings: AppSettings
     ) async throws {
+        #if DEBUG
+        if let insertOverride {
+            try await insertOverride(text, target, settings)
+            return
+        }
+        #endif
         guard let application = NSRunningApplication(processIdentifier: target.processIdentifier) else {
             throw TextInsertionError.targetUnavailable
         }

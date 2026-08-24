@@ -790,6 +790,84 @@ final class DictationCoordinatorTests: XCTestCase {
         await cloud.coordinator.cancel()
     }
 
+    // P2-5: a non-streaming reasoning call that times out or errors must not
+    // block finalize. `ReasoningService` pins `timeoutInterval = 30` on every
+    // provider POST (the shared `jsonRequest` builder), and `stop()` wraps the
+    // reasoning call so a throw routes to `finalText = <raw transcript>` with a
+    // `capsule.polishingFallback` status — the session still completes, inserts,
+    // and saves the RAW transcript. The reasoning stub returns HTTP 500 so
+    // `ReasoningService.process` throws the way a timed-out / erroring provider
+    // would; if the fallback catch regressed, the session would instead end
+    // `.failed` with nothing saved.
+    func testReasoningTimeoutFallsBackToRawTranscript() async throws {
+        ReasoningStubURLProtocol.reset()
+        addTeardownBlock { ReasoningStubURLProtocol.reset() }
+        ReasoningStubURLProtocol.handler = { _ in
+            (500, #"{"error":"reasoning provider timed out"}"#)
+        }
+
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        let target = TextInsertionTarget(
+            processIdentifier: ownPID,
+            bundleIdentifier: "com.apple.TextEdit",
+            applicationName: "TextEdit"
+        )
+        let harness = try await makeHarness(
+            provider: ScriptedRealtimeProvider(connect: .succeed, finishText: "hello raw world"),
+            capturedTarget: target,
+            reasoningSession: makeStubbedReasoningSession()
+        )
+        // Coordinator tests run without an Accessibility grant, so the real
+        // insert() path throws at its AXIsProcessTrusted() guard. Stub insertion
+        // (the P2-5 seam) and capture the delivered text to prove the RAW
+        // transcript is what reached the target after the reasoning fallback.
+        let probe = InsertionProbe()
+        harness.insertion.insertOverride = { text, _, _ in probe.record(text) }
+
+        var settings = makeSettings()
+        settings.useReasoningModel = true               // route finalize through the reasoning POST
+        settings.automaticallyPasteTranscription = true // default; completion runs through inserting
+
+        await harness.coordinator.start(settings: settings)
+        let recordingPhase = await harness.coordinator.snapshot().phase
+        XCTAssertEqual(recordingPhase, .recording)
+        harness.audio.emitFrame(rms: 0.02)
+
+        let startedAt = ContinuousClock.now
+        await harness.coordinator.stop()
+        XCTAssertLessThan(
+            ContinuousClock.now - startedAt,
+            .seconds(10),
+            "A failing reasoning call must not block finalize"
+        )
+
+        XCTAssertEqual(
+            ReasoningStubURLProtocol.requests.count,
+            1,
+            "The reasoning POST must actually be attempted so the throw path is exercised"
+        )
+        XCTAssertFalse(
+            harness.recorder.snapshots.contains { $0.phase == .failed },
+            "A reasoning failure must fall back to the raw transcript, not fail the session"
+        )
+        XCTAssertTrue(
+            harness.recorder.snapshots.contains { $0.phase == .completed },
+            "The session must still complete after the reasoning fallback"
+        )
+        XCTAssertEqual(
+            probe.insertedText,
+            "hello raw world",
+            "The RAW transcript must be what gets inserted when reasoning fails"
+        )
+        let records = try await harness.history.recent(limit: 5)
+        XCTAssertEqual(
+            records.first?.text,
+            "hello raw world",
+            "History must store the raw transcript after the reasoning fallback"
+        )
+        XCTAssertEqual(records.first?.rawText, "hello raw world")
+    }
+
     // MARK: - Harness
 
     private struct Harness {
@@ -797,6 +875,7 @@ final class DictationCoordinatorTests: XCTestCase {
         let audio: StubAudioCapture
         let recorder: SnapshotRecorder
         let history: HistoryRepository
+        let insertion: TextInsertionService
         let logDirectory: URL
     }
 
@@ -868,6 +947,7 @@ final class DictationCoordinatorTests: XCTestCase {
             audio: audio,
             recorder: recorder,
             history: history,
+            insertion: insertion,
             logDirectory: logDirectory
         )
     }
@@ -898,6 +978,16 @@ private final class SnapshotRecorder {
     private(set) var snapshots: [DictationSnapshot] = []
 
     func append(_ snapshot: DictationSnapshot) { snapshots.append(snapshot) }
+}
+
+// P2-5: records the text delivered to the stubbed insertion path so the
+// reasoning-fallback regression can prove the RAW transcript is what got
+// inserted after the reasoning call threw.
+@MainActor
+private final class InsertionProbe {
+    private(set) var insertedText: String?
+
+    func record(_ text: String) { insertedText = text }
 }
 
 @MainActor
