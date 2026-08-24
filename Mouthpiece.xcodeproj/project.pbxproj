@@ -17,6 +17,7 @@
 		16506CE0651229C235E6997F /* provider-volcengine.svg in Resources */ = {isa = PBXBuildFile; fileRef = 473B94E3083AC662E10BB2F3 /* provider-volcengine.svg */; };
 		1C251ED433E1ADD7BE0CCC97 /* AudioCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E3585937DFD74537CD06375 /* AudioCaptureService.swift */; };
 		2D95C800B8100F754AB4FEC6 /* VocabularyRulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6AF4263364F99415FE81C5 /* VocabularyRulesView.swift */; };
+		2DAC26768AB172A2426C376B /* DictationSessionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCBD2075D00E23850F2F254 /* DictationSessionModel.swift */; };
 		321E53850470F38EB87BD3E4 /* AppEnvironmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09EB05050047AEA5E7AF2A0F /* AppEnvironmentTests.swift */; };
 		38C6EAC44D32457CEBAAE9AE /* VolcengineRealtimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4A1007A71A94BEFBAC33308 /* VolcengineRealtimeProvider.swift */; };
 		393DA3F6B2481CBC599F9828 /* HistoryRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4296C56083431AF4D8B75F2 /* HistoryRepository.swift */; };
@@ -114,6 +115,7 @@
 		42E56BBE96DE36354A1C2355 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
 		473B94E3083AC662E10BB2F3 /* provider-volcengine.svg */ = {isa = PBXFileReference; path = "provider-volcengine.svg"; sourceTree = "<group>"; };
 		4839CE9A5603125120A84F94 /* SupervisedProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupervisedProcess.swift; sourceTree = "<group>"; };
+		4DCBD2075D00E23850F2F254 /* DictationSessionModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationSessionModel.swift; sourceTree = "<group>"; };
 		4FB4E666C85506C60072109F /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		4FF10FB8792E36433269C821 /* provider-alibaba-cloud.svg */ = {isa = PBXFileReference; path = "provider-alibaba-cloud.svg"; sourceTree = "<group>"; };
 		531364AC24AAD1894E4DBB28 /* Mouthpiece.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Mouthpiece.icns; sourceTree = "<group>"; };
@@ -445,6 +447,7 @@
 				9F07BDA1719C968AE23A7997 /* AppDelegate.swift */,
 				C831708EAE57EACA8418A22C /* AppEnvironment.swift */,
 				82D4C3234DFE8927E6B80953 /* AppLocalization.swift */,
+				4DCBD2075D00E23850F2F254 /* DictationSessionModel.swift */,
 				202A5C104CA1D33343D7EB28 /* MouthpieceApp.swift */,
 			);
 			path = App;
@@ -608,6 +611,7 @@
 				BBFB3EA1322BA1862CAD2129 /* DebugLogStore.swift in Sources */,
 				6944071CAFC02BB0704CFFAD /* DeepgramRealtimeProvider.swift in Sources */,
 				0CC9ECF7F562AD5316B0D744 /* DictationCoordinator.swift in Sources */,
+				2DAC26768AB172A2426C376B /* DictationSessionModel.swift in Sources */,
 				FA29B83954AF90DE5BE04FCD /* DictationSettingsView.swift in Sources */,
 				4F7E2751C9085D48308B2CA9 /* DictationState.swift in Sources */,
 				393DA3F6B2481CBC599F9828 /* HistoryRepository.swift in Sources */,

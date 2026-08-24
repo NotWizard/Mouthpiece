@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import ServiceManagement
 import XCTest
 @testable import Mouthpiece
@@ -1129,5 +1130,70 @@ final class AppEnvironmentTests: XCTestCase {
         // shutdown() cancels the initialization task, whose first
         // `ensureInitializationCanContinue()` then throws immediately.
         await env.shutdown()
+    }
+
+    // P2-6: The live dictation state (phase / partial transcript / audio
+    // level) used to be `@Published` on AppEnvironment next to the settings
+    // blob, the history page and the permission snapshot. SwiftUI subscribes
+    // to an ObservableObject as a whole — never per property — so every
+    // audio-level tick (~50/s while recording) invalidated each view holding
+    // `@EnvironmentObject var environment: AppEnvironment`: with the control
+    // panel open during dictation the whole panel (History list, settings
+    // forms, sidebar) re-evaluated its `body` fifty times a second, though
+    // none of those views reads the dictation state. The per-frame state now
+    // lives on `DictationSessionModel`, held as a plain `let` (see that
+    // file's header for why publishing the reference would undo the split).
+    // Pinned structurally instead of by sampling a frame rate: the
+    // environment's publisher must stay silent across a second of frames.
+    func testDictationLevelUpdatesDoNotNotifyEnvironmentObservers() {
+        let env = AppEnvironment(bootstrap: false)
+        var environmentNotifications = 0
+        var sessionNotifications = 0
+        let environmentSubscription = env.objectWillChange.sink { _ in environmentNotifications += 1 }
+        let sessionSubscription = env.session.objectWillChange.sink { _ in sessionNotifications += 1 }
+        defer {
+            environmentSubscription.cancel()
+            sessionSubscription.cancel()
+        }
+
+        // Replay one second of the real stream. `DictationCoordinator`
+        // publishes a whole snapshot per frame, so the level and the partial
+        // transcript both move on every tick — exactly the traffic that used
+        // to reach the control panel.
+        let sessionID = UUID()
+        let frames = 50
+        for frame in 0..<frames {
+            env.session.apply(DictationSnapshot(
+                sessionID: sessionID,
+                phase: .recording,
+                partialText: String(repeating: "word ", count: frame),
+                audioLevel: Float(frame % 10) / 10,
+                errorMessage: nil,
+                isTranslation: false
+            ))
+        }
+
+        XCTAssertEqual(
+            sessionNotifications, frames,
+            "The capsule/HUD side must still get every per-frame update — live level and partial text cannot lose responsiveness (audit P2-6)"
+        )
+        XCTAssertEqual(
+            environmentNotifications, 0,
+            "Per-frame dictation updates must not notify AppEnvironment's observers, or the whole control panel re-renders at ~50 Hz while dictating (audit P2-6)"
+        )
+        XCTAssertEqual(env.session.phase, .recording, "The environment must still see the live phase for its hotkey and shutdown decisions")
+        XCTAssertEqual(
+            env.session.snapshot.partialText, String(repeating: "word ", count: frames - 1),
+            "The extracted model must hold the newest snapshot, not a stale copy"
+        )
+
+        // Control: the environment's own low-frequency channel still notifies
+        // its observers, so the zero above is the split at work and not a
+        // dead publisher. `reportStartupFailure` is a real production writer.
+        env.reportStartupFailure("fatal")
+        XCTAssertEqual(
+            environmentNotifications, 1,
+            "Low-frequency environment state must still publish to the panel (audit P2-6)"
+        )
     }
 }

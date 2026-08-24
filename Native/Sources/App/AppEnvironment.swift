@@ -6,7 +6,6 @@ import ServiceManagement
 final class AppEnvironment: ObservableObject {
     @Published private(set) var isReady = false
     @Published private(set) var settings = AppSettings()
-    @Published private(set) var dictation = DictationSnapshot.idle
     @Published private(set) var transcriptions: [TranscriptionRecord] = []
     @Published private(set) var hasMoreHistory = false
     @Published private(set) var lastSessionError: SessionFailure?
@@ -49,6 +48,14 @@ final class AppEnvironment: ObservableObject {
     // independent of the host's audio devices or granted permissions.
     private(set) var recoverSystemIntegrationsInvocationCount = 0
 
+    // P2-6: The ~50 Hz dictation state (phase / partial transcript /
+    // audio level) lives here, on its own ObservableObject, so only the
+    // capsule/HUD side subscribes to the per-frame stream. Deliberately a
+    // plain `let` and NOT `@Published`: publishing the reference would
+    // forward every inner change to AppEnvironment's own
+    // `objectWillChange` and put the whole control panel back on the 50 Hz
+    // invalidation path this split exists to remove.
+    let session = DictationSessionModel()
     let settingsRepository = SettingsRepository()
     let keychain = KeychainStore()
     let audio = AudioCaptureService()
@@ -315,7 +322,7 @@ final class AppEnvironment: ObservableObject {
         // write) first, but strictly time-boxed: quitting must not hang on
         // a half-dead provider socket. The clipboard restore is flushed
         // AFTER that, because stop()'s insertion is what registers it.
-        if let coordinator, dictation.phase.isActive {
+        if let coordinator, session.phase.isActive {
             let stopTask = Task { await coordinator.stop() }
             await Self.awaitStopWithTimeout(stopTask)
         }
@@ -565,7 +572,12 @@ final class AppEnvironment: ObservableObject {
                 insertion: insertion,
                 capsule: capsule
             ) { [weak self] snapshot in
-                self?.dictation = snapshot
+                // P2-6: the ~50 Hz write site. Writing the snapshot into
+                // `session` (its own ObservableObject) keeps the per-frame
+                // level/partial stream off AppEnvironment's publisher; the
+                // two coarse follow-ups below stay here because they only
+                // fire on real phase/session transitions.
+                self?.session.apply(snapshot)
                 self?.escapeHotkey.setSwallowArmed(snapshot.phase.isActive)
                 self?.recordSessionFailure(snapshot)
             }
@@ -695,7 +707,7 @@ final class AppEnvironment: ObservableObject {
         // half-initialised state — short-circuit until isReady is set
         // at the tail of initialize().
         guard isReady else { return }
-        dictation.phase.isActive ? stopDictation() : startDictation(translation: false)
+        session.phase.isActive ? stopDictation() : startDictation(translation: false)
     }
 
     private func handleHotkeyPress() {
@@ -728,11 +740,11 @@ final class AppEnvironment: ObservableObject {
     private func performMainHotkeyPress() {
         switch settings.hotkeyBehavior {
         case .toggle:
-            dictation.phase.isActive ? stopDictation() : startDictation(translation: false)
+            session.phase.isActive ? stopDictation() : startDictation(translation: false)
         case .pushToTalk:
-            if !dictation.phase.isActive { startDictation(translation: false) }
+            if !session.phase.isActive { startDictation(translation: false) }
         case .automatic:
-            dictation.phase.isActive ? stopDictation() : startDictation(translation: false)
+            session.phase.isActive ? stopDictation() : startDictation(translation: false)
         }
     }
 
@@ -773,7 +785,7 @@ final class AppEnvironment: ObservableObject {
             return
         }
         cancelPendingMainHotkey(resetPressTime: false)
-        if dictation.phase.isActive, activeActivation == .translation {
+        if session.phase.isActive, activeActivation == .translation {
             stopDictation()
             return
         }
@@ -873,7 +885,7 @@ final class AppEnvironment: ObservableObject {
         guard Self.shouldCancelForEscape(
             keyCode: keyCode,
             enabled: settings.escapeCancelsRecording,
-            isActive: dictation.phase.isActive
+            isActive: session.phase.isActive
         ) else { return }
         cancelPendingMainHotkey()
         // P2-21: match the translation-hotkey log site's `[logger]`
