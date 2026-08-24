@@ -28,13 +28,6 @@ actor KeychainStore {
     // behaviorally identical while letting tests use an isolated service.
     private let service: String
 
-    // NEW-5: every write pins accessibility to the device-only variant so
-    // credentials are never eligible for iCloud Keychain sync or restored to
-    // another device from a backup. Exposed as a nonisolated static so the
-    // regression test can assert the constant without touching the real
-    // keychain (SecurityAgent prompts hang locked-screen CI).
-    static var accessibility: CFString { kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly }
-
     init(service: String = KeychainStore.service) {
         self.service = service
     }
@@ -64,21 +57,18 @@ actor KeychainStore {
             kSecAttrAccount as String: account.rawValue,
         ]
         let data = Data(value.utf8)
-        // NEW-5: the accessibility attribute rides on BOTH the update and add
-        // paths so an existing item written before the fix is upgraded to
-        // device-only on the next save, and a fresh insert never lands as
-        // syncable-by-default.
+        // No kSecAttrAccessible here: this store writes to the macOS legacy
+        // file-based keychain, which silently drops that attribute and never
+        // returns it. Honoring it requires kSecUseDataProtectionKeychain, and
+        // that path returns errSecMissingEntitlement (-34018) without an
+        // Apple-issued Team ID (see docs/audits/2026-08-21-fix-plan.md NEW-5).
         let updateStatus = SecItemUpdate(
             base as CFDictionary,
-            [
-                kSecValueData as String: data,
-                kSecAttrAccessible as String: Self.accessibility,
-            ] as CFDictionary
+            [kSecValueData as String: data] as CFDictionary
         )
         if updateStatus == errSecItemNotFound {
             var insert = base
             insert[kSecValueData as String] = data
-            insert[kSecAttrAccessible as String] = Self.accessibility
             let status = SecItemAdd(insert as CFDictionary, nil)
             guard status == errSecSuccess else { throw KeychainError.unhandled(status) }
         } else if updateStatus != errSecSuccess {
