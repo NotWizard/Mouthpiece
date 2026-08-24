@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Two statements in the v2.1.0 release notes that did not match the shipped implementation are corrected in `docs/releases/v2.1.0.md` (both the Chinese and English sections), and the published GitHub Release body was re-uploaded from the corrected file so the tag's notes and the repo no longer disagree. First, the unit-test count read "116 → 159": 159 was measured before the NEW-5 revert and on a run where two keychain tests silently `XCTSkip`-ed, whereas the shipped tree measures `Executed=160, Failures=0, Skipped=0` — the notes now read "116 → 160". Second, the release-pipeline bullet credited P2-19 with switching "DMG packaging to a unique mountpoint"; that was an intermediate approach overturned during the release, because Finder can only resolve `tell disk "<name>"` for volumes mounted under `/Volumes` (an arbitrary mountpoint fails with `-1728`, which broke the `build` job on both architectures), so the shipped script keeps the mountpoint under `/Volumes` and moves the uniqueness into the volume name — the bullet now reads "unique volume name". Documentation only: no artifacts, checksums, appcasts, or the `v2.1.0` tag were touched.
+
 ## [2.1.0] - 2026-08-24
 
 ### Fixed
