@@ -70,9 +70,12 @@ actor ReasoningService {
     }
 
     static func shouldCallModel(settings: AppSettings, target: TextInsertionTarget?) -> Bool {
-        let cloudAllowed = target.map { !TextInsertionService.isSensitive($0) } != false
-            || settings.allowSensitiveAppCloudReasoning
-        return (settings.useReasoningModel || settings.translationEnabled) && cloudAllowed
+        guard settings.useReasoningModel || settings.translationEnabled else { return false }
+        // P2-10: the sensitive-app half of this decision lives in
+        // SensitivityGate, shared with the insertion, history and log sinks, so
+        // a password-field transcript can never be uploaded by one sink's
+        // formula disagreeing with another's.
+        return !SensitivityGate(target: target, settings: settings).blocksCloudReasoning
     }
 
     static func prompt(transcript: String, settings: AppSettings) -> String {

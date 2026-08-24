@@ -657,6 +657,139 @@ final class DictationCoordinatorTests: XCTestCase {
         )
     }
 
+    // P2-10: the sensitive-app gate used to be applied to insertion only.
+    // History, the debug log and the cloud reasoning upload each answered the
+    // question themselves (or never asked it), so a password dictated into
+    // 1Password was still written to SQLite whenever the user left "block
+    // insertion" off. One SensitivityGate per session now feeds every sink.
+    func testSensitiveGateHonouredAcrossAllSinks() async throws {
+        // The test process is the target so the process-exists guard passes and
+        // the sensitive-app decision is the only deciding branch.
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        let sensitiveTarget = TextInsertionTarget(
+            processIdentifier: ownPID,
+            bundleIdentifier: "com.agilebits.onepassword7",
+            applicationName: "1Password"
+        )
+        let ordinaryTarget = TextInsertionTarget(
+            processIdentifier: ownPID,
+            bundleIdentifier: "com.apple.TextEdit",
+            applicationName: "TextEdit"
+        )
+        ReasoningStubURLProtocol.reset()
+        addTeardownBlock { ReasoningStubURLProtocol.reset() }
+        ReasoningStubURLProtocol.handler = { _ in
+            (200, #"{"choices":[{"message":{"content":"POLISHED"}}]}"#)
+        }
+
+        // The leak the audit found: protection on, but the user allowed
+        // insertion into the password manager, so nothing threw before the
+        // history/log/cloud sinks ran.
+        var settings = makeSettings()
+        settings.sensitiveAppProtectionEnabled = true
+        settings.sensitiveAppBlockInsertion = false
+        settings.allowSensitiveAppCloudReasoning = false
+        settings.useReasoningModel = true
+        let leaky = try await makeHarness(
+            provider: ScriptedRealtimeProvider(connect: .succeed, finishText: "secret"),
+            capturedTarget: sensitiveTarget,
+            logging: true,
+            reasoningSession: makeStubbedReasoningSession()
+        )
+        await leaky.coordinator.start(settings: settings)
+        let leakyRecording = await leaky.coordinator.snapshot()
+        XCTAssertEqual(leakyRecording.phase, .recording)
+        leaky.audio.emitFrame(rms: 0.02)
+        await leaky.coordinator.stop()
+
+        XCTAssertTrue(
+            leaky.recorder.snapshots.contains { $0.phase == .completed },
+            "Allowing insertion must still complete the session; only the sinks are gated"
+        )
+        let leakyRows = try await leaky.history.recent(limit: 10)
+        XCTAssertTrue(
+            leakyRows.isEmpty,
+            "Pre-fix the password reached SQLite as soon as the insertion gate stopped throwing"
+        )
+        XCTAssertEqual(
+            ReasoningStubURLProtocol.requests.count,
+            0,
+            "A sensitive transcript must never be uploaded to the reasoning provider"
+        )
+        let leakyLog = try logContents(leaky.logDirectory)
+        XCTAssertFalse(leakyLog.contains("secret"), "The debug log must not carry a sensitive transcript")
+        XCTAssertTrue(
+            leakyLog.contains("sensitiveApp"),
+            "The log sink must record that the gate closed, so the skip is auditable"
+        )
+
+        // The pre-existing insertion gate is unchanged: with the block policy on
+        // the session fails with blockedSensitiveApplication and saves nothing.
+        var blockingSettings = settings
+        blockingSettings.sensitiveAppBlockInsertion = true
+        let blocking = try await makeHarness(
+            provider: ScriptedRealtimeProvider(connect: .succeed, finishText: "secret"),
+            capturedTarget: sensitiveTarget,
+            logging: true,
+            reasoningSession: makeStubbedReasoningSession()
+        )
+        await blocking.coordinator.start(settings: blockingSettings)
+        blocking.audio.emitFrame(rms: 0.02)
+        await blocking.coordinator.stop()
+
+        XCTAssertEqual(
+            blocking.recorder.snapshots.first { $0.phase == .failed }?.errorMessage,
+            TextInsertionError.blockedSensitiveApplication("1Password").localizedDescription
+        )
+        let blockedRows = try await blocking.history.recent(limit: 10)
+        XCTAssertTrue(blockedRows.isEmpty)
+        XCTAssertEqual(ReasoningStubURLProtocol.requests.count, 0)
+
+        // Flip the decision: an ordinary app keeps every sink open.
+        var ordinarySettings = settings
+        ordinarySettings.useReasoningModel = false
+        let ordinary = try await makeHarness(
+            provider: ScriptedRealtimeProvider(connect: .succeed, finishText: "secret"),
+            capturedTarget: ordinaryTarget,
+            logging: true,
+            reasoningSession: makeStubbedReasoningSession()
+        )
+        await ordinary.coordinator.start(settings: ordinarySettings)
+        ordinary.audio.emitFrame(rms: 0.02)
+        await ordinary.coordinator.stop()
+
+        XCTAssertTrue(ordinary.recorder.snapshots.contains { $0.phase == .completed })
+        let ordinaryRows = try await ordinary.history.recent(limit: 10)
+        XCTAssertEqual(ordinaryRows.first?.text, "secret", "A non-sensitive app must still be persisted")
+        XCTAssertEqual(ordinaryRows.first?.rawText, "secret")
+        let ordinaryLog = try logContents(ordinary.logDirectory)
+        XCTAssertFalse(
+            ordinaryLog.contains("sensitiveApp"),
+            "The gate marker must only appear for a protected session"
+        )
+
+        // …and the cloud sink is genuinely reachable, so the gate above is a
+        // decision and not a blanket block. Only the upload is asserted here:
+        // reasoning parks the session in .processing, whose completion handling
+        // is out of this item's scope, so the run is cancelled afterwards.
+        let cloud = try await makeHarness(
+            provider: ScriptedRealtimeProvider(connect: .succeed, finishText: "secret"),
+            capturedTarget: ordinaryTarget,
+            reasoningSession: makeStubbedReasoningSession()
+        )
+        await cloud.coordinator.start(settings: settings)
+        cloud.audio.emitFrame(rms: 0.02)
+        await cloud.coordinator.stop()
+
+        XCTAssertEqual(
+            ReasoningStubURLProtocol.requests.count,
+            1,
+            "A non-sensitive transcript must still reach the reasoning provider"
+        )
+        XCTAssertEqual(ReasoningStubURLProtocol.requests.first?.url?.path, "/v1/chat/completions")
+        await cloud.coordinator.cancel()
+    }
+
     // MARK: - Harness
 
     private struct Harness {
@@ -664,6 +797,7 @@ final class DictationCoordinatorTests: XCTestCase {
         let audio: StubAudioCapture
         let recorder: SnapshotRecorder
         let history: HistoryRepository
+        let logDirectory: URL
     }
 
     private func makeSettings() -> AppSettings {
@@ -685,7 +819,10 @@ final class DictationCoordinatorTests: XCTestCase {
 
     private func makeHarness(
         provider: ScriptedRealtimeProvider,
-        localRuntime: any LocalTranscriptionRuntime = LocalModelRuntime()
+        localRuntime: any LocalTranscriptionRuntime = LocalModelRuntime(),
+        capturedTarget: TextInsertionTarget? = nil,
+        logging: Bool = false,
+        reasoningSession: URLSession = .shared
     ) async throws -> Harness {
         // P1-15: an in-memory CredentialStore seeded with the bailian key keeps
         // this harness off the real keychain entirely. Previously the harness
@@ -695,7 +832,10 @@ final class DictationCoordinatorTests: XCTestCase {
         // class silently XCTSkip'd. The coordinator is being exercised for its
         // orchestration, not its storage, so this seam is behaviourally
         // identical to a keychain hit that always returned "unit-test-key".
-        let keychain = InMemoryCredentialStore(seed: [.bailian: "unit-test-key"])
+        let keychain = InMemoryCredentialStore(seed: [
+            .bailian: "unit-test-key",
+            .openAI: "unit-test-reasoning-key",
+        ])
 
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("Mouthpiece-Coordinator-\(UUID().uuidString)", isDirectory: true)
@@ -706,19 +846,50 @@ final class DictationCoordinatorTests: XCTestCase {
 
         let audio = StubAudioCapture()
         let recorder = SnapshotRecorder()
+        let insertion = TextInsertionService()
+        // P2-10: the frontmost app during a test run is arbitrary, so the
+        // sensitive-app sinks are only coverable with a pinned target.
+        if let capturedTarget { insertion.capturedTargetOverride = { capturedTarget } }
+        let logDirectory = directory.appendingPathComponent("logs", isDirectory: true)
         let coordinator = DictationCoordinator(
             audio: audio,
             history: history,
             keychain: keychain,
-            logger: DebugLogStore(enabled: false),
-            insertion: TextInsertionService(),
+            logger: DebugLogStore(enabled: logging, directory: logDirectory),
+            insertion: insertion,
             capsule: CapsuleController(),
             localRuntime: localRuntime,
-            reasoningService: ReasoningService(keychain: keychain),
+            reasoningService: ReasoningService(keychain: keychain, session: reasoningSession),
             realtimeProviderOverride: provider,
             onSnapshot: { recorder.append($0) }
         )
-        return Harness(coordinator: coordinator, audio: audio, recorder: recorder, history: history)
+        return Harness(
+            coordinator: coordinator,
+            audio: audio,
+            recorder: recorder,
+            history: history,
+            logDirectory: logDirectory
+        )
+    }
+
+    // P2-10: every reasoning round-trip is counted, so the test can prove a
+    // sensitive session uploads nothing while an ordinary one still reaches the
+    // cloud cleanup.
+    private func makeStubbedReasoningSession() -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [ReasoningStubURLProtocol.self]
+        return URLSession(configuration: configuration)
+    }
+
+    private func logContents(_ directory: URL) throws -> String {
+        let files = (try? FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil
+        )) ?? []
+        return try files
+            .filter { $0.pathExtension == "log" }
+            .map { try String(contentsOf: $0, encoding: .utf8) }
+            .joined(separator: "\n")
     }
 }
 
@@ -884,4 +1055,44 @@ private actor StubLocalRuntime: LocalTranscriptionRuntime {
     }
 
     func stopAll() {}
+}
+
+// P2-10: counts every reasoning round-trip so the sensitive-app gate can be
+// asserted against the real network seam instead of a behavioural proxy.
+private final class ReasoningStubURLProtocol: URLProtocol, @unchecked Sendable {
+    nonisolated(unsafe) static var handler: ((URLRequest) -> (Int, String))?
+    nonisolated(unsafe) private static var capturedRequests: [URLRequest] = []
+    private static let lock = NSLock()
+
+    static var requests: [URLRequest] {
+        lock.withLock { capturedRequests }
+    }
+
+    static func reset() {
+        lock.withLock {
+            handler = nil
+            capturedRequests.removeAll()
+        }
+    }
+
+    override static func canInit(with request: URLRequest) -> Bool { true }
+    override static func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        let response = Self.lock.withLock { () -> (Int, String) in
+            Self.capturedRequests.append(request)
+            return Self.handler?(request) ?? (500, #"{"error":"missing handler"}"#)
+        }
+        let http = HTTPURLResponse(
+            url: request.url!,
+            statusCode: response.0,
+            httpVersion: nil,
+            headerFields: ["Content-Type": "application/json"]
+        )!
+        client?.urlProtocol(self, didReceive: http, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(response.1.utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
 }

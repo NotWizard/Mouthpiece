@@ -76,6 +76,45 @@ enum TextInsertionError: LocalizedError {
     }
 }
 
+// P2-10: the single sensitive-app decision for one dictation session. The rule
+// used to be re-derived at every sink with a different formula — insert(),
+// DictationCoordinator.stop() and ReasoningService.shouldCallModel() each had
+// their own — so the sinks drifted apart: a transcript dictated into a password
+// manager was still persisted to SQLite (and described in the debug log)
+// whenever the user left "block insertion" off. Every sink now reads its answer
+// from one value, built once from the target captured at session start.
+struct SensitivityGate: Sendable {
+    // Nothing captured yet, or the session was torn down: no sink is gated.
+    static let inactive = SensitivityGate(target: nil, settings: AppSettings())
+
+    // The captured frontmost app matched the sensitive list and the user left
+    // the master protection switch on. Every decision below derives from it.
+    let isProtectedSession: Bool
+    private let settings: AppSettings
+
+    init(target: TextInsertionTarget?, settings: AppSettings) {
+        isProtectedSession = settings.sensitiveAppProtectionEnabled
+            && target.map { TextInsertionService.isSensitive($0) } == true
+        self.settings = settings
+    }
+
+    // Unchanged semantics: master switch plus the per-policy insertion toggle.
+    var blocksInsertion: Bool { isProtectedSession && settings.sensitiveAppBlockInsertion }
+
+    // History rows and any transcript-bearing log metadata. Deliberately has no
+    // per-policy opt-out: keeping a password field on disk is never intended,
+    // and pre-fix this only held as a side effect of the insertion gate
+    // throwing first, which is exactly how the leak went unnoticed.
+    var blocksPersistence: Bool { isProtectedSession }
+
+    // Cloud round-trip for cleanup/translation, which the user can opt into.
+    // Pre-fix this one branch ignored the master switch, so the sinks disagreed
+    // in both directions; the switch now governs all of them uniformly.
+    var blocksCloudReasoning: Bool {
+        isProtectedSession && !settings.allowSensitiveAppCloudReasoning
+    }
+}
+
 @MainActor
 final class TextInsertionService {
     private var lastExternalApplication: NSRunningApplication?
@@ -84,6 +123,13 @@ final class TextInsertionService {
     // this global HIToolbox flag, which no test can turn on; injecting it keeps
     // the paste gate coverable. Production always uses the real API.
     var secureInputActive: () -> Bool = { IsSecureEventInputEnabled() }
+    #if DEBUG
+    // Test seam (P2-10): the captured target is whatever app happens to be
+    // frontmost while the suite runs, so no test can exercise the sensitive-app
+    // sinks deterministically. DEBUG-only, so release builds always take the
+    // real NSWorkspace / AX capture in captureTarget().
+    var capturedTargetOverride: (() -> TextInsertionTarget?)?
+    #endif
 
     init() {
         rememberExternalApplication(NSWorkspace.shared.frontmostApplication)
@@ -109,6 +155,9 @@ final class TextInsertionService {
     }
 
     func captureTarget() async -> TextInsertionTarget? {
+        #if DEBUG
+        if let capturedTargetOverride { return capturedTargetOverride() }
+        #endif
         let frontmost = NSWorkspace.shared.frontmostApplication
         if isExternalApplication(frontmost) { rememberExternalApplication(frontmost) }
         let ownPID = ProcessInfo.processInfo.processIdentifier
@@ -182,9 +231,9 @@ final class TextInsertionService {
         guard let application = NSRunningApplication(processIdentifier: target.processIdentifier) else {
             throw TextInsertionError.targetUnavailable
         }
-        if settings.sensitiveAppProtectionEnabled,
-           settings.sensitiveAppBlockInsertion,
-           Self.isSensitive(target) {
+        // P2-10: same decision the coordinator's sinks read, so the insertion
+        // policy cannot drift from the history/log/cloud policies again.
+        if SensitivityGate(target: target, settings: settings).blocksInsertion {
             throw TextInsertionError.blockedSensitiveApplication(target.applicationName)
         }
         guard AXIsProcessTrusted() else {

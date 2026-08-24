@@ -44,6 +44,10 @@ actor DictationCoordinator {
     private var provider: (any RealtimeTranscriptionProvider)?
     private var providerSessionID: UUID?
     private var activeSettings = AppSettings()
+    // P2-10: the session's single sensitive-app decision, taken from the target
+    // captured at start() and read by every transcript sink (insertion,
+    // history, debug log, cloud reasoning) so they cannot drift apart.
+    private var sensitivity = SensitivityGate.inactive
     private var speechGate = SpeechActivityGate()
     private var maximumDurationTask: Task<Void, Never>?
     private var preparingWatchdogTask: Task<Void, Never>?
@@ -138,6 +142,7 @@ actor DictationCoordinator {
         provider = nil
         providerSessionID = nil
         target = nil
+        sensitivity = .inactive
         pcm.removeAll(keepingCapacity: false)
         machine.reset()
         await publish()
@@ -171,15 +176,20 @@ actor DictationCoordinator {
             await capsule.setLanguage(settings.uiLanguage)
             pcm.removeAll(keepingCapacity: true)
             target = await insertion.captureTarget()
+            sensitivity = SensitivityGate(target: target, settings: settings)
             await capsule.setTarget(
                 processIdentifier: target?.processIdentifier,
                 applicationName: target?.applicationName
             )
             await publish(show: true)
+            // P2-10: the log sink records that the gate closed, never any
+            // transcript text — that is the whole point of gating it here.
+            var startMetadata: [String: String] = settings.translationEnabled ? ["translation": "true"] : [:]
+            if sensitivity.isProtectedSession { startMetadata["sensitiveApp"] = "true" }
             await logger.write(
                 .info,
                 "Dictation session started",
-                metadata: settings.translationEnabled ? ["translation": "true"] : [:],
+                metadata: startMetadata,
                 sessionID: sessionID
             )
 
@@ -414,12 +424,10 @@ actor DictationCoordinator {
             }
 
             // insert() only guards the auto-paste branch; without this the
-            // transcript still lands in the clipboard and history while a
-            // password manager or bank app is frontmost.
-            if let target,
-               activeSettings.sensitiveAppProtectionEnabled,
-               activeSettings.sensitiveAppBlockInsertion,
-               TextInsertionService.isSensitive(target) {
+            // transcript still lands in the clipboard while a password manager
+            // or bank app is frontmost. P2-10: same decision as every other
+            // sink, so the policies cannot diverge again.
+            if sensitivity.blocksInsertion, let target {
                 throw TextInsertionError.blockedSensitiveApplication(target.applicationName)
             }
 
@@ -437,7 +445,12 @@ actor DictationCoordinator {
                 await insertion.copyToClipboard(finalText)
                 guard isCurrent(sessionID, phase: completionPhase) else { return }
             }
-            _ = try await history.save(text: finalText, rawText: normalizedRawText)
+            // P2-10: a sensitive session never reaches SQLite. Pre-fix this only
+            // held when the insertion gate above threw first, so a user who
+            // allowed insertion into a password manager still got the password
+            // written to the history database in clear text. The clipboard stays
+            // tied to the insertion policy the user opted into above.
+            try await persistIfAllowed(text: finalText, rawText: normalizedRawText)
             guard isCurrent(sessionID, phase: completionPhase) else { return }
             try machine.transition(to: .completed, sessionID: sessionID)
             await logger.write(.info, "Dictation session completed", sessionID: sessionID)
@@ -462,6 +475,13 @@ actor DictationCoordinator {
             await logger.write(.warning, message, sessionID: sessionID)
             await capsule.flashStatus(localizedKey: "capsule.secureInputBlocked")
         }
+    }
+
+    // P2-10: history is a gated sink, not an unconditional one. Kept as its own
+    // method so stop() states the intent in one line and keeps its complexity.
+    private func persistIfAllowed(text: String, rawText: String) async throws {
+        guard !sensitivity.blocksPersistence else { return }
+        _ = try await history.save(text: text, rawText: rawText)
     }
 
     func cancel() async {
@@ -859,6 +879,7 @@ actor DictationCoordinator {
         provider = nil
         providerSessionID = nil
         target = nil
+        sensitivity = .inactive
         pcm.removeAll(keepingCapacity: false)
         machine.reset()
         await publish()
