@@ -285,33 +285,9 @@ final class HotkeyService {
             && flags.intersection(relevantFlags) == descriptor.modifiers
     }
 
-    // The aggregate `CGEventFlags` mask cannot distinguish the two physical
-    // keys that share a modifier bit (left vs right Cmd/Shift/Option/Ctrl).
-    // Holding left Cmd while tapping right Cmd would leave `.maskCommand` set
-    // on the release event, so a mask-only check kept `pressed` stuck at true.
-    // Callers pair the mask test with a per-keyCode read from
-    // `CGEventSource.keyState(.combinedSessionState, key: descriptor.keyCode)`
-    // to make the physical key the decisive signal.
-    nonisolated static func modifierOnlyPressedState(
-        flags: CGEventFlags,
-        mask: CGEventFlags,
-        physicalKeyDown: Bool
-    ) -> Bool {
-        flags.intersection(mask) == mask && physicalKeyDown
-    }
-
     private func handle(type: CGEventType, keyCode: CGKeyCode, flags: CGEventFlags) {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: true) }
-            // A release (or a fresh press) that landed while the tap was
-            // disabled is invisible to us; without this reconcile a
-            // modifier-only push-to-talk stays "pressed" forever, dictation
-            // runs until the watchdog, and the translation tap keeps swallowing
-            // its suffix. `setPressed` is idempotent, so a no-op is free.
-            if descriptor.modifierOnly {
-                let down = CGEventSource.keyState(.combinedSessionState, key: descriptor.keyCode)
-                setPressed(down)
-            }
             return
         }
         guard keyCode == descriptor.keyCode else {
@@ -321,15 +297,16 @@ final class HotkeyService {
             return
         }
         if descriptor.modifierOnly {
-            let physicalKeyDown = CGEventSource.keyState(
-                .combinedSessionState,
-                key: descriptor.keyCode
-            )
-            let isNowPressed = Self.modifierOnlyPressedState(
-                flags: flags,
-                mask: descriptor.modifiers,
-                physicalKeyDown: physicalKeyDown
-            )
+            // Decide press/release from the event's own aggregate flags only.
+            // Do NOT reintroduce a CGEventSource.keyState(...) gate here: inside
+            // the tap it does not reliably reflect a modifier key's state at
+            // flagsChanged-delivery time, which left the default RightCommand
+            // hotkey stuck as never-pressed (v2.1.0 regression, reverted).
+            // Known limitation this cannot distinguish: holding left Cmd while
+            // tapping right Cmd shares one mask bit. The correct fix is to read
+            // the device-specific modifier bit (e.g. NX_DEVICERCMDKEYMASK) from
+            // the event itself — verifiable only on-device, not in CI.
+            let isNowPressed = flags.intersection(descriptor.modifiers) == descriptor.modifiers
             setPressed(isNowPressed)
         } else if type == .keyDown,
                   Self.matchesShortcutEvent(
