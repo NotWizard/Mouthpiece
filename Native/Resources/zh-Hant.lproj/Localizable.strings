@@ -273,7 +273,5 @@
 "hotkey.capture.requiresModifier" = "請使用帶修飾鍵的組合（如 ⌘⇧D）或功能鍵。";
 "onboarding.skipStep" = "跳過此步";
 "history.loadMore" = "載入更多";
-"dashboard.lastError.title" = "上次工作階段錯誤";
-"dashboard.lastError.clear" = "清除";
 "permissions.accessibilityBanner.title" = "缺少輔助使用權限";
 "permissions.accessibilityBanner.message" = "在授予輔助使用權限前，聽寫快速鍵與文字插入將無法使用。";

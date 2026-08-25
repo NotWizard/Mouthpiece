@@ -8,7 +8,6 @@ final class AppEnvironment: ObservableObject {
     @Published private(set) var settings = AppSettings()
     @Published private(set) var transcriptions: [TranscriptionRecord] = []
     @Published private(set) var hasMoreHistory = false
-    @Published private(set) var lastSessionError: SessionFailure?
     @Published private(set) var permissions = PermissionSnapshot(microphone: false, accessibility: false)
     @Published private(set) var microphones: [AudioInputDevice] = []
     @Published private(set) var dictionaryWords: [String] = []
@@ -93,7 +92,6 @@ final class AppEnvironment: ObservableObject {
     private static let historyPageSize = 200
     private var historyQuery = ""
     private var historyLoadRevision = 0
-    private var lastFailedSessionID: UUID?
 
     init(bootstrap: Bool = true, autoMarkReady: Bool = true) {
         if settingsRepository.loadFailed {
@@ -186,10 +184,6 @@ final class AppEnvironment: ObservableObject {
                 self?.report(error)
             }
         }
-    }
-
-    func clearLastSessionError() {
-        lastSessionError = nil
     }
 
     func clearHistory() {
@@ -575,11 +569,10 @@ final class AppEnvironment: ObservableObject {
                 // P2-6: the ~50 Hz write site. Writing the snapshot into
                 // `session` (its own ObservableObject) keeps the per-frame
                 // level/partial stream off AppEnvironment's publisher; the
-                // two coarse follow-ups below stay here because they only
-                // fire on real phase/session transitions.
+                // coarse follow-up below stays here because it only fires on
+                // real phase/session transitions.
                 self?.session.apply(snapshot)
                 self?.escapeHotkey.setSwallowArmed(snapshot.phase.isActive)
-                self?.recordSessionFailure(snapshot)
             }
             self.coordinator = coordinator
             hotkey.onPress = { [weak self] in self?.handleHotkeyPress() }
@@ -627,17 +620,6 @@ final class AppEnvironment: ObservableObject {
         query.isEmpty
             ? try await history.recent(limit: historyPageSize, offset: offset)
             : try await history.search(query: query, limit: historyPageSize, offset: offset)
-    }
-
-    // D6: 胶囊上的错误只闪现 2.4 秒；这里把失败会话的错误留存下来供控制面板回看。
-    private func recordSessionFailure(_ snapshot: DictationSnapshot) {
-        guard snapshot.phase == .failed, snapshot.sessionID != lastFailedSessionID else { return }
-        lastFailedSessionID = snapshot.sessionID
-        lastSessionError = SessionFailure(
-            date: .now,
-            message: snapshot.errorMessage
-                ?? AppLocalization.string("capsule.failed", language: settings.uiLanguage)
-        )
     }
 
     private var selectedLocalModelID: String {
@@ -1042,11 +1024,6 @@ private final class ShutdownClaimGate: @unchecked Sendable {
         claimed = true
         return true
     }
-}
-
-struct SessionFailure: Equatable, Sendable {
-    let date: Date
-    let message: String
 }
 
 private enum DictationActivation {
