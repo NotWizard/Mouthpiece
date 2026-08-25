@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-08-25
+
 ### Fixed
 
 - The default push-to-talk hotkey (Right Command, and every other modifier-only key: left/right Shift/Option/Control, Fn) is triggerable again after v2.1.0 broke it — pressing the key did nothing at all. v2.1.0 gated the modifier-only press/release decision on a live `CGEventSource.keyState(.combinedSessionState, key:)` read (plus a matching reconcile when the tap re-enabled), intending to disambiguate left vs right modifiers that share one `CGEventFlags` bit. Inside the event tap that read does not reliably reflect a modifier key's state at `.flagsChanged` delivery time, so `isNowPressed` stayed `false` and the key never registered — while regular combo keys (e.g. `Command+0`), which take the untouched keyDown path, kept working. `HotkeyService.handle()` is reverted verbatim to the v2.0.10 mask-only decision (`flags.intersection(descriptor.modifiers) == descriptor.modifiers`); the `modifierOnlyPressedState` helper and its unit test are removed. That test only asserted the pure boolean AND on a hand-fed `physicalKeyDown`, never the runtime `keyState` read that actually failed, so the suite stayed green through the regression — the live event-tap path is not exercisable in CI or a headless sandbox, so this fix must be verified on-device. The left/right-same-modifier edge case the v2.1.0 change chased is reintroduced as a documented known limitation, to be fixed later by reading the device-specific modifier bit (e.g. `NX_DEVICERCMDKEYMASK`) from the event itself rather than a global query.
