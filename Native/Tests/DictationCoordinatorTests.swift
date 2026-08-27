@@ -679,7 +679,7 @@ final class DictationCoordinatorTests: XCTestCase {
         ReasoningStubURLProtocol.reset()
         addTeardownBlock { ReasoningStubURLProtocol.reset() }
         ReasoningStubURLProtocol.handler = { _ in
-            (200, #"{"choices":[{"message":{"content":"POLISHED"}}]}"#)
+            (200, Self.sseChatBody("POLISHED"))
         }
 
         // The leak the audit found: protection on, but the user allowed
@@ -868,7 +868,67 @@ final class DictationCoordinatorTests: XCTestCase {
         XCTAssertEqual(records.first?.rawText, "hello raw world")
     }
 
+    // Streaming: the OpenAI-compatible path now sends stream:true and reads an
+    // SSE stream. Prove the parser concatenates multi-chunk deltas in order and
+    // ignores both the include_usage terminator (empty choices) and [DONE].
+    func testReasoningConcatenatesStreamedSSEDeltas() async throws {
+        ReasoningStubURLProtocol.reset()
+        addTeardownBlock { ReasoningStubURLProtocol.reset() }
+        ReasoningStubURLProtocol.handler = { _ in
+            (200,
+                "data: {\"choices\":[{\"delta\":{\"content\":\"你好\"}}]}\n\n"
+                    + "data: {\"choices\":[{\"delta\":{\"content\":\"世界\"}}]}\n\n"
+                    + "data: {\"choices\":[],\"usage\":{\"completion_tokens\":2}}\n\n"
+                    + "data: [DONE]\n\n")
+        }
+        let keychain = InMemoryCredentialStore(seed: [.openAI: "unit-test-reasoning-key"])
+        let service = ReasoningService(keychain: keychain, session: makeStubbedReasoningSession())
+        var settings = makeSettings()
+        settings.useReasoningModel = true
+
+        let result = try await service.process("原始文本", settings: settings, target: nil)
+
+        XCTAssertEqual(result, "你好世界")
+        XCTAssertEqual(ReasoningStubURLProtocol.requests.first?.url?.path, "/v1/chat/completions")
+    }
+
+    // The 8s reasoning deadline returns the value untouched when the call
+    // finishes in time.
+    func testReasoningWithTimeoutReturnsValueBeforeDeadline() async throws {
+        let task = Task<String, Error> { "done" }
+        let text = try await DictationCoordinator.reasoningWithTimeout(task, timeout: .seconds(5))
+        XCTAssertEqual(text, "done")
+    }
+
+    // …and cancels the in-flight task and throws finalizeTimedOut once the
+    // deadline passes, so stop() routes to the raw-transcript fallback instead
+    // of stalling on a slow provider.
+    func testReasoningWithTimeoutCancelsAndThrowsOnDeadline() async throws {
+        let startedAt = ContinuousClock.now
+        let task = Task<String, Error> {
+            try await Task.sleep(for: .seconds(30))
+            return "never"
+        }
+        do {
+            _ = try await DictationCoordinator.reasoningWithTimeout(task, timeout: .milliseconds(100))
+            XCTFail("The deadline must throw instead of returning")
+        } catch {
+            XCTAssertEqual(error as? DictationSessionError, .finalizeTimedOut)
+        }
+        XCTAssertLessThan(ContinuousClock.now - startedAt, .seconds(5))
+        XCTAssertTrue(task.isCancelled)
+    }
+
     // MARK: - Harness
+
+    // Minimal OpenAI-compatible SSE body: one content delta, the include_usage
+    // terminator chunk (empty choices), then [DONE]. Content here is simple
+    // enough that no JSON escaping is needed.
+    static func sseChatBody(_ content: String) -> String {
+        "data: {\"choices\":[{\"delta\":{\"content\":\"\(content)\"}}]}\n\n"
+            + "data: {\"choices\":[],\"usage\":{\"completion_tokens\":1}}\n\n"
+            + "data: [DONE]\n\n"
+    }
 
     private struct Harness {
         let coordinator: DictationCoordinator

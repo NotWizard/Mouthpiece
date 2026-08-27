@@ -47,6 +47,7 @@
 		8844C8F25E92E987286457EA /* SupervisedProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4839CE9A5603125120A84F94 /* SupervisedProcess.swift */; };
 		8997B00990024C92C753D668 /* BatchTranscriptionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61A78229C54CB604F1508042 /* BatchTranscriptionClient.swift */; };
 		8B40A64563DB47477131FC76 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F07BDA1719C968AE23A7997 /* AppDelegate.swift */; };
+		8E11D1B5A2A8DA0845C6C30F /* DictationCoordinator+Reasoning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 327C1A2AFFE22345DA61F3D3 /* DictationCoordinator+Reasoning.swift */; };
 		8EFAF03070B5E53B645AC98F /* InMemoryCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22AC7898EDE23F6F4CC60717 /* InMemoryCredentialStore.swift */; };
 		930134D742359C55F3140F82 /* Mouthpiece.icns in Resources */ = {isa = PBXBuildFile; fileRef = 531364AC24AAD1894E4DBB28 /* Mouthpiece.icns */; };
 		94864AA9B71BC37736D3222E /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = D992A8D85465C52531CBD002 /* AppSettings.swift */; };
@@ -109,6 +110,7 @@
 		2400733301B8C6B62BBBBADE /* AssemblyAIRealtimeProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssemblyAIRealtimeProvider.swift; sourceTree = "<group>"; };
 		25D63F24AE6F5D1F437FCA08 /* provider-mistral.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "provider-mistral.png"; sourceTree = "<group>"; };
 		2E3015682C8A3F7CF19589AD /* AudioCueService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCueService.swift; sourceTree = "<group>"; };
+		327C1A2AFFE22345DA61F3D3 /* DictationCoordinator+Reasoning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DictationCoordinator+Reasoning.swift"; sourceTree = "<group>"; };
 		3447C40CD33646B1C77CFEAD /* DeepgramRealtimeProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepgramRealtimeProvider.swift; sourceTree = "<group>"; };
 		3EC3BCBDDF31A9E15195D511 /* SupervisedProcessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupervisedProcessTests.swift; sourceTree = "<group>"; };
 		40DCD77EEE51E5CD93773591 /* DictationAndProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationAndProviderTests.swift; sourceTree = "<group>"; };
@@ -408,6 +410,7 @@
 			isa = PBXGroup;
 			children = (
 				E60374F56B1400EFAA2E6ABC /* DictationCoordinator.swift */,
+				327C1A2AFFE22345DA61F3D3 /* DictationCoordinator+Reasoning.swift */,
 				AFB1FA0A318163DC8EBA246D /* DictationState.swift */,
 			);
 			path = Dictation;
@@ -610,6 +613,7 @@
 				CF6921BB639B74645EAB9DEA /* CredentialStore.swift in Sources */,
 				BBFB3EA1322BA1862CAD2129 /* DebugLogStore.swift in Sources */,
 				6944071CAFC02BB0704CFFAD /* DeepgramRealtimeProvider.swift in Sources */,
+				8E11D1B5A2A8DA0845C6C30F /* DictationCoordinator+Reasoning.swift in Sources */,
 				0CC9ECF7F562AD5316B0D744 /* DictationCoordinator.swift in Sources */,
 				2DAC26768AB172A2426C376B /* DictationSessionModel.swift in Sources */,
 				FA29B83954AF90DE5BE04FCD /* DictationSettingsView.swift in Sources */,

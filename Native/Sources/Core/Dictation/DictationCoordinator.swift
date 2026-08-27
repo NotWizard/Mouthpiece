@@ -395,7 +395,8 @@ actor DictationCoordinator {
             guard !normalizedRawText.isEmpty else {
                 throw DictationSessionError.noSpeech
             }
-            if ReasoningService.shouldCallModel(settings: activeSettings, target: target) {
+            let willProcess = ReasoningService.shouldCallModel(settings: activeSettings, target: target)
+            if willProcess {
                 try machine.transition(to: .processing, sessionID: sessionID)
                 await publish()
             }
@@ -405,23 +406,28 @@ actor DictationCoordinator {
             let reasoningTarget = target
             let task = Task { try await reasoningService.process(normalizedRawText, settings: reasoningSettings, target: reasoningTarget) }
             reasoningTask = task
+            let reasoningStartedAt = Date()
+            var reasoningError: Error?
             do {
-                finalText = try await task.value
+                // Bound cloud cleanup at 8s; a slow provider falls back to the
+                // raw transcript instead of stalling finalize for the full
+                // request timeout.
+                finalText = try await Self.reasoningWithTimeout(task)
                 reasoningTask = nil
                 guard isCurrent(sessionID, phase: .finalizing) || isCurrent(sessionID, phase: .processing) else { return }
             } catch {
                 reasoningTask = nil
                 guard isCurrent(sessionID, phase: .finalizing) || isCurrent(sessionID, phase: .processing) else { return }
                 finalText = normalizedRawText
-                await logger.write(
-                    .warning,
-                    "Text processing failed; using the raw transcript",
-                    metadata: ["error": error.localizedDescription],
-                    sessionID: sessionID
-                )
+                reasoningError = error
                 await capsule.flashStatus(localizedKey: "capsule.polishingFallback")
                 guard isCurrent(sessionID, phase: .finalizing) || isCurrent(sessionID, phase: .processing) else { return }
             }
+            await Self.logReasoning(
+                logger, willProcess: willProcess, startedAt: reasoningStartedAt, settings: reasoningSettings,
+                rawText: normalizedRawText, result: reasoningError == nil ? finalText : nil,
+                error: reasoningError, sessionID: sessionID
+            )
 
             // insert() only guards the auto-paste branch; without this the
             // transcript still lands in the clipboard while a password manager

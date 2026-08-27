@@ -198,31 +198,71 @@ actor ReasoningService {
         }
         let apiKey = try await credential(account, provider: provider)
         let model = settings.reasoningModel.isEmpty ? defaultModel(for: provider) : settings.reasoningModel
+        // Stream over SSE (Alibaba Model Studio "流式输出"): a non-streaming
+        // cleanup on DashScope has a long latency tail (measured spikes >15s on
+        // the same 50-token output), while the streamed call trickles tokens and
+        // stays a few seconds. include_usage puts token counts on the final chunk.
         var body: [String: Any] = [
             "model": model,
             "messages": [["role": "user", "content": prompt]],
             "temperature": 0.1,
+            "stream": true,
+            "stream_options": ["include_usage": true],
         ]
-        if provider == "bailian" {
-            // Hybrid thinking models (qwen3.x) default to thinking ON, which makes a
-            // non-streaming cleanup spend most tokens reasoning and take many
-            // seconds; send the flag explicitly so it stays fast unless the user
-            // opted into thinking.
-            body["enable_thinking"] = settings.bailianReasoningEnableThinking
-        } else if provider == "custom", settings.customReasoningEnableThinking {
-            body["enable_thinking"] = true
+        // Hybrid thinking models (qwen3.x) default to thinking ON, which makes the
+        // cleanup spend most tokens reasoning and take many seconds; send the flag
+        // explicitly so it stays fast unless the user opted into thinking.
+        if let enableThinking = Self.resolvedEnableThinking(provider: provider, settings: settings) {
+            body["enable_thinking"] = enableThinking
         }
         var request = try jsonRequest(url: url, body: body)
         if !apiKey.isEmpty { request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization") }
-        let data = try await responseData(for: request)
-        guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let choices = payload["choices"] as? [[String: Any]],
-              let message = choices.first?["message"] as? [String: Any],
-              let text = message["content"] as? String,
-              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        return try await streamedText(for: request)
+    }
+
+    // The exact enable_thinking value sent for a provider, or nil when the flag
+    // is omitted. Single source of truth so the attribution log can record what
+    // the request actually did without recomputing the branch.
+    static func resolvedEnableThinking(provider: String, settings: AppSettings) -> Bool? {
+        switch provider {
+        case "bailian": return settings.bailianReasoningEnableThinking
+        case "custom": return settings.customReasoningEnableThinking ? true : nil
+        default: return nil
+        }
+    }
+
+    // Reads an OpenAI-compatible SSE stream and concatenates every
+    // choices[].delta.content fragment. The include_usage terminator chunk
+    // carries empty choices and is skipped; "[DONE]" ends the stream.
+    private func streamedText(for request: URLRequest) async throws -> String {
+        let (bytes, response) = try await session.bytes(for: request)
+        guard let http = response as? HTTPURLResponse else { throw ReasoningServiceError.emptyResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            var raw = Data()
+            for try await byte in bytes { raw.append(byte) }
+            throw ReasoningServiceError.providerResponse(
+                Self.providerErrorMessage(raw, statusCode: http.statusCode)
+            )
+        }
+        var content = ""
+        for try await line in bytes.lines {
+            guard line.hasPrefix("data:") else { continue }
+            let payload = line.dropFirst("data:".count).trimmingCharacters(in: .whitespaces)
+            if payload == "[DONE]" { break }
+            guard let data = payload.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let choices = json["choices"] as? [[String: Any]] else { continue }
+            for choice in choices {
+                if let delta = choice["delta"] as? [String: Any],
+                   let piece = delta["content"] as? String {
+                    content += piece
+                }
+            }
+        }
+        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ReasoningServiceError.emptyResponse
         }
-        return text
+        return content
     }
 
     private func requestAnthropic(prompt: String, settings: AppSettings) async throws -> String {
