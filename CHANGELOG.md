@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.2] - 2026-08-27
+
 ### Removed
 
 - The "Last Session Error" card in General settings (audit D6) is removed. It showed a persistent orange banner with the previous session's failure text and a manual "Clear" button, but it fired for every `.failed` session including the benign, self-explanatory `noSpeech` ("No speech was detected") outcome — pressing the key without speaking left a stale error sitting in settings that the user had to dismiss by hand, with no real value since the message already flashes on the capsule and is recorded in the debug log. Removed the whole feature end to end: `AppEnvironment.lastSessionError` / `recordSessionFailure` / `clearLastSessionError` / `lastFailedSessionID` / the `SessionFailure` model, the `LastSessionErrorCard` view and its render site in `UsageSettingsView`, and the `dashboard.lastError.title` / `dashboard.lastError.clear` strings in all three localizations. Session errors are unchanged everywhere else (capsule flash + debug log).
