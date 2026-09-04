@@ -192,8 +192,9 @@ actor DictationCoordinator {
                 metadata: startMetadata,
                 sessionID: sessionID
             )
-
+            await Self.logPreparingStep("audioPermission.begin", logger: logger, sessionID: sessionID)
             guard await audio.requestPermission() else { throw AudioCaptureError.permissionDenied }
+            await Self.logPreparingStep("audioPermission.end", logger: logger, sessionID: sessionID)
             guard isCurrent(sessionID, phase: .preparing) else { return }
             // One consumer task per session instead of one unstructured Task
             // per 20ms frame (50/s, ~90k per half-hour session). The stream
@@ -209,6 +210,7 @@ actor DictationCoordinator {
                     await self?.consume(frame: frame, rms: rms, sessionID: sessionID)
                 }
             }
+            await Self.logPreparingStep("audioStart.begin", logger: logger, sessionID: sessionID)
             try await audio.start(
                 selectedDeviceUID: settings.selectedMicrophoneUID,
                 onFrame: { frame, rms in frameContinuation.yield((frame, rms)) },
@@ -220,15 +222,18 @@ actor DictationCoordinator {
                     Task { await self?.reportDroppedFrames(droppedFrames, sessionID: sessionID) }
                 }
             )
+            await Self.logPreparingStep("audioStart.end", logger: logger, sessionID: sessionID)
             guard isCurrent(sessionID, phase: .preparing) else {
                 await audio.stop()
                 return
             }
 
             if !settings.useLocalTranscription, let realtime = realtimeProvider(for: settings) {
+                await Self.logPreparingStep("apiKeyRead.begin", logger: logger, sessionID: sessionID)
                 guard let key = try await keychain.read(realtime.account), !key.isEmpty else {
                     throw BailianRealtimeError.missingAPIKey
                 }
+                await Self.logPreparingStep("apiKeyRead.end", logger: logger, sessionID: sessionID)
                 guard isCurrent(sessionID, phase: .preparing) else { return }
                 provider = realtime.provider
                 providerSessionID = sessionID
@@ -242,6 +247,7 @@ actor DictationCoordinator {
                 // own unstructured `Task { await handle(event) }`, so a late
                 // `.partial` could overwrite a `.final` on `partialText`.
                 let yieldEvent = armProviderEventStream(sessionID: sessionID)
+                await Self.logPreparingStep("realtimeConnect.begin", logger: logger, sessionID: sessionID)
                 do {
                     try await realtime.provider.connect(
                         configuration: configuration,
@@ -841,6 +847,7 @@ actor DictationCoordinator {
 
     private func fail(_ error: Error, sessionID: UUID) async {
         guard machine.snapshot.sessionID == sessionID, machine.snapshot.phase.isActive else { return }
+        await Self.logFailEntry(error, logger: logger, sessionID: sessionID)
         maximumDurationTask?.cancel()
         maximumDurationTask = nil
         preparingWatchdogTask?.cancel()
