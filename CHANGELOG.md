@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.3] - 2026-09-04
+
 ### Added
 
 - Preparing-phase diagnostic logging to localize a reproducible first-dictation-after-long-idle hang (observed twice: session log stops right after "Dictation session started", the 15 s preparing watchdog never writes its failure entry, and the process has to be quit). `DictationCoordinator.start()` now brackets each suspension point that can stall on a wedged system service with a `.debug` "Dictation preparing step" entry — `audioPermission.begin/end`, `audioStart.begin/end`, `apiKeyRead.begin/end`, and `realtimeConnect.begin` (connect success is already covered by "Bailian realtime task started"), so after the next hang the last entry in the debug log names the step that never completed. `fail()` additionally logs a `.error` "Dictation session failing" entry as its first statement, before any teardown `await`: the existing "Dictation session failed" entry sits behind `audio.stop()` / media-resume / provider-cancel hops that can themselves block on a frozen MainActor, so without the entry marker a fired watchdog was indistinguishable from a never-fired one. Metadata carries step names and the sanitized error description only — no credentials or transcript text, per the log-sink gating convention. Helpers live in a new `DictationCoordinator+Diagnostics.swift` (static, logger passed explicitly) to keep the actor file under the 1200-line SwiftLint budget.
