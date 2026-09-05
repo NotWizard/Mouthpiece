@@ -1000,6 +1000,83 @@ final class DictationCoordinatorTests: XCTestCase {
         XCTAssertEqual(snapshot.phase, .idle, "Error display lasts 2.4s; cleanup should have completed")
     }
 
+    // F3: stream end-state matrix. Each body runs through the real SSE parser
+    // on the stubbed session; outcomes follow the 2026-09-05 plan's completion
+    // rules (error on sight, truncation rejected, EOF without a completion
+    // signal rejected, explicit stop compatible without [DONE], extra choices
+    // never merged, comments/heartbeats inert).
+    func testReasoningStreamEndStateMatrix() async throws {
+        func makeService() -> ReasoningService {
+            ReasoningService(
+                keychain: InMemoryCredentialStore(seed: [.openAI: "audit-test-key"]),
+                session: makeStubbedReasoningSession()
+            )
+        }
+        func stream(_ body: String) async throws -> String {
+            ReasoningStubURLProtocol.reset()
+            ReasoningStubURLProtocol.handler = { _ in (200, body) }
+            var settings = makeSettings()
+            settings.useReasoningModel = true
+            settings.reasoningProvider = "openai"
+            return try await makeService().process("原文", settings: settings, target: nil)
+        }
+        func expectFailure(_ name: String, _ body: String) async {
+            do {
+                let text = try await stream(body)
+                XCTFail("\(name) was accepted as success: \(text)")
+            } catch {
+                XCTAssertTrue(error is ReasoningServiceError, "\(name) threw \(error)")
+            }
+        }
+        addTeardownBlock { ReasoningStubURLProtocol.reset() }
+
+        // Error as the very first event.
+        await expectFailure(
+            "first-event error",
+            "data: {\"error\":{\"code\":\"server_error\",\"message\":\"boom\"}}\n\n"
+        )
+        // Partial content then EOF without [DONE] or a stop finish.
+        await expectFailure(
+            "EOF without completion signal",
+            "data: {\"choices\":[{\"delta\":{\"content\":\"abc\"}}]}\n\n"
+        )
+        // Truncated (length) then [DONE] — the terminator must not wash it away.
+        await expectFailure(
+            "length finish before DONE",
+            "data: {\"choices\":[{\"delta\":{\"content\":\"abc\"},\"finish_reason\":\"length\"}]}\n\n"
+                + "data: [DONE]\n\n"
+        )
+        // Malformed business JSON must not silently succeed.
+        await expectFailure(
+            "malformed payload",
+            "data: {not json}\n\n"
+        )
+
+        // Explicit stop without [DONE] is a compatible normal completion.
+        var result = try await stream(
+            "data: {\"choices\":[{\"delta\":{\"content\":\"abc\"},\"finish_reason\":\"stop\"}]}\n\n"
+        )
+        XCTAssertEqual(result, "abc")
+
+        // Comments, heartbeats, and usage-only events carry no text.
+        result = try await stream(
+            ": heartbeat\n\n"
+                + "data: {\"choices\":[{\"delta\":{\"content\":\"你\"}}]}\n\n"
+                + "data: {\"choices\":[],\"usage\":{\"completion_tokens\":1}}\n\n"
+                + "data: {\"choices\":[{\"delta\":{\"content\":\"好\"}}]}\n\n"
+                + "data: [DONE]\n\n"
+        )
+        XCTAssertEqual(result, "你好")
+
+        // Only the first choice contributes content.
+        result = try await stream(
+            "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"A\"}},"
+                + "{\"index\":1,\"delta\":{\"content\":\"B\"}}]}\n\n"
+                + "data: [DONE]\n\n"
+        )
+        XCTAssertEqual(result, "A")
+    }
+
     // F4: the 8s reasoning deadline must not wait for an uncooperative task.
     func testAuditReasoningDeadlineDoesNotWaitForUncooperativeTask() async throws {
         let task = Task<String, Error> {

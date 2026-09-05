@@ -4,6 +4,7 @@ enum ReasoningServiceError: LocalizedError, Equatable {
     case missingAPIKey(String)
     case invalidEndpoint
     case providerResponse(String)
+    case incompleteResponse
     case emptyResponse
 
     var errorDescription: String? {
@@ -11,6 +12,7 @@ enum ReasoningServiceError: LocalizedError, Equatable {
         case .missingAPIKey(let provider): "The \(provider) reasoning API key is missing."
         case .invalidEndpoint: "The reasoning endpoint is invalid."
         case .providerResponse(let message): "The reasoning provider returned an error: \(message)"
+        case .incompleteResponse: "The reasoning provider's response was incomplete."
         case .emptyResponse: "The reasoning provider returned no text."
         }
     }
@@ -231,9 +233,14 @@ actor ReasoningService {
         }
     }
 
-    // Reads an OpenAI-compatible SSE stream and concatenates every
-    // choices[].delta.content fragment. The include_usage terminator chunk
-    // carries empty choices and is skipped; "[DONE]" ends the stream.
+    // Reads an OpenAI-compatible SSE stream and concatenates the first
+    // choice's delta.content fragments. F3: `event: error` frames and
+    // payload-level `error` objects throw on sight, truncation finish reasons
+    // (length/content_filter/tool calls) are rejected, and an EOF without
+    // [DONE] or an explicit stop is incomplete — a partial prefix can never
+    // be returned as a successful cleanup and skip the raw-transcript
+    // fallback. Comments, heartbeats, and usage-only events carry no text and
+    // no completion signal.
     private func streamedText(for request: URLRequest) async throws -> String {
         let (bytes, response) = try await session.bytes(for: request)
         guard let http = response as? HTTPURLResponse else { throw ReasoningServiceError.emptyResponse }
@@ -245,19 +252,66 @@ actor ReasoningService {
             )
         }
         var content = ""
-        for try await line in bytes.lines {
+        var sawNormalFinish = false
+        var sawTerminator = false
+        // AsyncLineSequence drops empty lines, so SSE blank-line event
+        // boundaries are invisible here. OpenAI-compatible servers send one
+        // complete JSON payload per `data:` line, so dispatch per line with a
+        // sticky `event:` name instead of reassembling events byte-by-byte.
+        var pendingEvent = ""
+        for try await rawLine in bytes.lines {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            if line.isEmpty { continue }
+            if line.hasPrefix(":") { continue } // comment / heartbeat
+            if line.hasPrefix("event:") {
+                pendingEvent = String(line.dropFirst("event:".count)).trimmingCharacters(in: .whitespaces)
+                continue
+            }
             guard line.hasPrefix("data:") else { continue }
-            let payload = line.dropFirst("data:".count).trimmingCharacters(in: .whitespaces)
-            if payload == "[DONE]" { break }
+            let payload = String(line.dropFirst("data:".count)).trimmingCharacters(in: .whitespaces)
+            let event = pendingEvent
+            pendingEvent = ""
+            if payload.isEmpty { continue }
+            if payload == "[DONE]" {
+                sawTerminator = true
+                break
+            }
+            // Errors throw on sight: a failure can never be washed away by a
+            // later terminator. Sanitized messages only — raw payloads may
+            // echo the prompt and must not reach the UI or logs.
             guard let data = payload.data(using: .utf8),
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let choices = json["choices"] as? [[String: Any]] else { continue }
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw ReasoningServiceError.providerResponse("malformed stream event")
+            }
+            if event == "error" || json["error"] != nil {
+                throw ReasoningServiceError.providerResponse(
+                    Self.providerErrorMessage(data, statusCode: http.statusCode)
+                )
+            }
+            guard let choices = json["choices"] as? [[String: Any]] else { continue }
             for choice in choices {
+                // Only the first candidate belongs to this request's reply;
+                // extra choices are never merged into the same output.
+                if let index = choice["index"] as? Int, index != 0 { continue }
                 if let delta = choice["delta"] as? [String: Any],
                    let piece = delta["content"] as? String {
                     content += piece
                 }
+                guard let finish = choice["finish_reason"] as? String else { continue }
+                // "stop" is a normal completion; anything else (length,
+                // content_filter, unsupported tool calls) is not a usable
+                // cleanup result.
+                if finish == "stop" {
+                    sawNormalFinish = true
+                } else {
+                    throw ReasoningServiceError.incompleteResponse
+                }
             }
+        }
+
+        if !sawTerminator && !sawNormalFinish {
+            // Partial text without [DONE] or an explicit stop is not a result.
+            throw ReasoningServiceError.incompleteResponse
         }
         guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ReasoningServiceError.emptyResponse

@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- 流式文字处理不再把流内错误后的半截文字当作成功结果（可靠性方案 F3）。原 SSE 解析只拼接 `choices[].delta.content`、静默跳过无法解析的行，收到部分内容后发生流内错误（`event: error` 或载荷顶层 `error`）或异常 EOF 时会把不完整前缀当成功返回，上层因此跳过原文回退。新解析：`event:` 名称粘性应用到下一条 `data:`（`AsyncLineSequence` 会吞掉空行，SSE 空行事件边界在 `.lines` 上不可见，而 OpenAI 兼容端点每条 `data:` 行即完整 JSON 载荷，逐行分发即可）；错误载荷即时抛出（经 ProviderErrorSanitizer 净化，不落原始响应体）；`finish_reason` 仅 `stop` 视为正常完成，`length`/`content_filter`/工具调用等直接判不完整；EOF 时既无 `[DONE]` 也无正常 `stop` 则抛出新增的 `incompleteResponse`；只消费 `index == 0` 的候选，多候选不再混拼；注释/心跳/usage 事件不携带文本与完成信号；`[DONE]` 不能洗掉先发生的错误。协调器按既有策略回退完整原始转录。回归：`testAuditReasoningRejectsStreamErrorAfterPartialContent`（修复前红、修复后绿）与新增 `testReasoningStreamEndStateMatrix`（首事件即错误、无完成信号 EOF、length 后接 [DONE]、畸形 JSON、stop 免 [DONE]、心跳/usage 惰性、多候选不混拼）。
+
 - 关闭自动粘贴时文字整理/翻译的会话不再卡死在“处理中”（可靠性方案 F1）。`DictationCoordinator.stop()` 在文字处理后处于 `processing` 阶段，但无粘贴分支的收尾固定按 `finalizing` 校验当前阶段，校验失败直接返回——剪贴板写入、历史保存、完成快照与重置全部跳过，胶囊一直停在处理中。现在收尾以实际所处阶段（`finalizing` 或 `processing`，状态机均允许进入 `completed`）继续，剪贴板、历史与完成反馈照常执行；自动粘贴分支不变。回归：`testAuditReasoningWithoutAutoPasteCompletesAndSavesHistory`（整理开+粘贴关：完成、入历史、回空闲）与 `testReasoningPasteEnabledWithoutTargetCompletesAndCopiesToClipboard`（粘贴开但无目标：走非粘贴收尾、历史 rawText/结果齐全、剪贴板按设置写入，测试用快照恢复真实剪贴板）。
 
 ## [2.1.3] - 2026-09-04
