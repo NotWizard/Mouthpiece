@@ -407,22 +407,23 @@ actor DictationCoordinator {
                 await publish()
             }
             let finalText: String
-            let reasoningService = reasoning
-            let reasoningSettings = activeSettings
-            let reasoningTarget = target
-            let task = Task { try await reasoningService.process(normalizedRawText, settings: reasoningSettings, target: reasoningTarget) }
-            reasoningTask = task
             let reasoningStartedAt = Date()
             var reasoningError: Error?
+            // F4: reasoningTask holds the bounded wrapper, so cancel() /
+            // shutdown() also cancels the request and the deadline timer.
+            let task = Self.startBoundedReasoning(service: reasoning, text: normalizedRawText, settings: activeSettings, target: target)
+            reasoningTask = task
             do {
                 // Bound cloud cleanup at 8s; a slow provider falls back to the
                 // raw transcript instead of stalling finalize for the full
                 // request timeout.
-                finalText = try await Self.reasoningWithTimeout(task)
-                reasoningTask = nil
+                finalText = try await task.value
+                if machine.snapshot.sessionID == sessionID { reasoningTask = nil }
                 guard isCurrent(sessionID, phase: .finalizing) || isCurrent(sessionID, phase: .processing) else { return }
             } catch {
-                reasoningTask = nil
+                if machine.snapshot.sessionID == sessionID { reasoningTask = nil }
+                // Cancellation belongs to cancel()/shutdown(): no raw fallback.
+                if error is CancellationError { return }
                 guard isCurrent(sessionID, phase: .finalizing) || isCurrent(sessionID, phase: .processing) else { return }
                 finalText = normalizedRawText
                 reasoningError = error
@@ -430,7 +431,7 @@ actor DictationCoordinator {
                 guard isCurrent(sessionID, phase: .finalizing) || isCurrent(sessionID, phase: .processing) else { return }
             }
             await Self.logReasoning(
-                logger, willProcess: willProcess, startedAt: reasoningStartedAt, settings: reasoningSettings,
+                logger, willProcess: willProcess, startedAt: reasoningStartedAt, settings: activeSettings,
                 rawText: normalizedRawText, result: reasoningError == nil ? finalText : nil,
                 error: reasoningError, sessionID: sessionID
             )
@@ -450,14 +451,10 @@ actor DictationCoordinator {
                 try await insertOrReportSecureInputBlock(finalText, into: target, sessionID: sessionID)
                 completionPhase = .inserting
             } else {
-                // F1: with reasoning enabled the session is in .processing here,
-                // not .finalizing — forcing .finalizing failed the isCurrent
-                // guard below and skipped clipboard/history/completion entirely.
-                // Complete from whichever of the two phases the session is
-                // actually in; the state machine allows both to reach .completed.
-                let currentPhase = machine.snapshot.phase
-                guard currentPhase == .finalizing || currentPhase == .processing else { return }
-                completionPhase = currentPhase
+                // F1: after reasoning the session is in .processing, not
+                // .finalizing; both are allowed to reach .completed.
+                guard machine.snapshot.phase == .finalizing || machine.snapshot.phase == .processing else { return }
+                completionPhase = machine.snapshot.phase
             }
             guard isCurrent(sessionID, phase: completionPhase) else { return }
             if activeSettings.keepTranscriptionInClipboard {

@@ -1077,6 +1077,65 @@ final class DictationCoordinatorTests: XCTestCase {
         XCTAssertEqual(result, "A")
     }
 
+    // F4: cancelling the bounded wait (what cancel()/shutdown() hold via
+    // reasoningTask) must propagate to the operation and surface as
+    // CancellationError promptly — never as a raw-transcript fallback.
+    func testReasoningWithTimeoutPropagatesCallerCancellation() async throws {
+        let operation = Task<String, Error> {
+            try await Task.sleep(for: .seconds(30))
+            return "never"
+        }
+        let waiter = Task {
+            try await DictationCoordinator.reasoningWithTimeout(operation, timeout: .seconds(30))
+        }
+        try await Task.sleep(for: .milliseconds(100))
+        let startedAt = ContinuousClock.now
+        waiter.cancel()
+        do {
+            _ = try await waiter.value
+            XCTFail("Expected CancellationError")
+        } catch {
+            XCTAssertTrue(error is CancellationError, "got \(error)")
+        }
+        XCTAssertLessThan(ContinuousClock.now - startedAt, .seconds(5))
+        XCTAssertTrue(operation.isCancelled)
+    }
+
+    // F4: cancelling mid-reasoning produces no output: no completed snapshot,
+    // no history entry, no late fallback text, and the session ends idle.
+    func testCancelDuringReasoningProducesNoOutput() async throws {
+        ReasoningStubURLProtocol.reset()
+        addTeardownBlock { ReasoningStubURLProtocol.reset() }
+        ReasoningStubURLProtocol.handler = { _ in
+            // Hold the reasoning response so cancel() lands mid-wait.
+            Thread.sleep(forTimeInterval: 0.7)
+            return (200, Self.sseChatBody("cleaned transcript"))
+        }
+        let harness = try await makeHarness(
+            provider: ScriptedRealtimeProvider(connect: .succeed, finishText: "raw transcript"),
+            reasoningSession: makeStubbedReasoningSession()
+        )
+        var settings = makeSettings()
+        settings.useReasoningModel = true
+        settings.reasoningProvider = "openai"
+        await harness.coordinator.start(settings: settings)
+        harness.audio.emitFrame()
+        let stopTask = Task { await harness.coordinator.stop() }
+        // Wait until the reasoning request is actually in flight (bounded).
+        let deadline = ContinuousClock.now + .seconds(5)
+        while ReasoningStubURLProtocol.requests.isEmpty, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertEqual(ReasoningStubURLProtocol.requests.count, 1)
+        await harness.coordinator.cancel()
+        await stopTask.value
+        let snapshot = await harness.coordinator.snapshot()
+        let records = try await harness.history.recent(limit: 10)
+        XCTAssertEqual(snapshot.phase, .idle)
+        XCTAssertFalse(harness.recorder.snapshots.contains { $0.phase == .completed })
+        XCTAssertTrue(records.isEmpty)
+    }
+
     // F4: the 8s reasoning deadline must not wait for an uncooperative task.
     func testAuditReasoningDeadlineDoesNotWaitForUncooperativeTask() async throws {
         let task = Task<String, Error> {
