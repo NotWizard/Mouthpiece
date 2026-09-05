@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- Added the 2026-09-05 dictation reliability fix plan covering completion without automatic paste, realtime error cleanup, SSE response integrity, and reasoning deadlines, with reproduced evidence and acceptance criteria. Runtime fixes are not yet implemented.
+
+### Fixed
+
+- 关闭自动粘贴时文字整理/翻译的会话不再卡死在“处理中”（可靠性方案 F1）。`DictationCoordinator.stop()` 在文字处理后处于 `processing` 阶段，但无粘贴分支的收尾固定按 `finalizing` 校验当前阶段，校验失败直接返回——剪贴板写入、历史保存、完成快照与重置全部跳过，胶囊一直停在处理中。现在收尾以实际所处阶段（`finalizing` 或 `processing`，状态机均允许进入 `completed`）继续，剪贴板、历史与完成反馈照常执行；自动粘贴分支不变。回归：`testAuditReasoningWithoutAutoPasteCompletesAndSavesHistory`（整理开+粘贴关：完成、入历史、回空闲）与 `testReasoningPasteEnabledWithoutTargetCompletesAndCopiesToClipboard`（粘贴开但无目标：走非粘贴收尾、历史 rawText/结果齐全、剪贴板按设置写入，测试用快照恢复真实剪贴板）。
+
 ## [2.1.3] - 2026-09-04
 
 ### Added

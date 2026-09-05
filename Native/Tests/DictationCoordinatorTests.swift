@@ -919,6 +919,131 @@ final class DictationCoordinatorTests: XCTestCase {
         XCTAssertTrue(task.isCancelled)
     }
 
+    // MARK: - Reliability audit regressions (2026-09-05 plan F1-F4)
+
+    // F1: reasoning enabled + auto-paste off must still complete and save history.
+    func testAuditReasoningWithoutAutoPasteCompletesAndSavesHistory() async throws {
+        ReasoningStubURLProtocol.reset()
+        addTeardownBlock { ReasoningStubURLProtocol.reset() }
+        ReasoningStubURLProtocol.handler = { _ in
+            (200, Self.sseChatBody("cleaned transcript"))
+        }
+        let harness = try await makeHarness(
+            provider: ScriptedRealtimeProvider(connect: .succeed, finishText: "raw transcript"),
+            reasoningSession: makeStubbedReasoningSession()
+        )
+        var settings = makeSettings()
+        settings.useReasoningModel = true
+        settings.reasoningProvider = "openai"
+        await harness.coordinator.start(settings: settings)
+        harness.audio.emitFrame()
+        await harness.coordinator.stop()
+        let snapshot = await harness.coordinator.snapshot()
+        let records = try await harness.history.recent(limit: 10)
+        XCTAssertEqual(snapshot.phase, .idle)
+        XCTAssertTrue(harness.recorder.snapshots.contains { $0.phase == .completed })
+        XCTAssertEqual(records.first?.text, "cleaned transcript")
+        await harness.coordinator.cancel()
+    }
+
+    // F1 matrix cell: auto-paste ON but no captured target must behave like
+    // paste-off — complete, save history, and honour keepTranscriptionInClipboard.
+    // The pasteboard is snapshotted and restored so the test never pollutes the
+    // user's real clipboard.
+    func testReasoningPasteEnabledWithoutTargetCompletesAndCopiesToClipboard() async throws {
+        let pasteboard = NSPasteboard.general
+        let previousClipboard = pasteboard.string(forType: .string)
+        addTeardownBlock {
+            pasteboard.clearContents()
+            if let previousClipboard { pasteboard.setString(previousClipboard, forType: .string) }
+        }
+        ReasoningStubURLProtocol.reset()
+        addTeardownBlock { ReasoningStubURLProtocol.reset() }
+        ReasoningStubURLProtocol.handler = { _ in
+            (200, Self.sseChatBody("cleaned transcript"))
+        }
+        let harness = try await makeHarness(
+            provider: ScriptedRealtimeProvider(connect: .succeed, finishText: "raw transcript"),
+            reasoningSession: makeStubbedReasoningSession()
+        )
+        // Force target capture to come back empty; otherwise the real frontmost
+        // app becomes the target and the auto-paste branch runs for real.
+        harness.insertion.capturedTargetOverride = { nil }
+        var settings = makeSettings()
+        settings.useReasoningModel = true
+        settings.reasoningProvider = "openai"
+        settings.automaticallyPasteTranscription = true
+        settings.keepTranscriptionInClipboard = true
+        await harness.coordinator.start(settings: settings)
+        harness.audio.emitFrame()
+        await harness.coordinator.stop()
+        let snapshot = await harness.coordinator.snapshot()
+        let records = try await harness.history.recent(limit: 10)
+        XCTAssertEqual(snapshot.phase, .idle)
+        XCTAssertTrue(harness.recorder.snapshots.contains { $0.phase == .completed })
+        XCTAssertEqual(records.first?.text, "cleaned transcript")
+        XCTAssertEqual(records.first?.rawText, "raw transcript")
+        XCTAssertEqual(pasteboard.string(forType: .string), "cleaned transcript")
+        await harness.coordinator.cancel()
+    }
+
+    // F2: a fatal provider .error with no partial must reset to idle after the
+    // error display instead of deadlocking the event consumer on itself.
+    func testAuditFatalProviderEventResetsAfterErrorDisplay() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .succeed)
+        let harness = try await makeHarness(provider: provider)
+        await harness.coordinator.start(settings: makeSettings())
+        await provider.emit(.error("audit stream failure"))
+        try await Task.sleep(for: .seconds(4))
+        let snapshot = await harness.coordinator.snapshot()
+        XCTAssertTrue(harness.recorder.snapshots.contains { $0.phase == .failed })
+        XCTAssertEqual(snapshot.phase, .idle, "Error display lasts 2.4s; cleanup should have completed")
+    }
+
+    // F4: the 8s reasoning deadline must not wait for an uncooperative task.
+    func testAuditReasoningDeadlineDoesNotWaitForUncooperativeTask() async throws {
+        let task = Task<String, Error> {
+            await withCheckedContinuation { continuation in
+                DispatchQueue.global().asyncAfter(deadline: .now() + 0.7) {
+                    continuation.resume(returning: "late result")
+                }
+            }
+        }
+        let startedAt = ContinuousClock.now
+        do {
+            _ = try await DictationCoordinator.reasoningWithTimeout(task, timeout: .milliseconds(100))
+            XCTFail("Expected timeout")
+        } catch {
+            XCTAssertEqual(error as? DictationSessionError, .finalizeTimedOut)
+        }
+        XCTAssertLessThan(ContinuousClock.now - startedAt, .milliseconds(300))
+    }
+
+    // F3: an in-stream SSE error after partial content must fail, not return
+    // the partial prefix as a successful cleanup result.
+    func testAuditReasoningRejectsStreamErrorAfterPartialContent() async throws {
+        ReasoningStubURLProtocol.reset()
+        addTeardownBlock { ReasoningStubURLProtocol.reset() }
+        ReasoningStubURLProtocol.handler = { _ in
+            (200,
+                "data: {\"choices\":[{\"delta\":{\"content\":\"incomplete prefix\"}}]}\n\n"
+                    + "data: {\"error\":{\"code\":\"server_error\",\"message\":\"stream failed\"}}\n\n")
+        }
+        let service = ReasoningService(
+            keychain: InMemoryCredentialStore(seed: [.openAI: "audit-test-key"]),
+            session: makeStubbedReasoningSession()
+        )
+        var settings = makeSettings()
+        settings.useReasoningModel = true
+        settings.reasoningProvider = "openai"
+        do {
+            let text = try await service.process("complete original transcript", settings: settings, target: nil)
+            XCTFail("Stream error was accepted as success: \(text)")
+        } catch {
+            XCTAssertTrue(error is ReasoningServiceError)
+        }
+    }
+
     // MARK: - Harness
 
     // Minimal OpenAI-compatible SSE body: one content delta, the include_usage

@@ -450,7 +450,14 @@ actor DictationCoordinator {
                 try await insertOrReportSecureInputBlock(finalText, into: target, sessionID: sessionID)
                 completionPhase = .inserting
             } else {
-                completionPhase = .finalizing
+                // F1: with reasoning enabled the session is in .processing here,
+                // not .finalizing — forcing .finalizing failed the isCurrent
+                // guard below and skipped clipboard/history/completion entirely.
+                // Complete from whichever of the two phases the session is
+                // actually in; the state machine allows both to reach .completed.
+                let currentPhase = machine.snapshot.phase
+                guard currentPhase == .finalizing || currentPhase == .processing else { return }
+                completionPhase = currentPhase
             }
             guard isCurrent(sessionID, phase: completionPhase) else { return }
             if activeSettings.keepTranscriptionInClipboard {
