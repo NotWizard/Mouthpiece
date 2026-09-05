@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.4] - 2026-09-05
+
 ### Documentation
 
 - Added the 2026-09-05 dictation reliability fix plan covering completion without automatic paste, realtime error cleanup, SSE response integrity, and reasoning deadlines, with reproduced evidence and acceptance criteria. Runtime fixes are not yet implemented.
