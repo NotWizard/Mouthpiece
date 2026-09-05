@@ -285,6 +285,44 @@ final class DictationCoordinatorTests: XCTestCase {
         }
         XCTAssertNotNil(failure, "An early error without any partial transcript must fail the session")
         XCTAssertEqual(failure?.errorMessage, "early boom")
+
+        // F2: after the 2.4s error display the session must actually reset to
+        // idle — pre-fix the consumer self-awaited its own task and wedged in
+        // .failed forever.
+        var reachedIdle = false
+        for _ in 0..<300 {
+            if await harness.coordinator.snapshot().phase == .idle {
+                reachedIdle = true
+                break
+            }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertTrue(reachedIdle, "Session must reset to idle after the error display")
+    }
+
+    // F2: starting a new session during the previous one's error display must
+    // survive the old error timer: the new session keeps recording and the
+    // stale reset neither steals the state machine nor hides its capsule.
+    func testNewSessionSurvivesPreviousErrorDisplay() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .succeed, finishText: "second session text")
+        let harness = try await makeHarness(provider: provider)
+        await harness.coordinator.start(settings: makeSettings())
+        await provider.emit(.error("first session boom"))
+        // Wait for the failure to publish, then start the next session while
+        // the 2.4s error display is still on screen.
+        for _ in 0..<200 {
+            if harness.recorder.snapshots.contains(where: { $0.phase == .failed }) { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        await harness.coordinator.start(settings: makeSettings())
+        harness.audio.emitFrame()
+        // Outlast the old error display + scheduling slack.
+        try await Task.sleep(for: .seconds(3))
+        let snapshot = await harness.coordinator.snapshot()
+        XCTAssertEqual(snapshot.phase, .recording, "New session must keep recording past the old error timer")
+        await harness.coordinator.stop()
+        let records = try await harness.history.recent(limit: 10)
+        XCTAssertEqual(records.first?.text, "second session text")
     }
 
     // C1: an error event that lands while stop() is already finalizing must

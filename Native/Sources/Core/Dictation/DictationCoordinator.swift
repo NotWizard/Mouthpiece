@@ -128,7 +128,7 @@ actor DictationCoordinator {
         frameTask = nil
         frameContinuation?.finish()
         frameContinuation = nil
-        await drainProviderEventStream()
+        terminateProviderEventStream()
         reasoningTask?.cancel()
         reasoningTask = nil
         await audio.stop()
@@ -890,7 +890,9 @@ actor DictationCoordinator {
         frameTask = nil
         frameContinuation?.finish()
         frameContinuation = nil
-        await drainProviderEventStream()
+        // F2: fail() can be running ON the event consumer task; awaiting its
+        // drain here self-deadlocked and wedged the session in .failed.
+        terminateProviderEventStream()
         reasoningTask?.cancel()
         reasoningTask = nil
         provider = nil
@@ -900,7 +902,9 @@ actor DictationCoordinator {
         pcm.removeAll(keepingCapacity: false)
         machine.reset()
         await publish()
-        await capsule.hide()
+        // A new session may already be on screen (error-display overlap);
+        // never hide its capsule from the stale reset.
+        await capsule.hideIfIdle()
     }
 
     private func isCurrent(_ sessionID: UUID, phase: DictationPhase) -> Bool {
@@ -1106,15 +1110,17 @@ private extension DictationCoordinator {
         return { event in continuation.yield(event) }
     }
 
-    // Finishes the event continuation, drains any buffered events through
-    // the consumer, and clears both slots. Used by every teardown path
-    // (stop/shutdown/resetIfCurrent) — the frame stream keeps its inline
-    // wiring; this helper only exists to keep the actor body under the
-    // SwiftLint type_body_length threshold.
-    func drainProviderEventStream() async {
+    // F2: termination-path (fail/cancel/reset/shutdown) event-stream
+    // teardown. Unlike the bounded drain in stop(), this never awaits the
+    // consumer task: fail() itself can be executing ON that task
+    // (.error → degradeOrFailAfterRealtimeError → fail), and awaiting its
+    // .value would be a self-deadlock. Synchronous finish + cancel + release
+    // only; events already inside handle() still run, guarded by their own
+    // session/phase checks. Normal stop keeps runBoundedStopDrain.
+    func terminateProviderEventStream() {
         providerEventContinuation?.finish()
         providerEventContinuation = nil
-        await providerEventTask?.value
+        providerEventTask?.cancel()
         providerEventTask = nil
     }
 }

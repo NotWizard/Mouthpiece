@@ -250,6 +250,15 @@ final class CapsuleController {
         panel.orderOut(nil)
     }
 
+    // F2: termination-path reset publishes idle and then hides, but a new
+    // session can slip in between (actor reentrancy) — never hide a capsule
+    // that is already showing a new recording. Onboarding keeps the
+    // unconditional hide() above.
+    func hideIfIdle() {
+        guard model.snapshot.phase == .idle else { return }
+        panel.orderOut(nil)
+    }
+
     func setLanguage(_ language: UILanguage) {
         model.language = language
     }
