@@ -54,6 +54,13 @@ class AudioCaptureService {
     private var isStarting = false
     private(set) var isRunning = false
 
+    #if DEBUG
+    // Test seam for the engine-retirement regression: lets a test assert
+    // that start() actually replaces the engine and that the retired one is
+    // released asynchronously, without widening the production surface.
+    var testEngineHandle: AVAudioEngine { engine }
+    #endif
+
     func requestPermission() async -> Bool {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized: return true
@@ -80,7 +87,21 @@ class AudioCaptureService {
         // after a microphone switch, and installTap then failed with "format
         // mismatch" on every retry until the app was relaunched.
         let engine = AVAudioEngine()
+        let retiredEngine = self.engine
         self.engine = engine
+        // Retire the previous engine on engineQueue, never on this (main)
+        // actor: AVAudioEngine.dealloc dispatch_syncs onto the engine's
+        // AVAudioIOUnit queue, and when the HAL is wedged (coreaudiod stuck,
+        // e.g. after sleep/wake) that queue never drains — dealloc'ing here
+        // froze the main thread and the whole app with it (2026-09-06 hang,
+        // confirmed by sample: main thread in AVAudioEngine dealloc →
+        // __DISPATCH_WAIT_FOR_QUEUE__; the IO unit queue parked in a mach_msg
+        // to coreaudiod). On engineQueue a wedged dealloc only stalls engine
+        // work, so the preparing watchdog can still fail the attempt and the
+        // UI stays alive.
+        Self.engineQueue.async {
+            withExtendedLifetime(retiredEngine) {}
+        }
         // All engine access happens on engineQueue so it serializes with the
         // removeTap/stop block from resetEngine; touching inputNode here on the
         // main actor raced a still-running teardown and could double-install

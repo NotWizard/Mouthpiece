@@ -65,6 +65,39 @@ final class AudioTests: XCTestCase {
         await capture.stop()
     }
 
+    // 2026-09-06 main-thread freeze: replacing the engine deallocated the old
+    // one on the main actor, and AVAudioEngine.dealloc blocks on a wedged
+    // HAL. The retired engine must now be released asynchronously on
+    // engineQueue — replacement happens, nothing leaks, and a fresh session
+    // still captures after the swap.
+    @MainActor
+    func testStartRetiresPreviousEngineWithoutLeakingIt() async throws {
+        guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
+            throw XCTSkip("Microphone permission is required for the engine retirement regression test")
+        }
+        let capture = AudioCaptureService()
+        try await capture.start(selectedDeviceUID: nil, onFrame: { _, _ in }, onLevel: nil)
+        weak var retired = capture.testEngineHandle
+        let retiredID = ObjectIdentifier(capture.testEngineHandle)
+        await capture.stop()
+
+        try await capture.start(selectedDeviceUID: nil, onFrame: { _, _ in }, onLevel: nil)
+        XCTAssertNotEqual(ObjectIdentifier(capture.testEngineHandle), retiredID)
+        await capture.stop()
+
+        // The retired engine's last reference rides the retire block on
+        // engineQueue; once the queue drains, the weak probe must be nil.
+        var released = false
+        for _ in 0..<100 {
+            if retired == nil {
+                released = true
+                break
+            }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertTrue(released, "The retired engine must be released after replacement")
+    }
+
     func testWAVEncoderWritesPCM16MonoHeader() {
         let pcm = Data([0x01, 0x02, 0x03, 0x04])
         let wav = WAVEncoder.pcm16Mono(pcm, sampleRate: 16_000)
