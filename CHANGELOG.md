@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.5] - 2026-09-06
+
 ### Fixed
 
 - 修复长时间闲置/睡眠后首次听写整个应用假死只能强制退出的问题（三次复现：9/3、9/4、9/6）。根因经诊断日志与 sample 堆栈双重定位：`AudioCaptureService.start()` 在主线程上替换会话引擎（`self.engine = engine`），旧引擎随即在主线程 `AVAudioEngine dealloc`——dealloc 内部 `dispatch_sync` 到该引擎的 AVAudioIOUnit 队列，而该队列正卡在发往 coreaudiod 的 mach 消息上（睡眠唤醒后 HAL 无响应），主线程永久冻结；后续看门狗触发的 `fail()` 清理也需跳主线程，连环卡死。现将被替换的旧引擎改为在 `engineQueue` 上释放（退役块经 `withExtendedLifetime` 持有引用、随 GCD 块在后台队列释放），即使 coreaudiod 再卡，被堵住的也只是后台引擎队列：主线程与 15 秒 preparing 看门狗保持可用，会话按“启动超时”正常报错，用户可直接重试而不必强退。新增 DEBUG-only `testEngineHandle` 探测点与回归 `testStartRetiresPreviousEngineWithoutLeakingIt`（引擎确实被替换、退役引擎异步释放不泄漏、换新后仍可采集）。
