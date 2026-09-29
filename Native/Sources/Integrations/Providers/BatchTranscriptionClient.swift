@@ -35,9 +35,13 @@ struct BatchTranscriptionClient: Sendable {
             configuration.authorizationPrefix + configuration.apiKey,
             forHTTPHeaderField: configuration.authorizationHeader
         )
+        // gpt-transcribe replaced the singular language hint with languages[]
+        // (the two fields must never be sent together); other
+        // OpenAI-compatible models keep the singular field.
+        let languageField = configuration.model == "gpt-transcribe" ? "languages[]" : "language"
         request.httpBody = MultipartFormData(boundary: boundary)
             .text(name: "model", value: configuration.model)
-            .optionalText(name: "language", value: configuration.language)
+            .optionalText(name: languageField, value: configuration.language)
             .optionalText(name: "prompt", value: configuration.prompt)
             .file(name: "file", filename: "recording.wav", mimeType: "audio/wav", data: wavData)
             .finalize()

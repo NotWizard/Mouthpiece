@@ -482,6 +482,18 @@ final class AppEnvironmentTests: XCTestCase {
             ),
             "my-fine-tuned-asr"
         )
+        XCTAssertEqual(
+            CloudTranscriptionSupport.model(afterSelecting: "openai", current: ""),
+            "gpt-transcribe"
+        )
+        XCTAssertEqual(
+            CloudTranscriptionSupport.model(afterSelecting: "soniox", current: ""),
+            "stt-rt-v5"
+        )
+        XCTAssertEqual(
+            CloudTranscriptionSupport.model(afterSelecting: "assemblyai", current: ""),
+            "universal-3-6-pro"
+        )
         XCTAssertEqual(CloudTranscriptionSupport.credential(for: "assemblyai"), .assemblyAI)
         XCTAssertEqual(CloudTranscriptionSupport.credential(for: "volcengine"), .volcengine)
         XCTAssertEqual(

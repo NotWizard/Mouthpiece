@@ -38,7 +38,7 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
             URLQueryItem(name: "format_turns", value: "true"),
         ]
         if configuration.language != nil {
-            query.append(URLQueryItem(name: "speech_model", value: "universal-streaming-multilingual"))
+            query.append(URLQueryItem(name: "speech_model", value: "universal-3-6-pro"))
         }
         components.queryItems = query
         // The key goes in the Authorization header (no Bearer prefix, per the

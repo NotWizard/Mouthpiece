@@ -810,9 +810,9 @@ actor DictationCoordinator {
         case "deepgram" where settings.deepgramStreamingEnabled:
             selected = (deepgramProvider, .deepgram, "nova-3")
         case "soniox" where settings.sonioxRealtimeEnabled:
-            selected = (sonioxProvider, .soniox, "stt-rt-v4")
+            selected = (sonioxProvider, .soniox, "stt-rt-v5")
         case "assemblyai" where settings.assemblyAIStreaming:
-            selected = (assemblyAIProvider, .assemblyAI, "universal-streaming-multilingual")
+            selected = (assemblyAIProvider, .assemblyAI, "universal-3-6-pro")
         default:
             selected = nil
         }
@@ -847,7 +847,7 @@ actor DictationCoordinator {
         case "volcengine": return VolcengineRealtimeProvider.model
         case "deepgram": return value.hasPrefix("nova-") ? value : fallback
         case "soniox": return value.hasPrefix("stt-rt-") ? value : fallback
-        case "assemblyai": return value.hasPrefix("universal-streaming") ? value : fallback
+        case "assemblyai": return value.hasPrefix("universal-") ? value : fallback
         default: return value.isEmpty ? fallback : value
         }
     }

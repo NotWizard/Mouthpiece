@@ -88,7 +88,7 @@ struct AppSettings: Codable, Equatable, Sendable {
 
     var preferredLanguage = "auto"
     var cloudTranscriptionProvider = "openai"
-    var cloudTranscriptionModel = "gpt-4o-mini-transcribe"
+    var cloudTranscriptionModel = "gpt-transcribe"
     var bailianTranscriptionModel = BailianRealtimeProvider.defaultModel
     var cloudTranscriptionBaseURL = "https://api.openai.com/v1"
     var assemblyAIStreaming = true

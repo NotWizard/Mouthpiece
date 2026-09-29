@@ -385,10 +385,10 @@ enum CloudTranscriptionSupport {
         [
             "bailian": BailianRealtimeProvider.defaultModel,
             "volcengine": VolcengineRealtimeProvider.model,
-            "openai": "gpt-4o-mini-transcribe",
+            "openai": "gpt-transcribe",
             "deepgram": "nova-3",
-            "soniox": "stt-rt-v4",
-            "assemblyai": "universal-streaming-multilingual",
+            "soniox": "stt-rt-v5",
+            "assemblyai": "universal-3-6-pro",
             "groq": "whisper-large-v3-turbo",
             "mistral": "voxtral-mini-latest",
         ][provider]
