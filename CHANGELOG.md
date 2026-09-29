@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- 个人词库热词扩展到全部云供应商（原来仅百炼）：Soniox 实时与批量链路发送结构化 context.terms（批量不再依赖逗号拆分，含逗号的词不再被截断）；AssemblyAI 实时链路在连接参数发送 keyterms_prompt（JSON 数组，客户端预裁剪至 100 词且每词不超过 50 字符）；Mistral 批量链路发送 context_bias 重复表单字段（≤100 词）。词表统一 trim、去重后经 preferredTerms 通路下发，各家客户端自选承载字段，词库设好即可在任一供应商生效。
+- Personal vocabulary hot words now reach every cloud provider (previously Bailian only): Soniox realtime and batch send structured context.terms (batch no longer splits a comma-joined prompt, so terms containing commas survive); AssemblyAI realtime sends keyterms_prompt at connection time (JSON array, pre-clamped to 100 terms of at most 50 characters each); Mistral batch sends context_bias as repeated form fields (up to 100 terms). Terms are trimmed and deduplicated once through the preferredTerms pipeline and each client picks its own wire field — one vocabulary list now works on any provider.
+
 - 内置整理提示词新增 ASR 近音错词纠错：结合整段上下文，把“单独看是常见词、但放在整段文字中明显不通顺，且存在发音相同或相近的唯一通顺候选”的词直接改正；同时设置置信度门槛（两种说法都说得通或无法唯一确定时保留原词），防止过度纠错。与个人词库协同：词表以“Use these exact preferred terms”拼在默认提示词之后，近音纠错会优先落到用户词表写法。
 - 默认整理提示词按界面语言分流：中文界面用中文版，英文（或系统语言非中文）用英文版，与安全护栏同款判断；自定义提示词编辑器同步按当前语言展示与比对默认值，保存默认原文仍等价于“使用默认”。
 - The built-in cleanup prompt now corrects ASR near-homophone errors from full-transcript context: a word that is common in isolation but clearly wrong in context is replaced by its same- or similar-sounding alternative when that is the only reading that makes the passage coherent. A confidence gate keeps ambiguous cases verbatim, and preferred vocabulary (appended to the prompt) is the preferred correction target.

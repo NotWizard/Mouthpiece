@@ -39,10 +39,18 @@ struct BatchTranscriptionClient: Sendable {
         // (the two fields must never be sent together); other
         // OpenAI-compatible models keep the singular field.
         let languageField = configuration.model == "gpt-transcribe" ? "languages[]" : "language"
-        request.httpBody = MultipartFormData(boundary: boundary)
+        var form = MultipartFormData(boundary: boundary)
             .text(name: "model", value: configuration.model)
             .optionalText(name: languageField, value: configuration.language)
             .optionalText(name: "prompt", value: configuration.prompt)
+        // Mistral accepts up to 100 context_bias hints as repeated multipart
+        // fields — the same wire format the OpenAI SDK's extra_body produces.
+        if configuration.provider == "mistral" {
+            for term in Self.mistralContextBiasTerms(configuration.preferredTerms) {
+                form = form.text(name: "context_bias", value: term)
+            }
+        }
+        request.httpBody = form
             .file(name: "file", filename: "recording.wav", mimeType: "audio/wav", data: wavData)
             .finalize()
 
@@ -152,7 +160,8 @@ struct BatchTranscriptionClient: Sendable {
                 "model": configuration.model.hasPrefix("stt-async-") ? configuration.model : "stt-async-v5",
             ]
             if let language = configuration.language { body["language_hints"] = [baseLanguage(language)] }
-            if let prompt = configuration.prompt, !prompt.isEmpty { body["context"] = ["terms": prompt.split(separator: ",").map(String.init)] }
+            let contextTerms = SonioxRealtimeProvider.normalizedContextTerms(configuration.preferredTerms)
+            if !contextTerms.isEmpty { body["context"] = ["terms": contextTerms] }
             var create = URLRequest(url: URL(string: "https://api.soniox.com/v1/transcriptions")!)
             create.httpMethod = "POST"
             create.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
@@ -280,6 +289,18 @@ struct BatchTranscriptionClient: Sendable {
             throw BailianRealtimeError.protocolError("Bailian batch transcription returned no text")
         }
         return text
+    }
+
+    // Mistral's transcription endpoint caps context_bias at 100 terms.
+    static func mistralContextBiasTerms(_ terms: [String]) -> [String] {
+        var seen = Set<String>()
+        return terms.compactMap { term in
+            let trimmed = term.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, seen.insert(trimmed.lowercased()).inserted else { return nil }
+            return trimmed
+        }
+        .prefix(100)
+        .map { $0 }
     }
 
     private enum PollResult {

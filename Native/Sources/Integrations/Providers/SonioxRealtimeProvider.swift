@@ -92,7 +92,21 @@ actor SonioxRealtimeProvider: RealtimeTranscriptionProvider {
             payload["language_hints"] = [language]
             payload["enable_language_identification"] = true
         }
+        if !configuration.preferredTerms.isEmpty {
+            // Same structured-context object as the batch API: plain term
+            // biasing, well inside the 8000-token context budget.
+            payload["context"] = ["terms": Self.normalizedContextTerms(configuration.preferredTerms)]
+        }
         return payload
+    }
+
+    static func normalizedContextTerms(_ terms: [String]) -> [String] {
+        var seen = Set<String>()
+        return terms.compactMap { term in
+            let trimmed = term.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, seen.insert(trimmed.lowercased()).inserted else { return nil }
+            return trimmed
+        }
     }
 
     func send(pcm16: Data) async throws {

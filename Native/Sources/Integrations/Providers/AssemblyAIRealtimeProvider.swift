@@ -16,6 +16,24 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
 
     init(session: URLSession = .shared) { self.session = session }
 
+    // The v3 WS API takes keyterms_prompt as a connection query parameter
+    // holding a JSON-encoded array. Server limits: at most 100 terms, each 50
+    // characters or fewer (longer terms are ignored; more than 100 errors the
+    // session), so both limits are enforced before the value is encoded.
+    static func keytermsQueryValue(for terms: [String]) -> String? {
+        var seen = Set<String>()
+        let limited = terms.compactMap { term -> String? in
+            let trimmed = term.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, trimmed.count <= 50,
+                  seen.insert(trimmed.lowercased()).inserted else { return nil }
+            return trimmed
+        }
+        .prefix(100)
+        guard !limited.isEmpty else { return nil }
+        let data = try? JSONSerialization.data(withJSONObject: Array(limited))
+        return data.flatMap { String(data: $0, encoding: .utf8) }
+    }
+
     func warmup(configuration: RealtimeTranscriptionConfiguration) async throws {}
 
     func connect(
@@ -39,6 +57,9 @@ actor AssemblyAIRealtimeProvider: RealtimeTranscriptionProvider {
         ]
         if configuration.language != nil {
             query.append(URLQueryItem(name: "speech_model", value: "universal-3-6-pro"))
+        }
+        if let keyterms = Self.keytermsQueryValue(for: configuration.preferredTerms) {
+            query.append(URLQueryItem(name: "keyterms_prompt", value: keyterms))
         }
         components.queryItems = query
         // The key goes in the Authorization header (no Bearer prefix, per the

@@ -1162,6 +1162,53 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(payload["model"] as? String, "stt-rt-v5-preview")
         XCTAssertEqual(payload["language_hints"] as? [String], ["en"])
         XCTAssertEqual(payload["enable_language_identification"] as? Bool, true)
+        XCTAssertNil(payload["context"], "No preferred terms means no context block")
+    }
+
+    func testSonioxRealtimeConfigurationCarriesTrimmedDeduplicatedContextTerms() throws {
+        let payload = SonioxRealtimeProvider.configurationPayload(
+            for: RealtimeTranscriptionConfiguration(
+                apiKey: "test-key",
+                model: "stt-rt-v5",
+                preferredTerms: ["Mouthpiece", " 嘴替 ", "Mouthpiece", ""]
+            )
+        )
+
+        let context = try XCTUnwrap(payload["context"] as? [String: Any])
+        XCTAssertEqual(context["terms"] as? [String], ["Mouthpiece", "嘴替"])
+    }
+
+    func testAssemblyAIKeytermsQueryValueEncodesJSONAndAppliesLimits() throws {
+        let many = (1...120).map { "term\($0)" }
+        let value = try XCTUnwrap(AssemblyAIRealtimeProvider.keytermsQueryValue(for: many))
+        let decoded = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: Data(value.utf8)) as? [String]
+        )
+        XCTAssertEqual(decoded.count, 100, "The 100-keyterm session limit is enforced client-side")
+
+        let longTerm = String(repeating: "x", count: 51)
+        XCTAssertNil(
+            AssemblyAIRealtimeProvider.keytermsQueryValue(for: [longTerm]),
+            "Terms over 50 characters are dropped server-side; dropping them here can yield an empty list"
+        )
+        XCTAssertNil(AssemblyAIRealtimeProvider.keytermsQueryValue(for: []))
+
+        let normal = try XCTUnwrap(
+            AssemblyAIRealtimeProvider.keytermsQueryValue(for: ["Mouthpiece", "嘴替"])
+        )
+        XCTAssertEqual(normal, "[\"Mouthpiece\",\"嘴替\"]")
+    }
+
+    func testMistralContextBiasTermsTrimDedupeAndCap() {
+        XCTAssertEqual(
+            BatchTranscriptionClient.mistralContextBiasTerms([" A ", "A", "B", ""]),
+            ["A", "B"]
+        )
+        XCTAssertEqual(BatchTranscriptionClient.mistralContextBiasTerms([]), [])
+        XCTAssertEqual(
+            BatchTranscriptionClient.mistralContextBiasTerms((1...150).map { "t\($0)" }).count,
+            100
+        )
     }
 
     func testSonioxTokensDropEndpointMarkersAndJoinCJK() {

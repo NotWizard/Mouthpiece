@@ -722,12 +722,11 @@ actor DictationCoordinator {
             language: settings.preferredLanguage == "auto" ? nil : settings.preferredLanguage,
             prompt: activeSettings.terminologyProfile.preferredTerms.joined(separator: ", ")
         )
-        if settings.cloudTranscriptionProvider == "bailian" {
-            // The flash HTTP endpoint accepts the same inline vocabulary
-            // object as the realtime channel, keeping hot words alive during
-            // the batch fallback.
-            configuration.preferredTerms = activeSettings.terminologyProfile.preferredTerms
-        }
+        // Preferred terms reach every provider's hot-word mechanism:
+        // Bailian's inline vocabulary (realtime and HTTP fallback), Soniox's
+        // structured context, and Mistral's context_bias. Each client picks
+        // the field that carries them.
+        configuration.preferredTerms = activeSettings.terminologyProfile.preferredTerms
         if settings.cloudTranscriptionProvider == "mistral" {
             configuration.authorizationHeader = "x-api-key"
             configuration.authorizationPrefix = ""
