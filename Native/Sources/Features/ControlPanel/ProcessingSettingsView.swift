@@ -91,6 +91,10 @@ struct ProcessingSettingsView: View {
         ) { provider in
             var settings = environment.settings
             settings.reasoningProvider = provider
+            // A model chosen for one vendor is almost never valid on another;
+            // clear the field so requests fall back to the provider default
+            // until the user picks a model again.
+            settings.reasoningModel = ""
             environment.saveSettings(settings)
         }
         .task(id: environment.settings.reasoningProvider) {
@@ -259,8 +263,11 @@ enum ReasoningProviderSupport {
     ) -> (model: String, baseURL: String) {
         guard let fallback = defaults[provider] else { return (currentModel, currentBaseURL) }
 
-        let model = currentModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            || Set(defaults.values.map { $0.model }).contains(currentModel)
+        // A stale model from another vendor's defaults swaps to this
+        // provider's default; an empty model stays empty (requests already
+        // resolve the provider default server-side) and custom models are
+        // the user's own choice.
+        let model = Set(defaults.values.map { $0.model }).contains(currentModel)
             ? fallback.model
             : currentModel
         let baseURL = currentBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

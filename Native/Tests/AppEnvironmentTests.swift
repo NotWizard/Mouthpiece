@@ -565,7 +565,9 @@ final class AppEnvironmentTests: XCTestCase {
             currentModel: "",
             currentBaseURL: ""
         )
-        XCTAssertEqual(deepseek.model, "deepseek-flash")
+        // Empty stays empty after a provider switch (the request path resolves
+        // the provider default); only the baseURL fills in.
+        XCTAssertEqual(deepseek.model, "")
         XCTAssertEqual(deepseek.baseURL, "https://api.deepseek.com")
     }
 
