@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- 内置整理提示词新增 ASR 近音错词纠错：结合整段上下文，把“单独看是常见词、但放在整段文字中明显不通顺，且存在发音相同或相近的唯一通顺候选”的词直接改正；同时设置置信度门槛（两种说法都说得通或无法唯一确定时保留原词），防止过度纠错。与个人词库协同：词表以“Use these exact preferred terms”拼在默认提示词之后，近音纠错会优先落到用户词表写法。
+- 默认整理提示词按界面语言分流：中文界面用中文版，英文（或系统语言非中文）用英文版，与安全护栏同款判断；自定义提示词编辑器同步按当前语言展示与比对默认值，保存默认原文仍等价于“使用默认”。
+- The built-in cleanup prompt now corrects ASR near-homophone errors from full-transcript context: a word that is common in isolation but clearly wrong in context is replaced by its same- or similar-sounding alternative when that is the only reading that makes the passage coherent. A confidence gate keeps ambiguous cases verbatim, and preferred vocabulary (appended to the prompt) is the preferred correction target.
+- The default cleanup prompt is now branched by UI language (Chinese for Chinese, English for English or non-Chinese system language, matching the safety guardrail); the custom-prompt editor shows and compares against the current-language default, and saving it verbatim still means "use default".
+
 ### Changed
 
 - 百炼 ASR 模型升级至 Qwen Audio 3.1：默认主力从 `qwen-audio-3.0-asr-flash-streaming` 切换为 `qwen-audio-3.1-asr-flash-message`（实测输出与 3.0 逐字一致、首字/收尾延迟相当、按 token 计费成本约降 62%、RPM 600→1200），另提供 `qwen-audio-3.1-asr-flash-streaming` 为可选项；3.0 流式版从模型列表移除，旧设置自动迁移到新默认。message 协议需显式开启 `intermediate_result_enabled` 才返回流式中间结果（胶囊实时文本依赖该参数）；3.1-streaming 的词典热词存在服务端已知回归（中段结果正确、最终刷新改坏），帮助文案已提示，选择该模型仍会携带热词参数。

@@ -193,10 +193,14 @@ struct PromptStudioSheet: View {
     @State private var showingDiscardConfirmation = false
     @FocusState private var testEditorFocused: Bool
 
+    // The editor always shows and compares against the default for the
+    // current UI language, so saving it verbatim still means "use default".
+    private var defaultPrompt: String {
+        ReasoningService.defaultCleanupPrompt(for: environment.settings.uiLanguage)
+    }
+
     private var savedPrompt: String {
-        environment.settings.customPrompt.isEmpty
-            ? ReasoningService.defaultCleanupPrompt
-            : environment.settings.customPrompt
+        environment.settings.customPrompt.isEmpty ? defaultPrompt : environment.settings.customPrompt
     }
 
     private var isDirty: Bool { draft != savedPrompt }
@@ -241,11 +245,11 @@ struct PromptStudioSheet: View {
                 }
                 Spacer()
                 Button("promptStudio.reset") {
-                    draft = ReasoningService.defaultCleanupPrompt
+                    draft = defaultPrompt
                 }
                 Button("common.save") {
                     var settings = environment.settings
-                    settings.customPrompt = draft == ReasoningService.defaultCleanupPrompt ? "" : draft
+                    settings.customPrompt = draft == defaultPrompt ? "" : draft
                     environment.saveSettings(settings)
                 }
                 .buttonStyle(.borderedProminent)
