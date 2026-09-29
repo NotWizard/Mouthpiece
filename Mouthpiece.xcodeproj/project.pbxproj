@@ -23,6 +23,7 @@
 		321E53850470F38EB87BD3E4 /* AppEnvironmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09EB05050047AEA5E7AF2A0F /* AppEnvironmentTests.swift */; };
 		38C6EAC44D32457CEBAAE9AE /* VolcengineRealtimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4A1007A71A94BEFBAC33308 /* VolcengineRealtimeProvider.swift */; };
 		393DA3F6B2481CBC599F9828 /* HistoryRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4296C56083431AF4D8B75F2 /* HistoryRepository.swift */; };
+		3C8253C8A35622DF6124E175 /* provider-openrouter.svg in Resources */ = {isa = PBXBuildFile; fileRef = 44645DFAFED1F538077F95BB /* provider-openrouter.svg */; };
 		3D940BA72F241C85609C8468 /* CorrectionLearningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0975F93BD6026DB83BE66BA /* CorrectionLearningView.swift */; };
 		44384E8791662B41641112B2 /* HotkeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FE9307D1D6F3C430EB81C47 /* HotkeyService.swift */; };
 		4A474C3D5F03FAF0872D0C06 /* ObjCExceptionCatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = A70B7ABB4FAE5FC3F96EF40C /* ObjCExceptionCatcher.m */; };
@@ -122,6 +123,7 @@
 		3EC3BCBDDF31A9E15195D511 /* SupervisedProcessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupervisedProcessTests.swift; sourceTree = "<group>"; };
 		40DCD77EEE51E5CD93773591 /* DictationAndProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationAndProviderTests.swift; sourceTree = "<group>"; };
 		42E56BBE96DE36354A1C2355 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
+		44645DFAFED1F538077F95BB /* provider-openrouter.svg */ = {isa = PBXFileReference; path = "provider-openrouter.svg"; sourceTree = "<group>"; };
 		473B94E3083AC662E10BB2F3 /* provider-volcengine.svg */ = {isa = PBXFileReference; path = "provider-volcengine.svg"; sourceTree = "<group>"; };
 		4839CE9A5603125120A84F94 /* SupervisedProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupervisedProcess.swift; sourceTree = "<group>"; };
 		4DCBD2075D00E23850F2F254 /* DictationSessionModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationSessionModel.swift; sourceTree = "<group>"; };
@@ -240,6 +242,7 @@
 				B182DDF5D81617CECF2EE06C /* provider-groq.svg */,
 				25D63F24AE6F5D1F437FCA08 /* provider-mistral.png */,
 				F33CE4BB76FFC238A6A35B30 /* provider-openai.svg */,
+				44645DFAFED1F538077F95BB /* provider-openrouter.svg */,
 				5347628D5BA72A65E1824F5C /* provider-soniox.png */,
 				473B94E3083AC662E10BB2F3 /* provider-volcengine.svg */,
 			);
@@ -590,6 +593,7 @@
 				625822921D132F271BDDACE8 /* provider-groq.svg in Resources */,
 				DE8EF049174BD51DE610DA2B /* provider-mistral.png in Resources */,
 				5114DA72C8727D9B4F23A72D /* provider-openai.svg in Resources */,
+				3C8253C8A35622DF6124E175 /* provider-openrouter.svg in Resources */,
 				E983B3F9295BDBA78FD26760 /* provider-soniox.png in Resources */,
 				16506CE0651229C235E6997F /* provider-volcengine.svg in Resources */,
 			);

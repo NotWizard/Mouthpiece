@@ -495,6 +495,11 @@ final class AppEnvironmentTests: XCTestCase {
             "universal-3-6-pro"
         )
         XCTAssertEqual(CloudTranscriptionSupport.credential(for: "assemblyai"), .assemblyAI)
+        XCTAssertEqual(CloudTranscriptionSupport.credential(for: "openrouter"), .openRouter)
+        XCTAssertEqual(
+            CloudTranscriptionSupport.model(afterSelecting: "openrouter", current: ""),
+            "microsoft/mai-transcribe-2"
+        )
         XCTAssertEqual(CloudTranscriptionSupport.credential(for: "volcengine"), .volcengine)
         XCTAssertEqual(
             CloudTranscriptionSupport.model(afterSelecting: "volcengine", current: "custom-model"),

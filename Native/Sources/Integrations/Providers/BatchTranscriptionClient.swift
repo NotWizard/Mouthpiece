@@ -35,6 +35,11 @@ struct BatchTranscriptionClient: Sendable {
             configuration.authorizationPrefix + configuration.apiKey,
             forHTTPHeaderField: configuration.authorizationHeader
         )
+        if configuration.provider == "openrouter" {
+            // OpenRouter's optional attribution header; identifies the app in
+            // their rankings.
+            request.setValue("Mouthpiece", forHTTPHeaderField: "X-Title")
+        }
         // gpt-transcribe replaced the singular language hint with languages[]
         // (the two fields must never be sent together); other
         // OpenAI-compatible models keep the singular field.

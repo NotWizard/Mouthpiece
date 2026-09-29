@@ -145,6 +145,7 @@
 "provider.soniox" = "Soniox";
 "provider.assemblyai" = "AssemblyAI";
 "provider.mistral" = "Mistral";
+"provider.openrouter" = "OpenRouter";
 "provider.custom" = "Custom";
 "speech.apiKey.placeholder" = "Enter API key";
 "speech.model.placeholder" = "Enter model name";

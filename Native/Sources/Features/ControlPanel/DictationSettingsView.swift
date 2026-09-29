@@ -359,6 +359,7 @@ enum CloudTranscriptionSupport {
         ProviderChoice(id: "assemblyai", title: "provider.assemblyai", assetName: "provider-assemblyai", assetExtension: "png", fallbackIcon: "waveform", rendersAsTemplate: false),
         ProviderChoice(id: "groq", title: "provider.groq", assetName: "provider-groq", fallbackIcon: "bolt", rendersAsTemplate: false),
         ProviderChoice(id: "mistral", title: "provider.mistral", assetName: "provider-mistral", assetExtension: "png", fallbackIcon: "wind", rendersAsTemplate: false),
+        ProviderChoice(id: "openrouter", title: "provider.openrouter", assetName: "provider-openrouter", fallbackIcon: "arrow.triangle.branch"),
         ProviderChoice(id: "custom", title: "provider.custom", assetName: nil, fallbackIcon: "slider.horizontal.3"),
     ]
 
@@ -375,6 +376,7 @@ enum CloudTranscriptionSupport {
         case "soniox": .soniox
         case "groq": .groq
         case "mistral": .mistral
+        case "openrouter": .openRouter
         case "assemblyai": .assemblyAI
         case "custom": .customTranscription
         default: .openAI
@@ -391,6 +393,7 @@ enum CloudTranscriptionSupport {
             "assemblyai": "universal-3-6-pro",
             "groq": "whisper-large-v3-turbo",
             "mistral": "voxtral-mini-latest",
+            "openrouter": "microsoft/mai-transcribe-2",
         ][provider]
     }
 

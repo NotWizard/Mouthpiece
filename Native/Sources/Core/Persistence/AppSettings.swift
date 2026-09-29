@@ -184,6 +184,7 @@ enum CredentialAccount: String, CaseIterable, Sendable {
     case gemini = "gemini-api-key"
     case groq = "groq-api-key"
     case mistral = "mistral-api-key"
+    case openRouter = "openrouter-api-key"
     case soniox = "soniox-api-key"
     case bailian = "bailian-api-key"
     case volcengine = "volcengine-api-key"

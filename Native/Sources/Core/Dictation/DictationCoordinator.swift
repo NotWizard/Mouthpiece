@@ -689,6 +689,7 @@ actor DictationCoordinator {
         let account: CredentialAccount
         switch settings.cloudTranscriptionProvider {
         case "mistral": account = .mistral
+        case "openrouter": account = .openRouter
         case "groq": account = .groq
         case "deepgram": account = .deepgram
         case "soniox": account = .soniox
@@ -792,6 +793,7 @@ actor DictationCoordinator {
         switch settings.cloudTranscriptionProvider {
         case "groq": "https://api.groq.com/openai/v1"
         case "mistral": "https://api.mistral.ai/v1"
+        case "openrouter": "https://openrouter.ai/api/v1"
         case "custom": settings.cloudTranscriptionBaseURL
         default: "https://api.openai.com/v1"
         }

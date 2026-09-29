@@ -145,6 +145,7 @@
 "provider.soniox" = "Soniox";
 "provider.assemblyai" = "AssemblyAI";
 "provider.mistral" = "Mistral";
+"provider.openrouter" = "OpenRouter";
 "provider.custom" = "自定义";
 "speech.apiKey.placeholder" = "输入 API 密钥";
 "speech.model.placeholder" = "输入模型名称";

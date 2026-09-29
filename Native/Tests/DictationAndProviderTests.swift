@@ -853,6 +853,32 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(text, "batch fallback text")
     }
 
+    func testOpenRouterBatchHitsTranscriptionsEndpointWithAttributionHeader() async throws {
+        ProviderStubURLProtocol.handler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.url?.host, "openrouter.ai")
+            XCTAssertEqual(request.url?.path, "/api/v1/audio/transcriptions")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test-key")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "X-Title"), "Mouthpiece")
+            return (200, #"{"text":"openrouter transcript","usage":{"seconds":2.0,"cost":0.001}}"#)
+        }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [ProviderStubURLProtocol.self]
+        let client = BatchTranscriptionClient(session: URLSession(configuration: configuration))
+
+        let text = try await client.transcribe(
+            wavData: Data([0, 1, 2, 3]),
+            configuration: BatchTranscriptionConfiguration(
+                provider: "openrouter",
+                endpoint: URL(string: "https://openrouter.ai/api/v1/audio/transcriptions")!,
+                apiKey: "test-key",
+                model: "microsoft/mai-transcribe-2"
+            )
+        )
+
+        XCTAssertEqual(text, "openrouter transcript")
+    }
+
     func testBailianBatchRejectsOversizeAudio() async {
         ProviderStubURLProtocol.handler = { _ in (200, #"{"output":{"text":"must not be reached"}}"#) }
         let configuration = URLSessionConfiguration.ephemeral
