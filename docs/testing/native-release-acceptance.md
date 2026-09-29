@@ -16,7 +16,7 @@
 ## 发布前真实设备验收
 
 - [ ] 在 macOS 15 与 macOS 26 上分别完成全新安装、首次引导、麦克风和辅助功能授权。
-- [ ] 使用百炼、火山引擎、Deepgram、Soniox、AssemblyAI、OpenAI 兼容批量识别及自定义地址各完成一次真实录音。
+- [ ] 使用百炼、火山引擎、Deepgram、Soniox、AssemblyAI、OpenRouter、OpenAI 兼容批量识别及自定义地址各完成一次真实录音；使用 DeepSeek 完成一次文字整理。
 - [ ] 使用 Whisper、Parakeet 和 Qwen ASR 各完成一次真实录音，并使用任一云端文字处理服务完成一次整理。
 - [ ] 在单屏、双屏、不同 Space、全屏应用、显示器热插拔和睡眠唤醒后验证胶囊位置与快捷键。
 - [ ] 在原生文本框、Terminal、Safari、Chrome、VS Code 和 Electron 编辑器中验证文本插入与剪贴板恢复。

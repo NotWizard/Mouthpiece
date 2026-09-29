@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-09-29
+
 ### Added
 
 - 新增 OpenRouter 云转写供应商：接入其专用转写端点 https://openrouter.ai/api/v1/audio/transcriptions（与 OpenAI multipart 完全同构，现有批量客户端零改动复用）；新增 OpenRouter API Key 凭证账户、官方 logo 图标与三语名称；默认模型 microsoft/mai-transcribe-2（FLEURS 多语言榜第一，60 语言含中文，支持关键字 biasing），模型框可自由切换平台 20+ 个 STT 模型（一个 key 试遍各家）；请求携带 X-Title: Mouthpiece 归因头（OpenRouter 官方建议的应用自报身份）。无实时通道，为批量型供应商，自动套用现有降级阶梯（失败落本地 Whisper）；热词第一版不透传（平台不支持 pin provider，多托管模型透传不可靠）。

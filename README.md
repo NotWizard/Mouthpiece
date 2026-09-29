@@ -45,9 +45,9 @@ Mouthpiece 是一款专为 macOS 打造的语音听写应用。无论你正在�
 
 - **随处听写**：在支持文本输入的 macOS 应用中使用全局快捷键录音并自动插入结果。
 - **纯原生体验**：原生窗口、菜单栏、快捷键、音频采集和文本插入，空闲时几乎不占用 CPU 或 GPU。
-- **本地或云端识别**：支持本地 Whisper、Parakeet 和 Qwen ASR，也可连接百炼、火山引擎、OpenAI、Deepgram、Soniox、AssemblyAI、Groq、Mistral 及兼容服务。
+- **本地或云端识别**：支持本地 Whisper、Parakeet 和 Qwen ASR，也可连接百炼、火山引擎、OpenAI、Deepgram、Soniox、AssemblyAI、Groq、Mistral、OpenRouter 及兼容服务。
 - **实时听写胶囊**：显示录音状态、音量、实时文本和错误，并适配多显示器、Spaces 与全屏应用。
-- **整理与翻译**：支持独立翻译快捷键、自定义 Prompt、个人词典和多种文本处理服务。
+- **整理与翻译**：支持独立翻译快捷键、自定义 Prompt、个人词典和百炼、OpenAI、DeepSeek 等多种文本处理服务。
 - **完整听写控制**：支持按住说话、点击切换、自动判断、Escape 取消、自动粘贴、剪贴板保留和听写时暂停媒体。
 
 ## 安装

@@ -45,9 +45,9 @@ The app is built with Swift, SwiftUI, AppKit, and AVFoundation. It contains no E
 
 - **Dictate anywhere**: Record with a global hotkey and insert the result into any macOS app that accepts text input.
 - **Native macOS experience**: Native windows, menu bar integration, hotkeys, audio capture, and text insertion with virtually no idle CPU or GPU usage.
-- **Local or cloud transcription**: Use local Whisper, Parakeet, or Qwen ASR models, or connect Bailian, Volcengine, OpenAI, Deepgram, Soniox, AssemblyAI, Groq, Mistral, and compatible services.
+- **Local or cloud transcription**: Use local Whisper, Parakeet, or Qwen ASR models, or connect Bailian, Volcengine, OpenAI, Deepgram, Soniox, AssemblyAI, Groq, Mistral, OpenRouter, and compatible services.
 - **Live dictation capsule**: See recording state, audio level, live text, and errors across displays, Spaces, and full-screen apps.
-- **Cleanup and translation**: Use a separate translation shortcut, custom prompts, a personal dictionary, and multiple text-processing providers.
+- **Cleanup and translation**: Use a separate translation shortcut, custom prompts, a personal dictionary, and text-processing providers including Bailian, OpenAI, and DeepSeek.
 - **Complete dictation controls**: Hold-to-talk, toggle and automatic activation, Escape cancellation, automatic paste, clipboard retention, and media pause and resume.
 
 ## Installation
