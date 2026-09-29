@@ -456,7 +456,16 @@ final class AppEnvironmentTests: XCTestCase {
                 afterSelecting: "bailian",
                 current: "gpt-4o-mini-transcribe"
             ),
-            "qwen-audio-3.0-asr-flash-streaming"
+            "qwen-audio-3.1-asr-flash-message"
+        )
+        XCTAssertEqual(
+            CloudTranscriptionSupport.model(
+                afterSelecting: "bailian",
+                // The retired 3.0 streaming SKU is no longer a valid choice and
+                // must migrate to the new default.
+                current: "qwen-audio-3.0-asr-flash-streaming"
+            ),
+            "qwen-audio-3.1-asr-flash-message"
         )
         XCTAssertEqual(
             CloudTranscriptionSupport.model(
@@ -497,8 +506,24 @@ final class AppEnvironmentTests: XCTestCase {
 
         settings.normalize()
 
-        XCTAssertEqual(settings.cloudTranscriptionModel, "qwen-audio-3.0-asr-flash-streaming")
-        XCTAssertEqual(settings.bailianTranscriptionModel, "qwen-audio-3.0-asr-flash-streaming")
+        XCTAssertEqual(settings.cloudTranscriptionModel, "qwen-audio-3.1-asr-flash-message")
+        XCTAssertEqual(settings.bailianTranscriptionModel, "qwen-audio-3.1-asr-flash-message")
+
+        // The retired 3.0 streaming SKU migrates to the 3.1 message default;
+        // the 3.1 streaming sibling stays selectable.
+        settings.cloudTranscriptionModel = "qwen-audio-3.0-asr-flash-streaming"
+        settings.bailianTranscriptionModel = "qwen-audio-3.0-asr-flash-streaming"
+
+        settings.normalize()
+
+        XCTAssertEqual(settings.cloudTranscriptionModel, "qwen-audio-3.1-asr-flash-message")
+        XCTAssertEqual(settings.bailianTranscriptionModel, "qwen-audio-3.1-asr-flash-message")
+
+        settings.cloudTranscriptionModel = "qwen-audio-3.1-asr-flash-streaming"
+
+        settings.normalize()
+
+        XCTAssertEqual(settings.cloudTranscriptionModel, "qwen-audio-3.1-asr-flash-streaming")
     }
 
     func testReasoningProviderDefaultsDoNotOverwriteCustomConfiguration() {

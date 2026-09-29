@@ -117,9 +117,11 @@
 "speech.installModel" = "安装模型";
 "speech.removeModel" = "删除模型";
 "speech.realtime" = "实时转录";
-"speech.bailianModel.qwenAudio3" = "Qwen Audio 3.0 ASR Flash 流式版";
+"speech.bailianModel.qwenAudio31Message" = "Qwen Audio 3.1 ASR Flash 消息版";
+"speech.bailianModel.qwenAudio31Streaming" = "Qwen Audio 3.1 ASR Flash 流式版";
 "speech.bailianModel.funASR" = "Fun-ASR 实时版";
-"speech.bailianModel.qwenAudio3.help" = "推荐使用。通过 Qwen Audio 3.0 流式识别，并在请求中直接带入词典。";
+"speech.bailianModel.qwenAudio31Message.help" = "推荐使用。消息版 WebSocket 流式识别，请求内直接携带词典热词，成本较 3.0 流式版降低约 62%。";
+"speech.bailianModel.qwenAudio31Streaming.help" = "同协议流式识别。已知回归：词典热词可能在最终结果中失效。";
 "speech.bailianModel.funASR.help" = "使用 Fun-ASR 实时识别，并沿用百炼热词表。";
 "speech.volcengineModel" = "豆包流式语音识别 2.0";
 "speech.volcengineOnly" = "仅支持豆包流式语音识别 2.0 按时长版。";

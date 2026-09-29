@@ -2,21 +2,24 @@ import Foundation
 import OSLog
 
 enum BailianASRModel: String, CaseIterable, Sendable {
-    case qwenAudio3 = "qwen-audio-3.0-asr-flash-streaming"
+    case qwenAudio31Message = "qwen-audio-3.1-asr-flash-message"
+    case qwenAudio31Streaming = "qwen-audio-3.1-asr-flash-streaming"
     case funASR = "fun-asr-realtime"
 
-    static let defaultModel: Self = .qwenAudio3
+    static let defaultModel: Self = .qwenAudio31Message
 
     var titleKey: String {
         switch self {
-        case .qwenAudio3: "speech.bailianModel.qwenAudio3"
+        case .qwenAudio31Message: "speech.bailianModel.qwenAudio31Message"
+        case .qwenAudio31Streaming: "speech.bailianModel.qwenAudio31Streaming"
         case .funASR: "speech.bailianModel.funASR"
         }
     }
 
     var helpKey: String {
         switch self {
-        case .qwenAudio3: "speech.bailianModel.qwenAudio3.help"
+        case .qwenAudio31Message: "speech.bailianModel.qwenAudio31Message.help"
+        case .qwenAudio31Streaming: "speech.bailianModel.qwenAudio31Streaming.help"
         case .funASR: "speech.bailianModel.funASR.help"
         }
     }
@@ -158,10 +161,9 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         // budget invalidates the realtime transcript. Route through the
         // existing throw path so DictationCoordinator's finalize catch
         // remembers the error and the empty-transcript fallback ladder
-        // resurfaces the full retained PCM via batch/local (or local
-        // Whisper for Bailian, which is realtime-only via its own realtime
-        // endpoint but reaches local fallback through the same recovery
-        // ladder).
+        // resurfaces the full retained PCM via the Bailian HTTP batch
+        // endpoint (or local Whisper when the audio is too long for it)
+        // through the same recovery ladder.
         if pendingAudioLeadingDropped {
             await closeSocket()
             throw RealtimePendingAudioError.leadingAudioDropped
@@ -177,14 +179,14 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         try await sendJSON(finishTask(), over: socket)
         try ensureCurrent(socket: socket, generation: expectedGeneration)
 
-        // Audit P2-4: use the shared 5 s finalize budget, but Bailian is
-        // realtime-only so an unfinished `task-finished` still THROWS
-        // `BailianRealtimeError.timedOut` (the pre-audit behaviour). The
-        // throw is what routes finalize into `DictationCoordinator.stop`'s
-        // P1-2/NEW-7 recovery ladder — dropping through to best-partial
-        // here would silently swallow the tail for a provider that has no
-        // batch endpoint of its own. The shared `logFinalizeTimeout`
-        // warning still fires so support logs see the fall-through event.
+        // Audit P2-4: use the shared 5 s finalize budget, but an unfinished
+        // `task-finished` still THROWS `BailianRealtimeError.timedOut` (the
+        // pre-audit behaviour). The throw is what routes finalize into
+        // `DictationCoordinator.stop`'s P1-2/NEW-7 recovery ladder — dropping
+        // through to best-partial here would silently swallow the tail that
+        // the HTTP batch fallback could still recover. The shared
+        // `logFinalizeTimeout` warning still fires so support logs see the
+        // fall-through event.
         let finishedInTime = try await RealtimeSocketSession.waitForCondition(
             timeout: .seconds(RealtimeSocketSession.defaultFinalizeTimeoutSeconds),
             isSatisfied: { taskFinished },
@@ -347,11 +349,22 @@ actor BailianRealtimeProvider: RealtimeTranscriptionProvider {
         ]
         if model == .funASR, let vocabularyID, !vocabularyID.isEmpty {
             parameters["vocabulary_id"] = vocabularyID
-        } else if model == .qwenAudio3 {
+        } else {
+            // Inline hot words apply across the Qwen Audio realtime family.
+            // qwen-audio-3.1-asr-flash-message applies them end to end; on
+            // qwen-audio-3.1-asr-flash-streaming the parameter is accepted but
+            // the final-result refresh can regress hot-word output (the help
+            // text surfaces that caveat to the user).
             let vocabulary = BailianVocabularyService.inlineVocabulary(configuration.preferredTerms)
             if !vocabulary.isEmpty {
                 parameters["vocabulary"] = vocabulary
             }
+        }
+        if model == .qwenAudio31Message {
+            // The message protocol only streams intermediate results when
+            // this flag is set (its fun-asr siblings stream partials by
+            // default) — the capsule's live text depends on it.
+            parameters["intermediate_result_enabled"] = true
         }
         return [
             "header": [

@@ -532,6 +532,81 @@ final class DictationCoordinatorTests: XCTestCase {
         XCTAssertEqual(strandedLocalCalls, 0, "A disabled local fallback must never be invoked")
     }
 
+    // The v2 Bailian ladder: qwen-audio-3.1-asr-flash-message over WS with
+    // qwen-audio-3.1-asr-flash HTTP as the batch fallback. A realtime connect
+    // failure must retain the audio and let stop() recover the full recording
+    // through the batch endpoint instead of failing the session.
+    func testBailianConnectFailureRecoversViaBatchFallback() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .fail("socket refused"))
+        let batchSession = makeStubbedBatchSession(text: "recovered by the batch fallback")
+        let harness = try await makeHarness(provider: provider, batchSession: batchSession)
+
+        await harness.coordinator.start(settings: makeSettings(provider: "bailian"))
+        let recording = await harness.coordinator.snapshot()
+        XCTAssertEqual(
+            recording.phase,
+            .recording,
+            "A batch-capable connect failure must keep the session recording"
+        )
+
+        // 300 ms above the gate's speech threshold, matching the P1-2 ladder
+        // tests: recovery only runs for audio where speech was actually said.
+        for _ in 0..<15 { harness.audio.emitFrame(rms: 0.02) }
+        await harness.coordinator.stop()
+
+        XCTAssertFalse(
+            harness.recorder.snapshots.contains { $0.phase == .failed },
+            "The retained audio must recover the session instead of failing it"
+        )
+        XCTAssertTrue(harness.recorder.snapshots.contains { $0.phase == .completed })
+        XCTAssertTrue(
+            BatchStubURLProtocol.requests.contains {
+                $0.httpMethod == "POST"
+                    && $0.url?.path == "/api/v1/services/aigc/multimodal-generation/generation"
+            },
+            "The recovery must hit the Bailian flash HTTP endpoint"
+        )
+        let records = try await harness.history.recent(limit: 5)
+        XCTAssertEqual(records.first?.text, "recovered by the batch fallback")
+    }
+
+    // Second rung of the same ladder: when the batch fallback itself fails,
+    // the retained audio must still reach the local Whisper fallback for
+    // bailian sessions with allowLocalFallback enabled.
+    func testBailianBatchFailureFallsThroughToLocalWhisper() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .succeed, finishText: "")
+        let batchSession = makeStubbedBatchSession(status: 500, text: "batch unavailable")
+        let localRuntime = StubLocalRuntime(text: "recovered by the local model")
+        let harness = try await makeHarness(
+            provider: provider,
+            localRuntime: localRuntime,
+            batchSession: batchSession
+        )
+
+        var settings = makeSettings(provider: "bailian")
+        settings.allowLocalFallback = true
+        settings.fallbackWhisperModel = "small"
+        await harness.coordinator.start(settings: settings)
+        let recording = await harness.coordinator.snapshot()
+        XCTAssertEqual(recording.phase, .recording)
+
+        for _ in 0..<15 { harness.audio.emitFrame(rms: 0.02) }
+        await harness.coordinator.stop()
+
+        let finishCalls = await provider.finishCallCount
+        XCTAssertEqual(finishCalls, 1)
+        XCTAssertFalse(harness.recorder.snapshots.contains { $0.phase == .failed })
+        XCTAssertTrue(harness.recorder.snapshots.contains { $0.phase == .completed })
+        let localCalls = await localRuntime.transcribeCallCount
+        XCTAssertEqual(
+            localCalls,
+            1,
+            "The local ladder must receive the audio after the batch failure"
+        )
+        let records = try await harness.history.recent(limit: 5)
+        XCTAssertEqual(records.first?.text, "recovered by the local model")
+    }
+
     // D8 / P3-3: the VoiceOver announcement mapping must cover every non-idle
     // phase with a non-nil localized key so screen-reader users hear feedback
     // for every visible capsule state. `.idle` stays silent so the announcement
@@ -1238,11 +1313,13 @@ final class DictationCoordinatorTests: XCTestCase {
         let logDirectory: URL
     }
 
-    private func makeSettings() -> AppSettings {
+    private func makeSettings(provider: String = "volcengine") -> AppSettings {
         var settings = AppSettings()
-        // Bailian is realtime-only, so provider failures fail the session
-        // instead of falling back to a batch upload.
-        settings.cloudTranscriptionProvider = "bailian"
+        // Volcengine is realtime-only, so provider failures fail the session
+        // instead of falling back to a batch upload. Bailian gained an HTTP
+        // batch fallback (qwen-audio-3.1-asr-flash); its ladder tests pass
+        // "bailian" explicitly together with a stubbed batch session.
+        settings.cloudTranscriptionProvider = provider
         settings.useLocalTranscription = false
         settings.useReasoningModel = false
         settings.translationEnabled = false
@@ -1260,7 +1337,8 @@ final class DictationCoordinatorTests: XCTestCase {
         localRuntime: any LocalTranscriptionRuntime = LocalModelRuntime(),
         capturedTarget: TextInsertionTarget? = nil,
         logging: Bool = false,
-        reasoningSession: URLSession = .shared
+        reasoningSession: URLSession = .shared,
+        batchSession: URLSession? = nil
     ) async throws -> Harness {
         // P1-15: an in-memory CredentialStore seeded with the bailian key keeps
         // this harness off the real keychain entirely. Previously the harness
@@ -1272,6 +1350,7 @@ final class DictationCoordinatorTests: XCTestCase {
         // identical to a keychain hit that always returned "unit-test-key".
         let keychain = InMemoryCredentialStore(seed: [
             .bailian: "unit-test-key",
+            .volcengine: "unit-test-key",
             .openAI: "unit-test-reasoning-key",
         ])
 
@@ -1296,6 +1375,8 @@ final class DictationCoordinatorTests: XCTestCase {
             logger: DebugLogStore(enabled: logging, directory: logDirectory),
             insertion: insertion,
             capsule: CapsuleController(),
+            batchClient: batchSession.map { BatchTranscriptionClient(session: $0) }
+                ?? BatchTranscriptionClient(),
             localRuntime: localRuntime,
             reasoningService: ReasoningService(keychain: keychain, session: reasoningSession),
             realtimeProviderOverride: provider,
@@ -1317,6 +1398,22 @@ final class DictationCoordinatorTests: XCTestCase {
     private func makeStubbedReasoningSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [ReasoningStubURLProtocol.self]
+        return URLSession(configuration: configuration)
+    }
+
+    // Serves the Bailian flash HTTP batch fallback: a 2xx status answers with
+    // an output.text payload, anything else with a provider-style error body.
+    private func makeStubbedBatchSession(status: Int = 200, text: String) -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [BatchStubURLProtocol.self]
+        BatchStubURLProtocol.reset()
+        BatchStubURLProtocol.handler = { _ in
+            if (200..<300).contains(status) {
+                (status, "{\"output\":{\"text\":\"\(text)\"},\"usage\":{\"duration\":1}}")
+            } else {
+                (status, "{\"error\":\"\(text)\"}")
+            }
+        }
         return URLSession(configuration: configuration)
     }
 
@@ -1526,6 +1623,46 @@ private final class ReasoningStubURLProtocol: URLProtocol, @unchecked Sendable {
 
     override static func canInit(with request: URLRequest) -> Bool { true }
     override static func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        let response = Self.lock.withLock { () -> (Int, String) in
+            Self.capturedRequests.append(request)
+            return Self.handler?(request) ?? (500, #"{"error":"missing handler"}"#)
+        }
+        let http = HTTPURLResponse(
+            url: request.url!,
+            statusCode: response.0,
+            httpVersion: nil,
+            headerFields: ["Content-Type": "application/json"]
+        )!
+        client?.urlProtocol(self, didReceive: http, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(response.1.utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+// Captures the Bailian flash HTTP fallback requests so the coordinator tests
+// can assert the recovery hit the multimodal-generation endpoint.
+private final class BatchStubURLProtocol: URLProtocol, @unchecked Sendable {
+    nonisolated(unsafe) static var handler: ((URLRequest) -> (Int, String))?
+    nonisolated(unsafe) private static var capturedRequests: [URLRequest] = []
+    private static let lock = NSLock()
+
+    static var requests: [URLRequest] {
+        lock.withLock { capturedRequests }
+    }
+
+    static func reset() {
+        lock.withLock {
+            handler = nil
+            capturedRequests.removeAll()
+        }
+    }
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
         let response = Self.lock.withLock { () -> (Int, String) in

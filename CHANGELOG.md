@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- 百炼 ASR 模型升级至 Qwen Audio 3.1：默认主力从 `qwen-audio-3.0-asr-flash-streaming` 切换为 `qwen-audio-3.1-asr-flash-message`（实测输出与 3.0 逐字一致、首字/收尾延迟相当、按 token 计费成本约降 62%、RPM 600→1200），另提供 `qwen-audio-3.1-asr-flash-streaming` 为可选项；3.0 流式版从模型列表移除，旧设置自动迁移到新默认。message 协议需显式开启 `intermediate_result_enabled` 才返回流式中间结果（胶囊实时文本依赖该参数）；3.1-streaming 的词典热词存在服务端已知回归（中段结果正确、最终刷新改坏），帮助文案已提示，选择该模型仍会携带热词参数。
+- 百炼实时渠道失败时新增 HTTP 批量降级：保留的 PCM 音频经 `qwen-audio-3.1-asr-flash`（multimodal-generation 端点，Base64 WAV 一次性转写）重转写，请求携带与主通道相同的即时热词（inline `vocabulary`），响应取 `output.text`；超过约 4 分钟（10MB Base64 上限，同时覆盖 5 分钟时长上限）的录音直接跳过该层，继续走既有本地 Whisper 兜底。降级触发与其它批量供应商一致：连接失败/任务失败/收尾超时/前置音频丢弃均保留音频，finalize 无 partial 时重放。测试装置默认供应商从百炼换为火山引擎以保留 realtime-only 语义，新增百炼两级降级（WS 失败→HTTP 批量、批量失败→本地）回归测试。
+- Upgraded the Bailian ASR models to Qwen Audio 3.1: the default is now `qwen-audio-3.1-asr-flash-message` (verified verbatim-identical output vs 3.0-streaming, comparable latency, ~62% cheaper token billing, 1200 RPM) with `qwen-audio-3.1-asr-flash-streaming` as a selectable option; the 3.0 SKU is removed and stored settings migrate to the new default. The message protocol needs `intermediate_result_enabled: true` for streaming partials (the capsule's live text depends on it); the 3.1-streaming model has a known server-side hot-word regression, surfaced in its help text.
+- Added an HTTP batch fallback for failed Bailian realtime sessions: retained PCM is re-transcribed through `qwen-audio-3.1-asr-flash` (multimodal-generation endpoint, Base64 WAV one-shot) with the same inline hot words as the realtime channel, reading `output.text`; recordings past ~4 minutes (10 MB Base64 cap, which also covers the 5-minute limit) skip straight to the existing local Whisper ladder. The coordinator test harness now defaults to volcengine to preserve realtime-only semantics, with new regressions covering both new rungs (WS failure → HTTP batch, batch failure → local).
+
 ## [2.1.6] - 2026-09-12
 
 ### Added

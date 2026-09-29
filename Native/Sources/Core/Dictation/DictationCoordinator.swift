@@ -693,15 +693,26 @@ actor DictationCoordinator {
         case "deepgram": account = .deepgram
         case "soniox": account = .soniox
         case "assemblyai": account = .assemblyAI
+        case "bailian": account = .bailian
         case "custom": account = .customTranscription
         default: account = .openAI
         }
         guard let key = try await keychain.read(account), !key.isEmpty else {
             throw BailianRealtimeError.protocolError("The selected transcription API key is missing.")
         }
-        let base = batchBaseURL(settings)
-        guard let endpoint = URL(string: base.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/audio/transcriptions") else {
-            throw BailianRealtimeError.protocolError("The transcription endpoint is invalid.")
+        let endpoint: URL
+        if settings.cloudTranscriptionProvider == "bailian" {
+            // The multimodal-generation endpoint is not OpenAI-shaped; the
+            // client's bailian branch builds the flash payload around it.
+            endpoint = BatchTranscriptionClient.bailianEndpoint
+        } else {
+            let base = batchBaseURL(settings)
+            guard let url = URL(
+                string: base.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/audio/transcriptions"
+            ) else {
+                throw BailianRealtimeError.protocolError("The transcription endpoint is invalid.")
+            }
+            endpoint = url
         }
         var configuration = BatchTranscriptionConfiguration(
             provider: settings.cloudTranscriptionProvider,
@@ -711,6 +722,12 @@ actor DictationCoordinator {
             language: settings.preferredLanguage == "auto" ? nil : settings.preferredLanguage,
             prompt: activeSettings.terminologyProfile.preferredTerms.joined(separator: ", ")
         )
+        if settings.cloudTranscriptionProvider == "bailian" {
+            // The flash HTTP endpoint accepts the same inline vocabulary
+            // object as the realtime channel, keeping hot words alive during
+            // the batch fallback.
+            configuration.preferredTerms = activeSettings.terminologyProfile.preferredTerms
+        }
         if settings.cloudTranscriptionProvider == "mistral" {
             configuration.authorizationHeader = "x-api-key"
             configuration.authorizationPrefix = ""
@@ -1010,13 +1027,16 @@ actor DictationCoordinator {
 // MARK: - Empty-transcript degradation ladder (P1-2)
 
 private extension DictationCoordinator {
-    // A provider capability, not a fallback policy: bailian/volcengine expose
-    // no batch/HTTP transcription endpoint, so a failed or empty stream cannot
-    // be re-uploaded to the same vendor. Callers that mean "no fallback at all"
-    // must additionally consult the user's settings — conflating the two is
-    // what made allowLocalFallback inert and lost the user's speech.
+    // A provider capability, not a fallback policy: volcengine exposes no
+    // batch/HTTP transcription endpoint, so a failed or empty stream cannot
+    // be re-uploaded to the same vendor. Bailian's qwen-audio-3.1-asr-flash
+    // HTTP endpoint re-uploads the retained audio (with the same inline hot
+    // words) up to ~4 minutes of 16 kHz mono WAV, guarded in the client.
+    // Callers that mean "no fallback at all" must additionally consult the
+    // user's settings — conflating the two is what made allowLocalFallback
+    // inert and lost the user's speech.
     func providerHasBatchEndpoint(_ provider: String) -> Bool {
-        provider != "bailian" && provider != "volcengine"
+        provider != "volcengine"
     }
 
     // The realtime transcript came back empty, or finalizing it failed. This

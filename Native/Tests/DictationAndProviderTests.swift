@@ -735,19 +735,42 @@ final class DictationAndProviderTests: XCTestCase {
         let qwenMessage = BailianRealtimeProvider.runTaskPayload(
             taskID: "qwen-task",
             configuration: configuration,
-            model: .qwenAudio3,
+            model: .qwenAudio31Message,
             vocabularyID: "must-not-be-used"
         )
         let qwenPayload = try XCTUnwrap(qwenMessage["payload"] as? [String: Any])
         let qwenParameters = try XCTUnwrap(qwenPayload["parameters"] as? [String: Any])
         let inlineVocabulary = try XCTUnwrap(qwenParameters["vocabulary"] as? [String: Int])
 
-        XCTAssertEqual(qwenPayload["model"] as? String, BailianASRModel.qwenAudio3.rawValue)
+        XCTAssertEqual(qwenPayload["model"] as? String, BailianASRModel.qwenAudio31Message.rawValue)
         XCTAssertEqual(qwenParameters["format"] as? String, "pcm")
         XCTAssertEqual(qwenParameters["sample_rate"] as? Int, 16_000)
         XCTAssertEqual(inlineVocabulary["Mouthpiece"], 4)
         XCTAssertEqual(inlineVocabulary["嘴替"], 4)
         XCTAssertNil(qwenParameters["vocabulary_id"])
+        XCTAssertEqual(
+            qwenParameters["intermediate_result_enabled"] as? Bool,
+            true,
+            "The message model only streams partials with this flag"
+        )
+
+        // The streaming sibling shares the protocol but has no such flag —
+        // its fun-asr family returns intermediate results by default.
+        let streamingMessage = BailianRealtimeProvider.runTaskPayload(
+            taskID: "streaming-task",
+            configuration: configuration,
+            model: .qwenAudio31Streaming,
+            vocabularyID: "must-not-be-used"
+        )
+        let streamingPayload = try XCTUnwrap(streamingMessage["payload"] as? [String: Any])
+        let streamingParameters = try XCTUnwrap(streamingPayload["parameters"] as? [String: Any])
+
+        XCTAssertEqual(
+            streamingPayload["model"] as? String,
+            BailianASRModel.qwenAudio31Streaming.rawValue
+        )
+        XCTAssertNotNil(streamingParameters["vocabulary"] as? [String: Int])
+        XCTAssertNil(streamingParameters["intermediate_result_enabled"])
 
         let funMessage = BailianRealtimeProvider.runTaskPayload(
             taskID: "fun-task",
@@ -761,6 +784,98 @@ final class DictationAndProviderTests: XCTestCase {
         XCTAssertEqual(funPayload["model"] as? String, BailianASRModel.funASR.rawValue)
         XCTAssertEqual(funParameters["vocabulary_id"] as? String, "vocab-1")
         XCTAssertNil(funParameters["vocabulary"])
+        XCTAssertNil(funParameters["intermediate_result_enabled"])
+    }
+
+    func testBailianBatchRequestPayloadCarriesAudioDataURIAndVocabulary() throws {
+        let payload = BatchTranscriptionClient.bailianRequestPayload(
+            wavBase64: "QUJD",
+            preferredTerms: ["Mouthpiece", " 嘴替 "]
+        )
+
+        XCTAssertEqual(payload["model"] as? String, "qwen-audio-3.1-asr-flash")
+        let input = try XCTUnwrap(payload["input"] as? [String: Any])
+        let messages = try XCTUnwrap(input["messages"] as? [[String: Any]])
+        let content = try XCTUnwrap(messages.first?["content"] as? [[String: Any]])
+        let audio = try XCTUnwrap(content.first?["input_audio"] as? [String: Any])
+        XCTAssertEqual(content.first?["type"] as? String, "input_audio")
+        XCTAssertEqual(messages.first?["role"] as? String, "user")
+        XCTAssertEqual(audio["data"] as? String, "data:audio/wav;base64,QUJD")
+        let parameters = try XCTUnwrap(payload["parameters"] as? [String: Any])
+        XCTAssertEqual(parameters["format"] as? String, "wav")
+        XCTAssertEqual(parameters["sample_rate"] as? String, "16000")
+        let vocabulary = try XCTUnwrap(parameters["vocabulary"] as? [String: Int])
+        XCTAssertEqual(vocabulary["Mouthpiece"], 4)
+        XCTAssertEqual(vocabulary["嘴替"], 4, "Terms must be trimmed before upload")
+    }
+
+    func testBailianBatchResponseParserReadsOutputText() {
+        let body = Data(
+            #"{"output":{"text":"Hello World，这里是语音实验室。"},"usage":{"duration":4},"request_id":"r-1"}"#.utf8
+        )
+        XCTAssertEqual(BatchTranscriptionClient.bailianTranscript(from: body), "Hello World，这里是语音实验室。")
+        XCTAssertNil(
+            BatchTranscriptionClient.bailianTranscript(from: Data(#"{"output":{}}"#.utf8)),
+            "A response without output.text must not decode as a transcript"
+        )
+        XCTAssertNil(
+            BatchTranscriptionClient.bailianTranscript(from: Data("not json".utf8))
+        )
+    }
+
+    func testBailianBatchTranscribeHitsFlashEndpointAndReturnsText() async throws {
+        ProviderStubURLProtocol.handler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(
+                request.url?.path,
+                "/api/v1/services/aigc/multimodal-generation/generation"
+            )
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test-key")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "X-DashScope-SSE"), "disable")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
+            return (200, #"{"output":{"text":"batch fallback text"},"usage":{"duration":1}}"#)
+        }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [ProviderStubURLProtocol.self]
+        let client = BatchTranscriptionClient(session: URLSession(configuration: configuration))
+
+        let text = try await client.transcribe(
+            wavData: Data([0, 1, 2, 3]),
+            configuration: BatchTranscriptionConfiguration(
+                provider: "bailian",
+                endpoint: BatchTranscriptionClient.bailianEndpoint,
+                apiKey: "test-key",
+                model: "qwen-audio-3.1-asr-flash-message",
+                preferredTerms: ["Mouthpiece"]
+            )
+        )
+
+        XCTAssertEqual(text, "batch fallback text")
+    }
+
+    func testBailianBatchRejectsOversizeAudio() async {
+        ProviderStubURLProtocol.handler = { _ in (200, #"{"output":{"text":"must not be reached"}}"#) }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [ProviderStubURLProtocol.self]
+        let client = BatchTranscriptionClient(session: URLSession(configuration: configuration))
+
+        do {
+            _ = try await client.transcribe(
+                wavData: Data(count: BatchTranscriptionClient.bailianMaximumWAVBytes + 1),
+                configuration: BatchTranscriptionConfiguration(
+                    provider: "bailian",
+                    endpoint: BatchTranscriptionClient.bailianEndpoint,
+                    apiKey: "test-key",
+                    model: "qwen-audio-3.1-asr-flash-message"
+                )
+            )
+            XCTFail("Oversize audio must be rejected before any network call")
+        } catch {}
+
+        XCTAssertTrue(
+            ProviderStubURLProtocol.requests.isEmpty,
+            "The byte guard must fire before the request leaves the client"
+        )
     }
 
     func testAssemblyAIFixturesDecodeBeginTurnsTerminationAndError() throws {

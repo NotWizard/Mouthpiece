@@ -117,9 +117,11 @@
 "speech.installModel" = "Install model";
 "speech.removeModel" = "Remove model";
 "speech.realtime" = "Realtime transcription";
-"speech.bailianModel.qwenAudio3" = "Qwen Audio 3.0 ASR Flash Streaming";
+"speech.bailianModel.qwenAudio31Message" = "Qwen Audio 3.1 ASR Flash Message";
+"speech.bailianModel.qwenAudio31Streaming" = "Qwen Audio 3.1 ASR Flash Streaming";
 "speech.bailianModel.funASR" = "Fun-ASR Realtime";
-"speech.bailianModel.qwenAudio3.help" = "Recommended. Uses Qwen Audio 3.0 streaming recognition with inline dictionary terms.";
+"speech.bailianModel.qwenAudio31Message.help" = "Recommended. Streaming recognition over the message WebSocket with inline dictionary terms; about 62% cheaper than the 3.0 streaming model.";
+"speech.bailianModel.qwenAudio31Streaming.help" = "Streaming recognition over the same WebSocket protocol. Known regression: dictionary hot words may be lost in the final transcript.";
 "speech.bailianModel.funASR.help" = "Uses Fun-ASR realtime recognition with the existing Bailian hot-word vocabulary.";
 "speech.volcengineModel" = "Doubao Streaming ASR 2.0";
 "speech.volcengineOnly" = "Only the duration-billed Doubao Streaming ASR 2.0 service is supported.";

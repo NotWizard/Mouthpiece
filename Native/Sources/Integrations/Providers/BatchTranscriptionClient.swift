@@ -15,6 +15,8 @@ struct BatchTranscriptionClient: Sendable {
             return try await transcribeAssemblyAI(wavData: wavData, configuration: configuration)
         case "soniox":
             return try await transcribeSoniox(wavData: wavData, configuration: configuration)
+        case "bailian":
+            return try await transcribeBailian(wavData: wavData, configuration: configuration)
         default:
             return try await transcribeOpenAICompatible(wavData: wavData, configuration: configuration)
         }
@@ -189,6 +191,91 @@ struct BatchTranscriptionClient: Sendable {
             )
             throw error
         }
+    }
+
+    // The one-shot HTTP fallback for Bailian's realtime WebSocket channel:
+    // qwen-audio-3.1-asr-flash via the multimodal-generation endpoint. Kept
+    // alongside the WS model family it backstops; the model is fixed because
+    // the HTTP SKU is independent of whichever realtime model is configured.
+    static let bailianFallbackModel = "qwen-audio-3.1-asr-flash"
+    static let bailianEndpoint = URL(
+        string: "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation"
+    )!
+    // Base64 inflates the payload by 4/3 and the endpoint caps Base64 input
+    // at 10 MB. 7.4 MB of WAV is ~230 s of 16 kHz mono — under both the
+    // 10 MB budget (≈ 9.87 MB encoded) and the endpoint's 5-minute duration
+    // cap, so the single byte guard covers both limits. Oversize audio
+    // throws here and falls through to the local fallback ladder instead of
+    // paying for a guaranteed server rejection.
+    static let bailianMaximumWAVBytes = 7_400_000
+
+    static func bailianRequestPayload(wavBase64: String, preferredTerms: [String]) -> [String: Any] {
+        var parameters: [String: Any] = [
+            "format": "wav",
+            "sample_rate": "16000",
+        ]
+        // Same inline hot-word object (and normalization) as the realtime
+        // channel, so fallback transcriptions keep the user's vocabulary.
+        let vocabulary = BailianVocabularyService.inlineVocabulary(preferredTerms)
+        if !vocabulary.isEmpty {
+            parameters["vocabulary"] = vocabulary
+        }
+        let audioContent: [[String: Any]] = [
+            [
+                "type": "input_audio",
+                "input_audio": ["data": "data:audio/wav;base64," + wavBase64],
+            ],
+        ]
+        let messages: [[String: Any]] = [
+            ["role": "user", "content": audioContent],
+        ]
+        return [
+            "model": bailianFallbackModel,
+            "input": ["messages": messages] as [String: Any],
+            "parameters": parameters,
+        ]
+    }
+
+    static func bailianTranscript(from data: Data) -> String? {
+        guard let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let output = payload["output"] as? [String: Any],
+              let text = output["text"] as? String else { return nil }
+        return text
+    }
+
+    private func transcribeBailian(
+        wavData: Data,
+        configuration: BatchTranscriptionConfiguration
+    ) async throws -> String {
+        guard wavData.count <= Self.bailianMaximumWAVBytes else {
+            throw BailianRealtimeError.protocolError(
+                "Bailian batch transcription supports recordings up to about four minutes."
+            )
+        }
+        var request = URLRequest(url: configuration.endpoint)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 120
+        request.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // The recorded-speech HTTP API only streams intermediate results for
+        // audio of one minute or longer; short dictations get a single final
+        // response, which is all the fallback needs.
+        request.setValue("disable", forHTTPHeaderField: "X-DashScope-SSE")
+        request.httpBody = try JSONSerialization.data(withJSONObject: Self.bailianRequestPayload(
+            wavBase64: wavData.base64EncodedString(),
+            preferredTerms: configuration.preferredTerms
+        ))
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw BailianRealtimeError.protocolError(
+                ProviderErrorSanitizer.message(from: data, statusCode: status)
+            )
+        }
+        guard let text = Self.bailianTranscript(from: data), !text.isEmpty else {
+            throw BailianRealtimeError.protocolError("Bailian batch transcription returned no text")
+        }
+        return text
     }
 
     private enum PollResult {

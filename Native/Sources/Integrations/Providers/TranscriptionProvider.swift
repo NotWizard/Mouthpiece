@@ -119,4 +119,9 @@ struct BatchTranscriptionConfiguration: Sendable {
     var prompt: String?
     var authorizationHeader = "Authorization"
     var authorizationPrefix = "Bearer "
+    /// Immediate hot-word terms. Only the Bailian branch consumes these: the
+    /// flash HTTP endpoint accepts the same inline vocabulary object as the
+    /// realtime channel, so hot words stay alive during batch fallback. Other
+    /// providers keep using `prompt`.
+    var preferredTerms: [String] = []
 }
