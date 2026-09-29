@@ -90,11 +90,18 @@ struct ProcessingSettingsView: View {
             selectedID: environment.settings.reasoningProvider
         ) { provider in
             var settings = environment.settings
-            settings.reasoningProvider = provider
+            let selection = ReasoningProviderSupport.model(
+                afterSelecting: provider,
+                previousProvider: settings.reasoningProvider,
+                currentModel: settings.reasoningModel,
+                remembered: settings.reasoningModelsByProvider
+            )
             // A model chosen for one vendor is almost never valid on another;
-            // clear the field so requests fall back to the provider default
-            // until the user picks a model again.
-            settings.reasoningModel = ""
+            // the entered provider restores its own last model (or clears for
+            // vendors the user never configured).
+            settings.reasoningModelsByProvider = selection.remembered
+            settings.reasoningModel = selection.model
+            settings.reasoningProvider = provider
             environment.saveSettings(settings)
         }
         .task(id: environment.settings.reasoningProvider) {
@@ -255,6 +262,26 @@ enum ReasoningProviderSupport {
         "groq": ("llama-3.3-70b-versatile", "https://api.groq.com/openai/v1"),
         "deepseek": ("deepseek-flash", "https://api.deepseek.com"),
     ]
+
+    // Model selection for a provider switch: leaving a provider remembers
+    // its current model under that provider's key (clearing the key when the
+    // field is empty), and the entered provider restores whatever it last
+    // used — empty when the user never configured it.
+    static func model(
+        afterSelecting provider: String,
+        previousProvider: String,
+        currentModel: String,
+        remembered: [String: String]
+    ) -> (model: String, remembered: [String: String]) {
+        var remembered = remembered
+        let trimmed = currentModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            remembered.removeValue(forKey: previousProvider)
+        } else {
+            remembered[previousProvider] = trimmed
+        }
+        return (remembered[provider] ?? "", remembered)
+    }
 
     static func configuration(
         for provider: String,

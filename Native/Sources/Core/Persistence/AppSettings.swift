@@ -99,6 +99,10 @@ struct AppSettings: Codable, Equatable, Sendable {
     var reasoningProvider = "openai"
     var reasoningModel = ""
     var reasoningBaseURL = "https://api.openai.com/v1"
+    /// Per-provider model memory: leaving a provider remembers its model so
+    /// switching back restores it, while the active field clears for vendors
+    /// the user never configured.
+    var reasoningModelsByProvider: [String: String] = [:]
     var bailianReasoningEnableThinking = false
     var deepseekReasoningEnableThinking = false
     var customReasoningEnableThinking = false

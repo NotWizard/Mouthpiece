@@ -589,6 +589,44 @@ final class AppEnvironmentTests: XCTestCase {
         )
     }
 
+    func testReasoningModelRemembersPerProviderAndRestoresOnSwitchBack() {
+        // Leaving a provider remembers its model; the entered provider starts
+        // empty when the user never configured it.
+        var remembered: [String: String] = [:]
+        let toDeepSeek = ReasoningProviderSupport.model(
+            afterSelecting: "deepseek",
+            previousProvider: "bailian",
+            currentModel: "qwen3.8-flash",
+            remembered: remembered
+        )
+        XCTAssertEqual(toDeepSeek.model, "")
+        remembered = toDeepSeek.remembered
+        XCTAssertEqual(remembered["bailian"], "qwen3.8-flash")
+
+        // Switching back restores the remembered model without touching it.
+        let backToBailian = ReasoningProviderSupport.model(
+            afterSelecting: "bailian",
+            previousProvider: "deepseek",
+            currentModel: "deepseek-chat",
+            remembered: remembered
+        )
+        XCTAssertEqual(backToBailian.model, "qwen3.8-flash")
+        remembered = backToBailian.remembered
+        XCTAssertEqual(remembered["deepseek"], "deepseek-chat")
+
+        // Leaving with an empty model drops the provider's stale memory so a
+        // later switch back starts fresh instead of resurrecting it.
+        let toOpenAI = ReasoningProviderSupport.model(
+            afterSelecting: "openai",
+            previousProvider: "bailian",
+            currentModel: "  ",
+            remembered: remembered
+        )
+        XCTAssertEqual(toOpenAI.model, "")
+        XCTAssertNil(toOpenAI.remembered["bailian"])
+        XCTAssertEqual(toOpenAI.remembered["deepseek"], "deepseek-chat")
+    }
+
     func testProviderIconAssetsHaveNativeDisplaySize() throws {
         let assets = [
             ("provider-openai", "svg"),
