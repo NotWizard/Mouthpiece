@@ -146,6 +146,7 @@
 "provider.assemblyai" = "AssemblyAI";
 "provider.mistral" = "Mistral";
 "provider.openrouter" = "OpenRouter";
+"provider.deepseek" = "DeepSeek";
 "provider.custom" = "自訂";
 "speech.apiKey.placeholder" = "輸入 API 金鑰";
 "speech.model.placeholder" = "輸入模型名稱";

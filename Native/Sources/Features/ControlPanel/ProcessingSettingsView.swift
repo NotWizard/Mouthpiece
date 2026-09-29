@@ -105,6 +105,7 @@ struct ProcessingSettingsView: View {
             .init(id: "anthropic", title: "provider.anthropic", assetName: "provider-anthropic", fallbackIcon: "text.bubble"),
             .init(id: "gemini", title: "provider.gemini", assetName: "provider-gemini", fallbackIcon: "diamond", rendersAsTemplate: false),
             .init(id: "groq", title: "provider.groq", assetName: "provider-groq", fallbackIcon: "bolt", rendersAsTemplate: false),
+            .init(id: "deepseek", title: "provider.deepseek", assetName: "provider-deepseek", fallbackIcon: "brain"),
             .init(id: "custom", title: "provider.custom", assetName: nil, fallbackIcon: "slider.horizontal.3"),
         ]
     }
@@ -117,6 +118,7 @@ struct ProcessingSettingsView: View {
             icon: "cube",
             title: "processing.model",
             showsDivider: environment.settings.reasoningProvider == "bailian"
+                || environment.settings.reasoningProvider == "deepseek"
                 || environment.settings.reasoningProvider == "custom"
         ) {
             DeferredSettingTextField(
@@ -143,6 +145,13 @@ struct ProcessingSettingsView: View {
                     .toggleStyle(.switch)
                     .controlSize(.small)
             }
+        } else if environment.settings.reasoningProvider == "deepseek" {
+            SettingsRow(icon: "brain", title: "processing.enableThinking", showsDivider: false) {
+                Toggle("", isOn: settingBinding(environment, \.deepseekReasoningEnableThinking))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+            }
         } else if environment.settings.reasoningProvider == "custom" {
             SettingsRow(icon: "brain", title: "processing.enableThinking", showsDivider: false) {
                 Toggle("", isOn: settingBinding(environment, \.customReasoningEnableThinking))
@@ -156,6 +165,7 @@ struct ProcessingSettingsView: View {
     private var reasoningCredential: CredentialAccount {
         switch environment.settings.reasoningProvider {
         case "bailian": .bailian
+        case "deepseek": .deepSeek
         case "anthropic": .anthropic
         case "gemini": .gemini
         case "groq": .groq
@@ -239,6 +249,7 @@ enum ReasoningProviderSupport {
         "anthropic": ("claude-3-5-haiku-latest", "https://api.anthropic.com/v1"),
         "gemini": ("gemini-2.0-flash", "https://generativelanguage.googleapis.com/v1beta"),
         "groq": ("llama-3.3-70b-versatile", "https://api.groq.com/openai/v1"),
+        "deepseek": ("deepseek-flash", "https://api.deepseek.com"),
     ]
 
     static func configuration(
@@ -266,6 +277,7 @@ enum ReasoningProviderSupport {
         case "anthropic": "Anthropic"
         case "gemini": "Gemini"
         case "groq": "Groq"
+        case "deepseek": "DeepSeek"
         case "custom": AppLocalization.string("provider.custom", language: language)
         default: provider.capitalized
         }

@@ -84,6 +84,7 @@
 		E8F4F46B2AEDB7EE44C758B0 /* provider-deepgram.svg in Resources */ = {isa = PBXBuildFile; fileRef = C87C4DD6BAF5BDA7145833E3 /* provider-deepgram.svg */; };
 		E983B3F9295BDBA78FD26760 /* provider-soniox.png in Resources */ = {isa = PBXBuildFile; fileRef = 5347628D5BA72A65E1824F5C /* provider-soniox.png */; };
 		EA5CF8F0B523222C5AEBAD54 /* Binaries in Resources */ = {isa = PBXBuildFile; fileRef = F4C623CB05090C7BECBB185C /* Binaries */; };
+		F44D5FFA17E432B0F960607D /* provider-deepseek.svg in Resources */ = {isa = PBXBuildFile; fileRef = DCED2F792E8B4F14FF5F0728 /* provider-deepseek.svg */; };
 		F472566CBFBE07AD12AE857B /* AudioCueService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E3015682C8A3F7CF19589AD /* AudioCueService.swift */; };
 		FA29B83954AF90DE5BE04FCD /* DictationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010E09EF0048FE7224083DD8 /* DictationSettingsView.swift */; };
 		FAB1E10BBED423630CD1E836 /* AudioTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B65963C52779B6662A3496C1 /* AudioTests.swift */; };
@@ -178,6 +179,7 @@
 		D6AA4B39DCEBF7AC11249C86 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		D992A8D85465C52531CBD002 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		DA603181932CF2478C9EC907 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		DCED2F792E8B4F14FF5F0728 /* provider-deepseek.svg */ = {isa = PBXFileReference; path = "provider-deepseek.svg"; sourceTree = "<group>"; };
 		DEA3890075EF96CBF8C56D97 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		E0EA74E6D9F42B0C455FFCC2 /* CorrectionLearningController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrectionLearningController.swift; sourceTree = "<group>"; };
 		E25ADB4A2A92A60860ADDE97 /* DictationCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationCoordinatorTests.swift; sourceTree = "<group>"; };
@@ -238,6 +240,7 @@
 				9F0AA63B360B006DB2405323 /* provider-anthropic.svg */,
 				616849886AEB53652DF4F366 /* provider-assemblyai.png */,
 				C87C4DD6BAF5BDA7145833E3 /* provider-deepgram.svg */,
+				DCED2F792E8B4F14FF5F0728 /* provider-deepseek.svg */,
 				EBF9512E0313324EAB4D27AF /* provider-gemini.svg */,
 				B182DDF5D81617CECF2EE06C /* provider-groq.svg */,
 				25D63F24AE6F5D1F437FCA08 /* provider-mistral.png */,
@@ -589,6 +592,7 @@
 				879E33605FB4F96D271478A0 /* provider-anthropic.svg in Resources */,
 				5DD8CB5CA74DEF7E5FAC94E7 /* provider-assemblyai.png in Resources */,
 				E8F4F46B2AEDB7EE44C758B0 /* provider-deepgram.svg in Resources */,
+				F44D5FFA17E432B0F960607D /* provider-deepseek.svg in Resources */,
 				0EC4D9AE76C4613A63CCA0CF /* provider-gemini.svg in Resources */,
 				625822921D132F271BDDACE8 /* provider-groq.svg in Resources */,
 				DE8EF049174BD51DE610DA2B /* provider-mistral.png in Resources */,

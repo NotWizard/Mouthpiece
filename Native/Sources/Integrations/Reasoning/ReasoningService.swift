@@ -239,6 +239,9 @@ actor ReasoningService {
         case "bailian":
             baseURL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
             account = .bailian
+        case "deepseek":
+            baseURL = "https://api.deepseek.com"
+            account = .deepSeek
         case "groq":
             baseURL = "https://api.groq.com/openai/v1"
             account = .groq
@@ -267,9 +270,15 @@ actor ReasoningService {
         ]
         // Hybrid thinking models (qwen3.x) default to thinking ON, which makes the
         // cleanup spend most tokens reasoning and take many seconds; send the flag
-        // explicitly so it stays fast unless the user opted into thinking.
+        // explicitly so it stays fast unless the user opted into thinking. DeepSeek
+        // has the same default but takes an object-shaped switch, so it branches to
+        // the thinking object instead of DashScope's enable_thinking boolean.
         if let enableThinking = Self.resolvedEnableThinking(provider: provider, settings: settings) {
-            body["enable_thinking"] = enableThinking
+            if provider == "deepseek" {
+                body["thinking"] = ["type": enableThinking ? "enabled" : "disabled"]
+            } else {
+                body["enable_thinking"] = enableThinking
+            }
         }
         var request = try jsonRequest(url: url, body: body)
         if !apiKey.isEmpty { request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization") }
@@ -282,6 +291,7 @@ actor ReasoningService {
     static func resolvedEnableThinking(provider: String, settings: AppSettings) -> Bool? {
         switch provider {
         case "bailian": return settings.bailianReasoningEnableThinking
+        case "deepseek": return settings.deepseekReasoningEnableThinking
         case "custom": return settings.customReasoningEnableThinking ? true : nil
         default: return nil
         }
@@ -470,6 +480,7 @@ actor ReasoningService {
     private func defaultModel(for provider: String) -> String {
         switch provider {
         case "bailian": "qwen-flash"
+        case "deepseek": "deepseek-flash"
         case "groq": "llama-3.3-70b-versatile"
         default: "gpt-4o-mini"
         }

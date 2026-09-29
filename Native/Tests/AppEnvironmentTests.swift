@@ -559,6 +559,32 @@ final class AppEnvironmentTests: XCTestCase {
         )
         XCTAssertEqual(custom.model, "my-fine-tuned-model")
         XCTAssertEqual(custom.baseURL, "https://example.com/v1")
+
+        let deepseek = ReasoningProviderSupport.configuration(
+            for: "deepseek",
+            currentModel: "",
+            currentBaseURL: ""
+        )
+        XCTAssertEqual(deepseek.model, "deepseek-flash")
+        XCTAssertEqual(deepseek.baseURL, "https://api.deepseek.com")
+    }
+
+    func testResolvedEnableThinkingReflectsDeepSeekSetting() {
+        var settings = AppSettings()
+        settings.reasoningProvider = "deepseek"
+        // Defaults to a fast cleanup; the DeepSeek request branch sends the
+        // object-shaped thinking switch explicitly off.
+        XCTAssertFalse(settings.deepseekReasoningEnableThinking)
+        XCTAssertEqual(
+            ReasoningService.resolvedEnableThinking(provider: "deepseek", settings: settings),
+            false
+        )
+
+        settings.deepseekReasoningEnableThinking = true
+        XCTAssertEqual(
+            ReasoningService.resolvedEnableThinking(provider: "deepseek", settings: settings),
+            true
+        )
     }
 
     func testProviderIconAssetsHaveNativeDisplaySize() throws {
@@ -573,6 +599,8 @@ final class AppEnvironmentTests: XCTestCase {
             ("provider-soniox", "png"),
             ("provider-assemblyai", "png"),
             ("provider-mistral", "png"),
+            ("provider-openrouter", "svg"),
+            ("provider-deepseek", "svg"),
         ]
 
         for (assetName, assetExtension) in assets {

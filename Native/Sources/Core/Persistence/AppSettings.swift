@@ -100,6 +100,7 @@ struct AppSettings: Codable, Equatable, Sendable {
     var reasoningModel = ""
     var reasoningBaseURL = "https://api.openai.com/v1"
     var bailianReasoningEnableThinking = false
+    var deepseekReasoningEnableThinking = false
     var customReasoningEnableThinking = false
     var translationEnabled = false
     var translationTargetLanguage = ""
@@ -185,6 +186,7 @@ enum CredentialAccount: String, CaseIterable, Sendable {
     case groq = "groq-api-key"
     case mistral = "mistral-api-key"
     case openRouter = "openrouter-api-key"
+    case deepSeek = "deepseek-api-key"
     case soniox = "soniox-api-key"
     case bailian = "bailian-api-key"
     case volcengine = "volcengine-api-key"
