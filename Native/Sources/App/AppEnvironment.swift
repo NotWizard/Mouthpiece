@@ -9,6 +9,10 @@ final class AppEnvironment: ObservableObject {
     @Published private(set) var transcriptions: [TranscriptionRecord] = []
     @Published private(set) var hasMoreHistory = false
     @Published private(set) var permissions = PermissionSnapshot(microphone: false, accessibility: false)
+    // Sparkle's update-discovery callbacks land here; the sidebar renders its
+    // "update available" row from this mirror. Low frequency by design — see
+    // the session/model split comment above before publishing anything hotter.
+    @Published private(set) var updateVersion: String?
     @Published private(set) var microphones: [AudioInputDevice] = []
     @Published private(set) var dictionaryWords: [String] = []
     @Published private(set) var selectedLocalModelInstalled = false
@@ -108,6 +112,10 @@ final class AppEnvironment: ObservableObject {
             Task { @MainActor in self?.toggleDictation() }
         }
         registerLifecycleObservers()
+        updates.onAvailabilityChange = { [weak self] in
+            guard let self else { return }
+            self.updateVersion = self.updates.availableVersion
+        }
         AppDelegate.shutdownHandler = { [weak self] in
             await self?.shutdown()
         }

@@ -46,6 +46,23 @@ final class ArchitectureUpdateFeedDelegate: NSObject, SPUUpdaterDelegate {
     nonisolated func feedURLString(for updater: SPUUpdater) -> String? {
         Self.feedURLString
     }
+
+    // Sparkle invokes the updater-delegate callbacks below on the main
+    // thread; the unsafe storage bridges that guarantee across the ObjC
+    // protocol's nonisolated witnessing requirements.
+    nonisolated(unsafe) var onValidUpdate: ((String?) -> Void)?
+    nonisolated(unsafe) var onNoUpdate: (() -> Void)?
+
+    // The update cycle's discovery callbacks, surfaced so the app can keep
+    // a persistent "update available" hint alive after Sparkle's own dialog
+    // is dismissed or deferred.
+    nonisolated func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        onValidUpdate?(item.displayVersionString)
+    }
+
+    nonisolated func updaterDidNotFindUpdate(_ updater: SPUUpdater) {
+        onNoUpdate?()
+    }
 }
 
 @MainActor
@@ -94,6 +111,40 @@ final class UpdateController {
                 userDriverDelegate: nil
             )
         }
+        // Wired after every stored property is initialized so the weak-self
+        // captures are legal in init.
+        if let feedDelegate {
+            feedDelegate.onValidUpdate = { [weak self] version in
+                Task { @MainActor in self?.markUpdateAvailable(version) }
+            }
+            feedDelegate.onNoUpdate = { [weak self] in
+                Task { @MainActor in self?.markUpToDate() }
+            }
+        }
+    }
+
+    // MARK: - Availability state
+
+    /// The display version of a pending update; nil when up to date. Very low
+    /// frequency by nature, mirrored into AppEnvironment's published state so
+    /// the sidebar indicator can render without polling Sparkle.
+    private(set) var availableVersion: String?
+
+    /// Fired whenever availability flips.
+    var onAvailabilityChange: (() -> Void)?
+
+    /// Records a discovered update. Callable directly in tests.
+    func markUpdateAvailable(_ version: String?) {
+        guard availableVersion != version else { return }
+        availableVersion = version
+        onAvailabilityChange?()
+    }
+
+    /// Clears the hint after a check that found nothing.
+    func markUpToDate() {
+        guard availableVersion != nil else { return }
+        availableVersion = nil
+        onAvailabilityChange?()
     }
 
     var isConfigured: Bool { controller != nil }

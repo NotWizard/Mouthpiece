@@ -20,6 +20,7 @@
 "sidebar.personalization" = "Dictionary";
 "sidebar.history" = "History";
 "sidebar.privacy" = "Permissions & Diagnostics";
+"sidebar.updateAvailable" = "Update Available";
 "general.title" = "General Settings";
 "general.subtitle" = "Choose how dictation starts and where Mouthpiece appears in macOS.";
 "general.interface" = "Interface";

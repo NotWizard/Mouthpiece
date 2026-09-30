@@ -209,6 +209,26 @@ struct ControlPanelView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
             }
+            if let version = environment.updateVersion {
+                Rectangle()
+                    .fill(Color.primary.opacity(0.08))
+                    .frame(height: 0.5)
+                    .padding(.horizontal, 10)
+                SidebarUpdateAvailableRow(version: version) {
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.16)) {
+                        storedSelection = ControlPanelSection.privacy.rawValue
+                    }
+                    // Land on Privacy & Diagnostics (home of the software-
+                    // update row) first, then surface Sparkle's update dialog —
+                    // one click to review, one more to install, reusing the
+                    // existing download path.
+                    environment.checkForUpdates()
+                }
+                .padding(.horizontal, 10)
+                .padding(.top, 2)
+                .padding(.bottom, 10)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
         }
         .background(SidebarGlassBackground())
         .navigationSplitViewColumnWidth(min: 188, ideal: 196, max: 204)
@@ -239,6 +259,64 @@ struct ControlPanelView: View {
         case .history: HistoryView()
         case .privacy: PrivacyDiagnosticsView()
         }
+    }
+}
+
+// Sidebar "update available" indicator — design B from the prototype:
+// macOS System Settings' software-update dot. A breathing accent dot marks
+// the pending version; clicking routes to Privacy & Diagnostics and opens
+// Sparkle's update dialog so the existing download path takes over.
+private struct SidebarUpdateAvailableRow: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isHovered = false
+    @State private var pinging = false
+
+    let version: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 9) {
+                Circle()
+                    .fill(Color.accentColor)
+                    .frame(width: 7, height: 7)
+                    .overlay {
+                        // Attentional halo only; P3-1 pattern drops it entirely
+                        // under Reduce Motion.
+                        if !reduceMotion {
+                            Circle()
+                                .stroke(Color.accentColor.opacity(pinging ? 0 : 0.5), lineWidth: 2)
+                                .scaleEffect(pinging ? 2.4 : 1)
+                                .animation(
+                                    .easeOut(duration: 1.6).repeatForever(autoreverses: false),
+                                    value: pinging
+                                )
+                        }
+                    }
+                    .onAppear { pinging = true }
+                Text("sidebar.updateAvailable")
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 4)
+                Text(version)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 30)
+            .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(Color.primary.opacity(isHovered ? 0.05 : 0))
+            )
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.12)) {
+                isHovered = hovering
+            }
+        }
+        .help("privacy.checkForUpdates")
     }
 }
 

@@ -20,6 +20,7 @@
 "sidebar.personalization" = "詞典";
 "sidebar.history" = "歷史";
 "sidebar.privacy" = "權限與診斷";
+"sidebar.updateAvailable" = "有可用更新";
 "general.title" = "常規設定";
 "general.subtitle" = "設定如何開始聽寫，以及 Mouthpiece 在系統中的顯示方式。";
 "general.interface" = "介面";

@@ -589,6 +589,33 @@ final class AppEnvironmentTests: XCTestCase {
         )
     }
 
+    func testUpdateControllerAvailabilityDrivesEnvironmentMirror() {
+        let testBundle = Bundle(for: InMemoryCredentialStore.self)
+        // A bundle without SUPublicEDKey parks the controller in the
+        // missing-public-key branch, so no real Sparkle updater starts here;
+        // the availability state itself is controller-independent.
+        let controller = UpdateController(bundle: testBundle)
+        var notified = 0
+        controller.onAvailabilityChange = { notified += 1 }
+
+        controller.markUpdateAvailable("2.2.0")
+        XCTAssertEqual(controller.availableVersion, "2.2.0")
+        XCTAssertEqual(notified, 1)
+        controller.markUpdateAvailable("2.2.0")
+        XCTAssertEqual(notified, 1, "Repeated identical availability is not re-notified")
+
+        controller.markUpToDate()
+        XCTAssertNil(controller.availableVersion)
+        XCTAssertEqual(notified, 2)
+
+        let environment = AppEnvironment(bootstrap: false)
+        XCTAssertNil(environment.updateVersion)
+        environment.updates.markUpdateAvailable("2.2.0")
+        XCTAssertEqual(environment.updateVersion, "2.2.0")
+        environment.updates.markUpToDate()
+        XCTAssertNil(environment.updateVersion)
+    }
+
     func testReasoningModelRemembersPerProviderAndRestoresOnSwitchBack() {
         // Leaving a provider remembers its model; the entered provider starts
         // empty when the user never configured it.
