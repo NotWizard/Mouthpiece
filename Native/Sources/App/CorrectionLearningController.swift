@@ -176,8 +176,7 @@ final class CorrectionLearningController: ObservableObject {
             guard epoch == self.generation, self.settings.correctionLearningEnabled else { return }
             self.manualText = snapshot.text
             self.manualRecord = record
-            NSApp.activate(ignoringOtherApps: true)
-            ControlPanelWindowAccess.open?(id: ControlPanelWindowAccess.id)
+            ControlPanelWindowAccess.present()
         }
     }
 

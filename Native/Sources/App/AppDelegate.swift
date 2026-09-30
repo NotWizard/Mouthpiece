@@ -148,15 +148,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showControlPanel() {
-        NSApp.activate(ignoringOtherApps: true)
-        if let open = ControlPanelWindowAccess.open {
-            open(id: ControlPanelWindowAccess.id)
-            return
-        }
-        // Fallback if the openWindow action was never captured yet.
-        if let window = NSApp.windows.first(where: { $0.canBecomeMain && $0.isVisible })
-            ?? NSApp.windows.first(where: { $0.canBecomeMain }) {
-            window.makeKeyAndOrderFront(nil)
-        }
+        ControlPanelWindowAccess.present()
     }
 }

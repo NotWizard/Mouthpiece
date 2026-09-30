@@ -299,7 +299,7 @@ private struct SidebarUpdateAvailableRow: View {
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 4)
                 Text(version)
-                    .font(.caption)
+                    .font(.system(size: 12.5))
                     .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 10)

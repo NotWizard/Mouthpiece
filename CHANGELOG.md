@@ -31,6 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The built-in cleanup prompt now corrects ASR near-homophone errors from full-transcript context: a word that is common in isolation but clearly wrong in context is replaced by its same- or similar-sounding alternative when that is the only reading that makes the passage coherent. A confidence gate keeps ambiguous cases verbatim, and preferred vocabulary (appended to the prompt) is the preferred correction target.
 - The default cleanup prompt is now branched by UI language (Chinese for Chinese, English for English or non-Chinese system language, matching the safety guardrail); the custom-prompt editor shows and compares against the current-language default, and saving it verbatim still means "use default".
 
+### Fixed
+
+- 修复通过 Spotlight、Dock 重开或其他方式唤起控制面板时窗口落在前一个应用后面的问题：SwiftUI 的 openWindow 在后续 runloop 才实体化 NSWindow，先 activate 后 open 的时序会输掉层级竞争。新增 ControlPanelWindowAccess.present() 集中处理：开窗后即时 + 60ms 后两次重新断言前台（makeKeyAndOrderFront + orderFrontRegardless + activate），同时覆盖 Show-in-Dock 关闭时 accessory 策略下普通排序仍被压在活动应用下方的情况。AppDelegate 的 reopen/openUntitledFile 路径与纠错学习快捷链路两处调用点统一接入。
+- Fixed the control panel surfacing BEHIND the previously focused app when invoked via Spotlight, dock reopen, or other activation paths: SwiftUI materializes the NSWindow on a later runloop pass after openWindow, so the activate-then-open sequence loses the layering race. ControlPanelWindowAccess.present() now centralizes the flow, re-asserting frontmost (makeKeyAndOrderFront + orderFrontRegardless + activate) immediately and again after 60ms, which also covers the accessory-policy case with Show-in-Dock off where plain ordering stays layered below the active app. The AppDelegate reopen/openUntitledFile path and the correction-learning shortcut path both route through it.
+
 ### Changed
 
 - 文字处理切换供应商时按服务商记忆并清空/恢复模型名：原先上一个供应商的自定义模型（如 qwen3.8-flash）会残留到新供应商的输入框，发请求导致 400；现在切换时离开的供应商记住当前模型、新供应商恢复自己上次使用的模型（从未配置过的显示为空，空模型时请求自动使用该服务商默认模型 qwen-flash / deepseek-flash / gpt-4o-mini 等）；离开时模型为空则清除该服务商的记忆。另一家供应商的存量默认模型仍会自动换成当前供应商默认；不切换时自定义模型不受影响。
