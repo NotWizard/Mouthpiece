@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-09-30
+
 ### Added
 
 - 侧边栏左下角新增“有可用更新”提示（设计 B：macOS 系统设置的状态点风格）：Sparkle 自动检查发现新版本后，呼吸小圆点 + 待更新版本号（与提示文字同字号）常驻侧栏底部，弹窗被关闭后依然保留；点击后跳转“权限与诊断”页并直接弹出 Sparkle 更新对话框，再点一下安装即走既有下载链路。Reduce Motion 开启时呼吸动画关闭，只剩静态圆点；检查无更新自动消失。版本状态经 UpdateController 的 SPUUpdaterDelegate 回调（didFindValidUpdate / updaterDidNotFindUpdate）驱动，AppEnvironment 以低频 @Published 镜像给侧栏渲染。
