@@ -105,11 +105,27 @@ final class UpdateController {
         case .enabled:
             let feedDelegate = ArchitectureUpdateFeedDelegate()
             self.feedDelegate = feedDelegate
-            controller = SPUStandardUpdaterController(
-                startingUpdater: true,
+            let controller = SPUStandardUpdaterController(
+                startingUpdater: false,
                 updaterDelegate: feedDelegate,
                 userDriverDelegate: nil
             )
+            // The auto-download preference lives in the standard defaults
+            // domain under Sparkle's own key — the same storage the update
+            // window's checkbox reads and writes — so the General-page
+            // toggle and Sparkle's checkbox can never disagree. Applied
+            // before the updater starts so it governs the very first update
+            // cycle; later toggle changes arrive via
+            // applyAutoDownloadPreference(_:).
+            controller.updater.automaticallyDownloadsUpdates =
+                UserDefaults.standard.bool(forKey: Self.autoDownloadPreferenceKey)
+            do {
+                try controller.updater.start()
+            } catch {
+                Logger(subsystem: "com.mouthpiece.app", category: "updates")
+                    .error("Sparkle updater failed to start: \(error.localizedDescription)")
+            }
+            self.controller = controller
         }
         // Wired after every stored property is initialized so the weak-self
         // captures are legal in init.
@@ -149,6 +165,17 @@ final class UpdateController {
 
     var isConfigured: Bool { controller != nil }
     var canCheckForUpdates: Bool { controller?.updater.canCheckForUpdates == true }
+
+    /// Sparkle's own defaults key for the auto-download preference; shared
+    /// storage keeps every control point (General-page toggle, Sparkle's
+    /// in-window checkbox) in agreement.
+    static let autoDownloadPreferenceKey = "SUAutomaticallyUpdate"
+
+    /// Applies a runtime toggle change; SPUUpdater persists it to the same
+    /// defaults key, so the preference survives relaunches.
+    func applyAutoDownloadPreference(_ enabled: Bool) {
+        controller?.updater.automaticallyDownloadsUpdates = enabled
+    }
 
     func checkForUpdates() {
         controller?.checkForUpdates(nil)

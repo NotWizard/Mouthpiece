@@ -57,6 +57,9 @@
 "general.microphone" = "麦克风";
 "general.inputDevice" = "输入设备";
 "general.systemDefault" = "系统默认";
+"general.updates" = "软件更新";
+"general.autoUpdate" = "自动下载更新";
+"general.autoUpdate.detail" = "发现新版本时在后台下载，完成后提醒安装。默认关闭，更新由你在弹窗中点击“安装并重启”触发。";
 "language.system" = "跟随系统";
 "language.zhHans" = "简体中文";
 "language.zhHant" = "繁体中文";

@@ -2,6 +2,10 @@ import SwiftUI
 
 struct UsageSettingsView: View {
     @EnvironmentObject private var environment: AppEnvironment
+    // Sparkle's own preference key: the General-page toggle and the checkbox
+    // inside Sparkle's update window read and write the same storage, so the
+    // two control points can never disagree.
+    @AppStorage("SUAutomaticallyUpdate") private var automaticallyDownloadUpdates = false
 
     var body: some View {
         SettingsPage(title: "general.title", subtitle: "general.subtitle") {
@@ -132,6 +136,23 @@ struct UsageSettingsView: View {
                     }
                     .labelsHidden()
                     .frame(width: 250, alignment: .trailing)
+                }
+            }
+
+            SettingsSection(title: "general.updates") {
+                SettingsRow(
+                    icon: "arrow.triangle.2.circlepath",
+                    title: "general.autoUpdate",
+                    detail: "general.autoUpdate.detail",
+                    showsDivider: false
+                ) {
+                    Toggle("", isOn: $automaticallyDownloadUpdates)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                        .onChange(of: automaticallyDownloadUpdates) { _, enabled in
+                            environment.updates.applyAutoDownloadPreference(enabled)
+                        }
                 }
             }
         }

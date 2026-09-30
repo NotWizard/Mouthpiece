@@ -57,6 +57,9 @@
 "general.microphone" = "Microphone";
 "general.inputDevice" = "Input device";
 "general.systemDefault" = "System Default";
+"general.updates" = "Software Update";
+"general.autoUpdate" = "Automatically Download Updates";
+"general.autoUpdate.detail" = "Download new versions in the background and prompt when ready. Off by default — updates start when you click Install and Relaunch.";
 "language.system" = "System";
 "language.zhHans" = "Simplified Chinese";
 "language.zhHant" = "Traditional Chinese";
