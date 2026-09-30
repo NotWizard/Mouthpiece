@@ -59,7 +59,7 @@
 "general.systemDefault" = "系統預設";
 "general.updates" = "軟體更新";
 "general.autoUpdate" = "自動下載更新";
-"general.autoUpdate.detail" = "發現新版本時在後台下載，完成後提醒安裝。預設關閉，更新由你在彈窗中點擊「安裝並重啟」觸發。";
+"general.autoUpdate.detail" = "發現新版本時在後台靜默下載，完成後提醒安裝。預設關閉。";
 "language.system" = "跟隨系統";
 "language.zhHans" = "簡體中文";
 "language.zhHant" = "繁體中文";

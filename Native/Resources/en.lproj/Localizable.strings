@@ -59,7 +59,7 @@
 "general.systemDefault" = "System Default";
 "general.updates" = "Software Update";
 "general.autoUpdate" = "Automatically Download Updates";
-"general.autoUpdate.detail" = "Download new versions in the background and prompt when ready. Off by default — updates start when you click Install and Relaunch.";
+"general.autoUpdate.detail" = "Silently downloads updates in the background and prompts when ready. Off by default.";
 "language.system" = "System";
 "language.zhHans" = "Simplified Chinese";
 "language.zhHant" = "Traditional Chinese";
