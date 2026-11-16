@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 麦克风启动后会等待首帧有效 PCM，正常静音也可通过检查；约 1.5 秒仍无数据或音频转换失败时，重建采集连接并最多重试一次，重试会重新绑定用户选择的输入或当前系统默认输入。新增实际输入设备摘要、原始帧数、PCM 字节数及转换错误诊断，不记录语音内容。首帧等待和联网期间采集的音频会按顺序发送给实时识别服务。取消和快速重录使用独立会话标识，避免旧启动结果干扰新录音；启动等待期间结束录音仍保留已采集内容，引导页取消或关闭也会停止正在准备的采集。
 - Microphone startup now waits for valid PCM, including ordinary silence. Missing audio after roughly 1.5 seconds or a conversion failure rebuilds capture and retries once, rebinding the selected input or the current system default. Diagnostics distinguish the actual input, raw frames, converted bytes and conversion errors without recording speech content. Audio captured while startup or connection is pending is forwarded to realtime transcription in order. Session ownership protects a replacement recording from stale startup completion, stopping during startup preserves PCM already captured, and cancelling or closing onboarding also stops pending capture.
 
+### Tests
+
+- 无麦克风权限的 CI 改用模拟设备边界执行真实后台 tap、音频转换和引擎退役检查；需要手动启动桌面 fixture 的纠错测试继续由专用验收命令执行。失败、跳过数量及最低执行数量门槛保持不变。
+- CI without microphone permission now exercises the real background tap, conversion and engine-retirement paths through a synthetic device boundary. The opt-in desktop fixture stays in its dedicated verification command; failure, skip-count and execution-floor gates remain unchanged.
+
 ## [2.2.1] - 2026-09-30
 
 ### Added

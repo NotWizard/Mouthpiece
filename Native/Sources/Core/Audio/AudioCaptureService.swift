@@ -319,7 +319,7 @@ class AudioCaptureService {
     }
 
     // CoreAudio invokes taps on its realtime queue, outside MainActor isolation.
-    nonisolated private static func makeTapHandler(for box: AudioConverterBox) -> AVAudioNodeTapBlock {
+    nonisolated static func makeTapHandler(for box: AudioConverterBox) -> AVAudioNodeTapBlock {
         { buffer, _ in box.process(buffer) }
     }
 

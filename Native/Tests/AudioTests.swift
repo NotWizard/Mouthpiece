@@ -150,12 +150,10 @@ final class AudioTests: XCTestCase {
 
     @MainActor
     func testAudioCaptureReceivesFrameOffMainActor() async throws {
-        guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
-            throw XCTSkip("Microphone permission is required for the realtime tap regression test")
-        }
         let frameReceived = expectation(description: "Audio frame received")
         frameReceived.assertForOverFulfill = false
         let capture = AudioCaptureService()
+        useSyntheticMicrophoneWhenPermissionIsUnavailable(capture)
 
         try await capture.start(
             selectedDeviceUID: nil,
@@ -173,10 +171,8 @@ final class AudioTests: XCTestCase {
     // still captures after the swap.
     @MainActor
     func testStartRetiresPreviousEngineWithoutLeakingIt() async throws {
-        guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
-            throw XCTSkip("Microphone permission is required for the engine retirement regression test")
-        }
         let capture = AudioCaptureService()
+        useSyntheticMicrophoneWhenPermissionIsUnavailable(capture)
         try await capture.start(selectedDeviceUID: nil, onFrame: { _, _ in }, onLevel: nil)
         weak var retired = capture.testEngineHandle
         let retiredID = ObjectIdentifier(capture.testEngineHandle)
@@ -455,6 +451,23 @@ final class AudioTests: XCTestCase {
             levels.count, metered.levelComputations,
             "Every computed level must be delivered to the onLevel callback"
         )
+    }
+
+    @MainActor
+    private func useSyntheticMicrophoneWhenPermissionIsUnavailable(_ capture: AudioCaptureService) {
+        guard AVCaptureDevice.authorizationStatus(for: .audio) != .authorized else { return }
+        capture.testPermissionGranted = true
+        capture.testStartEngineSession = { _, box in
+            try await Task.detached {
+                let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 1))
+                let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 4_800))
+                buffer.frameLength = 4_800
+                buffer.floatChannelData?[0].initialize(repeating: 0, count: 4_800)
+                // Exercise the real tap callback and converter off MainActor;
+                // only the permission/device boundary is replaced on CI.
+                AudioCaptureService.makeTapHandler(for: box)(buffer, AVAudioTime(sampleTime: 0, atRate: 48_000))
+            }.value
+        }
     }
 
     private func makeSineBuffer(sampleRate: Double, frames: AVAudioFrameCount) throws -> AVAudioPCMBuffer {

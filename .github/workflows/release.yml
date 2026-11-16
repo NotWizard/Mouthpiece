@@ -56,8 +56,10 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
       - name: Run native tests and replay benchmarks
+        # The live Accessibility fixture has its own explicit verification command.
         run: |
           xcodebuild -project Mouthpiece.xcodeproj -scheme Mouthpiece \
+            -skip-testing:MouthpieceTests/CorrectionCaptureLiveTests \
             -configuration Debug -derivedDataPath .build/release-tests test \
             CODE_SIGNING_ALLOWED=NO
 
