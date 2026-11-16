@@ -16,8 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
-- 无麦克风权限的 CI 改用模拟设备边界执行真实后台 tap、音频转换和引擎退役检查；需要手动启动桌面 fixture 的纠错测试继续由专用验收命令执行。失败、跳过数量及最低执行数量门槛保持不变。
-- CI without microphone permission now exercises the real background tap, conversion and engine-retirement paths through a synthetic device boundary. The opt-in desktop fixture stays in its dedicated verification command; failure, skip-count and execution-floor gates remain unchanged.
+- 无麦克风权限的 CI 改用模拟设备边界执行真实后台 tap、音频转换和引擎退役检查；协调器测试固定插入目标，不读取执行机器的真实桌面焦点，并修正一处旧测试格式。需要手动启动桌面 fixture 的纠错测试继续由专用验收命令执行。失败、跳过数量及最低执行数量门槛保持不变。
+- CI without microphone permission now exercises the real background tap, conversion and engine-retirement paths through a synthetic device boundary. Coordinator tests pin their insertion target instead of reading the runner's desktop, and an existing formatting violation is corrected. The opt-in desktop fixture stays in its dedicated verification command; failure, skip-count and execution-floor gates remain unchanged.
 
 ## [2.2.1] - 2026-09-30
 

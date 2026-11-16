@@ -999,7 +999,7 @@ final class DictationCoordinatorTests: XCTestCase {
         harness.insertion.insertOverride = { text, _, _ in probe.record(text) }
 
         var settings = makeSettings()
-        settings.useReasoningModel = true               // route finalize through the reasoning POST
+        settings.useReasoningModel = true // route finalize through the reasoning POST
         settings.automaticallyPasteTranscription = true // default; completion runs through inserting
 
         await harness.coordinator.start(settings: settings)
@@ -1425,9 +1425,9 @@ final class DictationCoordinatorTests: XCTestCase {
         let audio = StubAudioCapture()
         let recorder = SnapshotRecorder()
         let insertion = TextInsertionService()
-        // P2-10: the frontmost app during a test run is arbitrary, so the
-        // sensitive-app sinks are only coverable with a pinned target.
-        if let capturedTarget { insertion.capturedTargetOverride = { capturedTarget } }
+        // Unit tests pin the target (including nil) rather than querying the
+        // runner's frontmost application or Accessibility tree.
+        insertion.capturedTargetOverride = { capturedTarget }
         let logDirectory = directory.appendingPathComponent("logs", isDirectory: true)
         let coordinator = DictationCoordinator(
             audio: audio,

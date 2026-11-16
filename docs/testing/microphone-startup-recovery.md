@@ -36,6 +36,8 @@ xcodebuild -project Mouthpiece.xcodeproj -scheme Mouthpiece \
 
 首次推送后的 macOS 15 CI 实测 200 项通过、0 失败，另有两个麦克风权限用例及一个显式桌面 fixture 用例跳过，触发了现有零跳过门槛。后续让无权限环境通过模拟设备边界执行真实后台 tap 和引擎退役逻辑；需要手动启动 fixture 的纠错集成测试保留在 `scripts/verify-correction-capture.sh`，不纳入默认无交互 CI。统计门槛不放宽，后续以 CI 实际结果为准。
 
+后续 macOS 26 CI 已实测 202 项通过、0 失败、0 跳过，执行数量门槛通过。协调器单元测试进一步固定插入目标，包括没有目标的情况，避免依赖 runner 的真实桌面焦点；桌面端到端行为仍由显式 fixture 验收。
+
 已使用现有 Command Line Tools 编译真实 AudioCaptureService 和 AudioConverterBox，隔离引擎、权限及设备边界执行八项检查：首帧与静音、恢复成功、恢复次数上限、转换错误、旧会话迟到、任务取消、显式输入不可用、48 kHz → 24 kHz 转换。均通过，不访问真实麦克风。
 
 另对协调器的实际补发与帧消费方法做隔离检查，确认启动阶段的 PCM 只发送一次，并保持与后续实时帧的顺序。此检查替换 UI 等待和网络边界，不代表完整应用实测。
