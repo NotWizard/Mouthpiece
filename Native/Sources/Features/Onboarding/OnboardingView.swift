@@ -73,6 +73,8 @@ private final class OnboardingVerificationController: ObservableObject {
     private var selectedDeviceUID: String?
     private var sessionID: UUID?
     private var hideTask: Task<Void, Never>?
+    private var captureTask: Task<Void, Never>?
+    private var stopTask: Task<Void, Never>?
 
     func activate(key: String, selectedDeviceUID: String?, language: UILanguage) {
         deactivate()
@@ -104,14 +106,15 @@ private final class OnboardingVerificationController: ObservableObject {
         hotkey.stop()
         escape.stop()
         sessionID = nil
-        if audio.isRunning {
-            Task { await audio.stop() }
-        }
+        captureTask?.cancel()
+        captureTask = nil
+        stopTask = Task { await audio.stop() }
         capsule.hide()
         state = .idle
     }
 
     private func toggleCapture() {
+        if sessionID != nil { stopCapture(); return }
         switch state {
         case .recording:
             stopCapture()
@@ -139,19 +142,21 @@ private final class OnboardingVerificationController: ObservableObject {
             isTranslation: false
         )
         capsule.show(snapshot)
-        Task { @MainActor [weak self] in
+        captureTask = Task { @MainActor [weak self] in
+            await self?.stopTask?.value
+            guard let self, self.sessionID == id, !Task.isCancelled else { return }
             do {
-                try await self?.audio.start(
-                    selectedDeviceUID: self?.selectedDeviceUID,
+                try await self.audio.start(
+                    selectedDeviceUID: self.selectedDeviceUID,
                     onFrame: { _, _ in },
                     onLevel: { [weak self] level in
                         Task { @MainActor in self?.updateLevel(level, sessionID: id) }
                     }
                 )
-                guard let self, self.sessionID == id else { return }
+                guard self.sessionID == id else { return }
                 self.state = .recording
             } catch {
-                guard let self, self.sessionID == id else { return }
+                guard self.sessionID == id else { return }
                 self.sessionID = nil
                 self.hotkey.setSwallowArmed(false)
                 self.escape.setSwallowArmed(false)
@@ -167,14 +172,18 @@ private final class OnboardingVerificationController: ObservableObject {
     }
 
     private func stopCapture() {
-        guard state == .recording, let id = sessionID else { return }
+        guard let id = sessionID else { return }
+        let completed = state == .recording
         sessionID = nil
+        captureTask?.cancel()
+        captureTask = nil
         hotkey.setSwallowArmed(false)
         escape.setSwallowArmed(false)
-        state = .success
-        Task {
+        state = completed ? .success : .ready
+        if !completed { capsule.hide() }
+        stopTask = Task {
             await audio.stop()
-            guard state == .success else { return }
+            guard state == .success, sessionID == nil else { return }
             capsule.show(DictationSnapshot(
                 sessionID: id,
                 phase: .completed,

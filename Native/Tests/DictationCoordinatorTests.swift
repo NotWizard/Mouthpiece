@@ -7,6 +7,67 @@ import XCTest
 // snapshot publishing run for real.
 @MainActor
 final class DictationCoordinatorTests: XCTestCase {
+    func testPCMReceivedBeforeStartupReturnsIsForwardedToRealtime() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .succeed, finishText: "startup retained")
+        let harness = try await makeHarness(provider: provider)
+        harness.audio.holdStart = true
+        let startup = Task { await harness.coordinator.start(settings: makeSettings()) }
+        for _ in 0..<200 where !harness.audio.isHoldingStart {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertTrue(harness.audio.isHoldingStart)
+        harness.audio.emitFrame(byteCount: 32_000, rms: 0.03)
+        for _ in 0..<200 {
+            if await harness.coordinator.snapshot().audioLevel > 0 { break }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        harness.audio.resumeStart()
+        await startup.value
+        let sentBytes = await provider.sentByteCount
+        XCTAssertEqual(sentBytes, 32_000, "First-frame verification must not discard leading speech")
+        await harness.coordinator.cancel()
+    }
+
+    func testCancelWhileStartupWaitsDoesNotPublishMicrophoneFailure() async throws {
+        let provider = ScriptedRealtimeProvider(connect: .succeed, finishText: "unused")
+        let harness = try await makeHarness(provider: provider)
+        harness.audio.holdStart = true
+        let startup = Task { await harness.coordinator.start(settings: makeSettings()) }
+        for _ in 0..<200 where !harness.audio.isHoldingStart {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertTrue(harness.audio.isHoldingStart)
+        await harness.coordinator.cancel()
+        await startup.value
+        XCTAssertFalse(harness.recorder.snapshots.contains { $0.phase == .failed })
+        let snapshot = await harness.coordinator.snapshot()
+        XCTAssertEqual(snapshot.phase, .idle)
+    }
+
+    func testStopWithPCMWhileStartupWaitsPreservesTheRecording() async throws {
+        let runtime = StubLocalRuntime(text: "retained during startup cancellation")
+        let provider = ScriptedRealtimeProvider(connect: .succeed, finishText: "unused")
+        let harness = try await makeHarness(provider: provider, localRuntime: runtime)
+        harness.audio.holdStart = true
+        var settings = makeSettings()
+        settings.allowLocalFallback = true
+        let startup = Task { await harness.coordinator.start(settings: settings) }
+        for _ in 0..<200 where !harness.audio.isHoldingStart {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertTrue(harness.audio.isHoldingStart)
+        harness.audio.emitFrame(byteCount: 32_000, rms: 0.03)
+        // Wait for the injected PCM to reach the coordinator before stopping.
+        for _ in 0..<200 {
+            if await harness.coordinator.snapshot().audioLevel > 0 { break }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        await harness.coordinator.stop()
+        await startup.value
+        let records = try await harness.history.recent(limit: 5)
+        XCTAssertEqual(records.first?.text, "retained during startup cancellation")
+    }
+
     func testConnectFailureFailsTheSessionAndAllowsARestart() async throws {
         let provider = ScriptedRealtimeProvider(connect: .fail("socket refused"))
         let harness = try await makeHarness(provider: provider)
@@ -1449,6 +1510,9 @@ private final class InsertionProbe {
 @MainActor
 private final class StubAudioCapture: AudioCaptureService {
     private var frameSink: (@Sendable (Data, Double) -> Void)?
+    var holdStart = false
+    private var startContinuation: CheckedContinuation<Void, Error>?
+    var isHoldingStart: Bool { startContinuation != nil }
 
     override func requestPermission() async -> Bool { true }
 
@@ -1457,21 +1521,33 @@ private final class StubAudioCapture: AudioCaptureService {
         onFrame: @escaping @Sendable (Data, Double) -> Void,
         onLevel: (@Sendable (Float) -> Void)?,
         onSessionInterrupted: (@Sendable () -> Void)?,
-        onDiagnostics: (@Sendable (Int) -> Void)?
+        onDiagnostics: (@Sendable (Int) -> Void)?,
+        onCaptureEvent: (@Sendable (String, [String: String]) -> Void)?
     ) async throws {
         // The stub replaces only the hardware edge: it keeps the frame sink so
         // tests can inject PCM frames. The interruption and diagnostics hooks
         // are accepted (signature parity with the A1/A3 production API) but
         // never fired, because no real device exists in unit tests.
         frameSink = onFrame
+        if holdStart { try await withCheckedThrowingContinuation { startContinuation = $0 } }
     }
 
     override func stop() async {
         frameSink = nil
+        let pending = startContinuation
+        startContinuation = nil
+        pending?.resume(throwing: CancellationError())
+        if pending != nil { await Task.yield() }
     }
 
     func emitFrame(byteCount: Int = 640, rms: Double = 0.02) {
         frameSink?(Data(repeating: 0, count: byteCount), rms)
+    }
+
+    func resumeStart() {
+        let pending = startContinuation
+        startContinuation = nil
+        pending?.resume()
     }
 }
 
@@ -1491,6 +1567,7 @@ private actor ScriptedRealtimeProvider: RealtimeTranscriptionProvider {
     // finish() throws; nil by default so existing scenarios are unaffected.
     private var finishError: BailianRealtimeError?
     private(set) var sentFrameCount = 0
+    private(set) var sentByteCount = 0
     private(set) var cancelCount = 0
     private(set) var finishCallCount = 0
     // Captured at the moment finish() is entered: proves whether every queued
@@ -1547,6 +1624,7 @@ private actor ScriptedRealtimeProvider: RealtimeTranscriptionProvider {
             throw BailianRealtimeError.connectionLost("socket closed mid-stream")
         }
         sentFrameCount += 1
+        sentByteCount += pcm16.count
     }
 
     func finish() async throws -> String {

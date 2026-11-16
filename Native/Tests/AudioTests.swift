@@ -3,6 +3,107 @@ import XCTest
 @testable import Mouthpiece
 
 final class AudioTests: XCTestCase {
+    @MainActor
+    func testCaptureWaitsForFirstPCMInsteadOfTrustingEngineStart() async throws {
+        let capture = AudioCaptureService()
+        capture.testPermissionGranted = true
+        var converter: AudioConverterBox?
+        var ready = false
+        capture.testStartEngineSession = { _, box in converter = box }
+        let startup = Task {
+            try await capture.start(selectedDeviceUID: nil, onFrame: { _, _ in })
+            ready = true
+        }
+        for _ in 0..<100 where converter == nil {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        try await Task.sleep(for: .milliseconds(20))
+        XCTAssertFalse(ready, "A successful engine start without PCM must not report a ready microphone")
+        let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 1))
+        let silence = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 4_800))
+        silence.frameLength = 4_800
+        silence.floatChannelData?[0].initialize(repeating: 0, count: 4_800)
+        try XCTUnwrap(converter).process(silence)
+        try await startup.value
+        XCTAssertTrue(ready, "Normal silent PCM must satisfy readiness without a loudness threshold")
+        await capture.stop()
+    }
+
+    @MainActor
+    func testCaptureRetriesMissingPCMOnceAndAcceptsRecoveredPCM() async throws {
+        let capture = AudioCaptureService(firstFrameTimeout: .milliseconds(200))
+        capture.testPermissionGranted = true
+        var attempts: [Int] = []
+        capture.testStartEngineSession = { attempt, box in
+            attempts.append(attempt)
+            if attempt == 1 { box.process(try self.makeSineBuffer(sampleRate: 48_000, frames: 4_800)) }
+        }
+        try await capture.start(selectedDeviceUID: nil, onFrame: { _, _ in })
+        XCTAssertEqual(attempts, [0, 1])
+        XCTAssertTrue(capture.isRunning)
+        await capture.stop()
+    }
+
+    @MainActor
+    func testCaptureStopsAfterTwoAttemptsWithoutPCM() async throws {
+        let capture = AudioCaptureService(firstFrameTimeout: .milliseconds(20))
+        capture.testPermissionGranted = true
+        var attempts: [Int] = []
+        capture.testStartEngineSession = { attempt, _ in attempts.append(attempt) }
+        do {
+            try await capture.start(selectedDeviceUID: "selected-input", onFrame: { _, _ in })
+            XCTFail("A microphone that never produces PCM must fail")
+        } catch AudioCaptureError.noAudioFrames {
+            XCTAssertEqual(attempts, [0, 1])
+            XCTAssertFalse(capture.isRunning)
+        }
+    }
+
+    @MainActor
+    func testCaptureSurfacesConverterFailureInsteadOfReportingMissingMicrophone() async throws {
+        let capture = AudioCaptureService(firstFrameTimeout: .seconds(1))
+        capture.testPermissionGranted = true
+        var attempts: [Int] = []
+        capture.testStartEngineSession = { attempt, box in
+            attempts.append(attempt)
+            box.recordConversionFailure(.converterFailed("injected conversion failure"))
+        }
+        do {
+            try await capture.start(selectedDeviceUID: nil, onFrame: { _, _ in })
+            XCTFail("A failed converter must not report a ready microphone")
+        } catch AudioCaptureError.converterFailed(let message) {
+            XCTAssertEqual(message, "injected conversion failure")
+            XCTAssertEqual(attempts, [0, 1])
+        }
+    }
+
+    @MainActor
+    func testStoppedStartupCannotStopItsReplacementSession() async throws {
+        let capture = AudioCaptureService(firstFrameTimeout: .seconds(1))
+        capture.testPermissionGranted = true
+        var delayedStart: CheckedContinuation<Void, Never>?
+        var calls = 0
+        capture.testStartEngineSession = { _, box in
+            calls += 1
+            if calls == 1 {
+                await withCheckedContinuation { delayedStart = $0 }
+            } else {
+                box.process(try self.makeSineBuffer(sampleRate: 48_000, frames: 4_800))
+            }
+        }
+        let old = Task { try await capture.start(selectedDeviceUID: nil, onFrame: { _, _ in }) }
+        for _ in 0..<100 where delayedStart == nil { try await Task.sleep(for: .milliseconds(5)) }
+        await capture.stop()
+        try await capture.start(selectedDeviceUID: nil, onFrame: { _, _ in })
+        delayedStart?.resume()
+        do {
+            try await old.value
+            XCTFail("Stopped startup must not become active again")
+        } catch is CancellationError {}
+        XCTAssertTrue(capture.isRunning, "Late completion must not stop the replacement session")
+        await capture.stop()
+    }
+
     func testSelectedMicrophoneFailureHasActionableDescription() {
         XCTAssertEqual(
             AudioCaptureError.selectedInputUnavailable.errorDescription,

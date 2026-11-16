@@ -45,6 +45,7 @@ actor DictationCoordinator {
     private var pcm = Data()
     private var provider: (any RealtimeTranscriptionProvider)?
     private var providerSessionID: UUID?
+    private var audioStreamingStarted = false
     private var activeSettings = AppSettings()
     // P2-10: the session's single sensitive-app decision, taken from the target
     // captured at start() and read by every transcript sink (insertion,
@@ -65,6 +66,7 @@ actor DictationCoordinator {
     private var testEventHandleDelay: (@Sendable (RealtimeTranscriptionEvent) -> Duration?)?
     private var reasoningTask: Task<String, Error>?
     private var mediaPauseTask: Task<Void, Never>?
+    private var cancellingSessionID: UUID?
 
     init(
         audio: AudioCaptureService,
@@ -124,6 +126,9 @@ actor DictationCoordinator {
     }
 
     func shutdown() async {
+        let endingSessionID = machine.snapshot.sessionID
+        cancellingSessionID = endingSessionID
+        defer { if cancellingSessionID == endingSessionID { cancellingSessionID = nil } }
         maximumDurationTask?.cancel()
         maximumDurationTask = nil
         preparingWatchdogTask?.cancel()
@@ -160,6 +165,7 @@ actor DictationCoordinator {
             try machine.begin(sessionID: sessionID, isTranslation: settings.translationEnabled)
             armPreparingWatchdog(for: sessionID)
             activeSettings = settings
+            audioStreamingStarted = false
             speechGate = SpeechActivityGate()
             if settings.pauseOtherMediaDuringDictation {
                 // The MediaRemote perl adapter can take seconds in the worst
@@ -224,6 +230,12 @@ actor DictationCoordinator {
                 },
                 onDiagnostics: { [weak self] droppedFrames in
                     Task { await self?.reportDroppedFrames(droppedFrames, sessionID: sessionID) }
+                },
+                onCaptureEvent: { [logger] event, metadata in
+                    Task {
+                        await logger.write(metadata["error"] == nil ? .debug : .warning,
+                                           event, metadata: metadata, sessionID: sessionID)
+                    }
                 }
             )
             await Self.logPreparingStep("audioStart.end", logger: logger, sessionID: sessionID)
@@ -269,6 +281,7 @@ actor DictationCoordinator {
                         await realtime.provider.cancel()
                         return
                     }
+                    try await replayStartupPCM(to: realtime.provider, sessionID: sessionID)
                 } catch {
                     await realtime.provider.cancel()
                     guard isCurrent(sessionID, phase: .preparing) else { return }
@@ -292,7 +305,9 @@ actor DictationCoordinator {
             await logger.write(.debug, "Dictation phase changed", metadata: ["phase": "recording"], sessionID: sessionID)
             await publish()
         } catch {
-            if machine.snapshot.sessionID == sessionID, machine.snapshot.phase.isActive {
+            // stop() may already be draining PCM while cancelling a pending
+            // first-frame wait. Its stale startup error must not discard that recording.
+            if isCurrent(sessionID, phase: .preparing), cancellingSessionID != sessionID {
                 await fail(error, sessionID: sessionID)
             }
         }
@@ -517,6 +532,8 @@ actor DictationCoordinator {
 
     func cancel() async {
         guard let sessionID = machine.snapshot.sessionID, machine.snapshot.phase.isActive else { return }
+        cancellingSessionID = sessionID
+        defer { if cancellingSessionID == sessionID { cancellingSessionID = nil } }
         maximumDurationTask?.cancel()
         maximumDurationTask = nil
         preparingWatchdogTask?.cancel()
@@ -571,6 +588,22 @@ actor DictationCoordinator {
 
     func snapshot() -> DictationSnapshot { machine.snapshot }
 
+    private func replayStartupPCM(to provider: any RealtimeTranscriptionProvider, sessionID: UUID) async throws {
+        // First-frame verification captures audio before the provider connects.
+        // Keep live forwarding paused until that prefix (including frames arriving
+        // during an awaited send) has been delivered in order.
+        var sentBytes = 0
+        while isCurrent(sessionID, phase: .preparing), providerSessionID == sessionID, sentBytes < pcm.count {
+            let end = min(pcm.count, sentBytes + AudioCaptureService.outputSampleRate * 2 / 50)
+            let pending = Data(pcm[sentBytes..<end])
+            sentBytes = end
+            try await provider.send(pcm16: pending)
+        }
+        if isCurrent(sessionID, phase: .preparing), providerSessionID == sessionID {
+            audioStreamingStarted = true
+        }
+    }
+
     private func consume(frame: Data, rms: Double, sessionID: UUID) async {
         guard machine.snapshot.sessionID == sessionID else { return }
         // Frames are only meaningful while capture is live: preparing covers
@@ -582,10 +615,11 @@ actor DictationCoordinator {
         case .preparing, .recording, .stopping: break
         default: return
         }
+        let forwardLive = audioStreamingStarted
         pcm.append(frame)
         let activity = speechGate.consume(frame, rms: rms)
         await consume(level: activity.visualLevel, sessionID: sessionID)
-        guard providerSessionID == sessionID, let provider else { return }
+        guard forwardLive, providerSessionID == sessionID, let provider else { return }
         do {
             try await provider.send(pcm16: frame)
         } catch {

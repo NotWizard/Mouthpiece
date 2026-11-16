@@ -1,6 +1,7 @@
 @preconcurrency import AVFoundation
 import AudioToolbox
 import CoreAudio
+import CryptoKit
 import Foundation
 import os
 
@@ -53,12 +54,20 @@ class AudioCaptureService {
     private var tapInstalled = false
     private var isStarting = false
     private(set) var isRunning = false
+    private var captureID: UUID?
+    private let firstFrameTimeout: Duration
+
+    init(firstFrameTimeout: Duration = .milliseconds(1_500)) {
+        self.firstFrameTimeout = firstFrameTimeout
+    }
 
     #if DEBUG
     // Test seam for the engine-retirement regression: lets a test assert
     // that start() actually replaces the engine and that the retired one is
     // released asynchronously, without widening the production surface.
     var testEngineHandle: AVAudioEngine { engine }
+    var testPermissionGranted: Bool?
+    var testStartEngineSession: ((Int, AudioConverterBox) async throws -> Void)?
     #endif
 
     func requestPermission() async -> Bool {
@@ -74,14 +83,77 @@ class AudioCaptureService {
         onFrame: @escaping @Sendable (Data, Double) -> Void,
         onLevel: (@Sendable (Float) -> Void)? = nil,
         onSessionInterrupted: (@Sendable () -> Void)? = nil,
-        onDiagnostics: (@Sendable (Int) -> Void)? = nil
+        onDiagnostics: (@Sendable (Int) -> Void)? = nil,
+        onCaptureEvent: (@Sendable (String, [String: String]) -> Void)? = nil
     ) async throws {
-        guard !isRunning, !isStarting else { return }
-        guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
+        guard !isRunning, !isStarting else {
+            throw AudioCaptureError.engineException("A microphone session is already active. Try again.")
+        }
+        #if DEBUG
+        let authorized = testPermissionGranted ?? (AVCaptureDevice.authorizationStatus(for: .audio) == .authorized)
+        #else
+        let authorized = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        #endif
+        guard authorized else {
             throw AudioCaptureError.permissionDenied
         }
+        let id = UUID()
+        captureID = id
         isStarting = true
-        defer { isStarting = false }
+        defer { if captureID == id { isStarting = false } }
+        for attempt in 0...1 {
+            try Task.checkCancellation()
+            guard captureID == id else { throw CancellationError() }
+            let report: @Sendable (String, [String: String]) -> Void = { event, metadata in
+                onCaptureEvent?(event, metadata.merging(["attempt": String(attempt + 1)]) { _, new in new })
+            }
+            let converter = try AudioConverterBox(
+                onFrame: onFrame, onLevel: onLevel, onDiagnostics: onDiagnostics, onCaptureEvent: report
+            )
+            converterBox = converter
+            do {
+                try await startCaptureAttempt(
+                    selectedDeviceUID: selectedDeviceUID, converter: converter, attempt: attempt,
+                    onSessionInterrupted: onSessionInterrupted, report: report
+                )
+                guard captureID == id else { throw CancellationError() }
+                try await converter.waitForFirstFrame(timeout: firstFrameTimeout)
+                guard captureID == id else { throw CancellationError() }
+                isRunning = true
+                report("Audio capture ready", converter.captureDiagnostics)
+                return
+            } catch {
+                guard captureID == id else { throw CancellationError() }
+                removeConfigurationObserver()
+                resetEngine()
+                await converter.finish()
+                guard captureID == id else { throw CancellationError() }
+                converterBox = nil
+                report("Audio capture attempt failed", converter.captureDiagnostics.merging(
+                    ["error": error.localizedDescription]
+                ) { _, new in new })
+                let recoverable: Bool
+                switch error {
+                case AudioCaptureError.noAudioFrames, AudioCaptureError.converterCreationFailed,
+                     AudioCaptureError.converterFailed: recoverable = true
+                default: recoverable = false
+                }
+                guard attempt == 0, recoverable, !Task.isCancelled else {
+                    isStarting = false
+                    captureID = nil
+                    throw error
+                }
+                report("Retrying microphone capture", [:])
+            }
+        }
+    }
+
+    private func startCaptureAttempt(
+        selectedDeviceUID: String?, converter: AudioConverterBox, attempt: Int,
+        onSessionInterrupted: (@Sendable () -> Void)?,
+        report: @escaping @Sendable (String, [String: String]) -> Void
+    ) async throws {
+        let id = captureID
         // A fresh engine per session reads the current input device's real
         // format; a long-lived engine kept the previous device's cached format
         // after a microphone switch, and installTap then failed with "format
@@ -108,13 +180,14 @@ class AudioCaptureService {
         // the tap. A wedged HAL (e.g. after sleep/wake) can also block
         // engine.start for minutes; off the main thread the UI stays
         // responsive and the preparing watchdog fails the attempt instead.
-        converterBox = try await Self.startEngineSession(
+        let metadata = try await startAttempt(
             EngineBox(engine: engine),
             selectedDeviceUID: selectedDeviceUID,
-            onFrame: onFrame,
-            onLevel: onLevel,
-            onDiagnostics: onDiagnostics
+            converter: converter,
+            attempt: attempt
         )
+        guard captureID == id else { throw CancellationError() }
+        report("Audio engine started", metadata)
         // When the active input disappears or changes mid-session (Bluetooth
         // drop, unplugged microphone) the engine silently stops delivering
         // taps; surface it so the session owner can fail with feedback. The
@@ -128,7 +201,6 @@ class AudioCaptureService {
             ) { _ in onSessionInterrupted() }
         }
         tapInstalled = true
-        isRunning = true
     }
 
     private struct EngineBox: @unchecked Sendable {
@@ -137,14 +209,30 @@ class AudioCaptureService {
 
     private static let engineQueue = DispatchQueue(label: "com.mouthpiece.audio-engine", qos: .userInitiated)
 
+    private func startAttempt(
+        _ box: EngineBox,
+        selectedDeviceUID: String?,
+        converter: AudioConverterBox,
+        attempt: Int
+    ) async throws -> [String: String] {
+        #if DEBUG
+        if let testStartEngineSession {
+            try await testStartEngineSession(attempt, converter)
+            return ["inputMode": selectedDeviceUID?.isEmpty == false ? "selected" : "systemDefault"]
+        }
+        #endif
+        return try await Self.startEngineSession(
+            box, selectedDeviceUID: selectedDeviceUID, converter: converter, rebindDefault: attempt > 0
+        )
+    }
+
     private static func startEngineSession(
         _ box: EngineBox,
         selectedDeviceUID: String?,
-        onFrame: @escaping @Sendable (Data, Double) -> Void,
-        onLevel: (@Sendable (Float) -> Void)?,
-        onDiagnostics: (@Sendable (Int) -> Void)?
-    ) async throws -> AudioConverterBox {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<AudioConverterBox, Error>) in
+        converter: AudioConverterBox,
+        rebindDefault: Bool
+    ) async throws -> [String: String] {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[String: String], Error>) in
             engineQueue.async {
                 do {
                     let input = box.engine.inputNode
@@ -154,16 +242,13 @@ class AudioCaptureService {
                         } catch {
                             throw AudioCaptureError.selectedInputUnavailable
                         }
+                    } else if rebindDefault {
+                        try bindInputDevice(defaultInputDeviceID(), on: input)
                     }
                     let inputFormat = input.outputFormat(forBus: 0)
                     guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
                         throw AudioCaptureError.unavailableInput
                     }
-                    let converter = try AudioConverterBox(
-                        onFrame: onFrame,
-                        onLevel: onLevel,
-                        onDiagnostics: onDiagnostics
-                    )
                     // P2-20: prewarm the reusable buffer pool BEFORE the tap
                     // is installed. CoreAudio drives the tap on its realtime
                     // queue; allocating 10 PCM buffers there under `lock`
@@ -210,7 +295,22 @@ class AudioCaptureService {
                         box.engine.stop()
                         throw failure
                     }
-                    continuation.resume(returning: converter)
+                    var actualID = AudioDeviceID(0)
+                    var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+                    if let unit = input.audioUnit {
+                        _ = AudioUnitGetProperty(unit, kAudioOutputUnitProperty_CurrentDevice,
+                                                 kAudioUnitScope_Global, 0, &actualID, &size)
+                    }
+                    let uid = stringProperty(actualID, selector: kAudioDevicePropertyDeviceUID) ?? "unknown"
+                    let hash = SHA256.hash(data: Data(uid.utf8)).prefix(6)
+                        .map { String(format: "%02x", $0) }.joined()
+                    continuation.resume(returning: [
+                        "inputMode": selectedDeviceUID?.isEmpty == false ? "selected" : "systemDefault",
+                        "defaultInputID": String(defaultInputDeviceID()), "actualInputID": String(actualID),
+                        "inputUIDHash": hash,
+                        "inputName": stringProperty(actualID, selector: kAudioObjectPropertyName) ?? "unknown",
+                        "sampleRate": String(inputFormat.sampleRate), "channels": String(inputFormat.channelCount),
+                    ])
                 } catch {
                     continuation.resume(throwing: error)
                 }
@@ -224,6 +324,18 @@ class AudioCaptureService {
     }
 
     func stop() async {
+        let wasStarting = isStarting
+        captureID = nil
+        isStarting = false
+        removeConfigurationObserver()
+        guard isRunning || wasStarting || tapInstalled || converterBox != nil else { return }
+        let converter = converterBox
+        converterBox = nil
+        resetEngine()
+        await converter?.finish()
+    }
+
+    private func removeConfigurationObserver() {
         // Removing the observer first keeps an owner-initiated tear-down from
         // being misreported as a device interruption, and prevents leaking one
         // observer per session.
@@ -231,22 +343,24 @@ class AudioCaptureService {
             NotificationCenter.default.removeObserver(configurationChangeObserver)
             self.configurationChangeObserver = nil
         }
-        guard isRunning || tapInstalled || converterBox != nil else { return }
-        resetEngine()
-        await converterBox?.finish()
-        converterBox = nil
     }
 
     func availableInputDevices() -> [AudioInputDevice] {
         Self.inputDevices()
     }
 
-    private static func selectInputDevice(uid: String, on inputNode: AVAudioInputNode) throws {
-        guard let device = inputDevicesWithIDs().first(where: { $0.uid == uid }),
-              let audioUnit = inputNode.audioUnit else {
+    nonisolated private static func selectInputDevice(uid: String, on inputNode: AVAudioInputNode) throws {
+        guard let device = inputDevicesWithIDs().first(where: { $0.uid == uid }) else {
             throw AudioCaptureError.unavailableInput
         }
-        var deviceID = device.id
+        try bindInputDevice(device.id, on: inputNode)
+    }
+
+    nonisolated private static func bindInputDevice(_ id: AudioDeviceID, on inputNode: AVAudioInputNode) throws {
+        guard id != kAudioObjectUnknown, let audioUnit = inputNode.audioUnit else {
+            throw AudioCaptureError.unavailableInput
+        }
+        var deviceID = id
         let status = AudioUnitSetProperty(
             audioUnit,
             kAudioOutputUnitProperty_CurrentDevice,
@@ -263,6 +377,9 @@ class AudioCaptureService {
         tapInstalled = false
         isRunning = false
         let box = EngineBox(engine: engine)
+        #if DEBUG
+        if testStartEngineSession != nil { return }
+        #endif
         Self.engineQueue.async {
             if wasTapped { box.engine.inputNode.removeTap(onBus: 0) }
             box.engine.stop()
@@ -280,7 +397,7 @@ class AudioCaptureService {
         }
     }
 
-    private static func inputDevicesWithIDs() -> [(id: AudioDeviceID, uid: String, name: String)] {
+    nonisolated private static func inputDevicesWithIDs() -> [(id: AudioDeviceID, uid: String, name: String)] {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDevices,
             mScope: kAudioObjectPropertyScopeGlobal,
@@ -316,7 +433,7 @@ class AudioCaptureService {
         }
     }
 
-    private static func hasInputStreams(deviceID: AudioDeviceID) -> Bool {
+    nonisolated private static func hasInputStreams(deviceID: AudioDeviceID) -> Bool {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyStreams,
             mScope: kAudioDevicePropertyScopeInput,
@@ -326,7 +443,7 @@ class AudioCaptureService {
         return AudioObjectGetPropertyDataSize(deviceID, &address, 0, nil, &size) == noErr && size > 0
     }
 
-    private static func stringProperty(_ id: AudioObjectID, selector: AudioObjectPropertySelector) -> String? {
+    nonisolated private static func stringProperty(_ id: AudioObjectID, selector: AudioObjectPropertySelector) -> String? {
         var address = AudioObjectPropertyAddress(
             mSelector: selector,
             mScope: kAudioObjectPropertyScopeGlobal,
@@ -340,7 +457,7 @@ class AudioCaptureService {
         return value?.takeUnretainedValue() as String?
     }
 
-    private static func defaultInputDeviceID() -> AudioDeviceID {
+    nonisolated private static func defaultInputDeviceID() -> AudioDeviceID {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDefaultInputDevice,
             mScope: kAudioObjectPropertyScopeGlobal,
@@ -371,6 +488,7 @@ final class AudioConverterBox: @unchecked Sendable {
     private let onFrame: @Sendable (Data, Double) -> Void
     private let onLevel: (@Sendable (Float) -> Void)?
     private let onDiagnostics: (@Sendable (Int) -> Void)?
+    private let onCaptureEvent: (@Sendable (String, [String: String]) -> Void)?
     private let queue = DispatchQueue(label: "com.mouthpiece.audio-conversion", qos: .userInitiated)
     // P2-20: os_unfair_lock (heap-allocated because Swift stored properties
     // have no stable address) replaces NSLock so the render tap thread does
@@ -387,6 +505,11 @@ final class AudioConverterBox: @unchecked Sendable {
     private var poolFormat: AVAudioFormat?
     private var poolCapacity: AVAudioFrameCount = 0
     private var droppedFrames = 0
+    private var inputBuffers = 0
+    private var inputFrames = 0
+    private var emittedBuffers = 0
+    private var emittedBytes = 0
+    private var firstConversionError: AudioCaptureError?
     // P2-20 test seam: number of times the render path re-allocated the pool
     // while holding `lock` (i.e. hit the reactive branch in `process()`).
     // Prewarming from `startEngineSession` keeps this at 0 on the normal
@@ -400,7 +523,8 @@ final class AudioConverterBox: @unchecked Sendable {
     init(
         onFrame: @escaping @Sendable (Data, Double) -> Void,
         onLevel: (@Sendable (Float) -> Void)? = nil,
-        onDiagnostics: (@Sendable (Int) -> Void)? = nil
+        onDiagnostics: (@Sendable (Int) -> Void)? = nil,
+        onCaptureEvent: (@Sendable (String, [String: String]) -> Void)? = nil
     ) throws {
         guard let outputFormat = AVAudioFormat(
             commonFormat: .pcmFormatInt16,
@@ -414,6 +538,7 @@ final class AudioConverterBox: @unchecked Sendable {
         self.onFrame = onFrame
         self.onLevel = onLevel
         self.onDiagnostics = onDiagnostics
+        self.onCaptureEvent = onCaptureEvent
     }
 
     deinit {
@@ -424,6 +549,32 @@ final class AudioConverterBox: @unchecked Sendable {
     // P2-20: read the reactive-allocation counter under lock so tests
     // observing it after `finish()` do not race with a still-running drain.
     var allocationsUnderLock: Int { withLock { _allocationsUnderLock } }
+
+    var captureDiagnostics: [String: String] {
+        withLock {
+            var values = [
+                "inputBuffers": String(inputBuffers), "inputFrames": String(inputFrames),
+                "pcmBuffers": String(emittedBuffers), "pcmBytes": String(emittedBytes),
+                "droppedFrames": String(droppedFrames),
+            ]
+            if let firstConversionError { values["conversionError"] = firstConversionError.localizedDescription }
+            return values
+        }
+    }
+
+    func waitForFirstFrame(timeout: Duration) async throws {
+        let deadline = ContinuousClock.now.advanced(by: timeout)
+        // ponytail: startup-only 10 ms checks; use a continuation if these bounded wakeups become measurable.
+        while true {
+            try Task.checkCancellation()
+            let (frames, accepting, error) = withLock { (emittedBuffers, self.accepting, firstConversionError) }
+            guard accepting else { throw CancellationError() }
+            if frames > 0 { return }
+            if let error { throw error }
+            guard ContinuousClock.now < deadline else { throw AudioCaptureError.noAudioFrames }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+    }
 
     #if DEBUG
     // P3-7 test seam: how many frames actually ran the smoothed-level
@@ -463,9 +614,15 @@ final class AudioConverterBox: @unchecked Sendable {
 
     func process(_ input: AVAudioPCMBuffer) {
         let format = input.format
-        guard format.sampleRate > 0, format.channelCount > 0 else { return }
         os_unfair_lock_lock(lock)
         guard accepting else {
+            os_unfair_lock_unlock(lock)
+            return
+        }
+        inputBuffers += 1
+        inputFrames += Int(input.frameLength)
+        guard format.sampleRate > 0, format.channelCount > 0 else {
+            droppedFrames += 1
             os_unfair_lock_unlock(lock)
             return
         }
@@ -525,6 +682,7 @@ final class AudioConverterBox: @unchecked Sendable {
     }
 
     private func reportDiagnostics() {
+        onCaptureEvent?("Audio capture diagnostics", captureDiagnostics)
         let dropped = withLock { droppedFrames }
         guard dropped > 0 else { return }
         onDiagnostics?(dropped)
@@ -558,10 +716,14 @@ final class AudioConverterBox: @unchecked Sendable {
         if converter == nil || converter?.inputFormat != input.format {
             converter = AVAudioConverter(from: input.format, to: outputFormat)
         }
-        guard let converter else { return }
+        guard let converter else {
+            recordConversionFailure(.converterCreationFailed)
+            return
+        }
         let ratio = outputFormat.sampleRate / input.format.sampleRate
         let capacity = AVAudioFrameCount(ceil(Double(input.frameLength) * ratio)) + 32
         guard let output = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: capacity) else {
+            recordConversionFailure(.converterFailed("Unable to allocate the output audio buffer."))
             return
         }
         let source = ConverterInputSource(buffer: input)
@@ -574,7 +736,11 @@ final class AudioConverterBox: @unchecked Sendable {
             inputStatus.pointee = .haveData
             return input
         }
-        guard status != .error, output.frameLength > 0,
+        guard status != .error else {
+            recordConversionFailure(.converterFailed(conversionError?.localizedDescription ?? "Unknown converter error"))
+            return
+        }
+        guard output.frameLength > 0,
               let pointer = output.audioBufferList.pointee.mBuffers.mData else { return }
         pendingPCM.append(Data(bytes: pointer, count: Int(output.frameLength) * MemoryLayout<Int16>.size))
         while pendingPCM.count >= Self.frameBytes {
@@ -590,6 +756,10 @@ final class AudioConverterBox: @unchecked Sendable {
     }
 
     private func emit(_ data: Data) {
+        withLock {
+            emittedBuffers += 1
+            emittedBytes += data.count
+        }
         var sum = 0.0
         var count = 0
         data.withUnsafeBytes { bytes in
@@ -614,6 +784,15 @@ final class AudioConverterBox: @unchecked Sendable {
             #endif
             onLevel(smoothedLevel)
         }
+    }
+
+    func recordConversionFailure(_ error: AudioCaptureError) {
+        let first = withLock {
+            guard firstConversionError == nil else { return false }
+            firstConversionError = error
+            return true
+        }
+        if first { onCaptureEvent?("Audio conversion failed", ["error": error.localizedDescription]) }
     }
 
     private static func copy(_ input: AVAudioPCMBuffer, into copy: AVAudioPCMBuffer) -> Bool {
